@@ -292,3 +292,38 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
   sunucuda `maksKurulum` Faz 2'deki PC sayısı kadar.
 - Deneme süresi 30 gün korunur; kurulum gününde anahtar girilir, deneme fiilen kullanılmaz.
 
+
+## 8. Bekleyen İşler ve Teslim Öncesi Kontrol Listesi (06.09.2026 itibarıyla)
+
+### 8.1 Kerem'in yapacakları (bu makineden)
+| # | İş | Nasıl | Durum |
+|---|----|-------|-------|
+| 1 | Lisans özel anahtarlarını yedekle | `scripts/keys/lisans-private.pem` ve `lisans-lease-private.pem` dosyalarını şifreli USB veya parola yöneticisine kopyala. Kaybolursa dağıtılan tüm lisanslar geçersiz olur. | Bekliyor |
+| 2 | GitHub deposu oluştur ve push et | `gh repo create keremgenisel/eyupspor --private`, `git remote add origin …`, `git push -u origin main`. `package.json build.publish` bu adı bekliyor. | Bekliyor |
+| 3 | Aktivasyon sunucusunu deploy et | `cd aktivasyon-sunucu && npx wrangler login && ./deploy.sh`. Çıkan adresi `electron/aktivasyonIstemci.cjs` → `AKTIVASYON_URL` alanına yaz, commit et. | Bekliyor |
+| 4 | Kulübe lisans anahtarı üret | `node scripts/lisans-uret.cjs --firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon` ve `node scripts/lisans-yonet.cjs kaydet --anahtar "…" --kurulum 2`. Aktivasyon sunucusu yoksa `--aktivasyon` bayrağını KOYMA. | Bekliyor |
+| 5 | İlk sürümü yayınla | `package.json` version `1.0.0`, `git tag v1.0.0 && git push --follow-tags` → GitHub Release + otomatik güncelleme. Alternatif: `npm run build:win` ile `release/*.exe`, ardından `node scripts/ensure-native.cjs`. | Bekliyor |
+| 6 | Wrangler'ı 4.x'e yükselt | `aktivasyon-sunucu` içinde `npm install --save-dev wrangler@4` (3.x uyarı veriyor). | Bekliyor |
+
+### 8.2 Kulüp bilgisayarında kurulum günü
+1. Kurulum dosyasını çalıştır, `admin`/`admin` ile gir, parolayı değiştir (rehber: `docs/kurulum.md`).
+2. Ayarlar > Lisans: anahtarı yapıştır. Online aktivasyon açıksa "Aktive Et".
+3. Ayarlar > Yedekleme: klasör seç (harici disk veya bulut klasörü).
+4. Ayarlar > Aidat Kalemleri: fiyatları gir. Ayarlar > Kulüp ve Makbuz: tahsil eden adı, alt yazı.
+5. Yaş gruplarını oluştur, mevcut oyuncu listesini gir (Excel varsa toplu aktarım, bkz. 8.3).
+6. Yazıcıda deneme makbuzu bas, düzeni kontrol et.
+7. İkinci PC varsa: sunucuyu başlat, diğer PC'den bağlan, Tailscale gerekiyorsa iki tarafa kur.
+8. Antrenöre 20 dakikalık kullanım eğitimi: oyuncu ekleme, makbuz, yoklama, tesise giriş kontrolü.
+
+### 8.3 Kulüpten cevabı beklenen sorular (bkz. §6) ve etkisi
+- Aidat tutarı yaş grubuna göre değişiyorsa → her oyuncuda ayrı girilir, ek geliştirme gerekmez.
+- İndirim yüzde ise → şu an sabit tutar giriliyor; yüzde istenirse Ücret Tipi'ne oran alanı eklenir (küçük iş).
+- Mevcut Excel oyuncu listesi varsa → `scripts/excel-aktar.cjs` yazılır (yarım gün).
+- Yazıcı fiş yazıcıysa → makbuz şablonuna 80 mm düzen eklenir (yarım gün).
+
+### 8.4 Faz 3 adayları (kulüp isterse)
+- WhatsApp bildirimleri (tek tıkla gönder → otomasyon), bkz. §1.6.
+- Sporcu kimlik kartı basımı, aidat borcunda kart bloke.
+- Sağlık raporu geçerlilik uyarısı (alan var, uyarı ekranı yok).
+- Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
+- Yedeklerden geri yükleme ekranı (şu an elle: `data.db` + `uploads/` kopyalanır).
