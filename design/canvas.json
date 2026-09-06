@@ -1,0 +1,80 @@
+{
+ "artboards": [
+  {
+   "file": "Giris.dc.html",
+   "x": 0,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Giriş"
+  },
+  {
+   "file": "Main.dc.html",
+   "x": 1540,
+   "y": 0,
+   "w": 1440,
+   "h": 900,
+   "title": "Pano"
+  },
+  {
+   "file": "Oyuncular.dc.html",
+   "x": 0,
+   "y": 1040,
+   "w": 1440,
+   "h": 900,
+   "title": "Oyuncular"
+  },
+  {
+   "file": "OyuncuKarti.dc.html",
+   "x": 1540,
+   "y": 1040,
+   "w": 1440,
+   "h": 900,
+   "title": "Oyuncu Kartı"
+  },
+  {
+   "file": "Tahsilat.dc.html",
+   "x": 0,
+   "y": 2080,
+   "w": 1440,
+   "h": 900,
+   "title": "Tahsilat"
+  },
+  {
+   "file": "Yoklama.dc.html",
+   "x": 1540,
+   "y": 2080,
+   "w": 1440,
+   "h": 900,
+   "title": "Yoklama"
+  },
+  {
+   "file": "Makbuz.dc.html",
+   "x": 3080,
+   "y": 2080,
+   "w": 794,
+   "h": 1123,
+   "title": "Makbuz (A4)",
+   "print": "fixed"
+  }
+ ],
+ "annotations": [
+  {
+   "id": "not-renkler",
+   "x": 3080,
+   "y": 0,
+   "w": 420,
+   "text": "Kulüp renkleri\nMor #5B2D8E · Koyu mor #3F1D66 · Sarı #F5D000 · Kırmızı #E0101F\n\nSarı = birincil eylem (Makbuz Kes, Kaydet ve Yazdır)\nKırmızı = borç / uyarı\nYeşil = ödendi / geldi"
+  },
+  {
+   "id": "not-pano",
+   "x": 3080,
+   "y": 260,
+   "w": 420,
+   "text": "Pano üstündeki arama kutusu tesise giriş kontrolü için: ad veya TC yazınca oyuncu ve bu ayın aidat durumu yeşil/kırmızı görünür."
+  }
+ ],
+ "launch": {
+  "view": "canvas"
+ }
+}

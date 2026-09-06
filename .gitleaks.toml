@@ -1,0 +1,27 @@
+# gitleaks yapılandırması — Eyüpspor Futbol Okulu
+# Amaç: jwtSecret, parola, API anahtarı gibi sırların yanlışlıkla depoya girmesini engellemek.
+# Varsayılan kural setini kullanır, üzerine yalnızca gerçek false-positive'leri susturan bir
+# allowlist ekler.
+#
+# Çalıştırma:
+#   gitleaks git .   → commit geçmişi + staged içerik (hook/CI bunu kullanır)
+#   gitleaks dir .   → çalışma ağacındaki tüm dosyalar (tam tarama)
+
+title = "eyupspor gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Proje geneli allowlist — yalnızca sır olmayan gürültüyü susturur"
+paths = [
+  '''(^|/)release/''',
+  '''(^|/)dist/''',
+  '''(^|/)node_modules/''',
+  '''(^|/)package-lock\.json$''',
+  '''(^|/)build/icon\.(ico|png)$''',
+  '''(^|/)assets/''',
+  '''(^|/)design/''',
+  '''(^|/)docs/formlar/''',
+  '''\.enc$''',
+]

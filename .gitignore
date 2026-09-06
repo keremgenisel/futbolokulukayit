@@ -1,0 +1,14 @@
+node_modules/
+dist/
+release/
+.DS_Store
+*.log
+
+.claude/
+
+# Tasarım tuvalinin derlenmiş çıktısı (2 MB, yeniden üretilir)
+design/*.html
+!design/*.dc.html
+
+# SAST tarama çıktısı (yerel rapor, commit edilmez)
+sast/

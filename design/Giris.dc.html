@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Source+Sans+3:wght@400;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Source Sans 3', 'Helvetica Neue', Arial, sans-serif; color: #1B1530; -webkit-font-smoothing: antialiased; }
+    a { color: #5B2D8E; } a:hover { color: #3F1D66; }
+    .h { font-family: 'Barlow Condensed', 'Arial Narrow', Arial, sans-serif; }
+    table { border-collapse: collapse; }
+    th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: #6B6480; font-weight: 600; padding: 10px 14px; border-bottom: 1px solid #E2DCEC; }
+    td { padding: 12px 14px; border-bottom: 1px solid #E2DCEC; font-size: 15px; vertical-align: middle; }
+  </style>
+</helmet>
+<div style="width: 1440px; height: 900px; display: flex; background: #F6F4FA; overflow: hidden;">
+  <div style="width: 620px; background: #5B2D8E; display: flex; flex-direction: column; justify-content: space-between; padding: 48px; box-sizing: border-box; position: relative; overflow: hidden;">
+    <div style="position: absolute; right: -120px; top: -80px; width: 520px; height: 520px; border-radius: 50%; background: #3F1D66; opacity: 0.6;"></div>
+    <div style="position: absolute; left: -60px; bottom: -160px; width: 420px; height: 420px; border-radius: 50%; background: #F5D000; opacity: 0.12;"></div>
+    <div style="display: flex; align-items: center; gap: 14px; position: relative;">
+      <img src="logo.png" alt="Eyüpspor" style="width: 56px; height: 56px; object-fit: contain;">
+      <span class="h" style="color: #FFFFFF; font-size: 24px; font-weight: 700; letter-spacing: 0.06em;">EYÜPSPOR</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 14px; position: relative;">
+      <span class="h" style="color: #FFFFFF; font-size: 64px; font-weight: 700; line-height: 0.95;">Futbol Okulu<br>Kayıt Programı</span>
+      <span style="color: #D8CCE9; font-size: 18px; max-width: 420px; line-height: 1.5;">Oyuncu kayıtları, aylık aidat takibi, makbuz ve yoklama tek ekranda.</span>
+    </div>
+    <span style="color: #F5D000; font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase; font-weight: 600; position: relative;">Kuruluş 1919</span>
+  </div>
+  <div style="flex-grow: 1; display: flex; align-items: center; justify-content: center;">
+    <div style="width: 420px; display: flex; flex-direction: column; gap: 22px;">
+      <div style="display: flex; flex-direction: column; gap: 6px;">
+        <span class="h" style="font-size: 36px; font-weight: 700; color: #3F1D66; line-height: 1;">Giriş Yap</span>
+        <span style="color: #6B6480; font-size: 15px;">Kullanıcı adı ve parolanızla devam edin.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 13px; font-weight: 600; color: #1B1530;">Kullanıcı adı</label>
+        <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid #E2DCEC; border-radius: 8px; background: #FFFFFF; color: #6B6480;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"></path></svg><span style="color: #1B1530;">serif.celik</span></div>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <label style="font-size: 13px; font-weight: 600; color: #1B1530;">Parola</label>
+        <div style="display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 14px; border: 1px solid #5B2D8E; border-radius: 8px; background: #FFFFFF; color: #6B6480; box-shadow: 0 0 0 3px #EDE6F6;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg><span style="color: #1B1530; letter-spacing: 0.2em; flex-grow: 1;">••••••••</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"></path><circle cx="12" cy="12" r="3"></circle></svg></div>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; height: 48px; border-radius: 8px; background: #5B2D8E; color: #FFFFFF; font-weight: 700; font-size: 16px;">Giriş Yap</div>
+      <span style="color: #6B6480; font-size: 13px; text-align: center;">Parolanızı unuttuysanız yöneticiye başvurun.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

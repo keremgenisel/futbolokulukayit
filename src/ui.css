@@ -1,0 +1,27 @@
+/* Kulüp kimliği — design/ tuvalindeki değerlerle birebir */
+:root {
+  --mor: #5B2D8E;
+  --mor-koyu: #3F1D66;
+  --mor-acik: #EDE6F6;
+  --sari: #F5D000;
+  --sari-acik: #FFF7C2;
+  --kirmizi: #E0101F;
+  --kirmizi-acik: #FBE4E6;
+  --yesil: #1F8A4C;
+  --yesil-acik: #E3F4EA;
+  --zemin: #F6F4FA;
+  --metin: #1B1530;
+  --soluk: #6B6480;
+  --cizgi: #E2DCEC;
+  --font: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --font-baslik: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: var(--font); color: var(--metin); background: var(--zemin); -webkit-font-smoothing: antialiased; }
+a { color: var(--mor); }
+h1, h2, h3, .baslik { font-family: var(--font-baslik); color: var(--mor-koyu); margin: 0; }
+button, input, select, textarea { font: inherit; }
+table { border-collapse: collapse; width: 100%; }
+th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); font-weight: 600; padding: 10px 14px; border-bottom: 1px solid var(--cizgi); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--cizgi); font-size: 15px; vertical-align: middle; }
