@@ -5,6 +5,8 @@ const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const db = require("../db.cjs");
+const config = require("../config.cjs");
+const istemci = require("../istemci.cjs");
 const { uploadsIci } = require("./files.cjs");
 
 async function htmlPencere(html) {
@@ -34,6 +36,10 @@ function registerCiktiHandlers(getSession) {
   // Makbuz PDF'ini uploads/makbuz/<no>.pdf olarak sakla ve kayda bağla.
   ipcMain.handle("cikti:makbuzPdf", async (_e, receiptId, html) => {
     yetki();
+    if (config.istemciMi()) {
+      const pdf = await htmlToPdf(html);
+      return istemci.istek("/api/cikti/makbuzPdf", { method: "POST", timeoutMs: 120000, body: { receiptId: Number(receiptId), pdfBase64: pdf.toString("base64") } });
+    }
     const r = db.getReceipt(Number(receiptId));
     if (!r) throw new Error("Makbuz bulunamadı");
     const pdf = await htmlToPdf(html);

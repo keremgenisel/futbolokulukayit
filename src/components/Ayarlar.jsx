@@ -4,10 +4,11 @@ import { db, yedek, uygulama, hataMetni } from "../lib/api.js";
 import { paraTR, tarihTR } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
 import { SettingsLisans } from "./SettingsLisans.jsx";
+import { SettingsSunucu } from "./SettingsSunucu.jsx";
 
-const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz" }, { kod: "kalem", ad: "Aidat Kalemleri" }, { kod: "kullanici", ad: "Kullanıcılar" }, { kod: "yedek", ad: "Yedekleme" }, { kod: "lisans", ad: "Lisans" }, { kod: "hakkinda", ad: "Hakkında" }];
+const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz" }, { kod: "kalem", ad: "Aidat Kalemleri" }, { kod: "kullanici", ad: "Kullanıcılar" }, { kod: "yedek", ad: "Yedekleme" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC" }, { kod: "lisans", ad: "Lisans" }, { kod: "hakkinda", ad: "Hakkında" }];
 
-export function Ayarlar({ oturum, saltOkunur, onLisansDegisti }) {
+export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti }) {
   const [bolum, setBolum] = useState("kulup");
   const admin = oturum?.role === "admin";
   return (
@@ -20,6 +21,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti }) {
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
         {bolum === "yedek" && <YedekAyar />}
+        {bolum === "sunucu" && <SettingsSunucu admin={admin} onModDegisti={onModDegisti} />}
         {bolum === "lisans" && <SettingsLisans admin={admin} onLisansDegisti={onLisansDegisti} />}
         {bolum === "hakkinda" && <Hakkinda />}
       </Kart>

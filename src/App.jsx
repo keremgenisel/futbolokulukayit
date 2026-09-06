@@ -25,6 +25,8 @@ export function App() {
   const [tahsilatOyuncu, setTahsilatOyuncu] = useState(null); // Tahsilat'a önceden seçili oyuncu
   const [acilacakOyuncu, setAcilacakOyuncu] = useState(null); // Oyuncular'da açılacak kart
   const [sekmeKey, setSekmeKey] = useState(0); // aynı sekmeye tekrar geçişte ekranı tazelemek için
+  const [mod, setMod] = useState(null); // { mode, serverUrl, sunucu }
+  const modYenile = useCallback(() => { window.okul?.mod?.oku().then(setMod).catch(() => {}); }, []);
 
   const lisansYenile = useCallback(() => { window.okul?.lisans.durum().then((r) => { if (r?.ok) setLisans(r.durum); }).catch(() => {}); }, []);
 
@@ -32,6 +34,9 @@ export function App() {
     window.okul?.auth.session().then((s) => { setOturum(s); setHazir(true); }).catch(() => setHazir(true));
   }, []);
   useEffect(() => { if (oturum) lisansYenile(); }, [oturum, lisansYenile]);
+  useEffect(() => { modYenile(); }, [oturum, modYenile]);
+  // Mod değişince (istemciye bağlandı / yerele döndü) oturum düşer, giriş ekranına dönülür.
+  const modDegisti = (yeniMod) => { modYenile(); if (yeniMod === "istemci" || yeniMod === "yerel") { setOturum(null); setTab("pano"); } };
   // Lisans yenileme kalbi: açılışta + 12 saatte bir (aktivasyon ayarlı değilse sunucuda no-op).
   useEffect(() => {
     if (!oturum || !window.okul?.lisans?.yenile) return;
@@ -50,7 +55,7 @@ export function App() {
   const makbuzKes = (id) => { setTahsilatOyuncu(id); setTab("tahsilat"); setSekmeKey((k) => k + 1); };
 
   if (!hazir) return null;
-  if (!oturum) return <ToastSaglayici><Giris onGiris={setOturum} /></ToastSaglayici>;
+  if (!oturum) return <ToastSaglayici><Giris onGiris={setOturum} mod={mod} onModDegisti={modDegisti} /></ToastSaglayici>;
 
   return (
     <ToastSaglayici>
@@ -77,6 +82,8 @@ export function App() {
         <div style={{ borderTop: "1px solid rgba(255,255,255,.15)", padding: "12px 10px", color: "#D8CCE9", fontSize: 14 }}>
           <div style={{ color: "#fff", fontWeight: 600 }}>{oturum.ad_soyad || oturum.username}</div>
           <div style={{ fontSize: 12 }}>{oturum.role === "admin" ? "Yönetici" : "Kullanıcı"}</div>
+          {mod?.mode === "istemci" && <div style={{ fontSize: 11, color: "var(--sari)", marginTop: 4 }}>Sunucuya bağlı</div>}
+          {mod?.mode === "sunucu" && <div style={{ fontSize: 11, color: mod.sunucu?.calisiyor ? "var(--sari)" : "#f99", marginTop: 4 }}>Sunucu {mod.sunucu?.calisiyor ? "açık · " + mod.sunucu.port : "kapalı"}</div>}
           <button type="button" onClick={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} style={{ background: "none", border: 0, color: "#D8CCE9", padding: 0, cursor: "pointer", fontSize: 12, marginTop: 4 }}>Çıkış</button>
         </div>
       </aside>
@@ -103,7 +110,7 @@ export function App() {
           {tab === "tahsilat" && <Tahsilat key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onOyuncu={oyuncuAc} secilenOyuncuId={tahsilatOyuncu} onSecildi={() => setTahsilatOyuncu(null)} />}
           {tab === "yoklama" && <Yoklama key={sekmeKey} saltOkunur={saltOkunur} />}
           {tab === "raporlar" && <Raporlar key={sekmeKey} />}
-          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} />}
+          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} />}
         </section>
       </main>
       {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => setOturum({ ...oturum, must_change_password: false })} />}

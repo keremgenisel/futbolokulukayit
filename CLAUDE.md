@@ -17,7 +17,7 @@ npm install          # bağımlılıklar + native rebuild (postinstall) + git ho
 npm run dev          # vite + electron, hot reload
 npm run build        # vite build → dist/
 npm run build:win    # vite build + electron-builder --win → release/*.exe
-npm test             # vitest: saf mantık + jsdom bileşen testleri + Electron altında SQLite + arayüz duman testi (dist/ gerekir)
+npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği ve arayüz duman testi (dist/ gerekir)
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
 npm run lint         # ESLint 9 (hata sayısı 0 tutulur)
 npm run typecheck    # tsc --noEmit (// @ts-check işaretli dosyalar)
@@ -26,6 +26,12 @@ npm run audit        # npm audit --audit-level=high
 ```
 
 ## Durum (06.09.2026)
+
+Faz 2 uygulama tarafı tamam: gömülü HTTPS sunucu + istemci modu (Ayarlar > Sunucu / Çoklu PC),
+aktivasyon sunucusu kodu hazır (deploy bekliyor: `aktivasyon-sunucu/deploy.sh`). Kullanıcı rehberi
+`docs/kurulum.md`. Yazı tipleri @fontsource ile gömülü. Windows yayını `.github/workflows/release.yml`
+(tag push) veya `npm run build:win` (macOS'ta da çalışır; ardından `node scripts/ensure-native.cjs`
+ile mac native modüllerini geri derle, yoksa Electron testleri düşer).
 
 Faz 1 tamam: giriş + zorunlu parola değişimi, yaş grupları, oyuncu kaydı (aile, acil kişiler, belgeler),
 aylık aidat, makbuz kesme/yazdırma/PDF, yoklama, pano (tesise giriş kontrolü), raporlar (Excel/PDF),
@@ -48,6 +54,14 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   önek `EYUPSPOR.`/`EYUPLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
   Üretici betikleri: `scripts/lisans-uret.cjs`, `lease-uret.cjs`, `lisans-yonet.cjs`.
 - `src/lib/makbuzHtml.js`, `raporHtml.js` — yazdırma/PDF şablonları (renderer üretir, main render eder).
+- **Çoklu PC:** `electron/config.cjs` (mod: yerel|sunucu|istemci, `config.json` + şifreli jeton),
+  `electron/server.cjs` (Express + HTTPS self-signed, JWT 30 gün, login hız sınırı, `/api/db` aynı
+  beyaz liste), `electron/istemci.cjs` (undici pinli fetch, TOFU parmak izi onayı, `knownServers`),
+  `electron/yetki.cjs` (IPC ve sunucu için ORTAK yetki kararı). `ipc/data.cjs` her çağrıda
+  `config.istemciMi()` ile yönlendirir; istemcide belge yükleme base64 ile sunucuya gider, makbuz PDF
+  istemcide üretilip sunucuya yüklenir, yedek yalnız sunucuda.
+- `aktivasyon-sunucu/` — Cloudflare Worker + D1 (GenCRM kopyası, EYUPSPOR önekleri). `deploy.sh`
+  ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.
 - `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`). Tüm stil inline; renkler

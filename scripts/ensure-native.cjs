@@ -21,8 +21,9 @@ const MODULES = [
 
 const probeFor = (m) => {
   const req = JSON.stringify(path.join(root, "node_modules", m.ad));
+  // multiple-ciphers 12.x bellek-içi DB'de PRAGMA key'i reddeder → şifreli probe geçici dosyada yapılır.
   const govde = m.sifreli
-    ? `const d = new D(":memory:"); d.pragma("key='probe-key'"); d.exec("create table t(x)"); d.close();`
+    ? `const fs=require("fs"),os=require("os"),p=require("path"); const f=p.join(fs.mkdtempSync(p.join(os.tmpdir(),"probe-")),"p.db"); const d = new D(f); d.pragma("key='probe-key'"); d.exec("create table t(x)"); d.close(); fs.rmSync(p.dirname(f),{recursive:true,force:true});`
     : `new D(":memory:").close();`;
   return `try { const D = require(${req}); ${govde} process.exit(0); } catch (e) { console.error(e.message); process.exit(1); }`;
 };

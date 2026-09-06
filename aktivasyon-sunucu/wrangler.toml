@@ -1,0 +1,17 @@
+name = "eyupspor-aktivasyon"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# D1: `wrangler d1 create eyupspor-lisans` çıktısındaki database_id aşağıya yazılır.
+[[d1_databases]]
+binding = "DB"
+database_name = "eyupspor-lisans"
+database_id = "DEPLOY-SONRASI-DOLDUR"
+
+[vars]
+LEASE_GUN = "14"   # lease penceresi (gün). Uzun = internetsiz dayanıklı, iptal daha geç etkili.
+
+# Secrets (repoya GİRMEZ — `wrangler secret put <AD>` ile ayarlanır):
+#   LISANS_PUBLIC_PEM  → kalıcı lisans AÇIK anahtarı (pub1; anahtarları doğrulamak için)
+#   LEASE_PRIVATE_PEM  → lease ÖZEL anahtarı (priv2; lease imzalamak için — HASSAS)
+#   ADMIN_TOKEN        → /admin/* uçları için paylaşılan gizli

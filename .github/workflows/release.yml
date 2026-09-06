@@ -1,0 +1,50 @@
+# Sürüm yayını: bir "v*" etiketi (tag) push edilince Windows kurulumu derlenir ve
+# GitHub Release olarak yayınlanır (electron-updater bunu otomatik güncelleme kaynağı
+# olarak kullanır; bkz. package.json build.publish + scripts/publish-release.cjs).
+#
+# Kullanım (yerel):
+#   1) package.json "version" ve (tek kaynak)
+#   2) git commit + git tag vX.Y.Z && git push --follow-tags
+#   Etiket push'u bu iş akışını tetikler; başka bir şey yapmaya gerek yok.
+#
+# Neden Windows runner: electron-builder NSIS kurulumunu (.exe) native olarak yalnız
+# Windows'ta üretir; better-sqlite3 postinstall'da o platformun ABI'sine derlenir.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+# Release oluşturmak ve asset yüklemek için yazma izni gerekir (GITHUB_TOKEN'a verilir).
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      # Etiket ile package.json sürümü uyuşmazsa dur: publish-release.cjs asset adlarını
+      # ve TAG'i package.json version'dan üretir; uyumsuzluk bozuk/yanlış bir release yaratır.
+      - name: Etiket-sürüm uyumu
+        shell: bash
+        run: |
+          PKG=$(node -p "require('./package.json').version")
+          TAG="${GITHUB_REF_NAME#v}"
+          if [ "$PKG" != "$TAG" ]; then
+            echo "::error::Etiket (${GITHUB_REF_NAME}) ile package.json sürümü (v$PKG) uyuşmuyor. Önce package.json version'ı güncelleyip commit'leyin."
+            exit 1
+          fi
+
+      - run: npm ci
+
+      # release scripti: vite build + electron-builder --win --publish never +
+      # scripts/publish-release.cjs (idempotent GitHub Release yayınlayıcı; token'ı GITHUB_TOKEN'dan okur).
+      - name: Derle ve GitHub Release yayınla
+        run: npm run release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

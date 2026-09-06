@@ -184,9 +184,11 @@ settings           kulup adı, logo, makbuz alt yazısı, tahsil eden varsayıla
 - **Lisans çekirdeği (offline):** anahtar üretimi ve doğrulama, 30 gün deneme, salt okunur mod,
   Ayarlar > Lisans ekranı, kalıcı meta ve saat sertleştirmesi (bkz. §7.1–7.3, 7.5–7.6)
 
-### Faz 2 – Çoklu PC, roller ve online aktivasyon
-- Tailscale ile ikinci PC erişimi ve test
-- **Online aktivasyon sunucusu:** ayrı Cloudflare Worker + D1, lease, 12 saatlik yenileme,
+### Faz 2 – Çoklu PC, roller ve online aktivasyon — UYGULAMA TARAFI TAMAM 06.09.2026 (aktivasyon sunucusu deploy bekliyor)
+- Tailscale ile ikinci PC erişimi ve test — gömülü HTTPS sunucu (`electron/server.cjs`), sertifika
+  sabitlemeli istemci (`electron/istemci.cjs`), Ayarlar > Sunucu / Çoklu PC ekranı, giriş ekranından bağlanma
+- **Online aktivasyon sunucusu:** kod `aktivasyon-sunucu/` altında, testleri geçiyor; deploy için
+  `npx wrangler login` + `aktivasyon-sunucu/deploy.sh`, sonra `AKTIVASYON_URL` gömülür. ayrı Cloudflare Worker + D1, lease, 12 saatlik yenileme,
   uzaktan iptal, kurulum limiti, `lisans-yonet.cjs` (bkz. §7.4). İstemci PC'ler lisansı sunucu PC'den okur.
 - Kullanıcı rolleri (antrenör sadece yoklama görsün gibi)
 - Sağlık raporu geçerlilik uyarısı

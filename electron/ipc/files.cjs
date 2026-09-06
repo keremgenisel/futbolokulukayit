@@ -4,6 +4,8 @@ const { ipcMain, dialog, shell, BrowserWindow } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db.cjs");
+const config = require("../config.cjs");
+const istemci = require("../istemci.cjs");
 
 const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
@@ -19,7 +21,7 @@ function uploadsIci(p) {
 }
 
 function registerFileHandlers(getSession) {
-  const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); if (db.lisansSaltOkunurMu()) throw new Error("Lisans salt okunur modda"); };
+  const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); if (!config.istemciMi() && db.lisansSaltOkunurMu()) throw new Error("Lisans salt okunur modda"); };
 
   // Belge yükle: dialog aç, kopyala, kaydet. Dönüş: yeni belge kaydı veya { iptal: true }.
   ipcMain.handle("files:addDocument", async (e, playerId, tip, gecerlilik) => {
@@ -34,6 +36,9 @@ function registerFileHandlers(getSession) {
     const uz = path.extname(kaynak).toLowerCase();
     if (!IZINLI_UZANTI.has(uz)) throw new Error("Bu dosya türü desteklenmiyor");
     if (fs.statSync(kaynak).size > 25 * 1024 * 1024) throw new Error("Dosya 25 MB'tan büyük");
+    if (config.istemciMi()) {
+      return istemci.istek("/api/files/addDocument", { method: "POST", timeoutMs: 120000, body: { playerId: Number(playerId), tip, gecerlilik: gecerlilik || null, ad: path.basename(kaynak), base64: fs.readFileSync(kaynak).toString("base64") } });
+    }
     const klasor = path.join("oyuncu-" + Number(playerId));
     fs.mkdirSync(uploadsIci(klasor), { recursive: true });
     const ad = `${Date.now()}-${tip}-${guvenliAd(path.basename(kaynak))}`;
@@ -44,8 +49,9 @@ function registerFileHandlers(getSession) {
     return { ok: true, id, dosya_yolu: hedef };
   });
 
-  ipcMain.handle("files:deleteDocument", (_e, docId) => {
+  ipcMain.handle("files:deleteDocument", async (_e, docId) => {
     yetki();
+    if (config.istemciMi()) return istemci.istek("/api/files/deleteDocument", { method: "POST", body: { docId: Number(docId) } });
     const belge = db.getDocument(Number(docId));
     if (belge) {
       try { fs.unlinkSync(uploadsIci(belge.dosya_yolu)); } catch { /* dosya zaten yok */ }
@@ -54,14 +60,16 @@ function registerFileHandlers(getSession) {
     return { ok: true };
   });
 
-  ipcMain.handle("files:open", (_e, yol) => {
+  ipcMain.handle("files:open", async (_e, yol) => {
     if (!getSession()) throw new Error("Oturum gerekli");
+    if (config.istemciMi()) return shell.openPath(await istemci.dosyaIndir(String(yol)));
     return shell.openPath(uploadsIci(yol));
   });
 
   // Görsel/PDF önizleme için data URL (renderer sandbox'ta dosya okuyamaz).
-  ipcMain.handle("files:dataUrl", (_e, yol) => {
+  ipcMain.handle("files:dataUrl", async (_e, yol) => {
     if (!getSession()) throw new Error("Oturum gerekli");
+    if (config.istemciMi()) return (await istemci.istek("/api/files/dataUrl?yol=" + encodeURIComponent(String(yol)))).dataUrl;
     const tam = uploadsIci(yol);
     if (!fs.existsSync(tam)) return null;
     const mime = MIME[path.extname(tam).toLowerCase()];

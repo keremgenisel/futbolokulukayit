@@ -4,6 +4,7 @@ const { ipcMain, dialog, BrowserWindow } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db.cjs");
+const config = require("../config.cjs");
 
 function kopyalaKlasor(kaynak, hedef) {
   if (!fs.existsSync(kaynak)) return;
@@ -41,8 +42,10 @@ function otomatikYedek() {
 
 function registerYedekHandlers(getSession) {
   const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); };
+  const istemciHata = () => ({ error: "Yedek yalnızca sunucu bilgisayarında alınır" });
   ipcMain.handle("yedek:klasorSec", async (e) => {
     yetki();
+    if (config.istemciMi()) return istemciHata();
     const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { properties: ["openDirectory", "createDirectory"] });
     if (r.canceled || !r.filePaths[0]) return { iptal: true };
     db.setSetting("yedek_klasoru", r.filePaths[0]);
@@ -50,11 +53,12 @@ function registerYedekHandlers(getSession) {
   });
   ipcMain.handle("yedek:al", async () => {
     yetki();
+    if (config.istemciMi()) return istemciHata();
     const klasor = db.getSetting("yedek_klasoru");
     if (!klasor) return { error: "Önce yedek klasörü seçin" };
     return yedekAl(klasor);
   });
-  ipcMain.handle("yedek:durum", () => ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek") }));
+  ipcMain.handle("yedek:durum", () => config.istemciMi() ? { klasor: null, son: null, istemci: true } : ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek") }));
 }
 
 module.exports = { registerYedekHandlers, otomatikYedek, yedekAl };

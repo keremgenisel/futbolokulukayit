@@ -1,0 +1,172 @@
+// Gömülü HTTPS sunucusu — "sunucu" modundaki PC'de Electron ana sürecinde çalışır. İstemci PC'ler
+// LAN/Tailscale üzerinden bağlanır; sertifika self-signed, istemci ilk bağlantıda parmak izini
+// sabitler (electron/istemci.cjs). Kimlik: JWT (30 gün, token_version ile iptal). Yetki kararı
+// electron/yetki.cjs ile IPC katmanıyla ORTAK — sunucu üzerinden de salt-okunur yaptırımı geçerli.
+const express = require("express");
+const compression = require("compression");
+const https = require("https");
+const jwt = require("jsonwebtoken");
+const os = require("os");
+const fs = require("fs");
+const path = require("path");
+const db = require("./db.cjs");
+const serverTls = require("./serverTls.cjs");
+const { getSecret } = require("./jwtSecret.cjs");
+const { rateAllow, rateHit, rateRetryAfter, rateReset } = require("./rateLimit.cjs");
+const { cagriYetkisi } = require("./yetki.cjs");
+
+let srv = null;
+let bilgi = null; // { port, fp, adresler }
+const loginDenemeleri = new Map();
+const LOGIN_MAX = 8, LOGIN_PENCERE = 15 * 60 * 1000;
+
+const yerelIpler = () => {
+  const out = [];
+  for (const [ad, ifs] of Object.entries(os.networkInterfaces())) for (const i of ifs || []) if (i.family === "IPv4" && !i.internal) out.push({ ad, ip: i.address, tailscale: i.address.startsWith("100.") });
+  return out;
+};
+
+function signToken(u) { return jwt.sign({ username: u.username, tv: u.token_version ?? 1 }, getSecret(db), { expiresIn: "30d" }); }
+
+function requireAuth(req, res, next) {
+  const h = req.headers.authorization || "";
+  if (!h.startsWith("Bearer ")) return res.status(401).json({ error: "Oturum gerekli" });
+  try {
+    const p = jwt.verify(h.slice(7), getSecret(db));
+    const u = db.getUserByUsername(p.username);
+    if (!u || !u.is_active || (p.tv ?? 0) !== (u.token_version ?? 1)) return res.status(401).json({ error: "Oturum gerekli" });
+    req.user = { username: u.username, ad_soyad: u.ad_soyad, role: u.role, must_change_password: !!u.must_change_password };
+    next();
+  } catch { return res.status(401).json({ error: "Oturum gerekli" }); }
+}
+const requireAdmin = (req, res, next) => (req.user?.role === "admin" ? next() : res.status(403).json({ error: "Yönetici yetkisi gerekli" }));
+
+const guvenliAd = (ad) => String(ad).replace(/[^\w.\-çğıöşüÇĞİÖŞÜ ]+/g, "_").slice(0, 80);
+const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
+const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+function uploadsIci(p) {
+  const kok = path.resolve(db.getUploadsDir());
+  const tam = path.resolve(kok, p);
+  if (!tam.startsWith(kok + path.sep) && tam !== kok) throw new Error("Geçersiz dosya yolu");
+  return tam;
+}
+
+function buildApp({ surum = "" } = {}) {
+  const app = express();
+  app.disable("x-powered-by");
+  app.use(compression());
+  app.use(express.json({ limit: "40mb" }));
+
+  app.get("/saglik", (_req, res) => res.json({ ok: true, ad: "eyupspor-futbol-okulu", surum }));
+
+  app.post("/api/auth/login", (req, res) => {
+    const ip = req.socket.remoteAddress || "?";
+    const now = Date.now();
+    if (!rateAllow(loginDenemeleri, ip, now, LOGIN_MAX, LOGIN_PENCERE)) {
+      res.set("Retry-After", String(Math.ceil(rateRetryAfter(loginDenemeleri, ip, now) / 1000)));
+      return res.status(429).json({ error: "Çok fazla deneme, 15 dakika sonra tekrar deneyin" });
+    }
+    const { username, password } = req.body || {};
+    const u = db.verifyPassword(String(username || ""), String(password || ""));
+    if (!u) { rateHit(loginDenemeleri, ip, now, LOGIN_PENCERE); return res.status(401).json({ error: "Kullanıcı adı veya parola hatalı" }); }
+    rateReset(loginDenemeleri, ip);
+    res.json({ ok: true, token: signToken(u), user: { username: u.username, ad_soyad: u.ad_soyad, role: u.role, must_change_password: !!u.must_change_password } });
+  });
+  app.get("/api/auth/me", requireAuth, (req, res) => res.json({ ok: true, user: req.user }));
+  app.post("/api/auth/changePassword", requireAuth, (req, res) => {
+    const yeni = String(req.body?.newPassword || "");
+    if (yeni.length < 6) return res.status(400).json({ error: "Parola en az 6 karakter olmalı" });
+    db.changePassword(req.user.username, yeni);
+    // token_version arttı → yeni jeton ver ki istemci düşmesin
+    const u = db.getUserByUsername(req.user.username);
+    res.json({ ok: true, token: signToken(u) });
+  });
+
+  app.post("/api/db", requireAuth, (req, res) => {
+    const { fn, args } = req.body || {};
+    const y = cagriYetkisi(String(fn || ""), req.user, db.lisansSaltOkunurMu());
+    if (!y.ok) return res.status(y.kod).json({ error: y.mesaj });
+    try { res.json({ ok: true, sonuc: db[fn](...(Array.isArray(args) ? args : [])) ?? null }); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  // ── Dosyalar ──
+  const yazmaKontrol = (res) => { if (db.lisansSaltOkunurMu()) { res.status(403).json({ error: "Lisans salt okunur modda" }); return false; } return true; };
+  app.post("/api/files/addDocument", requireAuth, (req, res) => {
+    if (!yazmaKontrol(res)) return;
+    try {
+      const { playerId, tip, gecerlilik, ad, base64 } = req.body || {};
+      const uz = path.extname(String(ad || "")).toLowerCase();
+      if (!IZINLI_UZANTI.has(uz)) return res.status(400).json({ error: "Bu dosya türü desteklenmiyor" });
+      const buf = Buffer.from(String(base64 || ""), "base64");
+      if (!buf.length || buf.length > 25 * 1024 * 1024) return res.status(400).json({ error: "Dosya boş veya 25 MB'tan büyük" });
+      const klasor = "oyuncu-" + Number(playerId);
+      fs.mkdirSync(uploadsIci(klasor), { recursive: true });
+      const hedef = path.join(klasor, `${Date.now()}-${tip}-${guvenliAd(path.basename(ad))}`);
+      fs.writeFileSync(uploadsIci(hedef), buf);
+      const id = db.addDocument(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(ad), gecerlilik_tarihi: gecerlilik || null });
+      if (tip === "foto") db.updatePlayer(Number(playerId), { foto_yolu: hedef });
+      res.json({ ok: true, id, dosya_yolu: hedef });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+  app.post("/api/files/deleteDocument", requireAuth, (req, res) => {
+    if (!yazmaKontrol(res)) return;
+    const belge = db.getDocument(Number(req.body?.docId));
+    if (belge) { try { fs.unlinkSync(uploadsIci(belge.dosya_yolu)); } catch {} db.deleteDocument(belge.id); }
+    res.json({ ok: true });
+  });
+  app.get("/api/files/dataUrl", requireAuth, (req, res) => {
+    try {
+      const tam = uploadsIci(String(req.query.yol || ""));
+      const mime = MIME[path.extname(tam).toLowerCase()];
+      if (!mime || !fs.existsSync(tam)) return res.json({ ok: true, dataUrl: null });
+      res.json({ ok: true, dataUrl: `data:${mime};base64,${fs.readFileSync(tam).toString("base64")}` });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+  app.get("/api/files/indir", requireAuth, (req, res) => {
+    try { const tam = uploadsIci(String(req.query.yol || "")); if (!fs.existsSync(tam)) return res.status(404).json({ error: "Dosya yok" }); res.sendFile(tam); }
+    catch (e) { res.status(400).json({ error: e.message }); }
+  });
+  app.post("/api/cikti/makbuzPdf", requireAuth, (req, res) => {
+    if (!yazmaKontrol(res)) return;
+    try {
+      const r = db.getReceipt(Number(req.body?.receiptId));
+      if (!r) return res.status(404).json({ error: "Makbuz bulunamadı" });
+      fs.mkdirSync(uploadsIci("makbuz"), { recursive: true });
+      const yol = path.join("makbuz", `${r.makbuz_no}.pdf`);
+      fs.writeFileSync(uploadsIci(yol), Buffer.from(String(req.body?.pdfBase64 || ""), "base64"));
+      db.setReceiptPdf(r.id, yol);
+      res.json({ ok: true, pdf_yolu: yol });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  // ── Lisans (lisans sahibi sunucu PC; istemciler okur, yönetici anahtar girebilir) ──
+  app.get("/api/lisans/durum", requireAuth, (_req, res) => res.json({ ok: true, durum: db.lisansDurumu() }));
+  app.post("/api/lisans/kaydet", requireAuth, requireAdmin, (req, res) => { const r = db.lisansKaydet(req.body?.anahtar); res.json(r.error ? r : { ok: true, durum: r.durum }); });
+  app.post("/api/lisans/lease", requireAuth, requireAdmin, (req, res) => { const r = db.leaseKaydet(req.body?.lease); res.json(r.error ? r : { ok: true, durum: r.durum }); });
+  app.post("/api/lisans/aktiflestir", requireAuth, requireAdmin, async (_req, res) => res.json(await db.lisansAktiflestir(surum)));
+  app.post("/api/lisans/yenile", requireAuth, async (_req, res) => res.json(await db.lisansYenile()));
+
+  app.use((_req, res) => res.status(404).json({ error: "bulunamadı" }));
+  app.use((err, _req, res, _next) => { console.error("[server]", err.message); res.status(500).json({ error: "sunucu hatası" }); });
+  return app;
+}
+
+async function baslat({ port, surum = "" }) {
+  if (srv) return bilgi;
+  const { app: electronApp } = require("electron");
+  const { key, cert, fp } = await serverTls.sertifikaUretVeyaYukle(electronApp);
+  const app = buildApp({ surum });
+  await new Promise((resolve, reject) => {
+    srv = https.createServer({ key, cert }, app);
+    srv.once("error", reject);
+    srv.listen(port, "0.0.0.0", resolve);
+  });
+  bilgi = { port: srv.address().port, fp, adresler: yerelIpler() };
+  console.log(`[server] https://0.0.0.0:${bilgi.port} fp=${fp}`);
+  return bilgi;
+}
+function durdur() { return new Promise((r) => { if (!srv) return r(); srv.close(() => { srv = null; bilgi = null; r(); }); }); }
+const durum = () => ({ calisiyor: !!srv, ...(bilgi || {}), adresler: yerelIpler() });
+
+module.exports = { baslat, durdur, durum, buildApp };

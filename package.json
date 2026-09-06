@@ -21,6 +21,8 @@
     "audit": "npm audit --audit-level=high"
   },
   "dependencies": {
+    "@fontsource/barlow-condensed": "^5.3.0",
+    "@fontsource/source-sans-3": "^5.3.0",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
     "better-sqlite3-multiple-ciphers": "^12.11.1",
@@ -33,7 +35,8 @@
     "qrcode": "^1.5.4",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "selfsigned": "^5.5.0"
+    "selfsigned": "^5.5.0",
+    "undici": "^8.10.2"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.0",
@@ -66,16 +69,33 @@
   "build": {
     "appId": "com.eyupspor.futbolokulu",
     "productName": "Eyüpspor Futbol Okulu",
-    "directories": { "output": "release" },
-    "files": ["dist/**/*", "electron/**/*"],
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*"
+    ],
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",
       "node_modules/better-sqlite3-multiple-ciphers/**/*"
     ],
-    "extraResources": [{ "from": "build/icon.png", "to": "icon.png" }],
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ],
     "npmRebuild": true,
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png",
       "verifyUpdateCodeSignature": false
     },
@@ -90,10 +110,19 @@
       "runAfterFinish": true
     },
     "publish": [
-      { "provider": "github", "owner": "keremgenisel", "repo": "eyupspor", "releaseType": "release" }
+      {
+        "provider": "github",
+        "owner": "keremgenisel",
+        "repo": "eyupspor",
+        "releaseType": "release"
+      }
     ],
     "icon": "build/icon.png",
-    "extraMetadata": { "author": "Eyüpspor Kulübü" }
+    "extraMetadata": {
+      "author": "Eyüpspor Kulübü"
+    }
   },
-  "author": { "name": "Kerem Genişel" }
+  "author": {
+    "name": "Kerem Genişel"
+  }
 }

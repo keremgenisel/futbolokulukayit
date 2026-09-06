@@ -34,6 +34,13 @@ contextBridge.exposeInMainWorld("okul", {
     aktiflestir: () => ipcRenderer.invoke("lisans:aktiflestir"),
     yenile: () => ipcRenderer.invoke("lisans:yenile"),
   },
+  mod: {
+    oku: () => ipcRenderer.invoke("mod:oku"),
+    sunucuBaslat: (port) => ipcRenderer.invoke("sunucu:baslat", port),
+    sunucuDurdur: () => ipcRenderer.invoke("sunucu:durdur"),
+    istemciBaglan: (url, secenek) => ipcRenderer.invoke("istemci:baglan", url, secenek),
+    istemciKopar: () => ipcRenderer.invoke("istemci:kopar"),
+  },
   app: {
     version: () => ipcRenderer.invoke("app:version"),
     logo: () => ipcRenderer.invoke("app:logo"),

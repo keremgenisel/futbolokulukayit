@@ -1,7 +1,11 @@
 import { useState } from "react";
 import { Btn, Alan, girisStili } from "./ui.jsx";
 
-export function Giris({ onGiris }) {
+export function Giris({ onGiris, mod, onModDegisti }) {
+  const [baglanAcik, setBaglanAcik] = useState(false);
+  const [url, setUrl] = useState("");
+  const [fp, setFp] = useState(null);
+  const [bilgi, setBilgi] = useState("");
   const [kullanici, setKullanici] = useState("");
   const [parola, setParola] = useState("");
   const [hata, setHata] = useState("");
@@ -39,6 +43,27 @@ export function Giris({ onGiris }) {
           <Alan etiket="Parola"><input style={girisStili} type="password" value={parola} onChange={(e) => setParola(e.target.value)} /></Alan>
           {hata && <div role="alert" style={{ color: "var(--kirmizi)", fontSize: 14, fontWeight: 600 }}>{hata}</div>}
           <Btn type="submit" disabled={bekliyor} style={{ height: 48, justifyContent: "center", fontSize: 16 }}>Giriş Yap</Btn>
+          <span style={{ color: "var(--soluk)", fontSize: 13, textAlign: "center" }}>
+            {mod?.mode === "istemci" ? <>Sunucuya bağlı: <b>{mod.serverUrl}</b> · sunucudaki hesabınızla girin</> : "Parolanızı unuttuysanız yöneticiye başvurun."}
+          </span>
+          {mod && mod.mode !== "sunucu" && !baglanAcik && <button type="button" onClick={() => setBaglanAcik(true)} style={{ background: "none", border: 0, color: "var(--mor)", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>{mod.mode === "istemci" ? "Sunucu adresini değiştir" : "Başka bilgisayardaki sunucuya bağlan"}</button>}
+          {baglanAcik && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--cizgi)", paddingTop: 12 }}>
+              <Alan etiket="Sunucu adresi"><input style={girisStili} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://100.x.x.x:3535" /></Alan>
+              {fp && <div style={{ fontSize: 12, color: "var(--soluk)" }}>Sunucu parmak izi: <b style={{ fontFamily: "monospace", wordBreak: "break-all" }}>{fp}</b> — sunucudaki Ayarlar &gt; Sunucu ekranıyla aynıysa onaylayın.</div>}
+              {bilgi && <div style={{ fontSize: 13, color: "var(--kirmizi)", fontWeight: 600 }}>{bilgi}</div>}
+              <div style={{ display: "flex", gap: 8 }}>
+                <Btn tur="ghost" onClick={() => { setBaglanAcik(false); setFp(null); setBilgi(""); }}>Vazgeç</Btn>
+                <Btn onClick={async () => {
+                  setBilgi("");
+                  const r = await window.okul.mod.istemciBaglan(url.trim(), fp ? { trust: true, force: true } : {});
+                  if (r.error) setBilgi(r.error);
+                  else if (r.needTrust || r.mismatch) { setFp(r.fp); if (r.mismatch) setBilgi("Sunucu sertifikası daha önce kaydedilenden farklı. Emin değilseniz onaylamayın."); }
+                  else { setBaglanAcik(false); setFp(null); onModDegisti?.("istemci"); }
+                }}>{fp ? "Onayla ve Bağlan" : "Bağlan"}</Btn>
+              </div>
+            </div>
+          )}
         </div>
       </form>
     </div>

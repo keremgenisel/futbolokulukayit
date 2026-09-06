@@ -6,6 +6,8 @@ const { registerDataHandlers, getSession } = require("./ipc/data.cjs");
 const { registerFileHandlers } = require("./ipc/files.cjs");
 const { registerCiktiHandlers } = require("./ipc/cikti.cjs");
 const { registerYedekHandlers, otomatikYedek } = require("./ipc/yedek.cjs");
+const config = require("./config.cjs");
+const server = require("./server.cjs");
 
 // ── Otomatik güncelleme (yalnızca paketlenmiş uygulamada) ──
 let autoUpdater = null;
@@ -79,12 +81,16 @@ if (!app.requestSingleInstanceLock()) {
 
     createWindow();
 
+    // Sunucu modunda gömülü HTTPS sunucusunu aç (istemci PC'ler bağlanabilsin).
+    if (config.sunucuMu()) server.baslat({ port: config.oku().port, surum: app.getVersion() }).catch((e) => console.error("[server] başlatılamadı:", e.message));
+
     if (autoUpdater && app.isPackaged) {
       autoUpdater.checkForUpdates().catch(() => {});
     }
   });
 
-  app.on("window-all-closed", () => {
+  app.on("window-all-closed", async () => {
+    await server.durdur();
     db.close();
     app.quit();
   });
