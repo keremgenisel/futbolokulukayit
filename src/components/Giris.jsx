@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Btn, Alan, girisStili } from "./ui.jsx";
 
 export function Giris({ onGiris }) {

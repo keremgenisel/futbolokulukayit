@@ -69,13 +69,19 @@ export function gecikmeGunu(donem, yil, ay, bugun) {
   return fark > 0 ? fark : 0;
 }
 
-/** Türkçe para biçimi: 3500 → "3.500 ₺" */
+/**
+ * Türkçe para biçimi: 3500 → "3.500 ₺"
+ * @param {number|string|null|undefined} tutar
+ */
 export function paraTR(tutar) {
   const n = Number(tutar || 0);
   return n.toLocaleString("tr-TR", { maximumFractionDigits: 2 }) + " ₺";
 }
 
-/** ISO tarihi (2015-11-02) → 02.11.2015 */
+/**
+ * ISO tarihi (2015-11-02) → 02.11.2015
+ * @param {string|null|undefined} iso
+ */
 export function tarihTR(iso) {
   if (!iso) return "";
   const [y, m, d] = String(iso).slice(0, 10).split("-");

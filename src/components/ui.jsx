@@ -1,5 +1,4 @@
 // Arayüz ilkelleri. Tüm stil inline; kulüp renkleri ui.css'teki CSS değişkenlerinden.
-import React from "react";
 
 export function Btn({ tur = "primary", children, ikon, style, ...rest }) {
   const turler = {

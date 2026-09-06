@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Giris } from "./components/Giris.jsx";
 import { Kart } from "./components/ui.jsx";
 
