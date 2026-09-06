@@ -326,4 +326,5 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - Sporcu kimlik kartı basımı, aidat borcunda kart bloke.
 - Sağlık raporu geçerlilik uyarısı (alan var, uyarı ekranı yok).
 - Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
-- Yedeklerden geri yükleme ekranı (şu an elle: `data.db` + `uploads/` kopyalanır).
+- ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
+- Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız) — kulüp PC değiştirirse gerekir.

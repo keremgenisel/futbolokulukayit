@@ -5,8 +5,9 @@ import { paraTR, tarihTR } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
 import { SettingsLisans } from "./SettingsLisans.jsx";
 import { SettingsSunucu } from "./SettingsSunucu.jsx";
+import { Ikon } from "./Ikon.jsx";
 
-const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz" }, { kod: "kalem", ad: "Aidat Kalemleri" }, { kod: "kullanici", ad: "Kullanıcılar" }, { kod: "yedek", ad: "Yedekleme" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC" }, { kod: "lisans", ad: "Lisans" }, { kod: "hakkinda", ad: "Hakkında" }];
+const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }, { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
 
 export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti }) {
   const [bolum, setBolum] = useState("kulup");
@@ -14,13 +15,13 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 20, alignItems: "start" }}>
       <Kart style={{ padding: 10, display: "flex", flexDirection: "column", gap: 4 }}>
-        {BOLUMLER.map((b) => <button key={b.kod} type="button" onClick={() => setBolum(b.kod)} style={{ textAlign: "left", padding: "11px 14px", borderRadius: 8, cursor: "pointer", border: 0, background: bolum === b.kod ? "var(--mor-acik)" : "transparent", color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)", fontWeight: bolum === b.kod ? 700 : 500, fontSize: 15 }}>{b.ad}</button>)}
+        {BOLUMLER.map((b) => <button key={b.kod} type="button" onClick={() => setBolum(b.kod)} style={{ textAlign: "left", padding: "11px 14px", borderRadius: 8, cursor: "pointer", border: 0, background: bolum === b.kod ? "var(--mor-acik)" : "transparent", color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)", fontWeight: bolum === b.kod ? 700 : 500, fontSize: 15, display: "flex", alignItems: "center", gap: 10 }}><Ikon ad={b.ikon} /><span>{b.ad}</span></button>)}
       </Kart>
       <Kart style={{ padding: 24 }}>
         {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} />}
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
-        {bolum === "yedek" && <YedekAyar />}
+        {bolum === "yedek" && <YedekAyar admin={admin} />}
         {bolum === "sunucu" && <SettingsSunucu admin={admin} onModDegisti={onModDegisti} />}
         {bolum === "lisans" && <SettingsLisans admin={admin} onLisansDegisti={onLisansDegisti} />}
         {bolum === "hakkinda" && <Hakkinda />}
@@ -115,10 +116,20 @@ function KullaniciAyar({ oturum, admin, saltOkunur }) {
   );
 }
 
-function YedekAyar() {
+function YedekAyar({ admin }) {
   const [d, setD] = useState({ klasor: null, son: null });
   const [bekliyor, setBekliyor] = useState(false);
+  const [aday, setAday] = useState(null); // seçilen yedeğin özeti (onay bekliyor)
   const toast = useToast();
+  const geriYukleSec = async () => {
+    try { const r = await yedek().geriYukleSec(); if (r.iptal) return; if (r.error) return toast("err", r.error); setAday(r); }
+    catch (e) { toast("err", hataMetni(e)); }
+  };
+  const geriYukleOnayla = async () => {
+    setBekliyor(true);
+    try { const r = await yedek().geriYukle(aday.klasor); if (r.error) toast("err", r.error); else toast("ok", "Geri yüklendi, program yeniden başlatılıyor…"); }
+    catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); setAday(null); }
+  };
   const yukle = () => yedek().durum().then(setD).catch(() => {});
   useEffect(() => { yukle(); }, []);
   const sec = async () => { try { const r = await yedek().klasorSec(); if (!r.iptal) { toast("ok", "Yedek klasörü ayarlandı"); yukle(); } } catch (e) { toast("err", hataMetni(e)); } };
@@ -131,7 +142,15 @@ function YedekAyar() {
         <div><span style={{ color: "var(--soluk)" }}>Yedek klasörü:</span> <b>{d.klasor || "Seçilmedi"}</b></div>
         <div><span style={{ color: "var(--soluk)" }}>Son yedek:</span> <b>{d.son ? `${tarihTR(d.son)} ${d.son.slice(11, 16)}` : "Henüz alınmadı"}</b></div>
       </div>
-      <div style={{ display: "flex", gap: 10 }}><Btn tur="ghost" onClick={sec}>Klasör Seç</Btn><Btn onClick={al} disabled={!d.klasor || bekliyor}>Şimdi Yedek Al</Btn></div>
+      <div style={{ display: "flex", gap: 10 }}><Btn tur="ghost" onClick={sec}>Klasör Seç</Btn><Btn ikon={<Ikon ad="yedek" />} onClick={al} disabled={!d.klasor || bekliyor}>Şimdi Yedek Al</Btn></div>
+      {admin && !d.istemci && (
+        <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Yedekten geri yükle</div>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Bir yedek klasörü seçin (içinde <code>data.db</code> olmalı). Mevcut veriler silinmez, <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda alınmış olmalıdır.</p>
+          <div><Btn tur="danger" ikon={<Ikon ad="geri" />} onClick={geriYukleSec} disabled={bekliyor}>Yedek Klasörü Seç ve Geri Yükle</Btn></div>
+        </div>
+      )}
+      {aday && <Onay tehlikeli mesaj={`Seçilen yedek: ${aday.oyuncu} oyuncu, ${aday.makbuz} makbuz${aday.sonMakbuz ? ", son makbuz " + tarihTR(aday.sonMakbuz) : ""}. Mevcut veriler kenara alınıp bu yedek yüklenecek ve program yeniden başlayacak. Devam edilsin mi?`} onEvet={geriYukleOnayla} onHayir={() => setAday(null)} />}
     </div>
   );
 }

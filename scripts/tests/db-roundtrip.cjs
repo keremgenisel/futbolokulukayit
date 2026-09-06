@@ -73,6 +73,23 @@ app.whenReady().then(async () => {
     check("salt okunur değil", db.lisansSaltOkunurMu() === false);
     check("makineId kalıcı", db.lisansDurumu().makineId === ld.makineId);
 
+    // Yedek al → değişiklik yap → geri yükle → değişiklik geri alınmış olmalı
+    const { yedekAl, geriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
+    const yedekKok = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-yedek-"));
+    const y = yedekAl(yedekKok);
+    check("yedek alındı", y.ok && fs.existsSync(path.join(y.yol, "data.db")));
+    check("yedek doğrulanıyor", db.yedekBilgisi(path.join(y.yol, "data.db")).oyuncu === 1);
+    db.createPlayer({ ad_soyad: "Sonradan Eklenen", dogum_tarihi: "2016-01-01" });
+    check("geri yükleme öncesi 2 oyuncu", db.listPlayers().length === 2);
+    const g = geriYukleCekirdek(y.yol);
+    check("geri yükleme başarılı", !!g.ok);
+    db.init();
+    check("geri yükleme sonrası 1 oyuncu (eski veri)", db.listPlayers().length === 1);
+    check("eski veri kenara alındı", fs.existsSync(g.kenarDb));
+    check("geçersiz klasör reddedilir", !!geriYukleCekirdek(yedekKok).error);
+    db.init(); // geçersiz denemeden sonra DB yeniden açılır
+    fs.rmSync(yedekKok, { recursive: true, force: true });
+
     db.close();
     // Anahtar varsa dosya şifreli olmalı: anahtarsız açılış sqlite_master okuyamamalı
     if (db.isEncrypted()) {

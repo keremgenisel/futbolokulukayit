@@ -214,6 +214,7 @@ function openDb(dbPath) {
 }
 
 function init() {
+  if (db) return db; // zaten açık (idempotent)
   if (!Database) throw new Error("SQLite modülü yok");
   fs.mkdirSync(app.getPath("userData"), { recursive: true });
   fs.mkdirSync(getUploadsDir(), { recursive: true });
@@ -554,8 +555,34 @@ async function lisansYenile() {
 }
 const lisansSaltOkunurMu = () => lisansDurumu().mod === "saltOkunur";
 
+
+// ── Yedek doğrulama (geri yükleme öncesi) ──
+// Verilen data.db dosyasını BU makinenin anahtarıyla açmayı dener; açılırsa özet döner.
+// Başka bir PC'de alınmış (farklı anahtarla şifreli) yedek burada açılamaz → { error }.
+function yedekBilgisi(dbPath) {
+  if (!Database) return { error: "SQLite modülü yok" };
+  if (!fs.existsSync(dbPath)) return { error: "Yedek klasöründe data.db yok" };
+  let conn = null;
+  try {
+    conn = new Database(dbPath, { readonly: true });
+    const key = getDbKey();
+    if (key) conn.pragma(`key='${key}'`);
+    const sv = Number(conn.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 0);
+    if (!sv) return { error: "Bu dosya bir Eyüpspor veritabanı değil" };
+    if (sv > SCHEMA_VERSION) return { error: `Yedek daha yeni bir program sürümünden (şema ${sv}); önce programı güncelleyin` };
+    const oyuncu = conn.prepare("SELECT count(*) AS n FROM players").get().n;
+    const makbuz = conn.prepare("SELECT count(*) AS n FROM receipts").get().n;
+    const sonMakbuz = conn.prepare("SELECT max(tarih) AS t FROM receipts").get().t;
+    return { ok: true, oyuncu, makbuz, sonMakbuz, schema: sv };
+  } catch (e) {
+    const m = String(e.message || e);
+    if (/not a database|file is encrypted|malformed/i.test(m)) return { error: "Yedek açılamadı: başka bir bilgisayarda alınmış olabilir (şifreleme anahtarı farklı) ya da dosya bozuk" };
+    return { error: "Yedek açılamadı: " + m };
+  } finally { try { conn?.close(); } catch {} }
+}
+
 module.exports = {
-  init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath,
+  init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi,
   getMetaValue, setMetaValue, getSetting, setSetting,
   getUserByUsername, createUser, verifyPassword, changePassword,
   listAgeGroups, createAgeGroup, updateAgeGroup,

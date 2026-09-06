@@ -49,7 +49,10 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   Anahtar `safeStorage` ile OS anahtarlığında.
 - `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması.
 - `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
-- `electron/ipc/yedek.cjs` — elle ve günlük otomatik yedek (data.db + uploads → seçilen klasör, 30 gün saklama).
+- `electron/ipc/yedek.cjs` — elle ve günlük otomatik yedek (data.db + uploads → seçilen klasör, 30 gün saklama) ve
+  geri yükleme (`geriYukleCekirdek`: doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
+  Yedek aynı PC'nin safeStorage anahtarıyla şifreli; başka PC'de açılmaz (`db.yedekBilgisi` bunu raporlar).
+- `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
   önek `EYUPSPOR.`/`EYUPLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
   Üretici betikleri: `scripts/lisans-uret.cjs`, `lease-uret.cjs`, `lisans-yonet.cjs`.

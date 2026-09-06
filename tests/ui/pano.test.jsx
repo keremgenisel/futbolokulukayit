@@ -25,9 +25,9 @@ describe("Pano — tesise giriş kontrolü", () => {
     await waitFor(() => screen.getByText("Tesise Giriş Kontrolü"));
     fireEvent.change(screen.getByLabelText("Tesise giriş araması"), { target: { value: "K" } });
     await waitFor(() => expect(screen.getByText("Kerem Yılmaz")).toBeInTheDocument());
-    expect(screen.getByText("✓ GİREBİLİR")).toBeInTheDocument();
-    expect(screen.getByText("✕ AİDAT BORCU")).toBeInTheDocument();
-    expect(screen.getByText("✕ GİREMEZ")).toBeInTheDocument();
+    expect(screen.getByText("GİREBİLİR")).toBeInTheDocument();
+    expect(screen.getByText("AİDAT BORCU")).toBeInTheDocument();
+    expect(screen.getByText("GİREMEZ")).toBeInTheDocument();
   });
 
   it("borçlu listesinden Makbuz düğmesi oyuncuyla tahsilata gider", async () => {

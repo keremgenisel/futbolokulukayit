@@ -9,6 +9,7 @@ import { Yoklama } from "./components/Yoklama.jsx";
 import { Raporlar } from "./components/Raporlar.jsx";
 import { Ayarlar } from "./components/Ayarlar.jsx";
 import { ToastSaglayici } from "./components/ui.jsx";
+import { Ikon } from "./components/Ikon.jsx";
 import { tarihTR } from "./lib/aidat.js";
 
 // Yönlendirici yok: sekme bir string, TABS'a göre koşullu render.
@@ -75,7 +76,7 @@ export function App() {
               background: tab === t.kod ? "rgba(255,255,255,.14)" : "transparent",
               color: tab === t.kod ? "#fff" : "#D8CCE9", fontWeight: tab === t.kod ? 600 : 400,
               border: 0, borderLeft: `3px solid ${tab === t.kod ? "var(--sari)" : "transparent"}`,
-            }}>{t.ad}</button>
+            }}><span style={{ display: "flex", alignItems: "center", gap: 12 }}><Ikon ad={t.kod} /><span>{t.ad}</span></span></button>
           ))}
         </nav>
         <div style={{ flex: 1 }} />
@@ -84,7 +85,7 @@ export function App() {
           <div style={{ fontSize: 12 }}>{oturum.role === "admin" ? "Yönetici" : "Kullanıcı"}</div>
           {mod?.mode === "istemci" && <div style={{ fontSize: 11, color: "var(--sari)", marginTop: 4 }}>Sunucuya bağlı</div>}
           {mod?.mode === "sunucu" && <div style={{ fontSize: 11, color: mod.sunucu?.calisiyor ? "var(--sari)" : "#f99", marginTop: 4 }}>Sunucu {mod.sunucu?.calisiyor ? "açık · " + mod.sunucu.port : "kapalı"}</div>}
-          <button type="button" onClick={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} style={{ background: "none", border: 0, color: "#D8CCE9", padding: 0, cursor: "pointer", fontSize: 12, marginTop: 4 }}>Çıkış</button>
+          <button type="button" onClick={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} style={{ background: "none", border: 0, color: "#D8CCE9", padding: 0, cursor: "pointer", fontSize: 12, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><Ikon ad="cikis" boyut={14} />Çıkış</button>
         </div>
       </aside>
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>

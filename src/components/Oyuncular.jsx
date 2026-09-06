@@ -5,6 +5,7 @@ import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
 import { raporHtml } from "../lib/raporHtml.js";
+import { Ikon } from "./Ikon.jsx";
 
 export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onAcildi }) {
   const [liste, setListe] = useState([]);
@@ -51,12 +52,12 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <Btn tur="ghost" onClick={excel}>Excel</Btn>
-        <Btn tur="ghost" onClick={pdf}>PDF</Btn>
-        {!saltOkunur && <Btn onClick={() => setYeni(true)}>+ Yeni Oyuncu</Btn>}
+        <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={excel}>Excel</Btn>
+        <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={pdf}>PDF</Btn>
+        {!saltOkunur && <Btn ikon={<Ikon ad="arti" />} onClick={() => setYeni(true)}>Yeni Oyuncu</Btn>}
       </div>
       <Kart style={{ padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <Girdi placeholder="Ad, soyad veya TC ara" value={q} onChange={(e) => setQ(e.target.value)} style={{ width: 300, height: 40 }} aria-label="Ara" />
+        <div style={{ position: "relative", width: 300 }}><span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}><Ikon ad="ara" /></span><Girdi placeholder="Ad, soyad veya TC ara" value={q} onChange={(e) => setQ(e.target.value)} style={{ height: 40, paddingLeft: 40 }} aria-label="Ara" /></div>
         <Secim secenekler={gruplar} bos="Tüm gruplar" value={grup} onChange={(e) => setGrup(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Yaş grubu" />
         <Secim secenekler={DURUMLAR} bos="Tüm durumlar" value={durum} onChange={(e) => setDurum(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Durum" />
         <Btn kucuk tur={odemeyen ? "danger" : "ghost"} onClick={() => setOdemeyen(!odemeyen)} style={{ height: 40 }}>{odemeyen ? "✕ " : ""}Bu ay ödemeyenler</Btn>
@@ -76,7 +77,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
                   <td><Rozet ton={durumTonu(o.durum)}>{durumAd(o.durum)}</Rozet></td>
                   <td><Rozet ton={o.ucret_tipi === "normal" ? "gray" : o.ucret_tipi === "ucretsiz" || o.ucret_tipi === "burslu" ? "purple" : "yellow"}>{ucretAd(o.ucret_tipi)}</Rozet></td>
                   <td><Rozet ton={aidatTonu(o.aidat_durum)}>{aidatEtiket(o.aidat_durum)}</Rozet></td>
-                  <td style={{ color: "var(--soluk)" }}>›</td>
+                  <td style={{ color: "var(--soluk)" }}><Ikon ad="sag" /></td>
                 </tr>
               ))}
             </tbody>

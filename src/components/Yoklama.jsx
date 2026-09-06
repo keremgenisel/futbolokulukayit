@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast } from "./ui.jsx";
 import { db, bugun, hataMetni } from "../lib/api.js";
 import { tarihTR } from "../lib/aidat.js";
+import { Ikon } from "./Ikon.jsx";
 
 export function Yoklama({ saltOkunur }) {
   const [tarih, setTarih] = useState(bugun().iso);
@@ -72,7 +73,7 @@ export function Yoklama({ saltOkunur }) {
             <div style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>Yeni antrenman</div>
             <Secim secenekler={gruplar} bos="Yaş grubu" value={yeni.age_group_id} onChange={(e) => setYeni({ ...yeni, age_group_id: e.target.value })} aria-label="Yaş grubu" />
             <div style={{ display: "flex", gap: 8 }}><Girdi type="time" value={yeni.saat} onChange={(e) => setYeni({ ...yeni, saat: e.target.value })} aria-label="Saat" /><Girdi placeholder="Saha" value={yeni.saha} onChange={(e) => setYeni({ ...yeni, saha: e.target.value })} /></div>
-            <Btn onClick={antrenmanEkle}>+ Antrenman Ekle</Btn>
+            <Btn ikon={<Ikon ad="arti" />} onClick={antrenmanEkle}>Antrenman Ekle</Btn>
           </div>
         )}
         {aktif && (
@@ -80,7 +81,7 @@ export function Yoklama({ saltOkunur }) {
             <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 8, fontSize: 14 }}>
               {[["Toplam", oyuncular.length, ""], ["Geldi", say("geldi"), "var(--yesil)"], ["Gelmedi", say("gelmedi"), "var(--kirmizi)"], ["İzinli", say("izinli"), ""], ["İşaretlenmedi", oyuncular.length - say("geldi") - say("gelmedi") - say("izinli"), ""]].map(([e, n, c]) => <div key={e} style={{ display: "flex", justifyContent: "space-between" }}><span style={{ color: "var(--soluk)" }}>{e}</span><b style={{ color: c || "inherit" }}>{n}</b></div>)}
             </div>
-            {!saltOkunur && !aktif.iptal && <Btn tur="danger" onClick={() => setIptal(aktif)}>Antrenmanı İptal Et</Btn>}
+            {!saltOkunur && !aktif.iptal && <Btn tur="danger" ikon={<Ikon ad="kapat" />} onClick={() => setIptal(aktif)}>Antrenmanı İptal Et</Btn>}
           </>
         )}
       </Kart>
@@ -89,7 +90,7 @@ export function Yoklama({ saltOkunur }) {
           <>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px 12px", borderBottom: "1px solid var(--cizgi)" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}><h3 style={{ fontSize: 22 }}>{aktif.yas_grubu_ad} Yoklama</h3>{aktif.saat && <span style={{ color: "var(--soluk)" }}>{aktif.saat}</span>}{borclu > 0 && <Rozet ton="red">{borclu} aidat borcu</Rozet>}{aktif.iptal ? <Rozet ton="red">İptal edildi</Rozet> : null}</div>
-              {!saltOkunur && !aktif.iptal && <Btn tur="ghost" onClick={tumuGeldi}>✓ Kalanları Geldi İşaretle</Btn>}
+              {!saltOkunur && !aktif.iptal && <Btn tur="ghost" ikon={<Ikon ad="onay" />} onClick={tumuGeldi}>Kalanları Geldi İşaretle</Btn>}
             </div>
             {oyuncular.length === 0 ? <Bos metin="Bu grupta aktif oyuncu yok." /> : oyuncular.map((o) => (
               <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderBottom: "1px solid var(--cizgi)" }}>

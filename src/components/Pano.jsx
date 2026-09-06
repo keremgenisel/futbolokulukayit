@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Kart, Btn, Girdi, Avatar, Rozet, useToast } from "./ui.jsx";
+import { Ikon } from "./Ikon.jsx";
 import { db, bugun, hataMetni } from "../lib/api.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir } from "../lib/aidat.js";
 
@@ -32,7 +33,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ color: "var(--soluk)" }}>{gun}</span>
-        <div style={{ display: "flex", gap: 10 }}>{!saltOkunur && <><Btn tur="sari" onClick={() => onSekme("tahsilat")}>Makbuz Kes</Btn><Btn onClick={() => onSekme("oyuncular", "yeni")}>+ Yeni Oyuncu</Btn></>}</div>
+        <div style={{ display: "flex", gap: 10 }}>{!saltOkunur && <><Btn tur="sari" ikon={<Ikon ad="tahsilat" />} onClick={() => onSekme("tahsilat")}>Makbuz Kes</Btn><Btn ikon={<Ikon ad="arti" />} onClick={() => onSekme("oyuncular", "yeni")}>Yeni Oyuncu</Btn></>}</div>
       </div>
       <div style={{ display: "flex", gap: 16 }}>
         <Stat etiket="Aktif oyuncu" deger={ozet?.aktif ?? "—"} renk="var(--mor)" not={`${ozet?.grup ?? 0} yaş grubunda`} />
@@ -42,7 +43,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
       </div>
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Tesise Giriş Kontrolü</h3><span style={{ fontSize: 13, color: "var(--soluk)" }}>Ad, soyad veya TC ile ara</span></div>
-        <Girdi value={q} onChange={(e) => setQ(e.target.value)} placeholder="Oyuncu adı veya TC yazın" style={{ height: 52, fontSize: 17 }} aria-label="Tesise giriş araması" />
+        <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 16, top: 15, color: "var(--soluk)" }}><Ikon ad="ara" boyut={22} /></span><Girdi value={q} onChange={(e) => setQ(e.target.value)} placeholder="Oyuncu adı veya TC yazın" style={{ height: 52, fontSize: 17, paddingLeft: 48 }} aria-label="Tesise giriş araması" /></div>
         {sonuc.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {sonuc.map((o) => {
@@ -51,7 +52,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
                 <div key={o.id} onClick={() => onOyuncu(o.id)} style={{ display: "flex", alignItems: "center", gap: 14, padding: 14, borderRadius: 10, border: "1px solid var(--cizgi)", background: ok ? "var(--yesil-acik)" : "var(--kirmizi-acik)", cursor: "pointer" }}>
                   <Avatar ad={o.ad_soyad} boyut={48} />
                   <div style={{ flex: 1 }}><div style={{ fontWeight: 700, fontSize: 16 }}>{o.ad_soyad}</div><div style={{ fontSize: 13, color: "var(--soluk)" }}>{o.yas_grubu_ad || "Grup yok"} · {o.durum} · {AY_ADLARI[ay - 1]} aidatı {o.aidat_durum === "odendi" ? "ödendi" : o.aidat_durum === "muaf" ? "muaf" : o.aidat_durum === "odenmedi" ? "ödenmedi" : "kaydı yok"}</div></div>
-                  <span style={{ fontWeight: 700, color: ok ? "var(--yesil)" : "var(--kirmizi)" }}>{ok ? "✓ GİREBİLİR" : "✕ " + (o.aidat_durum === "odenmedi" ? "AİDAT BORCU" : "GİREMEZ")}</span>
+                  <span style={{ fontWeight: 700, color: ok ? "var(--yesil)" : "var(--kirmizi)", display: "flex", alignItems: "center", gap: 6 }}><Ikon ad={ok ? "onay" : "kapat"} />{ok ? "GİREBİLİR" : (o.aidat_durum === "odenmedi" ? "AİDAT BORCU" : "GİREMEZ")}</span>
                 </div>
               );
             })}

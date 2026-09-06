@@ -3,6 +3,7 @@ import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Onay, Bos, useToast } from "./ui
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI } from "../lib/aidat.js";
 import { makbuzHtml } from "../lib/makbuzHtml.js";
+import { Ikon } from "./Ikon.jsx";
 
 // Makbuz HTML'i üret (yazdırma + PDF ortak).
 export async function makbuzHtmlUret(receiptId) {
@@ -112,7 +113,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             </div>
           ) : (
             <div style={{ position: "relative" }}>
-              <Girdi placeholder="Ad, soyad veya TC ile oyuncu ara" value={q} onChange={(e) => setQ(e.target.value)} autoFocus aria-label="Oyuncu ara" />
+              <span style={{ position: "absolute", left: 12, top: 11, color: "var(--soluk)" }}><Ikon ad="ara" /></span><Girdi placeholder="Ad, soyad veya TC ile oyuncu ara" value={q} onChange={(e) => setQ(e.target.value)} autoFocus aria-label="Oyuncu ara" style={{ paddingLeft: 40 }} />
               {sonuc.length > 0 && (
                 <div style={{ position: "absolute", top: 46, left: 0, right: 0, background: "#fff", border: "1px solid var(--cizgi)", borderRadius: 10, boxShadow: "0 12px 30px rgba(27,21,48,.15)", zIndex: 5, overflow: "hidden" }}>
                   {sonuc.map((s) => <div key={s.id} onClick={() => oyuncuSec(s.id)} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 14px", cursor: "pointer", borderBottom: "1px solid var(--cizgi)" }}><Avatar ad={s.ad_soyad} boyut={30} /><span style={{ fontWeight: 600, flex: 1 }}>{s.ad_soyad}</span><span style={{ color: "var(--soluk)", fontSize: 13 }}>{s.yas_grubu_ad || ""}</span><Rozet ton={s.aidat_durum === "odenmedi" ? "red" : "green"}>{s.aidat_durum === "odenmedi" ? "Borç" : "Temiz"}</Rozet></div>)}
@@ -125,7 +126,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
               <div style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>Aidat dönemi</div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {donemSecenekleri.map((d) => { const aktif = donem?.yil === d.yil && donem?.ay === d.ay; return (
-                  <button key={`${d.yil}-${d.ay}`} type="button" onClick={() => { setDonem({ yil: d.yil, ay: d.ay }); }} style={{ padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, border: `1px solid ${aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--cizgi)"}`, background: aktif ? (d.borc ? "var(--kirmizi-acik)" : "var(--mor-acik)") : "#fff", color: aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--soluk)" }}>{d.borc ? "⚠ " : ""}{AY_ADLARI[d.ay - 1]} {d.yil}{d.borc ? " · ödenmedi" : ""}</button>
+                  <button key={`${d.yil}-${d.ay}`} type="button" onClick={() => { setDonem({ yil: d.yil, ay: d.ay }); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, border: `1px solid ${aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--cizgi)"}`, background: aktif ? (d.borc ? "var(--kirmizi-acik)" : "var(--mor-acik)") : "#fff", color: aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--soluk)" }}>{d.borc ? <Ikon ad="uyari" boyut={16} /> : null}{AY_ADLARI[d.ay - 1]} {d.yil}{d.borc ? " · ödenmedi" : ""}</button>
                 ); })}
               </div>
             </div>
@@ -159,8 +160,8 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span className="baslik" style={{ color: "#fff", fontSize: 22 }}>TOPLAM</span><span className="baslik" style={{ fontSize: 40, color: "var(--sari)" }}>{paraTR(toplam)}</span></div>
           </div>
           <div style={{ display: "flex", gap: 10 }}>
-            <Btn tur="ghost" onClick={() => kaydet(false)} disabled={bekliyor || !oyuncu} style={{ flex: 1, height: 52 }}>Kaydet</Btn>
-            <Btn tur="sari" onClick={() => kaydet(true)} disabled={bekliyor || !oyuncu} style={{ flex: 2, height: 52, fontSize: 15 }}>Kaydet ve Yazdır</Btn>
+            <Btn tur="ghost" ikon={<Ikon ad="dosya" />} onClick={() => kaydet(false)} disabled={bekliyor || !oyuncu} style={{ flex: 1, height: 52 }}>Kaydet</Btn>
+            <Btn tur="sari" ikon={<Ikon ad="yazdir" />} onClick={() => kaydet(true)} disabled={bekliyor || !oyuncu} style={{ flex: 2, height: 52, fontSize: 15 }}>Kaydet ve Yazdır</Btn>
           </div>
         </div>
       </div>)}
@@ -168,7 +169,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
         <div style={{ padding: "16px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 20 }}>Bugün Kesilen Makbuzlar</h3><span style={{ color: "var(--soluk)", fontSize: 14 }}>{bugunku.length} makbuz</span></div>
         {bugunku.length === 0 ? <Bos metin="Bugün henüz makbuz kesilmedi." /> : (
           <table><thead><tr><th>No</th><th>Oyuncu</th><th>Tutar</th><th>Yöntem</th><th>Tahsil eden</th><th style={{ width: 200 }}></th></tr></thead><tbody>
-            {bugunku.map((m) => <tr key={m.id}><td>{m.makbuz_no}</td><td style={{ fontWeight: 600 }}>{m.ad_soyad}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td>{m.tahsil_eden}</td><td style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><Btn kucuk tur="ghost" onClick={() => yazdir(m.id)}>Yazdır</Btn>{!saltOkunur && <Btn kucuk tur="danger" onClick={() => setIptal(m)}>İptal</Btn>}</td></tr>)}
+            {bugunku.map((m) => <tr key={m.id}><td>{m.makbuz_no}</td><td style={{ fontWeight: 600 }}>{m.ad_soyad}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td>{m.tahsil_eden}</td><td style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => yazdir(m.id)}>Yazdır</Btn>{!saltOkunur && <Btn kucuk tur="danger" onClick={() => setIptal(m)}>İptal</Btn>}</td></tr>)}
           </tbody></table>
         )}
       </Kart>

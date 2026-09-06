@@ -1,6 +1,6 @@
 // Yedekleme: data.db (WAL checkpoint sonrası) + uploads/ klasörünü zaman damgalı bir klasöre kopyalar.
 // Otomatik yedek: ayarlar.yedek_klasoru doluysa uygulama açılışında günde bir kez.
-const { ipcMain, dialog, BrowserWindow } = require("electron");
+const { ipcMain, dialog, BrowserWindow, app } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db.cjs");
@@ -40,6 +40,36 @@ function otomatikYedek() {
   } catch (e) { console.error("[yedek] otomatik yedek başarısız:", e.message); }
 }
 
+// ── Geri yükleme çekirdeği (relaunch yapmaz; test edilebilir) ──
+// Mevcut data.db ve uploads/ önce "<ad>.pre-restore-<damga>" olarak kenara alınır, sonra yedek
+// kopyalanır. Herhangi bir adım patlarsa kenara alınanlar geri konur. Çağıran DB'yi kapatmış olmalı.
+function geriYukleCekirdek(yedekKlasoru) {
+  const kaynakDb = path.join(yedekKlasoru, "data.db");
+  const kaynakUp = path.join(yedekKlasoru, "uploads");
+  const bilgi = db.yedekBilgisi(kaynakDb);
+  if (bilgi.error) return bilgi;
+  const hedefDb = db.getDbPath();
+  const hedefUp = db.getUploadsDir();
+  const damga = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  const kenarDb = hedefDb + ".pre-restore-" + damga;
+  const kenarUp = hedefUp + ".pre-restore-" + damga;
+  db.close();
+  try {
+    for (const ek of ["", "-wal", "-shm"]) { try { fs.rmSync(hedefDb + ek + ".tmp", { force: true }); } catch {} }
+    if (fs.existsSync(hedefDb)) fs.renameSync(hedefDb, kenarDb);
+    for (const ek of ["-wal", "-shm"]) { try { fs.rmSync(hedefDb + ek, { force: true }); } catch {} }
+    if (fs.existsSync(hedefUp)) fs.renameSync(hedefUp, kenarUp);
+    fs.copyFileSync(kaynakDb, hedefDb);
+    kopyalaKlasor(kaynakUp, hedefUp);
+    return { ok: true, kenarDb, kenarUp, bilgi };
+  } catch (e) {
+    // Geri al
+    try { fs.rmSync(hedefDb, { force: true }); if (fs.existsSync(kenarDb)) fs.renameSync(kenarDb, hedefDb); } catch {}
+    try { fs.rmSync(hedefUp, { recursive: true, force: true }); if (fs.existsSync(kenarUp)) fs.renameSync(kenarUp, hedefUp); } catch {}
+    return { error: "Geri yükleme başarısız, eski veriler korundu: " + e.message };
+  }
+}
+
 function registerYedekHandlers(getSession) {
   const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); };
   const istemciHata = () => ({ error: "Yedek yalnızca sunucu bilgisayarında alınır" });
@@ -58,7 +88,28 @@ function registerYedekHandlers(getSession) {
     if (!klasor) return { error: "Önce yedek klasörü seçin" };
     return yedekAl(klasor);
   });
+  // Geri yükleme: klasör seç → doğrula (özet göster) → onay → geri yükle → uygulamayı yeniden başlat.
+  ipcMain.handle("yedek:geriYukleSec", async (e) => {
+    const s = getSession();
+    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    if (config.istemciMi()) return istemciHata();
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title: "Yedek klasörünü seçin (içinde data.db olmalı)", properties: ["openDirectory"] });
+    if (r.canceled || !r.filePaths[0]) return { iptal: true };
+    const klasor = r.filePaths[0];
+    const bilgi = db.yedekBilgisi(path.join(klasor, "data.db"));
+    return bilgi.error ? bilgi : { ok: true, klasor, ...bilgi };
+  });
+  ipcMain.handle("yedek:geriYukle", async (_e, klasor) => {
+    const s = getSession();
+    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    if (config.istemciMi()) return istemciHata();
+    const r = geriYukleCekirdek(String(klasor || ""));
+    if (r.error) { try { db.init(); } catch {} return r; }
+    // Yeni veriyle temiz açılış için uygulamayı yeniden başlat.
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 400);
+    return { ok: true };
+  });
   ipcMain.handle("yedek:durum", () => config.istemciMi() ? { klasor: null, son: null, istemci: true } : ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek") }));
 }
 
-module.exports = { registerYedekHandlers, otomatikYedek, yedekAl };
+module.exports = { registerYedekHandlers, otomatikYedek, yedekAl, geriYukleCekirdek };

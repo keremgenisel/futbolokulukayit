@@ -3,6 +3,7 @@ import { Kart, Btn, Alan, Girdi, Secim, useToast, aidatEtiket } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, ayAraligi, hataMetni } from "../lib/api.js";
 import { AY_ADLARI, ODEME_YONTEMLERI, UCRET_TIPLERI, DURUMLAR, tarihTR, paraTR } from "../lib/aidat.js";
 import { raporHtml } from "../lib/raporHtml.js";
+import { Ikon } from "./Ikon.jsx";
 
 const RAPORLAR = [
   { kod: "oyuncu", ad: "Oyuncu Listesi", aciklama: "Tüm oyuncular, grup, durum, ücret tipi ve seçilen ayın aidat durumu" },
@@ -69,8 +70,8 @@ export function Raporlar() {
             <div style={{ display: "flex", gap: 8 }}><Alan etiket="Başlangıç" style={{ flex: 1 }}><Girdi type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Alan><Alan etiket="Bitiş" style={{ flex: 1 }}><Girdi type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Alan></div>
           )}
           {(rapor === "oyuncu" || rapor === "yoklama") && <Alan etiket="Yaş grubu"><Secim secenekler={gruplar} bos="Tümü" value={grup} onChange={(e) => setGrup(e.target.value)} /></Alan>}
-          <Btn onClick={onizle}>Önizle</Btn>
-          <div style={{ display: "flex", gap: 8 }}><Btn tur="ghost" onClick={excel} style={{ flex: 1 }}>Excel</Btn><Btn tur="ghost" onClick={pdf} style={{ flex: 1 }}>PDF</Btn></div>
+          <Btn ikon={<Ikon ad="goz" />} onClick={onizle}>Önizle</Btn>
+          <div style={{ display: "flex", gap: 8 }}><Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={excel} style={{ flex: 1 }}>Excel</Btn><Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={pdf} style={{ flex: 1 }}>PDF</Btn></div>
         </div>
       </Kart>
       <Kart style={{ overflow: "hidden" }}>

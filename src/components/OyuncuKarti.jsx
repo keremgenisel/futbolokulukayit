@@ -4,6 +4,7 @@ import { db, files, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzHtml } from "../lib/makbuzHtml.js";
+import { Ikon } from "./Ikon.jsx";
 
 const BELGE_TIPLERI = [
   { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true }, { kod: "foto", ad: "Vesikalık fotoğraf" },
@@ -81,8 +82,8 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           {DURUMLAR.map((d) => <option key={d.kod} value={d.kod} style={{ color: "#1B1530" }}>{d.ad}</option>)}
         </select>
       </label>
-      {!saltOkunur && <Btn tur="sari" onClick={() => onMakbuzKes(o.id)}>Makbuz Kes</Btn>}
-      <button type="button" onClick={onKapat} aria-label="Kapat" style={{ background: "none", border: 0, color: "#D8CCE9", fontSize: 24, cursor: "pointer" }}>×</button>
+      {!saltOkunur && <Btn tur="sari" ikon={<Ikon ad="tahsilat" />} onClick={() => onMakbuzKes(o.id)}>Makbuz Kes</Btn>}
+      <button type="button" onClick={onKapat} aria-label="Kapat" style={{ background: "none", border: 0, color: "#D8CCE9", cursor: "pointer", display: "flex" }}><Ikon ad="kapat" boyut={24} /></button>
     </div>
   );
 
@@ -155,7 +156,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
             <h3 style={{ fontSize: 20, marginBottom: 12 }}>Makbuzlar</h3>
             {makbuzlar.length === 0 ? <Bos metin="Makbuz yok." /> : (
               <table><thead><tr><th>No</th><th>Tarih</th><th>Tutar</th><th>Yöntem</th><th></th></tr></thead><tbody>
-                {makbuzlar.map((m) => <tr key={m.id} style={{ opacity: m.iptal ? .5 : 1 }}><td>{m.makbuz_no}{m.iptal ? " (iptal)" : ""}</td><td>{tarihTR(m.tarih)}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td><Btn kucuk tur="ghost" onClick={() => makbuzYazdir(m.id)}>Yazdır</Btn></td></tr>)}
+                {makbuzlar.map((m) => <tr key={m.id} style={{ opacity: m.iptal ? .5 : 1 }}><td>{m.makbuz_no}{m.iptal ? " (iptal)" : ""}</td><td>{tarihTR(m.tarih)}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td><Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => makbuzYazdir(m.id)}>Yazdır</Btn></td></tr>)}
               </tbody></table>
             )}
           </div>
@@ -186,7 +187,7 @@ function BelgeYukleDugmesi({ tip, onYukle }) {
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
       {tip.gecerlilik && <Girdi type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} style={{ width: 150, height: 36 }} title="Geçerlilik tarihi" />}
-      <Btn kucuk tur="ghost" onClick={() => onYukle(tip.kod, gecerlilik)}>Yükle</Btn>
+      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => onYukle(tip.kod, gecerlilik)}>Yükle</Btn>
     </div>
   );
 }
