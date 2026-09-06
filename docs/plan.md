@@ -181,9 +181,13 @@ settings           kulup adı, logo, makbuz alt yazısı, tahsil eden varsayıla
 - Ana ekranda "ödedi mi / geldi mi" görünümü
 - Excel ve PDF çıktılar
 - Günlük yedekleme
+- **Lisans çekirdeği (offline):** anahtar üretimi ve doğrulama, 30 gün deneme, salt okunur mod,
+  Ayarlar > Lisans ekranı, kalıcı meta ve saat sertleştirmesi (bkz. §7.1–7.3, 7.5–7.6)
 
-### Faz 2 – Çoklu PC ve roller
+### Faz 2 – Çoklu PC, roller ve online aktivasyon
 - Tailscale ile ikinci PC erişimi ve test
+- **Online aktivasyon sunucusu:** ayrı Cloudflare Worker + D1, lease, 12 saatlik yenileme,
+  uzaktan iptal, kurulum limiti, `lisans-yonet.cjs` (bkz. §7.4). İstemci PC'ler lisansı sunucu PC'den okur.
 - Kullanıcı rolleri (antrenör sadece yoklama görsün gibi)
 - Sağlık raporu geçerlilik uyarısı
 
@@ -204,3 +208,85 @@ settings           kulup adı, logo, makbuz alt yazısı, tahsil eden varsayıla
 7. Program hangi PC'de çalışacak? Windows sürümü? Yazıcı türü (A4 mü, fiş yazıcı mı)?
 8. Mevcut oyuncu listesi Excel'de var mı? Varsa toplu aktarım yaparız.
 9. Kulüp logosunun yüksek çözünürlüklü hali alınmalı (makbuz ve form çıktıları için).
+
+## 7. Lisanslama (GenCRM modeli)
+
+Eyüpspor programı GenCRM ile aynı lisans altyapısını kullanacak. Kaynak: `~/Projeler/gen-crm`
+(`electron/lisans.cjs`, `electron/lisansKalici.cjs`, `electron/aktivasyonIstemci.cjs`,
+`scripts/lisans-*.cjs`, `aktivasyon-sunucu/`). Kod GenCRM'den kopyalanıp uyarlanır, sıfırdan yazılmaz.
+
+### 7.1 Anahtar biçimi ve kripto
+- Lisans anahtarı: `EYUPSPOR.<b64url(payload JSON)>.<b64url(Ed25519 imza)>`
+  (GenCRM'de önek `GENCRM.`; ürünler karışmasın diye önek ve anahtar çiftleri AYRI olacak).
+- Payload: `{ firma, bitis: "YYYY-MM-DD" | null, maksKullanici: n | null, uretimTarihi, makineId?, aktivasyonGerekli? }`
+- **İki ayrı Ed25519 çifti:**
+  - Lisans çifti: özel anahtar yalnız üreticinin makinesinde, çevrimdışı (`scripts/keys/lisans-private.pem`, gitignore).
+    Açık eşi uygulamaya gömülür (`VARSAYILAN_PUBLIC_PEM`).
+  - Lease çifti: özel anahtar aktivasyon sunucusunda. Açık eşi uygulamaya gömülür (`VARSAYILAN_LEASE_PUBLIC_PEM`).
+    Sunucu sızsa bile yalnız kısa ömürlü lease basılabilir, kalıcı lisans üretilemez.
+- Lease biçimi: `EYUPLEASE.<payload>.<imza>`, payload `{ firma, makineId, leaseBitis, iptal, uretimTarihi }`.
+
+### 7.2 Durum makinesi (`durumHesapla`)
+| Durum | Koşul | Davranış |
+|-------|-------|----------|
+| `lisansli` | Geçerli imza, bitiş geçmemiş, makineId uyumlu, aktivasyon gerekliyse geçerli lease var | Tam özellik |
+| `deneme` | Anahtar yok veya geçersiz, kurulumdan itibaren ≤ 30 gün | Tam özellik, üstte geri sayım şeridi |
+| `saltOkunur` | Diğer her şey (deneme bitti, lisans bitti, imza geçersiz, makine uyumsuz, aktivasyon gerekli ama lease yok) | Yazma kapalı, okuma ve dışa aktarma açık, Ayarlar > Lisans her zaman erişilebilir |
+
+Salt okunur modda arayüz salt-okunur izinlere düşer; oyuncu ekleme, makbuz kesme, yoklama yazma kapanır.
+Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
+
+### 7.3 Sertleştirme (GenCRM Faz B1)
+- Kurulum bilgisi (`makineId`, `kurulumTarihi`, `sonGorulen`, `lease`) hem DB meta'da hem
+  `safeStorage` ile şifreli ayrı dosyada (`userData/lisans-meta.enc`) tutulur. `data.db` silinse bile
+  dosya kalır, deneme sıfırlanamaz. Birleştirme kuralı: en erken kurulum tarihi, en ileri görülen tarih.
+- `sonGorulen` monotonik saat işareti: sistem saati geri alınırsa efektif tarih gerilemez.
+- `makineId` ilk açılışta üretilir, anahtar isteğe bağlı bu kimliğe kilitlenebilir (offline anti-paylaşım).
+
+### 7.4 Online aktivasyon sunucusu (GenCRM Faz B2)
+- Cloudflare Worker + D1. GenCRM'deki `aktivasyon-sunucu/` klasörü kopyalanır, **ayrı worker** olarak
+  deploy edilir (örn. `eyupspor-aktivasyon`) ve **kendi anahtar çiftleri + kendi D1** ile çalışır.
+  Ortak sunucu kullanılmaz; GenCRM anahtarı Eyüpspor'u açmamalı.
+- Uçlar: `POST /aktivasyon`, `POST /yenile`, `GET /saglik`, `POST /admin/lisans`, `GET /admin/liste`, `GET /admin/hepsi`.
+- D1'de ham anahtar tutulmaz, yalnız SHA-256 özeti (KVKK). Tablolar: `lisanslar`, `kurulumlar`.
+- Lease penceresi 14 gün (`LEASE_GUN`). Uygulama açılışta ve her 12 saatte bir `/yenile` çağırır.
+- Uzaktan iptal: `/admin/lisans` ile `iptal=true`, lease dolunca uygulama salt okunura düşer.
+- Kurulum limiti: `maksKurulum` kadar farklı makineId aktive olabilir. Çoklu PC senaryosunda (Faz 2)
+  lisans sahibi SUNUCU PC'dir, istemci PC'ler lisansı ondan okur.
+- İnternetsiz kurulum için elle yol: uygulama makineId gösterir, üretici `lease-uret.cjs` ile lease
+  imzalar, müşteri Ayarlar > Lisans'a yapıştırır.
+
+### 7.5 Üretici araçları (`scripts/`)
+| Betik | Ne yapar |
+|-------|----------|
+| `lisans-anahtar-cifti.cjs` | Bir kez: iki Ed25519 çifti üretir, özel anahtarları `scripts/keys/`'e yazar, açık anahtarları basar |
+| `lisans-uret.cjs` | `--firma --bitis|--suresiz --kullanici --makine --aktivasyon` ile anahtar üretir, gömülü açık anahtarla kendini doğrular |
+| `lease-uret.cjs` | Air-gapped müşteri için elle lease imzalar |
+| `lisans-yonet.cjs` | Sunucu admin uçları: `kaydet`, `iptal`, `ac`, `liste`, `tumu` |
+
+`scripts/keys/` gitignore'da. Admin token `scripts/keys/admin-token.txt` veya ortam değişkeni.
+
+### 7.6 Uygulama tarafı dosyalar
+- `electron/lisans.cjs` — saf çekirdek: `imzala`, `dogrula`, `leaseImzala`, `leaseDogrula`, `leaseGecerliMi`, `durumHesapla`.
+- `electron/lisansKalici.cjs` — saf birleştirme: `birlestir`, `enErken`, `enIleri`.
+- `electron/aktivasyonIstemci.cjs` — `aktive`, `yenile`, `ayarli`; `AKTIVASYON_URL` deploy sonrası doldurulur.
+- `electron/db.cjs` — `lisansDurumu`, `lisansKaydet`, `leaseKaydet`, `lisansAktiflestir`, `lisansYenile`; meta anahtarları
+  `lisansAnahtari`, `makineId`, `kurulumTarihi`, `sonGorulenTarih`, `lisansLease`.
+- `electron/ipc/data.cjs` — `lisans:durum`, `lisans:kaydet`, `lisans:leaseYapistir`, `lisans:aktiflestir`, `lisans:yenile`.
+  `db:call` beyaz listesi salt okunur modda yazma fonksiyonlarını reddeder.
+- `electron/preload.cjs` — `window.okul.lisans.{durum, kaydet, leaseYapistir, aktiflestir, yenile}`.
+- `src/components/settings/SettingsLisans.jsx` — durum kartı (lisanslı / deneme / salt okunur), anahtar
+  yapıştırma, "Aktive Et (online)", lease yapıştırma, makine kimliği gösterimi.
+- `src/App.jsx` — yüklemede lisans durumu, 12 saatlik yenileme kalbi, üst şeritler
+  (salt okunur kırmızı, deneme geri sayımı, bitişe ≤ 30 gün uyarısı).
+- Testler: `tests/lisans.test.js` (imza turu, tahrifat, durum makinesi), `tests/lisans-kalici.test.js`,
+  `tests/aktivasyon-istemci.test.js`, `tests/aktivasyon-kripto.test.js` (Node ↔ Web Crypto uyumu),
+  `tests/aktivasyon-sunucu.test.js`. Testler kendi çiftlerini `EYUPSPOR_LISANS_PUBKEY` /
+  `EYUPSPOR_LEASE_PUBKEY` ortam değişkenleriyle verir.
+
+### 7.7 Eyüpspor için kararlar
+- Tek müşteri var ama altyapı aynı kalır: ileride başka kulüplere aynı programı satmak mümkün olur.
+- Kulübe verilecek ilk anahtar: `--firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon`,
+  sunucuda `maksKurulum` Faz 2'deki PC sayısı kadar.
+- Deneme süresi 30 gün korunur; kurulum gününde anahtar girilir, deneme fiilen kullanılmaz.
+
