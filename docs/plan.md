@@ -171,7 +171,7 @@ settings           kulup adı, logo, makbuz alt yazısı, tahsil eden varsayıla
 
 ## 5. Aşamalar
 
-### Faz 1 – Çekirdek (mutlaka olmalı)
+### Faz 1 – Çekirdek (mutlaka olmalı) — TAMAMLANDI 06.09.2026
 - Giriş ve parola
 - Yaş grupları
 - Oyuncu kaydı, aile, acil kişiler, belgeler, durum

@@ -12,3 +12,6 @@ design/*.html
 
 # SAST tarama çıktısı (yerel rapor, commit edilmez)
 sast/
+
+# Lisans özel anahtarları — ASLA commit edilmez
+scripts/keys/

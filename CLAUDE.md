@@ -17,12 +17,20 @@ npm install          # bağımlılıklar + native rebuild (postinstall) + git ho
 npm run dev          # vite + electron, hot reload
 npm run build        # vite build → dist/
 npm run build:win    # vite build + electron-builder --win → release/*.exe
-npm test             # vitest: saf mantık + jsdom bileşen testleri + Electron altında SQLite
+npm test             # vitest: saf mantık + jsdom bileşen testleri + Electron altında SQLite + arayüz duman testi (dist/ gerekir)
+npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
 npm run lint         # ESLint 9 (hata sayısı 0 tutulur)
 npm run typecheck    # tsc --noEmit (// @ts-check işaretli dosyalar)
 npm run scan:secrets # gitleaks
 npm run audit        # npm audit --audit-level=high
 ```
+
+## Durum (06.09.2026)
+
+Faz 1 tamam: giriş + zorunlu parola değişimi, yaş grupları, oyuncu kaydı (aile, acil kişiler, belgeler),
+aylık aidat, makbuz kesme/yazdırma/PDF, yoklama, pano (tesise giriş kontrolü), raporlar (Excel/PDF),
+ayarlar (kalemler, kullanıcılar, yedekleme), offline lisans çekirdeği. Faz 2: Tailscale/çoklu PC,
+online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 
 ## Mimari
 
@@ -31,7 +39,15 @@ npm run audit        # npm audit --audit-level=high
 - `electron/preload.cjs` — renderer'a tek köprü: `window.okul` (`auth.*`, `db(fn, ...args)`, `app.*`).
 - `electron/ipc/data.cjs` — `db:call` beyaz listesi; oturum yoksa hiçbir veri çağrısı geçmez.
 - `electron/db.cjs` — SQLite şeması, göç (`schema_version`), tohum (aidat kalemleri, ilk admin),
-  tüm sorgular. Şema `docs/plan.md §3` ile aynı. Anahtar `safeStorage` ile OS anahtarlığında.
+  tüm sorgular, lisans durumu (`lisansDurumu`/`lisansKaydet`/`leaseKaydet`). Şema `docs/plan.md §3`.
+  Anahtar `safeStorage` ile OS anahtarlığında.
+- `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması.
+- `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
+- `electron/ipc/yedek.cjs` — elle ve günlük otomatik yedek (data.db + uploads → seçilen klasör, 30 gün saklama).
+- `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
+  önek `EYUPSPOR.`/`EYUPLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
+  Üretici betikleri: `scripts/lisans-uret.cjs`, `lease-uret.cjs`, `lisans-yonet.cjs`.
+- `src/lib/makbuzHtml.js`, `raporHtml.js` — yazdırma/PDF şablonları (renderer üretir, main render eder).
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.
 - `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`). Tüm stil inline; renkler
@@ -44,4 +60,8 @@ npm run audit        # npm audit --audit-level=high
 - Aidat ve makbuz mantığı önce `src/lib/aidat.js` / `electron/db.cjs`'de saf fonksiyon, sonra arayüz.
 - Renderer doğrudan `fs`/`sqlite` görmez; her şey `window.okul.db` üzerinden beyaz listeli.
 - İlk admin `admin`/`admin`, `must_change_password=1` — ilk girişte parola değişimi zorunlu.
-- Türkçe arayüz, Türkçe yorum. Tarih `dd.mm.yyyy`, para `3.500 ₺` (`src/lib/aidat.js`).
+- Türkçe arayüz, Türkçe yorum. Tarih `dd.mm.yyyy`, para `3.500 ₺` (`src/lib/aidat.js`). Büyük harf
+  için `toLocaleUpperCase("tr-TR")` (i → İ).
+- Salt okunur lisans modu `electron/ipc/data.cjs` beyaz listesinde uygulanır (YAZMA seti reddedilir);
+  arayüz `saltOkunur` prop'uyla düğmeleri gizler ama asıl koruma main süreçtedir.
+- `scripts/keys/*.pem` ASLA commit edilmez; kaybolursa tüm dağıtılmış lisanslar geçersiz olur — yedekle.

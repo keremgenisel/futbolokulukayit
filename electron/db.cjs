@@ -241,6 +241,7 @@ function seed() {
 }
 
 function close() { if (db) { db.close(); db = null; } }
+const checkpoint = () => { try { db?.pragma("wal_checkpoint(TRUNCATE)"); } catch { /* yoksay */ } };
 
 // ── meta / settings ──
 const getMetaValue = (k) => db.prepare("SELECT value FROM meta WHERE key=?").get(k)?.value ?? null;
@@ -324,6 +325,7 @@ function addDocument(pid, d) {
   return Number(r.lastInsertRowid);
 }
 const deleteDocument = (id) => db.prepare("DELETE FROM documents WHERE id=?").run(id);
+const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get(id) || null;
 
 // ── fee items ──
 const listFeeItems = () => db.prepare("SELECT * FROM fee_items ORDER BY sira, id").all();
@@ -403,16 +405,168 @@ const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (t
 const listAttendance = (tid) => db.prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad").all(tid);
 const playerAttendance = (pid, from, to) => db.prepare("SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? ORDER BY t.tarih").all(pid, from, to);
 
+
+// ── Ek sorgular (ekranlar) ──
+const deleteAgeGroup = (id) => {
+  const n = db.prepare("SELECT count(*) AS n FROM players WHERE yas_grubu_id=?").get(id).n;
+  if (n > 0) return { error: `Bu grupta ${n} oyuncu var, önce oyuncuları taşıyın` };
+  db.prepare("DELETE FROM age_groups WHERE id=?").run(id);
+  return { ok: true };
+};
+
+// Oyuncu listesi + verilen ayın aidat durumu (liste ekranı ve tesise giriş kontrolü).
+function listPlayersWithDue({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false } = {}) {
+  const where = []; const args = [yil, ay];
+  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`); }
+  if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
+  if (durum) { where.push("p.durum=?"); args.push(durum); }
+  if (sadeceOdemeyen) where.push("d.durum='odenmedi'");
+  const sql = `SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar
+    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
+    LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
+    ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
+  return db.prepare(sql).all(...args);
+}
+
+// Pano özeti.
+function panoOzet({ yil, ay, bugun }) {
+  const aktif = db.prepare("SELECT count(*) AS n FROM players WHERE durum IN ('aktif','deneme','sakat')").get().n;
+  const grup = db.prepare("SELECT count(*) AS n FROM age_groups WHERE aktif=1").get().n;
+  const odeyen = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum='odendi'").get(yil, ay).n;
+  const borclu = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum='odenmedi'").get(yil, ay).n;
+  const antrenmanlar = db.prepare(`SELECT t.*, g.ad AS yas_grubu_ad,
+      (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
+      (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
+      (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi
+    FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih=? ORDER BY t.saat`).all(bugun);
+  const bugunTahsilat = db.prepare("SELECT COALESCE(sum(toplam),0) AS t FROM receipts WHERE tarih=? AND iptal=0").get(bugun).t;
+  return { aktif, grup, odeyen, borclu, antrenmanlar, bugunTahsilat };
+}
+
+const cancelReceipt = (id) => {
+  const tx = db.transaction(() => {
+    db.prepare("UPDATE receipts SET iptal=1 WHERE id=?").run(id);
+    db.prepare("UPDATE monthly_dues SET durum='odenmedi', receipt_id=NULL WHERE receipt_id=?").run(id);
+  });
+  tx();
+  return { ok: true };
+};
+
+// Bir oyuncunun son N ay yoklama özeti.
+const attendanceSummary = (pid, from, to) => db.prepare(
+  "SELECT a.durum, count(*) AS n FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? AND t.iptal=0 GROUP BY a.durum"
+).all(pid, from, to);
+
+// Yoklama raporu: tarih aralığında oyuncu bazında geldi/gelmedi/izinli sayıları.
+const attendanceReport = (from, to, age_group_id = null) => db.prepare(`
+  SELECT p.id, p.ad_soyad, g.ad AS yas_grubu_ad,
+    sum(CASE WHEN a.durum='geldi' THEN 1 ELSE 0 END) AS geldi,
+    sum(CASE WHEN a.durum='gelmedi' THEN 1 ELSE 0 END) AS gelmedi,
+    sum(CASE WHEN a.durum='izinli' THEN 1 ELSE 0 END) AS izinli
+  FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
+  LEFT JOIN attendance a ON a.player_id=p.id
+  LEFT JOIN trainings t ON t.id=a.training_id AND t.tarih BETWEEN ? AND ? AND t.iptal=0
+  WHERE (? IS NULL OR p.yas_grubu_id=?) AND p.durum IN ('aktif','deneme','sakat')
+  GROUP BY p.id ORDER BY g.sira, p.ad_soyad`).all(from, to, age_group_id, age_group_id);
+
+const listUsers = () => db.prepare("SELECT id, username, ad_soyad, role, is_active, must_change_password FROM users ORDER BY username").all();
+const setUserActive = (id, aktif) => db.prepare("UPDATE users SET is_active=? WHERE id=?").run(aktif ? 1 : 0, id);
+const resetUserPassword = (id, yeni) => db.prepare("UPDATE users SET password_hash=?, must_change_password=1, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(yeni, 10), id);
+
+// ── Lisans (GenCRM modeli; docs/plan.md §7) ──
+const lisansM = require("./lisans.cjs");
+const lisansKalici = require("./lisansKalici.cjs");
+let lisansCache = null;     // { anahtar, makineId, kurulumTarihi, lease }
+let sonGorulenCache = null; // bellek içi saat işareti (yalnız gün değişince diske yazılır)
+const busimdi = () => new Date().toISOString().slice(0, 10);
+const getLisansMetaPath = () => path.join(app.getPath("userData"), "lisans-meta.enc");
+function getSafeStorage() {
+  try { return safeStorage?.isEncryptionAvailable?.() ? safeStorage : null; } catch { return null; }
+}
+function kaliciMetaOku() {
+  const ss = getSafeStorage();
+  try { if (ss && fs.existsSync(getLisansMetaPath())) return JSON.parse(ss.decryptString(fs.readFileSync(getLisansMetaPath()))); } catch { /* bozuk → yok say */ }
+  return null;
+}
+function kaliciMetaYaz(obj) {
+  const ss = getSafeStorage();
+  if (!ss) return;
+  try { fs.writeFileSync(getLisansMetaPath(), ss.encryptString(JSON.stringify(obj))); } catch { /* sessiz, DB meta yedek */ }
+}
+function lisansDurumu() {
+  if (!db) return lisansM.durumHesapla({});
+  const bugun = busimdi();
+  if (!lisansCache) {
+    const dosya = kaliciMetaOku();
+    const meta = { makineId: getMetaValue("makineId"), kurulumTarihi: getMetaValue("kurulumTarihi"), sonGorulen: getMetaValue("sonGorulenTarih"), lease: getMetaValue("lisansLease") || null };
+    const m = lisansKalici.birlestir({ dosya, meta, bugun, yeniMakineId: crypto.randomUUID() });
+    setMetaValue("makineId", m.makineId);
+    setMetaValue("kurulumTarihi", m.kurulumTarihi);
+    lisansCache = { anahtar: getMetaValue("lisansAnahtari"), makineId: m.makineId, kurulumTarihi: m.kurulumTarihi, lease: m.lease };
+    sonGorulenCache = m.sonGorulen;
+    kaliciMetaYaz({ makineId: m.makineId, kurulumTarihi: m.kurulumTarihi, sonGorulen: sonGorulenCache, lease: m.lease });
+  }
+  const durum = lisansM.durumHesapla({
+    anahtar: lisansCache.anahtar, kurulumTarihi: lisansCache.kurulumTarihi,
+    makineId: lisansCache.makineId, sonGorulen: sonGorulenCache, lease: lisansCache.lease, simdi: bugun,
+  });
+  const ileri = lisansKalici.enIleri(sonGorulenCache, bugun);
+  if (ileri !== sonGorulenCache) {
+    sonGorulenCache = ileri;
+    setMetaValue("sonGorulenTarih", ileri);
+    kaliciMetaYaz({ makineId: lisansCache.makineId, kurulumTarihi: lisansCache.kurulumTarihi, sonGorulen: ileri, lease: lisansCache.lease });
+  }
+  return { ...durum, makineId: lisansCache.makineId };
+}
+function lisansKaydet(anahtar) {
+  const d = lisansM.dogrula(anahtar);
+  if (!d.gecerli) return { error: d.neden === "imza" ? "Anahtar imzası geçersiz" : "Anahtar biçimi geçersiz" };
+  setMetaValue("lisansAnahtari", String(anahtar).trim());
+  lisansCache = null;
+  return { ok: true, durum: lisansDurumu() };
+}
+function leaseKaydet(lease) {
+  const temiz = String(lease || "").trim();
+  const ld = lisansM.leaseDogrula(temiz);
+  if (!ld.gecerli) return { error: ld.neden === "imza" ? "Lease imzası geçersiz" : "Lease biçimi geçersiz" };
+  lisansDurumu();
+  if (ld.payload.makineId != null && lisansCache?.makineId && ld.payload.makineId !== lisansCache.makineId) {
+    return { error: "Bu lease bu makineye ait değil" };
+  }
+  lisansCache.lease = temiz;
+  setMetaValue("lisansLease", temiz);
+  kaliciMetaYaz({ makineId: lisansCache.makineId, kurulumTarihi: lisansCache.kurulumTarihi, sonGorulen: sonGorulenCache, lease: temiz });
+  return { ok: true, durum: lisansDurumu() };
+}
+async function lisansAktiflestir(surum = "") {
+  const anahtar = getMetaValue("lisansAnahtari");
+  if (!anahtar) return { error: "Önce lisans anahtarını kaydedin, sonra Aktive Et'e basın" };
+  const ai = require("./aktivasyonIstemci.cjs");
+  const r = await ai.aktive(anahtar, lisansDurumu().makineId, surum);
+  return r.error ? r : leaseKaydet(r.lease);
+}
+async function lisansYenile() {
+  const anahtar = getMetaValue("lisansAnahtari");
+  const ai = require("./aktivasyonIstemci.cjs");
+  if (!anahtar || !ai.ayarli()) return { ok: true, durum: lisansDurumu() };
+  const r = await ai.yenile(anahtar, lisansDurumu().makineId);
+  return r.error ? r : leaseKaydet(r.lease);
+}
+const lisansSaltOkunurMu = () => lisansDurumu().mod === "saltOkunur";
+
 module.exports = {
-  init, close, isEncrypted, getUploadsDir, getDbPath,
+  init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath,
   getMetaValue, setMetaValue, getSetting, setSetting,
   getUserByUsername, createUser, verifyPassword, changePassword,
   listAgeGroups, createAgeGroup, updateAgeGroup,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
-  listDocuments, addDocument, deleteDocument,
+  listDocuments, addDocument, deleteDocument, getDocument,
   listFeeItems, updateFeeItem,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,
   createTraining, listTrainings, cancelTraining, setAttendance, listAttendance, playerAttendance,
+  deleteAgeGroup, listPlayersWithDue, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
+  listUsers, setUserActive, resetUserPassword,
+  lisansDurumu, lisansKaydet, leaseKaydet, lisansAktiflestir, lisansYenile, lisansSaltOkunurMu,
 };

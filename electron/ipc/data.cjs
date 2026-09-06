@@ -1,21 +1,26 @@
 // Renderer'dan gelen "db:call" isteklerini beyaz listedeki db.cjs fonksiyonlarına yönlendirir.
-// Oturum açılmadan hiçbir veri çağrısı yapılamaz.
-const { ipcMain } = require("electron");
+// Oturum açılmadan hiçbir veri çağrısı yapılamaz. Lisans salt-okunur modundayken YAZMA
+// fonksiyonları reddedilir (okuma, arama ve dışa aktarma hep açık).
+const { ipcMain, app } = require("electron");
 const db = require("../db.cjs");
 
-const ALLOWED = new Set([
-  "listAgeGroups", "createAgeGroup", "updateAgeGroup",
-  "createPlayer", "updatePlayer", "getPlayer", "listPlayers", "deletePlayer",
-  "listGuardians", "addGuardian", "deleteGuardian", "listEmergency", "addEmergency", "deleteEmergency",
-  "listDocuments", "addDocument", "deleteDocument",
-  "listFeeItems", "updateFeeItem",
-  "ensureMonthlyDues", "getDue", "listDues", "listUnpaid",
-  "createReceipt", "getReceipt", "listReceipts", "listReceiptsByDate",
-  "createTraining", "listTrainings", "cancelTraining", "setAttendance", "listAttendance", "playerAttendance",
-  "getSetting", "setSetting",
+const OKUMA = new Set([
+  "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "listGuardians", "listEmergency",
+  "listDocuments", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
+  "listReceiptsByDate", "listTrainings", "listAttendance", "playerAttendance", "getSetting", "panoOzet",
+  "attendanceSummary", "attendanceReport", "listUsers",
 ]);
+const YAZMA = new Set([
+  "createAgeGroup", "updateAgeGroup", "deleteAgeGroup",
+  "createPlayer", "updatePlayer", "deletePlayer",
+  "addGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument",
+  "updateFeeItem", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
+  "createTraining", "cancelTraining", "setAttendance", "setSetting",
+]);
+const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser"]);
 
 let session = null; // { username, ad_soyad, role, must_change_password }
+const getSession = () => session;
 
 function registerDataHandlers() {
   ipcMain.handle("auth:login", (_e, username, password) => {
@@ -36,9 +41,37 @@ function registerDataHandlers() {
 
   ipcMain.handle("db:call", (_e, fn, args) => {
     if (!session) throw new Error("Oturum gerekli");
-    if (!ALLOWED.has(fn)) throw new Error(`İzin verilmeyen çağrı: ${fn}`);
-    return db[fn](...(Array.isArray(args) ? args : []));
+    const a = Array.isArray(args) ? args : [];
+    if (OKUMA.has(fn)) return db[fn](...a);
+    if (YAZMA.has(fn)) {
+      if (db.lisansSaltOkunurMu()) throw new Error("Lisans salt okunur modda: değişiklik yapılamaz. Ayarlar > Lisans'tan anahtar girin.");
+      return db[fn](...a);
+    }
+    if (ADMIN.has(fn)) {
+      if (session.role !== "admin") throw new Error("Bu işlem için yönetici yetkisi gerekli");
+      if (db.lisansSaltOkunurMu()) throw new Error("Lisans salt okunur modda");
+      return db[fn](...a);
+    }
+    throw new Error(`İzin verilmeyen çağrı: ${fn}`);
   });
+
+  // ── Lisans köprüsü ──
+  ipcMain.handle("lisans:durum", () => ({ ok: true, durum: db.lisansDurumu() }));
+  ipcMain.handle("lisans:kaydet", (_e, anahtar) => {
+    if (!session || session.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    const r = db.lisansKaydet(anahtar);
+    return r.error ? r : { ok: true, durum: r.durum };
+  });
+  ipcMain.handle("lisans:leaseYapistir", (_e, lease) => {
+    if (!session || session.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    const r = db.leaseKaydet(lease);
+    return r.error ? r : { ok: true, durum: r.durum };
+  });
+  ipcMain.handle("lisans:aktiflestir", async () => {
+    if (!session || session.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    return db.lisansAktiflestir(app.getVersion());
+  });
+  ipcMain.handle("lisans:yenile", async () => db.lisansYenile());
 }
 
-module.exports = { registerDataHandlers };
+module.exports = { registerDataHandlers, getSession, OKUMA, YAZMA };

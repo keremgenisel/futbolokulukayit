@@ -26,6 +26,8 @@ export interface Receipt { id: number; makbuz_no: string; player_id: number; tar
 export interface Training { id: number; age_group_id: number; tarih: string; saat: string; saha: string; iptal: number; iptal_nedeni: string; yas_grubu_ad?: string }
 export interface Attendance { id: number; training_id: number; player_id: number; durum: "geldi" | "gelmedi" | "izinli"; ad_soyad?: string }
 
+export interface LisansDurum { mod: "lisansli" | "deneme" | "saltOkunur"; neden?: string; firma?: string; bitis: string | null; maksKullanici: number | null; kalanGun: number | null; makineId?: string; saatGeriAlindi?: boolean }
+
 export interface Session { username: string; ad_soyad: string; role: string; must_change_password: boolean }
 
 declare global {
@@ -37,8 +39,32 @@ declare global {
         changePassword(username: string, newPassword: string): Promise<{ ok: boolean; error?: string }>;
         session(): Promise<Session | null>;
       };
-      db(fn: string, ...args: unknown[]): Promise<unknown>;
-      app: { version(): Promise<string>; printHtml(html: string, defaultName?: string): Promise<{ ok: boolean }> };
+      db(fn: string, ...args: unknown[]): Promise<any>;
+      files: {
+        addDocument(playerId: number, tip: string, gecerlilik?: string | null): Promise<{ ok?: boolean; iptal?: boolean; id?: number; dosya_yolu?: string }>;
+        deleteDocument(docId: number): Promise<{ ok: boolean }>;
+        open(yol: string): Promise<string>;
+        dataUrl(yol: string): Promise<string | null>;
+      };
+      cikti: {
+        yazdir(html: string): Promise<{ ok: boolean; hata?: string }>;
+        makbuzPdf(receiptId: number, html: string): Promise<{ ok: boolean; pdf_yolu: string }>;
+        pdfKaydet(html: string, oneriAd?: string, yatay?: boolean): Promise<{ ok?: boolean; iptal?: boolean; yol?: string }>;
+        excelKaydet(veri: { sayfa: string; sutunlar: { baslik: string; anahtar: string; genislik?: number }[]; satirlar: Record<string, unknown>[] }, oneriAd?: string): Promise<{ ok?: boolean; iptal?: boolean; yol?: string }>;
+      };
+      yedek: {
+        klasorSec(): Promise<{ ok?: boolean; iptal?: boolean; klasor?: string }>;
+        al(): Promise<{ ok?: boolean; error?: string; yol?: string }>;
+        durum(): Promise<{ klasor: string | null; son: string | null }>;
+      };
+      lisans: {
+        durum(): Promise<{ ok: boolean; durum: LisansDurum }>;
+        kaydet(anahtar: string): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
+        leaseYapistir(lease: string): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
+        aktiflestir(): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
+        yenile(): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
+      };
+      app: { version(): Promise<string>; logo(): Promise<string> };
     };
   }
 }

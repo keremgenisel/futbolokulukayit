@@ -1,7 +1,11 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
+const fs = require("fs");
 const db = require("./db.cjs");
-const { registerDataHandlers } = require("./ipc/data.cjs");
+const { registerDataHandlers, getSession } = require("./ipc/data.cjs");
+const { registerFileHandlers } = require("./ipc/files.cjs");
+const { registerCiktiHandlers } = require("./ipc/cikti.cjs");
+const { registerYedekHandlers, otomatikYedek } = require("./ipc/yedek.cjs");
 
 // ── Otomatik güncelleme (yalnızca paketlenmiş uygulamada) ──
 let autoUpdater = null;
@@ -55,14 +59,22 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     db.init();
+    // Bu ayın aidat kayıtlarını aç (her açılışta; INSERT OR IGNORE olduğundan tekrar güvenli).
+    try { const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1); } catch (e) { console.error("[aidat]", e.message); }
+    otomatikYedek();
+
     registerDataHandlers();
+    registerFileHandlers(getSession);
+    registerCiktiHandlers(getSession);
+    registerYedekHandlers(getSession);
 
     ipcMain.handle("app:version", () => app.getVersion());
-    ipcMain.handle("app:printHtml", async (_e, html) => {
-      const w = new BrowserWindow({ show: false, webPreferences: { sandbox: true } });
-      await w.loadURL("data:text/html;charset=utf-8," + encodeURIComponent(html));
-      w.webContents.print({ silent: false, printBackground: true }, () => w.close());
-      return { ok: true };
+    let logoCache = null;
+    ipcMain.handle("app:logo", () => {
+      if (!logoCache) {
+        try { logoCache = "data:image/png;base64," + fs.readFileSync(path.join(__dirname, "../build/icon.png")).toString("base64"); } catch { logoCache = ""; }
+      }
+      return logoCache;
     });
 
     createWindow();

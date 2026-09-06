@@ -53,6 +53,26 @@ app.whenReady().then(async () => {
     db.setAttendance(antrenman.id, oyuncu.id, "geldi");
     check("yoklama kaydedildi", db.listAttendance(antrenman.id)[0].durum === "geldi");
 
+    // Ek sorgular
+    check("aidat durumlu liste", db.listPlayersWithDue({ yil: 2026, ay: 9 })[0].aidat_durum === "odendi");
+    check("ödemeyen filtresi boş", db.listPlayersWithDue({ yil: 2026, ay: 9, sadeceOdemeyen: true }).length === 0);
+    const ozet = db.panoOzet({ yil: 2026, ay: 9, bugun: "2026-09-06" });
+    check("pano özeti", ozet.aktif === 1 && ozet.odeyen === 1 && ozet.antrenmanlar.length === 1 && ozet.antrenmanlar[0].geldi === 1);
+    check("yoklama raporu", db.attendanceReport("2026-09-01", "2026-09-30")[0].geldi === 1);
+    db.cancelReceipt(makbuz.id);
+    check("makbuz iptali aidatı geri açar", db.getDue(oyuncu.id, 2026, 9).durum === "odenmedi");
+    check("iptal sonrası borçlu listesi", db.listUnpaid(2026, 9).length === 1);
+    check("grup silme oyuncu varken engellenir", !!db.deleteAgeGroup(grp.id).error);
+    const belgeId = db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/x.pdf", orijinal_ad: "x.pdf" });
+    check("belge okunuyor", db.getDocument(belgeId).tip === "saglik");
+
+    // Lisans: temiz kurulum → deneme; geçersiz anahtar reddedilir; salt okunur değil
+    const ld = db.lisansDurumu();
+    check("lisans temiz kurulumda deneme", ld.mod === "deneme" && ld.kalanGun === 30 && !!ld.makineId);
+    check("geçersiz anahtar reddedilir", !!db.lisansKaydet("EYUPSPOR.bozuk.anahtar").error);
+    check("salt okunur değil", db.lisansSaltOkunurMu() === false);
+    check("makineId kalıcı", db.lisansDurumu().makineId === ld.makineId);
+
     db.close();
     // Anahtar varsa dosya şifreli olmalı: anahtarsız açılış sqlite_master okuyamamalı
     if (db.isEncrypted()) {
