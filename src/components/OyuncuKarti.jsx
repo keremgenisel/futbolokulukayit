@@ -1,9 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
-import { db, files, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
+import { db, files, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
-import { makbuzHtml } from "../lib/makbuzHtml.js";
+import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 
 const BELGE_TIPLERI = [
@@ -60,11 +60,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     } catch (e) { toast("err", hataMetni(e)); }
   };
   const makbuzYazdir = async (id) => {
-    try {
-      const m = await db("getReceipt", id); const kalemler = await db("listFeeItems"); const logo = await uygulama().logo();
-      const html = makbuzHtml({ makbuz: m, kalemler, logo, altYazi: (await db("getSetting", "makbuz_alt_yazi")) || "" });
-      await cikti().yazdir(html);
-    } catch (e) { toast("err", hataMetni(e)); }
+    try { const y = await makbuzYazdirAkis(id); if (!y.ok) toast("err", y.mesaj); } catch (e) { toast("err", hataMetni(e)); }
   };
 
   if (!o) return null;

@@ -1,15 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Onay, Bos, useToast } from "./ui.jsx";
-import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
+import { db, cikti, bugun, hataMetni } from "../lib/api.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI } from "../lib/aidat.js";
-import { makbuzHtml } from "../lib/makbuzHtml.js";
+import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
-
-// Makbuz HTML'i üret (yazdırma + PDF ortak).
-export async function makbuzHtmlUret(receiptId) {
-  const [m, kalemler, logo, altYazi, kulup] = await Promise.all([db("getReceipt", receiptId), db("listFeeItems"), uygulama().logo(), db("getSetting", "makbuz_alt_yazi"), db("getSetting", "kulup_adi")]);
-  return makbuzHtml({ makbuz: m, kalemler, logo, altYazi: altYazi || "", kulupAdi: kulup || "EYÜPSPOR FUTBOL OKULU" });
-}
 
 export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSecildi }) {
   const [q, setQ] = useState("");
@@ -86,13 +80,13 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
       const html = await makbuzHtmlUret(r.id);
       await cikti().makbuzPdf(r.id, html);
       toast("ok", `Makbuz ${r.makbuz_no} kaydedildi`);
-      if (yazdir) await cikti().yazdir(html);
+      if (yazdir) { const y = await makbuzYazdir(r.id, html); if (!y.ok) toast("err", y.mesaj); }
       setOyuncu(null); setSecili({}); setNot(""); setAidatlar([]);
       bugunkuYukle();
     } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
   };
 
-  const yazdir = async (id) => { try { await cikti().yazdir(await makbuzHtmlUret(id)); } catch (e) { toast("err", hataMetni(e)); } };
+  const yazdir = async (id) => { try { const y = await makbuzYazdir(id); if (!y.ok) toast("err", y.mesaj); } catch (e) { toast("err", hataMetni(e)); } };
   const iptalEt = async () => { try { await db("cancelReceipt", iptal.id); toast("ok", "Makbuz iptal edildi"); setIptal(null); bugunkuYukle(); } catch (e) { toast("err", hataMetni(e)); } };
 
   const bugunToplam = bugunku.reduce((s, m) => s + m.toplam, 0);
