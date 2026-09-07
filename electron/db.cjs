@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 5; // 2: recovery_codes; 3: uyruk+pasaport_no; 4: players.sezon; 5: monthly_dues.odenen (kısmi ödeme)
+const SCHEMA_VERSION = 6; // 2: recovery_codes; 3: uyruk+pasaport_no; 4: players.sezon; 5: monthly_dues.odenen; 6: age_groups.program
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -78,7 +78,8 @@ CREATE TABLE IF NOT EXISTS age_groups (
   ad TEXT NOT NULL,
   sezon TEXT NOT NULL DEFAULT '',
   sira INTEGER NOT NULL DEFAULT 0,
-  aktif INTEGER NOT NULL DEFAULT 1
+  aktif INTEGER NOT NULL DEFAULT 1,
+  program TEXT NOT NULL DEFAULT '[]'              -- haftalık antrenman programı JSON: [{gun:1..7, saat, saha}]
 );
 
 CREATE TABLE IF NOT EXISTS players (
@@ -246,6 +247,8 @@ function migrate() {
   if (!kolonlar.has("uyruk")) db.exec("ALTER TABLE players ADD COLUMN uyruk TEXT NOT NULL DEFAULT 'tc'");
   if (!kolonlar.has("pasaport_no")) db.exec("ALTER TABLE players ADD COLUMN pasaport_no TEXT");
   if (!kolonlar.has("sezon")) db.exec("ALTER TABLE players ADD COLUMN sezon TEXT NOT NULL DEFAULT ''");
+  const grupKolon = new Set(db.prepare("PRAGMA table_info(age_groups)").all().map((c) => c.name));
+  if (!grupKolon.has("program")) db.exec("ALTER TABLE age_groups ADD COLUMN program TEXT NOT NULL DEFAULT '[]'");
   const dueKolon = new Set(db.prepare("PRAGMA table_info(monthly_dues)").all().map((c) => c.name));
   if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
@@ -304,8 +307,37 @@ function createAgeGroup({ ad, sezon = "", sira = 0 }) {
   const r = db.prepare("INSERT INTO age_groups (ad,sezon,sira) VALUES (?,?,?)").run(ad, sezon, sira);
   return { id: Number(r.lastInsertRowid), ad, sezon, sira, aktif: 1 };
 }
-const updateAgeGroup = (id, { ad, sezon, sira, aktif }) =>
-  db.prepare("UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif) WHERE id=?").run(ad, sezon, sira, aktif, id);
+const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }) =>
+  db.prepare("UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif), program=COALESCE(?,program) WHERE id=?")
+    .run(ad, sezon, sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
+// Program girdisini süz: [{gun 1..7, saat HH:MM, saha}]
+function programDogrula(p) {
+  const l = typeof p === "string" ? (() => { try { return JSON.parse(p || "[]"); } catch { return []; } })() : p;
+  if (!Array.isArray(l)) return [];
+  return l.filter((x) => x && Number.isInteger(Number(x.gun)) && Number(x.gun) >= 1 && Number(x.gun) <= 7 && /^\d{2}:\d{2}$/.test(String(x.saat || "")))
+    .map((x) => ({ gun: Number(x.gun), saat: String(x.saat), saha: String(x.saha || "").trim() }));
+}
+// Haftayı programdan doldur: aktif grupların programındaki gün/saatler için o haftada antrenman yoksa açar (var olan atlanır).
+function haftayiProgramdanDoldur(haftaBasiIso) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(haftaBasiIso || ""))) throw new Error("Hafta başlangıcı yyyy-aa-gg olmalı");
+  const [y, m, d] = haftaBasiIso.split("-").map(Number);
+  const gunIso = (ek) => { const t = new Date(y, m - 1, d + ek); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
+  const var_ = db.prepare("SELECT 1 FROM trainings WHERE age_group_id=? AND tarih=? AND saat=? AND iptal=0");
+  let eklenen = 0, atlanan = 0, programsiz = 0;
+  const tx = db.transaction(() => {
+    for (const g of db.prepare("SELECT id, program FROM age_groups WHERE aktif=1").all()) {
+      const prog = programDogrula(g.program);
+      if (!prog.length) { programsiz++; continue; }
+      for (const p of prog) {
+        const tarih = gunIso(p.gun - 1);
+        if (var_.get(g.id, tarih, p.saat)) { atlanan++; continue; }
+        createTraining({ age_group_id: g.id, tarih, saat: p.saat, saha: p.saha }); eklenen++;
+      }
+    }
+  });
+  tx();
+  return { ok: true, eklenen, atlanan, programsiz, haftaBasi: haftaBasiIso, haftaSonu: gunIso(6) };
+}
 
 // ── players ──
 const PLAYER_FIELDS = ["tc_no","uyruk","pasaport_no","sezon","ad_soyad","dogum_tarihi","dogum_yeri","okul","gsm","adres","kan_grubu","foto_yolu","yas_grubu_id","durum","ucret_tipi","aylik_aidat","odeme_donemi","kayit_tarihi","notlar"];
@@ -799,7 +831,7 @@ module.exports = {
   getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
   sezonAdayListesi, sezonDurumu, yeniSezonaGec, SEZON_DURUMLARI,
   getUserByUsername, createUser, verifyPassword, changePassword,
-  listAgeGroups, createAgeGroup, updateAgeGroup,
+  listAgeGroups, createAgeGroup, updateAgeGroup, haftayiProgramdanDoldur,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
   listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument,

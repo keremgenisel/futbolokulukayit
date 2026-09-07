@@ -12,6 +12,7 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
   it("yazma lisans salt okunurken 403, normalde serbest", () => {
     expect(cagriYetkisi("createPlayer", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("aidatAyarlariKaydet", kullanici, true).kod).toBe(403);
+    expect(cagriYetkisi("haftayiProgramdanDoldur", kullanici, false).ok).toBe(true);
     const r = cagriYetkisi("createPlayer", kullanici, true);
     expect(r.ok).toBe(false); expect(r.kod).toBe(403); expect(r.mesaj).toMatch(/salt okunur/);
   });

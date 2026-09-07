@@ -3,7 +3,7 @@ import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast } fro
 import { db, bugun, hataMetni } from "../lib/api.js";
 import { Ikon } from "./Ikon.jsx";
 import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
-import { gunKaydir, varsayilanBaslangic, uzunTarih } from "../lib/takvim.js";
+import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi } from "../lib/takvim.js";
 
 // Şerit kaydırıldıkça ±4 haftalık pencere tek sorguda yüklenir (plan §9.2).
 const PENCERE_GUN = 28;
@@ -67,6 +67,15 @@ export function Yoklama({ saltOkunur }) {
       antrenmanSec({ ...t, yas_grubu_ad: gruplar.find((g) => g.id === t.age_group_id)?.ad, iptal: 0, oyuncu: 0, isaretli: 0 });
     } catch (e) { toast("err", hataMetni(e)); }
   };
+  const haftayiDoldur = async () => {
+    try {
+      const r = await db("haftayiProgramdanDoldur", haftaBasi(tarih));
+      if (r?.error) return toast("err", r.error);
+      if (r.eklenen === 0 && r.programsiz > 0 && r.atlanan === 0) toast("err", "Hiçbir yaş grubunun haftalık programı yok. Yaş Grupları > Düzenle'den gün ve saat girin.");
+      else toast("ok", `${r.eklenen} antrenman eklendi${r.atlanan ? `, ${r.atlanan} zaten vardı` : ""}${r.programsiz ? `, ${r.programsiz} grubun programı yok` : ""}`);
+      await takvimYukle();
+    } catch (e) { toast("err", hataMetni(e)); }
+  };
   const iptalEt = async () => { try { await db("cancelTraining", iptal.id, "İptal"); toast("ok", "Antrenman iptal edildi"); setIptal(null); setAktif(null); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
 
   const say = (d) => oyuncular.filter((o) => yoklama[o.id] === d).length;
@@ -87,7 +96,12 @@ export function Yoklama({ saltOkunur }) {
             <h3 style={{ fontSize: 22 }}>{uzunTarih(tarih)}</h3>
             <span style={{ color: "var(--soluk)", fontSize: 14 }}>{antrenmanlar.length === 0 ? "antrenman yok" : `${antrenmanlar.length} antrenman`}</span>
           </div>
-          {!saltOkunur && !formAcik && <Btn ikon={<Ikon ad="arti" />} onClick={() => setFormAcik(true)}>Antrenman Ekle</Btn>}
+          {!saltOkunur && !formAcik && (
+            <div style={{ display: "flex", gap: 8 }}>
+              <Btn tur="ghost" ikon={<Ikon ad="takvim" />} onClick={haftayiDoldur} title="Yaş gruplarının haftalık programındaki antrenmanları bu haftaya ekler (var olanlar atlanır)">Haftayı Programdan Doldur</Btn>
+              <Btn ikon={<Ikon ad="arti" />} onClick={() => setFormAcik(true)}>Antrenman Ekle</Btn>
+            </div>
+          )}
         </div>
         {antrenmanlar.length === 0 && !formAcik ? <div style={{ color: "var(--soluk)", fontSize: 14 }}>Bu tarihte antrenman yok.{!saltOkunur && " Eklemek için sağdaki düğmeyi kullanın."}</div> : (
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>

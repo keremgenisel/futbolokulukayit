@@ -93,7 +93,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 5 ve pasaport sütunu var", db.getMetaValue("schema_version") === "5" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 6 ve pasaport sütunu var", db.getMetaValue("schema_version") === "6" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -118,6 +118,16 @@ app.whenReady().then(async () => {
     const t2 = db.createTraining({ age_group_id: grp.id, tarih: "2026-09-20", saat: "10:00" }); db.setAttendance(t2.id, oyuncu.id, "gelmedi");
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
+
+    // Haftalık program: gruba Pzt/Çar 17:00 yaz → haftayı doldur → 2 antrenman; tekrar → 2 atlanır; bozuk saat süzülür
+    db.updateAgeGroup(grp.id, { program: [{ gun: 1, saat: "17:00", saha: "Saha 1" }, { gun: 3, saat: "17:00", saha: "Saha 1" }, { gun: 5, saat: "bozuk" }] });
+    check("program kaydı doğrulanarak saklanır", JSON.parse(db.listAgeGroups().find((g) => g.id === grp.id).program).length === 2);
+    const hd = db.haftayiProgramdanDoldur("2027-03-01"); // Pazartesi
+    check("haftayı programdan doldur: 2 antrenman", hd.eklenen === 2 && db.listTrainings("2027-03-01", "2027-03-07").filter((t) => t.age_group_id === grp.id).map((t) => t.tarih).join() === "2027-03-01,2027-03-03");
+    const hd2 = db.haftayiProgramdanDoldur("2027-03-01");
+    check("ikinci doldurma var olanları atlar", hd2.eklenen === 0 && hd2.atlanan === 2 && db.listTrainings("2027-03-01", "2027-03-07").filter((t) => t.age_group_id === grp.id).length === 2);
+    let hdHata = false; try { db.haftayiProgramdanDoldur("bozuk"); } catch (e) { hdHata = /yyyy/.test(e.message); }
+    check("bozuk hafta başlangıcı reddedilir", hdHata);
 
     // Kısmi ödeme: 1500 → kismi (kalan 2000), +2000 → odendi; ilk makbuz iptal → yeniden kismi; borçlu listesinde kalan
     db.ensureMonthlyDues(2027, 1);
