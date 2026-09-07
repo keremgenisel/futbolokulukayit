@@ -338,10 +338,12 @@ function SezonAyar({ admin, saltOkunur }) {
         <div style={{ position: "sticky", top: -24, zIndex: 2, background: "#fff", padding: "8px 0", display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
           <Alan etiket="Geçilecek sezon" style={{ width: 150 }}><Girdi value={yeniSezon} onChange={(e) => setYeniSezon(e.target.value.trim())} aria-label="Geçilecek sezon" disabled={saltOkunur} /></Alan>
           <Alan etiket="Yaş grubu" style={{ width: 160 }}><Secim secenekler={gruplar} bos="Tüm gruplar" value={grupFiltre} onChange={(e) => setGrupFiltre(e.target.value)} aria-label="Yaş grubu filtresi" /></Alan>
-          <Alan etiket="Ara" style={{ width: 200 }}><Girdi value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Ad soyad" aria-label="Oyuncu ara" /></Alan>
+          <Alan etiket="Ara" style={{ width: 180 }}><Girdi value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Ad soyad" aria-label="Oyuncu ara" /></Alan>
           <div style={{ flex: 1 }} />
-          <Btn kucuk tur="ghost" onClick={() => hepsi(true)} disabled={saltOkunur || gorunen.length === 0}>{filtreli ? "Görünenleri yeniledi işaretle" : "Tümünü yeniledi işaretle"}</Btn>
-          <Btn kucuk tur="ghost" onClick={() => hepsi(false)} disabled={saltOkunur || gorunen.length === 0}>{filtreli ? "Görünenleri kaldır" : "Tümünü kaldır"}</Btn>
+          <div style={{ display: "flex", gap: 8, paddingBottom: 4, whiteSpace: "nowrap" }}>
+            <Btn kucuk tur="ghost" onClick={() => hepsi(true)} disabled={saltOkunur || gorunen.length === 0}>{filtreli ? "Görünenleri yeniledi işaretle" : "Tümünü yeniledi işaretle"}</Btn>
+            <Btn kucuk tur="ghost" onClick={() => hepsi(false)} disabled={saltOkunur || gorunen.length === 0}>{filtreli ? "Görünenleri kaldır" : "Tümünü kaldır"}</Btn>
+          </div>
         </div>
         {filtreli && <div style={{ fontSize: 13, color: "var(--soluk)" }}>{gorunen.length} / {adaylar.length} oyuncu gösteriliyor · işaretler ve özet tüm liste için geçerli</div>}
         {adaylar.length === 0 ? <Bos metin="Aktif oyuncu yok." /> : (
