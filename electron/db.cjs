@@ -320,11 +320,23 @@ const deleteEmergency = (id) => db.prepare("DELETE FROM emergency_contacts WHERE
 
 // ── documents ──
 const listDocuments = (pid) => db.prepare("SELECT * FROM documents WHERE player_id=? ORDER BY yuklenme_tarihi DESC").all(pid);
-function addDocument(pid, d) {
-  const r = db.prepare("INSERT INTO documents (player_id,tip,dosya_yolu,orijinal_ad,gecerlilik_tarihi) VALUES (?,?,?,?,?)")
-    .run(pid, d.tip, d.dosya_yolu, d.orijinal_ad || "", d.gecerlilik_tarihi || null);
-  return Number(r.lastInsertRowid);
+// Oyuncu başına EN FAZLA BİR dosya tutulan belge tipleri: yenisi eskisinin yerine geçer.
+// Diğer tiplere (sağlık raporu, kimlik fotokopileri vb.) birden fazla dosya yüklenebilir.
+const TEKIL_BELGE_TIPLERI = new Set(["foto"]);
+const tekilBelgeMi = (tip) => TEKIL_BELGE_TIPLERI.has(tip);
+// Belge kaydı ekler; tekil tipte eski kayıtları siler ve silinen dosya yollarını döner (çağıran dosyaları temizler).
+function belgeEkle(pid, d) {
+  const eskiler = tekilBelgeMi(d.tip) ? db.prepare("SELECT id, dosya_yolu FROM documents WHERE player_id=? AND tip=?").all(pid, d.tip) : [];
+  const id = db.transaction(() => {
+    const r = db.prepare("INSERT INTO documents (player_id,tip,dosya_yolu,orijinal_ad,gecerlilik_tarihi) VALUES (?,?,?,?,?)")
+      .run(pid, d.tip, d.dosya_yolu, d.orijinal_ad || "", d.gecerlilik_tarihi || null);
+    for (const e of eskiler) deleteDocument(e.id);
+    if (d.tip === "foto") updatePlayer(pid, { foto_yolu: d.dosya_yolu });
+    return Number(r.lastInsertRowid);
+  })();
+  return { id, silinen: eskiler.map((e) => e.dosya_yolu) };
 }
+const addDocument = (pid, d) => belgeEkle(pid, d).id;
 const deleteDocument = (id) => db.prepare("DELETE FROM documents WHERE id=?").run(id);
 const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get(id) || null;
 
@@ -588,7 +600,7 @@ module.exports = {
   listAgeGroups, createAgeGroup, updateAgeGroup,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
-  listDocuments, addDocument, deleteDocument, getDocument,
+  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument,
   listFeeItems, updateFeeItem,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,

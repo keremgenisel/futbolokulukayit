@@ -12,6 +12,11 @@ const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/
 
 const guvenliAd = (ad) => String(ad).replace(/[^\w.\-çğıöşüÇĞİÖŞÜ ]+/g, "_").slice(0, 80);
 
+// Tekil belge (vesikalık) değiştirildiğinde eski dosyaları kaldır; kayıt zaten db.belgeEkle'de silindi.
+function eskiDosyalariSil(yollar) {
+  for (const y of yollar || []) { try { fs.unlinkSync(uploadsIci(y)); } catch { /* dosya zaten yok */ } }
+}
+
 // uploads dizini dışına çıkmayı engelle (yol geçişi).
 function uploadsIci(p) {
   const kok = path.resolve(db.getUploadsDir());
@@ -44,8 +49,8 @@ function registerFileHandlers(getSession) {
     const ad = `${Date.now()}-${tip}-${guvenliAd(path.basename(kaynak))}`;
     const hedef = path.join(klasor, ad);
     fs.copyFileSync(kaynak, uploadsIci(hedef));
-    const id = db.addDocument(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(kaynak), gecerlilik_tarihi: gecerlilik || null });
-    if (tip === "foto") db.updatePlayer(Number(playerId), { foto_yolu: hedef });
+    const { id, silinen } = db.belgeEkle(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(kaynak), gecerlilik_tarihi: gecerlilik || null });
+    eskiDosyalariSil(silinen);
     return { ok: true, id, dosya_yolu: hedef };
   });
 
@@ -78,4 +83,4 @@ function registerFileHandlers(getSession) {
   });
 }
 
-module.exports = { registerFileHandlers, uploadsIci };
+module.exports = { registerFileHandlers, uploadsIci, eskiDosyalariSil };

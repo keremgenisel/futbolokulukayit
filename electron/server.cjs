@@ -104,8 +104,8 @@ function buildApp({ surum = "" } = {}) {
       fs.mkdirSync(uploadsIci(klasor), { recursive: true });
       const hedef = path.join(klasor, `${Date.now()}-${tip}-${guvenliAd(path.basename(ad))}`);
       fs.writeFileSync(uploadsIci(hedef), buf);
-      const id = db.addDocument(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(ad), gecerlilik_tarihi: gecerlilik || null });
-      if (tip === "foto") db.updatePlayer(Number(playerId), { foto_yolu: hedef });
+      const { id, silinen } = db.belgeEkle(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(ad), gecerlilik_tarihi: gecerlilik || null });
+      for (const y of silinen) { try { fs.unlinkSync(uploadsIci(y)); } catch { /* dosya zaten yok */ } }
       res.json({ ok: true, id, dosya_yolu: hedef });
     } catch (e) { res.status(400).json({ error: e.message }); }
   });

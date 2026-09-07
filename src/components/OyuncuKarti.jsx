@@ -7,7 +7,7 @@ import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 
 const BELGE_TIPLERI = [
-  { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true }, { kod: "foto", ad: "Vesikalık fotoğraf" },
+  { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true }, { kod: "foto", ad: "Vesikalık fotoğraf", tekil: true },
   { kod: "sporcu_kimlik", ad: "Sporcu kimlik fotokopisi" }, { kod: "veli_kimlik", ad: "Veli kimlik fotokopisi" },
   { kod: "kayit_formu", ad: "İmzalı kayıt formu" }, { kod: "diger", ad: "Diğer" },
 ];
@@ -131,7 +131,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
                   ))}
                 </div>
                 {mevcut.length ? <Rozet ton="green">Yüklü</Rozet> : <Rozet ton="red">Eksik</Rozet>}
-                {!saltOkunur && <BelgeYukleDugmesi tip={t} onYukle={belgeYukle} />}
+                {!saltOkunur && <BelgeYukleDugmesi tip={t} mevcut={mevcut.length} onYukle={belgeYukle} />}
               </div>
             );
           })}
@@ -178,12 +178,14 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   );
 }
 
-function BelgeYukleDugmesi({ tip, onYukle }) {
+// Tekil tiplerde (vesikalık) ikinci dosya eklenmez; "Değiştir" eskisinin yerine koyar (asıl kural main süreçte, db.belgeEkle).
+function BelgeYukleDugmesi({ tip, mevcut = 0, onYukle }) {
   const [gecerlilik, setGecerlilik] = useState("");
+  const degistir = tip.tekil && mevcut > 0;
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
       {tip.gecerlilik && <Girdi type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} style={{ width: 150, height: 36 }} title="Geçerlilik tarihi" />}
-      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => onYukle(tip.kod, gecerlilik)}>Yükle</Btn>
+      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => onYukle(tip.kod, gecerlilik)} title={degistir ? "Vesikalık tek dosya olur; yenisi eskisinin yerine geçer" : undefined}>{degistir ? "Değiştir" : "Yükle"}</Btn>
     </div>
   );
 }

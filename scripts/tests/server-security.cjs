@@ -61,6 +61,10 @@ app.whenReady().then(async () => {
     const oyuncu = await istek("/api/db", { method: "POST", body: { fn: "createPlayer", args: [{ ad_soyad: "Test", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.body.sonuc.id }] }, token: tok });
     const up = await istek("/api/files/addDocument", { method: "POST", body: { playerId: oyuncu.body.sonuc.id, tip: "saglik", ad: "rapor.pdf", base64: Buffer.from("%PDF-1.4 test").toString("base64") }, token: tok });
     check("belge yükleme", up.status === 200 && fs.existsSync(path.join(db.getUploadsDir(), up.body.dosya_yolu)));
+    const foto = (ad) => istek("/api/files/addDocument", { method: "POST", body: { playerId: oyuncu.body.sonuc.id, tip: "foto", ad, base64: Buffer.from("PNG test").toString("base64") }, token: tok });
+    const f1 = await foto("v1.png"); const f2 = await foto("v2.png");
+    const fotoKayitlari = db.listDocuments(oyuncu.body.sonuc.id).filter((b) => b.tip === "foto");
+    check("vesikalık sunucuda da tek dosya: eski dosya silinir", f2.status === 200 && fotoKayitlari.length === 1 && fotoKayitlari[0].dosya_yolu === f2.body.dosya_yolu && !fs.existsSync(path.join(db.getUploadsDir(), f1.body.dosya_yolu)));
     check("yasak uzantı reddedilir", (await istek("/api/files/addDocument", { method: "POST", body: { playerId: oyuncu.body.sonuc.id, tip: "diger", ad: "zararli.exe", base64: "AA==" }, token: tok })).status === 400);
     check("yol geçişi reddedilir", (await istek("/api/files/dataUrl?yol=../../etc/passwd", { token: tok })).status === 400);
     check("lisans durumu okunur", (await istek("/api/lisans/durum", { token: tok })).body.durum.mod === "deneme");

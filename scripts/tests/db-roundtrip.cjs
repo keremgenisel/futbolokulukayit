@@ -65,6 +65,14 @@ app.whenReady().then(async () => {
     check("grup silme oyuncu varken engellenir", !!db.deleteAgeGroup(grp.id).error);
     const belgeId = db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/x.pdf", orijinal_ad: "x.pdf" });
     check("belge okunuyor", db.getDocument(belgeId).tip === "saglik");
+    // Vesikalık tekil: ikinci yükleme eskisinin yerine geçer; diğer tipler birikir
+    db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/y.pdf", orijinal_ad: "y.pdf" });
+    check("sağlık raporuna birden fazla dosya yüklenebilir", db.listDocuments(oyuncu.id).filter((b) => b.tip === "saglik").length === 2);
+    const f1 = db.belgeEkle(oyuncu.id, { tip: "foto", dosya_yolu: "oyuncu-1/f1.jpg", orijinal_ad: "f1.jpg" });
+    const f2 = db.belgeEkle(oyuncu.id, { tip: "foto", dosya_yolu: "oyuncu-1/f2.jpg", orijinal_ad: "f2.jpg" });
+    const fotolar = db.listDocuments(oyuncu.id).filter((b) => b.tip === "foto");
+    check("vesikalık tek dosya kalır, yenisi eskisinin yerine geçer", f1.silinen.length === 0 && f2.silinen[0] === "oyuncu-1/f1.jpg" && fotolar.length === 1 && fotolar[0].dosya_yolu === "oyuncu-1/f2.jpg" && !db.getDocument(f1.id));
+    check("oyuncu foto yolu yeni vesikalığa döner", db.getPlayer(oyuncu.id).foto_yolu === "oyuncu-1/f2.jpg");
 
     // Lisans: temiz kurulum → deneme; geçersiz anahtar reddedilir; salt okunur değil
     const ld = db.lisansDurumu();
