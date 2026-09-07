@@ -87,7 +87,7 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
 Sezon bitince (varsayılan Eylül'de) panoda "sezon bitti" uyarısı çıkar. **Ayarlar > Yeni Sezon**'da
 yenileyen oyuncuları işaretleyin, gerekiyorsa yeni yaş grubunu seçin (U11 → U12 önerilir) ve "Yeni Sezona
 Geç" deyin. Yenilemeyenler silinmez, "Pasif" olur: aidat borcu açılmaz, listede görünmez; geri dönerse
-kartından durumu Aktif yapmanız yeter. Oyuncular listesi varsayılan olarak yalnız aktif oyuncuları
+kartından durumu Aktif yapmanız yeter. Oyuncular listesi varsayılan olarak "Aktif, deneme ve sakat" oyuncuları
 gösterir; pasifleri görmek için durum filtresini değiştirin.
 
 ## 3c. Bir yaş grubunda çok oyuncu varsa (örnek: iki U11 grubu)

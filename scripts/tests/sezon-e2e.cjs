@@ -61,7 +61,7 @@ app.once("browser-window-created", async (_e, win) => {
       // Oyuncular listesi varsayılan yalnız aktif: Deniz ve Ece görünmez
       await tikla("Oyuncular"); await bekle(800);
       const gorunen = await js(`[...document.querySelectorAll("table tbody tr")].map((r) => r.textContent)`);
-      check("Oyuncular listesi varsayılan 'aktif': pasifler (Deniz, Ece) ve deneme (Fatma) gizli; 3 aktif yenileyen var", gorunen.length === 3 && !gorunen.some((r) => /Deniz Aksoy|Ece Pasif|Fatma/.test(r)));
+      check("Oyuncular listesi varsayılan 'aktif, deneme ve sakat': pasifler (Deniz, Ece) gizli; deneme Fatma dahil 4 yenileyen var", gorunen.length === 4 && !gorunen.some((r) => /Deniz Aksoy|Ece Pasif/.test(r)) && gorunen.some((r) => /Fatma/.test(r)));
       // Sihirbaz yeniden açılınca aday listesi 4 kişi, aktif sezon 2027-2028, öneri 2028-2029
       await tikla("Ayarlar"); await bekle(300); await tikla("Yeni Sezon"); await bekle(700);
       check("sihirbaz tekrar: aktif sezon 2027-2028, öneri 2028-2029, 4 aday", (await js(`document.querySelector("input[aria-label='Aktif sezon']").value`)) === "2027-2028" && (await js(`document.querySelector("input[aria-label='Geçilecek sezon']").value`)) === "2028-2029" && (await js(`document.querySelectorAll("input[aria-label$=' yeniledi']").length`)) === 4);

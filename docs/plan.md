@@ -420,7 +420,8 @@ listesi ve tesise giriş kontrolü kirlenir.
 - Aktif yaş gruplarının `sezon` alanı ve `aktif_sezon` ayarı yeni sezona çekilir; `son_sezon_gecisi` yazılır.
 - Ayarlar: aktif sezon (2026-2027) ve sezon başlangıç ayı (varsayılan Eylül). Pano: aktif sezon bugünün
   sezonundan eskiyse "sezon bitti" uyarısı + "Yeni Sezona Geç" düğmesi (Ayarlar > Yeni Sezon'a götürür).
-- Oyuncular listesi varsayılan filtre **Aktif** oldu; pasifler "Tüm durumlar"/"Pasif" ile görülür.
+- Oyuncular listesi varsayılan filtre **Aktif, deneme ve sakat** (07.09.2026 akşam; önce yalnız Aktif idi, deneme oyuncular
+  görünmüyordu); pasifler "Tüm durumlar"/"Pasif" ile görülür.
 - Saf mantık `src/lib/sezon.js` (güncel sezon, sonraki sezon, sezon sonu, üst grup önerisi); şema 4.
 
 ## 11. 07.09.2026 öğleden sonra eklenenler ve Faz 3'e kalanlar

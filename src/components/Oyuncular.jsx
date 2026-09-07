@@ -17,7 +17,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [gruplar, setGruplar] = useState([]);
   const [q, setQ] = useState("");
   const [grup, setGrup] = useState("");
-  const [durum, setDurum] = useState("aktif"); // varsayılan: aktif oyuncular (geçen sezonun pasifleri gizli, filtreyle görülür)
+  const [durum, setDurum] = useState("aktifler"); // varsayılan: aktif + deneme + sakat (sahadaki herkes); pasif/ayrıldı/dondurma filtreyle görülür
   const [odemeyen, setOdemeyen] = useState(false);
   const [yeni, setYeni] = useState(false);
   const [aktarAcik, setAktarAcik] = useState(false);
@@ -72,7 +72,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       <Kart style={{ padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ position: "relative", width: 300 }}><span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}><Ikon ad="ara" /></span><Girdi placeholder="Ad, soyad, TC veya pasaport ara" value={q} onChange={(e) => setQ(e.target.value)} style={{ height: 40, paddingLeft: 40 }} aria-label="Ara" /></div>
         <Secim secenekler={gruplar} bos="Tüm gruplar" value={grup} onChange={(e) => setGrup(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Yaş grubu" />
-        <Secim secenekler={DURUMLAR} bos="Tüm durumlar" value={durum} onChange={(e) => setDurum(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Durum" />
+        <Secim secenekler={[{ kod: "aktifler", ad: "Aktif, deneme ve sakat" }, ...DURUMLAR]} bos="Tüm durumlar" value={durum} onChange={(e) => setDurum(e.target.value)} style={{ width: 190, height: 40 }} aria-label="Durum" />
         <Btn kucuk tur={odemeyen ? "danger" : "ghost"} onClick={() => setOdemeyen(!odemeyen)} style={{ height: 40 }}>{odemeyen ? "✕ " : ""}Bu ay ödemeyenler</Btn>
         <div style={{ flex: 1 }} />
         <span style={{ color: "var(--soluk)", fontSize: 14 }}>{toplam} oyuncu</span>

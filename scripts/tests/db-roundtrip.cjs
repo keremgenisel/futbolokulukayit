@@ -99,6 +99,8 @@ app.whenReady().then(async () => {
     const ibo = db.createPlayer({ ad_soyad: "İbrahim IŞIK", dogum_tarihi: "2015-03-03", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 100, odeme_donemi: "1-10", pasaport_no: null });
     const bulur = (q) => db.listPlayers({ q }).some((p) => p.id === ibo.id) && db.listPlayersWithDue({ q, yil: 2026, ay: 9 }).some((p) => p.id === ibo.id) && db.playersPage({ q, yil: 2026, ay: 9 }).liste.some((p) => p.id === ibo.id);
     check("Türkçe duyarsız arama: 'i', 'ibrahim', 'isik', 'IŞIK', 'ışık' hepsi İbrahim IŞIK'ı bulur", ["i", "ibrahim", "isik", "IŞIK", "ışık", "İbrahim ış"].every(bulur) && !bulur("ibrahimm"));
+    const aktL = db.listPlayersWithDue({ durum: "aktifler", yil: 2026, ay: 9 }), aktP = db.playersPage({ durum: "aktifler", yil: 2026, ay: 9, sayfaBoyu: 500 });
+    check("durum 'aktifler' = aktif + deneme + sakat (pasif/ayrıldı/dondurma hariç), liste ve sayfada aynı", aktL.length > 0 && aktL.every((p) => ["aktif", "deneme", "sakat"].includes(p.durum)) && aktP.toplam === aktL.length && db.listPlayers({ durum: "pasif" }).every((p) => !aktL.some((x) => x.id === p.id)));
     check("pasaport araması büyük/küçük harf duyarsız", db.listPlayers({ q: "u1234567" }).some((p) => p.id === yab.id));
     check("pasaport ile arama (liste ve pano)", db.listPlayers({ q: "U12345" }).some((p) => p.id === yab.id) && db.listPlayersWithDue({ q: "U1234567", yil: 2026, ay: 9 }).some((p) => p.id === yab.id));
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }

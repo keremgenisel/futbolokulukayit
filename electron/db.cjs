@@ -440,7 +440,8 @@ function listPlayers({ q = "", yas_grubu_id = null, durum = null } = {}) {
   const where = []; const args = [];
   if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
-  if (durum) { where.push("p.durum=?"); args.push(durum); }
+  if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
+  else if (durum) { where.push("p.durum=?"); args.push(durum); }
   const sql = `SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
   return db.prepare(sql).all(...args);
 }
@@ -741,7 +742,8 @@ function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sade
   const where = []; const args = [yil, ay];
   if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
-  if (durum) { where.push("p.durum=?"); args.push(durum); }
+  if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
+  else if (durum) { where.push("p.durum=?"); args.push(durum); }
   if (sadeceOdemeyen) where.push("d.durum IN ('odenmedi','kismi')");
   const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
