@@ -43,6 +43,11 @@ app.on("browser-window-created", async (_e, win) => {
       await js(`document.querySelector("[role=dialog] button[aria-label=Kapat]")?.click()`); await bekle(300);
       await tikla("Ayarlar"); await bekle(400);
       await setInput('input[placeholder="EYÜPSPOR FUTBOL OKULU"]', "TEST KULÜBÜ"); await tikla("Kaydet"); await bekle(400);
+      // Aidat Kalemleri: iki satıra binlik ayraçlı fiyat + indirim, tek Kaydet (07.09.2026 akışı)
+      await tikla("Aidat Kalemleri"); await bekle(500);
+      await setInput("input[aria-label='Forma fiyatı']", "9000"); await setInput("input[aria-label='Mont fiyatı']", "8000");
+      await setInput("input[aria-label='İndirimli indirimi']", "25");
+      await tikla("Kaydet"); await bekle(600);
       // DB'den doğrudan makbuz + yoklama (arayüz yoluyla zaten duman testinde doğrulanıyor)
       const o = db.listPlayers()[0];
       const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1);
@@ -86,6 +91,8 @@ app.on("browser-window-created", async (_e, win) => {
       // 07.09.2026 özellikleri
       const aa = db.aidatAyarlari();
       check("aidat taban fiyatı ve indirim yüzdesi kalıcı", aa.taban === 4321 && aa.indirimler.kardes === 15);
+      const kal = db.listFeeItems();
+      check("arayüzden tek Kaydet ile girilen iki fiyat ve indirim kalıcı", kal.find((k) => k.kod === "forma").varsayilan_fiyat === 9000 && kal.find((k) => k.kod === "mont").varsayilan_fiyat === 8000 && aa.indirimler.indirimli === 25);
       check("yedek sıklığı kalıcı", db.getSetting("yedek_sikligi") === "haftalik");
       const yab = db.getPlayer(b.yabanci);
       check("yabancı oyuncu pasaportla kalıcı ve aranıyor", yab?.uyruk === "yabanci" && yab.pasaport_no === "K9876543" && db.listPlayers({ q: "K98765" }).some((p) => p.id === b.yabanci));
