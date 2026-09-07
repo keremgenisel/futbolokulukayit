@@ -23,7 +23,7 @@ const YOLLAR = {
   sol: '<path d="M15 6l-6 6 6 6"/>',
   goz: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
   sunucu: '<rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/>',
-  yedek: '<path d="M12 3v10M8 9l4 4 4-4"/><path d="M4 17a8 8 0 0 0 16 0"/>',
+  yedek: '<path d="M12 3v11M8 10l4 4 4-4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
   cikis: '<path d="M10 17l5-5-5-5M15 12H3"/><path d="M13 3h6v18h-6"/>',
   geri: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
 };
