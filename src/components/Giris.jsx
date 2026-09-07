@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Btn, Alan, girisStili } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
+import { COKLU_PC_ACIK } from "../lib/ozellikler.js";
 
 // Son başarılı giriş yapan kullanıcı adı (parola asla saklanmaz).
 const SON_KULLANICI = "sonKullanici";
@@ -92,8 +93,8 @@ export function Giris({ onGiris, mod, onModDegisti }) {
             {mod?.mode === "istemci" && <span>Sunucuya bağlı: <b>{mod.serverUrl}</b> · sunucudaki hesabınızla girin</span>}
             <button type="button" onClick={kurtarmaAc} style={{ background: "none", border: 0, color: "var(--mor)", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>Parolamı unuttum</button>
           </span>
-          {mod && mod.mode !== "sunucu" && !baglanAcik && <button type="button" onClick={() => setBaglanAcik(true)} style={{ background: "none", border: 0, color: "var(--mor)", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>{mod.mode === "istemci" ? "Sunucu adresini değiştir" : "Başka bilgisayardaki sunucuya bağlan"}</button>}
-          {baglanAcik && (
+          {COKLU_PC_ACIK && mod && mod.mode !== "sunucu" && !baglanAcik && <button type="button" onClick={() => setBaglanAcik(true)} style={{ background: "none", border: 0, color: "var(--mor)", cursor: "pointer", fontSize: 13, textDecoration: "underline" }}>{mod.mode === "istemci" ? "Sunucu adresini değiştir" : "Başka bilgisayardaki sunucuya bağlan"}</button>}
+          {COKLU_PC_ACIK && baglanAcik && (
             <div style={{ display: "flex", flexDirection: "column", gap: 8, borderTop: "1px solid var(--cizgi)", paddingTop: 12 }}>
               <Alan etiket="Sunucu adresi"><input style={girisStili} value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://100.x.x.x:3535" /></Alan>
               {fp && <div style={{ fontSize: 12, color: "var(--soluk)" }}>Sunucu parmak izi: <b style={{ fontFamily: "monospace", wordBreak: "break-all" }}>{fp}</b> — sunucudaki Ayarlar &gt; Sunucu ekranıyla aynıysa onaylayın.</div>}

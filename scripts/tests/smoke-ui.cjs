@@ -89,7 +89,6 @@ app.whenReady().then(async () => {
     await tikla("Lisans"); await bekle(400); await shot("14-lisans");
     await tikla("Yedekleme"); await bekle(400); await shot("15-yedekleme");
     await tikla("Resim ve Belge Optimizasyonu"); await bekle(300); await tikla("Analiz Et"); await bekle(600); await shot("15b-optimizasyon");
-    await tikla("Sunucu / Çoklu PC"); await bekle(400); await shot("16-sunucu");
     // Makbuz PDF üretildi mi?
     const makbuzlar = db.listReceipts(o2.id);
     if (!makbuzlar.length || !makbuzlar[0].pdf_yolu) throw new Error("Makbuz PDF üretilmedi");

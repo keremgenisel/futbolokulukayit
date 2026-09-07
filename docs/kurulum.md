@@ -31,6 +31,9 @@
 - **Raporlar**: Oyuncu listesi, borçlu listesi, tahsilat ve yoklama özeti; Excel veya PDF.
 
 ## 3. Birden fazla bilgisayar
+
+> **Not (07.09.2026):** Bu özellik şu an programda kapalıdır (kulübün talebi yok). İstenirse
+> tek ayarla açılır; aşağıdaki adımlar o zaman geçerli olur.
 Veriler tek bir bilgisayarda (sunucu) durur, diğerleri ona bağlanır. Sunucu bilgisayarda program açık olmalıdır.
 
 **Sunucu bilgisayarda:** Ayarlar > Sunucu / Çoklu PC > "Sunucuyu Başlat". Ekranda görünen adresi

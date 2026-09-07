@@ -5,9 +5,10 @@ import { paraTR, tarihTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimAnahtari, indirim
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
 import { SettingsLisans } from "./SettingsLisans.jsx";
 import { SettingsSunucu } from "./SettingsSunucu.jsx";
+import { COKLU_PC_ACIK } from "../lib/ozellikler.js";
 import { Ikon } from "./Ikon.jsx";
 
-const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }, { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
+const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" }, ...(COKLU_PC_ACIK ? [{ kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }] : []), { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
 
 export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum }) {
   const [bolum, setBolum] = useState(baslangicBolum || "kulup");
@@ -23,7 +24,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
         {bolum === "yedek" && <YedekAyar admin={admin} />}
         {bolum === "optimize" && <OptimizeAyar admin={admin} saltOkunur={saltOkunur} />}
-        {bolum === "sunucu" && <SettingsSunucu admin={admin} onModDegisti={onModDegisti} />}
+        {bolum === "sunucu" && COKLU_PC_ACIK && <SettingsSunucu admin={admin} onModDegisti={onModDegisti} />}
         {bolum === "lisans" && <SettingsLisans admin={admin} onLisansDegisti={onLisansDegisti} />}
         {bolum === "hakkinda" && <Hakkinda />}
       </Kart>

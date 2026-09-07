@@ -60,7 +60,7 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   önek `EYUPSPOR.`/`EYUPLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
   Üretici betikleri: `scripts/lisans-uret.cjs`, `lease-uret.cjs`, `lisans-yonet.cjs`.
 - `src/lib/makbuzHtml.js`, `raporHtml.js` — yazdırma/PDF şablonları (renderer üretir, main render eder).
-- **Çoklu PC:** `electron/config.cjs` (mod: yerel|sunucu|istemci, `config.json` + şifreli jeton),
+- **Çoklu PC (arayüzde KAPALI, bayrak: `src/lib/ozellikler.js` COKLU_PC_ACIK; ana süreç kodu yerinde):** `electron/config.cjs` (mod: yerel|sunucu|istemci, `config.json` + şifreli jeton),
   `electron/server.cjs` (Express + HTTPS self-signed, JWT 30 gün, login hız sınırı, `/api/db` aynı
   beyaz liste), `electron/istemci.cjs` (undici pinli fetch, TOFU parmak izi onayı, `knownServers`),
   `electron/yetki.cjs` (IPC ve sunucu için ORTAK yetki kararı). `ipc/data.cjs` her çağrıda
