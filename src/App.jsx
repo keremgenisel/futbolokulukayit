@@ -10,7 +10,9 @@ import { Raporlar } from "./components/Raporlar.jsx";
 import { Ayarlar } from "./components/Ayarlar.jsx";
 import { ToastSaglayici } from "./components/ui.jsx";
 import { KenarMenu } from "./components/KenarMenu.jsx";
+import { Ikon } from "./components/Ikon.jsx";
 import { IlkKurulum } from "./components/IlkKurulum.jsx";
+import { HizliArama } from "./components/HizliArama.jsx";
 import { tarihTR } from "./lib/aidat.js";
 import { bugun } from "./lib/api.js";
 
@@ -29,6 +31,12 @@ export function App() {
   const [acilacakOyuncu, setAcilacakOyuncu] = useState(null); // Oyuncular'da açılacak kart
   const [sekmeKey, setSekmeKey] = useState(0); // aynı sekmeye tekrar geçişte ekranı tazelemek için
   const [mod, setMod] = useState(null); // { mode, serverUrl, sunucu }
+  const [arama, setArama] = useState(false); // Ctrl/Cmd+K hızlı oyuncu arama
+  useEffect(() => {
+    const onKey = (e) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setArama((a) => !a); } };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const [kurulum, setKurulum] = useState(false); // ilk kurulum sihirbazı (ilk parola değişiminden sonra, oyuncu yokken)
   const kurulumGerekliMi = useCallback(async () => {
     try {
@@ -75,8 +83,11 @@ export function App() {
     <div style={{ display: "flex", height: "100%" }}>
       <KenarMenu sekmeler={TABS} tab={tab} onSec={git} oturum={oturum} mod={mod} onCikis={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} />
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
-        <header style={{ padding: "22px 32px 16px", borderBottom: "1px solid var(--cizgi)", background: "#fff" }}>
+        <header style={{ padding: "22px 32px 16px", borderBottom: "1px solid var(--cizgi)", background: "#fff", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
           <h1 style={{ fontSize: 30 }}>{TABS.find((t) => t.kod === tab)?.ad}</h1>
+          <button type="button" onClick={() => setArama(true)} aria-label="Oyuncu ara (Ctrl+K)" title="Her yerden oyuncu ara (Ctrl+K)" style={{ display: "flex", alignItems: "center", gap: 10, height: 40, padding: "0 14px", borderRadius: 10, border: "1px solid var(--cizgi)", background: "var(--zemin)", color: "var(--soluk)", cursor: "pointer", fontSize: 14, minWidth: 260, textAlign: "left" }}>
+            <Ikon ad="ara" boyut={18} /><span style={{ flex: 1 }}>Oyuncu ara…</span><span style={{ fontSize: 11, border: "1px solid var(--cizgi)", borderRadius: 6, padding: "1px 6px", background: "#fff" }}>Ctrl K</span>
+          </button>
         </header>
         <section style={{ padding: 24, flex: 1, overflow: "auto" }}>
           {saltOkunur && (
@@ -101,6 +112,7 @@ export function App() {
         </section>
       </main>
       {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => setOturum({ ...oturum, must_change_password: false })} />}
+      <HizliArama acik={arama} onKapat={() => setArama(false)} onOyuncu={oyuncuAc} onMakbuz={makbuzKes} saltOkunur={saltOkunur} />
       {kurulum && !oturum.must_change_password && <IlkKurulum oturum={oturum} onBitti={() => { setKurulum(false); setTab("pano"); setSekmeKey((k) => k + 1); }} onAktar={() => { setTab("oyuncular"); setAcilacakOyuncu("aktar"); }} />}
     </div>
     </ToastSaglayici>
