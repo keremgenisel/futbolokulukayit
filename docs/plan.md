@@ -315,6 +315,7 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 6. Yazıcıda deneme makbuzu bas, düzeni kontrol et.
 7. İkinci PC istenirse: `src/lib/ozellikler.js` COKLU_PC_ACIK bayrağını aç, sunucuyu başlat, diğer PC'den bağlan (şu an arayüzde kapalı).
 8. Antrenöre 20 dakikalık kullanım eğitimi: oyuncu ekleme, makbuz, yoklama, tesise giriş kontrolü.
+9. WhatsApp: kulübün WhatsApp masaüstü ya da WhatsApp Web'i bu PC'de açık olsun; Pano'dan bir borçluya deneme hatırlatması aç (§13).
 
 ### 8.3 Kulüpten cevabı beklenen sorular (bkz. §6) ve etkisi
 - Aidat tutarı yaş grubuna göre değişiyorsa → her oyuncuda ayrı girilir, ek geliştirme gerekmez.
@@ -538,8 +539,9 @@ onay altyapısı ortak kullanılır.
 - **Onay (KVKK):** `guardians.mesaj_onayi INTEGER NOT NULL DEFAULT 0` (şema 9). Oyuncu formu > veli satırında
   "WhatsApp ile bilgilendirme onayı" kutusu; Excel aktarımında "Mesaj onayı" sütunu (evet/hayır). Onaysız veliye düğme
   kapalı, nedeni ipucunda. Kâğıt kayıt formuna (docs/formlar/02) bir satır önerilir: "Aidat ve antrenman bilgilendirmelerinin
-  WhatsApp ile yapılmasını kabul ediyorum ☐". **Kulüp kararı:** mevcut kayıtlar için varsayılan onay verilip verilmeyeceği
-  (program varsayılanı: onaysız; toplu "hepsini onayla" düğmesi YOK, kayıt kayıt işaretlenir).
+  WhatsApp ile yapılmasını kabul ediyorum ☐". **KARAR (Kerem, 07.09.2026):** mevcut veliler onaylı sayılır → şema 9
+  göçü `mesaj_onayi=1` ile açar (sütun DEFAULT 1); yeni kayıtta kutu işaretli gelir, veli istemezse kaldırılır.
+  Excel aktarımında "Mesaj onayı" sütunu boşsa evet.
 - **Numara:** `whatsapp_no` doluysa o, yoksa `gsm`; `gsmNormalize` → `05XXXXXXXXX` → `90XXXXXXXXX`. Geçersizse düğme kapalı.
 - **Kayıt:** `message_log(id, player_id, guardian_id, tur aidat|genel|iptal|degisiklik, yil, ay, training_id, metin,
   tarih, kullanici)` (şema 9). `trainings` tablosuna `bildirim_gerekli INTEGER DEFAULT 0` (elle iptal/değişiklikte 1,
@@ -568,9 +570,9 @@ onay altyapısı ortak kullanılır.
 - Tahmini iş: 1,5 gün (aidat hatırlatma + şablonlar + onay 1 gün; antrenman düzenle + iptal/değişiklik bildirimi
   yarım gün).
 
-### 13.5 Kulüpten cevap bekleyen
-- Antrenman değişikliğinde bildirim **yalnız velilere** mi, sporcunun kendi GSM'i de (players.gsm) alıcı mı? Program
-  varsayılanı: yalnız birincil veli; oyuncu 16+ ise ikinci satır olarak oyuncunun numarası da açılır (seçime bağlı).
-- Onay varsayılanı (13.3). Şablon metinleri (13.2 varsayılanla başlanır). Kulübün WhatsApp'ı hangi PC'de: program
-  o PC'de kurulu olmalı ya da WhatsApp Web tarayıcıda açık olmalı (bağlantı tarayıcıya düşer, oradan WhatsApp'a geçer).
+### 13.5 Kararlar (Kerem, 07.09.2026)
+- Mevcut veliler onaylı (13.3). Bildirim **yalnız birincil veliye**; oyuncunun kendi GSM'ine gönderim YOK.
+- Şablon metinleri 13.2'deki varsayılanlarla başlar; kulüp Ayarlar'dan kendisi düzeltir.
+- Açık kalan tek nokta: kulübün WhatsApp'ı hangi PC'de — program o PC'de kurulu olmalı ya da WhatsApp Web tarayıcıda
+  açık olmalı (bağlantı tarayıcıya düşer, oradan WhatsApp'a geçer). Kurulum günü kontrol edilir (§8.2).
 
