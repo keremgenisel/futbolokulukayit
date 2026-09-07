@@ -92,6 +92,7 @@ app.whenReady().then(async () => {
     await tikla("Pano"); await bekle(700);
     if (await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Borçlulara Hatırlat")`)) { await tikla("Borçlulara Hatırlat"); await bekle(700); await shot("03c-whatsapp-hatirlat"); await js(`document.querySelector("[role=dialog] button[aria-label='Pencereyi kapat']")?.click()`); await bekle(300); }
     await tikla("Raporlar"); await bekle(400); await tikla("Önizle"); await bekle(600); await shot("12-raporlar");
+    await js(`[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Sağlık Raporu Durumu"))?.click()`); await bekle(300); await tikla("Önizle"); await bekle(600); await shot("12b-saglik-raporu");
     await tikla("Yaş Grupları"); await bekle(400); await shot("13-gruplar");
     await tikla("Ayarlar"); await bekle(400); await tikla("Kurulum Sihirbazını Aç"); await bekle(500); await shot("13a-kurulum-sihirbazi");
     await js(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Şimdi değil")?.click()`); await bekle(400);

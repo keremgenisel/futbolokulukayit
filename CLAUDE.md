@@ -109,6 +109,8 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   IPC'si ve `/api/auth/kurtarma*` uçları; yanlış deneme kullanıcı başına 5/15 dk.
 - Türkçe arayüz, Türkçe yorum. Tarih `dd.mm.yyyy`, para `3.500 ₺` (`src/lib/aidat.js`). Büyük harf
   için `toLocaleUpperCase("tr-TR")` (i → İ).
+- Roller: `admin` her şey; `kullanici` Ayarlar sekmesini görmez (App.jsx süzer) ve ana süreçte ADMIN seti (`setSetting`,
+  `aidatAyarlariKaydet`, `updateFeeItem`, kullanıcılar, `yeniSezonaGec`) + yedek klasör/al/sıklık, optimize, lisans yazma reddedilir.
 - Salt okunur lisans modu `electron/ipc/data.cjs` beyaz listesinde uygulanır (YAZMA seti reddedilir);
   arayüz `saltOkunur` prop'uyla düğmeleri gizler ama asıl koruma main süreçtedir.
 - `scripts/keys/*.pem` ASLA commit edilmez; kaybolursa tüm dağıtılmış lisanslar geçersiz olur — yedekle.

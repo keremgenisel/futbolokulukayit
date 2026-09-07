@@ -72,4 +72,30 @@ describe("Raporlar: önizleme sayfalı", () => {
     await waitFor(() => expect(window.okul.cikti.excelKaydet).toHaveBeenCalled());
     expect(window.okul.cikti.excelKaydet.mock.calls[0][0].satirlar).toHaveLength(250);
   });
+
+  it("Sağlık Raporu Durumu raporu: bugüne göre, grup filtresi, en acil önce, özet satırı", async () => {
+    const l = [
+      { player_id: 1, ad_soyad: "Ada Kaya", yas_grubu_ad: "U11", veli_tel: "05321112233", gecerlilik: "2026-08-01", durum: "doldu", kalanGun: -37 },
+      { player_id: 2, ad_soyad: "Barış Güneş", yas_grubu_ad: "U11", veli_tel: "", gecerlilik: "2026-09-20", durum: "dolacak", kalanGun: 13 },
+      { player_id: 3, ad_soyad: "Cem Polat", yas_grubu_ad: "U12", veli_tel: "", gecerlilik: null, durum: "yok", kalanGun: null },
+      { player_id: 4, ad_soyad: "Deniz Aksoy", yas_grubu_ad: "U12", veli_tel: "", gecerlilik: "2027-05-05", durum: "gecerli", kalanGun: 240 },
+    ];
+    window.okul = { db: vi.fn(async (fn, ...a) => (fn === "listAgeGroups" ? [{ id: 1, ad: "U11" }, { id: 2, ad: "U12" }] : fn === "saglikRaporuListesi" ? l.filter((x) => !a[1] || (a[1] === 1 ? x.yas_grubu_ad === "U11" : x.yas_grubu_ad === "U12")) : null)), cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) }, app: { logo: async () => "" } };
+    render(<ToastSaglayici><Raporlar /></ToastSaglayici>);
+    fireEvent.click(await screen.findByText("Sağlık Raporu Durumu"));
+    expect(screen.getByText(/Bugünün tarihine göre hesaplanır/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Önizle" }));
+    await screen.findByText("Süresi doldu");
+    expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), null);
+    const satirlar = screen.getAllByRole("row").slice(1).map((r) => r.textContent);
+    expect(satirlar[0]).toContain("Ada Kaya"); expect(satirlar[0]).toContain("01.08.2026"); expect(satirlar[0]).toContain("-37");
+    expect(satirlar[3]).toContain("Deniz Aksoy"); expect(satirlar[3]).toContain("Geçerli");
+    expect(screen.getByText(/1 doldu · 1 dolacak · 1 yok · 1 geçerli/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Yaş grubu"), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Önizle" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", expect.any(String), 2));
+    await waitFor(() => expect(screen.queryByText("Ada Kaya")).toBeNull());
+    fireEvent.click(screen.getByRole("button", { name: "Excel" }));
+    await waitFor(() => expect(window.okul.cikti.excelKaydet).toHaveBeenCalledWith(expect.objectContaining({ sayfa: "Sağlık Raporu Durumu" }), expect.any(String)));
+  });
 });

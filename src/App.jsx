@@ -80,7 +80,7 @@ export function App() {
   return (
     <ToastSaglayici>
     <div style={{ display: "flex", height: "100%" }}>
-      <KenarMenu sekmeler={TABS} tab={tab} onSec={git} oturum={oturum} mod={mod} onAra={() => setArama(true)} onCikis={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} />
+      <KenarMenu sekmeler={oturum.role === "admin" ? TABS : TABS.filter((t) => t.kod !== "ayarlar")} tab={tab} onSec={git} oturum={oturum} mod={mod} onAra={() => setArama(true)} onCikis={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} />
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <header style={{ padding: "22px 32px 16px", borderBottom: "1px solid var(--cizgi)", background: "#fff" }}>
           <h1 style={{ fontSize: 30 }}>{TABS.find((t) => t.kod === tab)?.ad}</h1>
@@ -104,7 +104,7 @@ export function App() {
           {tab === "tahsilat" && <Tahsilat key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onOyuncu={oyuncuAc} secilenOyuncuId={tahsilatOyuncu} onSecildi={() => setTahsilatOyuncu(null)} />}
           {tab === "yoklama" && <Yoklama key={sekmeKey} saltOkunur={saltOkunur} />}
           {tab === "raporlar" && <Raporlar key={sekmeKey} />}
-          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} baslangicBolum={ayarBolum} onKurulumAc={() => setKurulum(true)} />}
+          {tab === "ayarlar" && oturum.role === "admin" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} baslangicBolum={ayarBolum} onKurulumAc={() => setKurulum(true)} />}
         </section>
       </main>
       {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => setOturum({ ...oturum, must_change_password: false })} />}

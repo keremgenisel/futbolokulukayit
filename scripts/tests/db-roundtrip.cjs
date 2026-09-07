@@ -354,6 +354,11 @@ app.whenReady().then(async () => {
     db.hamBaglanti().exec("DROP TABLE message_log; CREATE TABLE message_log (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, kanal TEXT, tip TEXT NOT NULL, metin TEXT NOT NULL, durum TEXT, tarih TEXT); INSERT INTO message_log (tip, metin) VALUES ('x', 'eski kayıt')");
     db.close(); db.init();
     check("eski dolu message_log kenara alındı (message_log_eski_v1, 1 satır), yeni tablo çalışıyor", db.hamBaglanti().prepare("SELECT count(*) AS n FROM message_log_eski_v1").get().n === 1 && !!db.mesajKaydet({ player_id: db.listPlayers()[0].id, tur: "genel", metin: "yeni" }).id);
+    // Sağlık raporu durumu raporu (Faz 3): tüm aktifler, en acil önce; grup filtresi
+    const sl = db.saglikRaporuListesi("2026-09-07");
+    check("sağlık raporu listesi: tüm aktif/deneme/sakat oyuncular, en acil önce, durumlar tutarlı", sl.length === db.listPlayers({ durum: "aktifler" }).length && sl.every((r) => ["doldu", "dolacak", "tarihsiz", "yok", "gecerli"].includes(r.durum)) && sl.map((r) => ({ doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3, gecerli: 4 })[r.durum]).every((v, i, a) => i === 0 || v >= a[i - 1]) && db.saglikRaporuDurumu("2026-09-07").uyarilar.length === sl.filter((r) => r.durum !== "gecerli").length);
+    const ilkGrup = db.listAgeGroups()[0].id;
+    check("sağlık raporu listesi grup filtresi", db.saglikRaporuListesi("2026-09-07", ilkGrup).every((r) => db.getPlayer(r.player_id).yas_grubu_id === ilkGrup));
     // ── Taşıma paketi (plan §14): parola korumalı, makine anahtarından bağımsız ──
     const { tasimaPaketiOlustur, tasimaPaketiAc, tasimaGeriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
     const paketYol = path.join(tmp, "tasima.eyupspor");
@@ -369,8 +374,11 @@ app.whenReady().then(async () => {
     // Geri yükleme: paket bu makineye yüklenir (düz db anahtarla yeniden şifrelenir), sonra normal açılır
     db.createPlayer({ ad_soyad: "Paketten Sonra Eklenen", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, odeme_donemi: "1-10" });
     const tgr = tasimaGeriYukleCekirdek(paketYol, "cok-gizli-parola"); // db.close() çekirdekte
+    if (!tgr.ok) console.log("TASIMA GERI YUKLEME HATASI:", tgr.error);
     db.init();
     check("paketten geri yükleme: veri paketteki hale döndü, mevcut veri .pre-restore ile kenara alındı", tgr.ok && db.listPlayers({ durum: null }).length === oyuncuSayisi && fs.existsSync(tgr.kenarDb) && !db.listPlayers({ durum: null }).some((p) => p.ad_soyad === "Paketten Sonra Eklenen"));
+    const tgr2 = tasimaGeriYukleCekirdek(paketYol, "cok-gizli-parola"); db.init(); // aynı saniyede ikinci geri yükleme
+    check("aynı saniyede ikinci geri yükleme kenara alma adını çakıştırmaz (ENOTEMPTY düzeltmesi)", tgr2.ok && tgr2.kenarUp !== tgr.kenarUp && fs.existsSync(tgr2.kenarUp));
     check("geri yüklenen veritabanı bu makinede yeniden şifreli", !db.isEncrypted() || (() => { try { new Database(db.getDbPath(), { readonly: true }).prepare("SELECT count(*) FROM sqlite_master").get(); return false; } catch { return true; } })());
     // Silinen varsayılan kalem/tip yeniden açılışta geri gelmemeli (tohum tek seferlik)
     db.aidatAyarlariKaydet({ kalemler: [{ id: db.listFeeItems().find((k) => k.kod === "top").id, sil: true }], ucretTipleri: [{ kod: "indirimli", sil: true }] });

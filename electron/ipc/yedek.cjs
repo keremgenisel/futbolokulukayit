@@ -104,7 +104,11 @@ function geriYukleCekirdek(yedekYolu) {
   const temizle = () => { if (hazir.gecici) { try { fs.rmSync(hazir.klasor, { recursive: true, force: true }); } catch {} } };
   const hedefDb = db.getDbPath();
   const hedefUp = db.getUploadsDir();
-  const damga = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  // Kenara alma adı benzersiz olmalı: aynı saniyede ikinci geri yükleme (ya da hızlı tekrar) mevcut klasörün üstüne
+  // rename edemez (ENOTEMPTY) ve geri yükleme düşerdi. Damga + gerekirse -2, -3 …
+  const temel = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+  let damga = temel;
+  for (let i = 2; fs.existsSync(hedefDb + ".pre-restore-" + damga) || fs.existsSync(hedefUp + ".pre-restore-" + damga); i++) damga = `${temel}-${i}`;
   const kenarDb = hedefDb + ".pre-restore-" + damga;
   const kenarUp = hedefUp + ".pre-restore-" + damga;
   db.close();
@@ -165,10 +169,10 @@ function tasimaGeriYukleCekirdek(paketYol, parola) {
 }
 
 function registerYedekHandlers(getSession) {
-  const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); };
   const istemciHata = () => ({ error: "Yedek yalnızca sunucu bilgisayarında alınır" });
+  const yonetici = () => { const s = getSession(); if (!s) throw new Error("Oturum gerekli"); if (s.role !== "admin") throw new Error("Yönetici yetkisi gerekli"); };
   ipcMain.handle("yedek:klasorSec", async (e) => {
-    yetki();
+    yonetici();
     if (config.istemciMi()) return istemciHata();
     const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { properties: ["openDirectory", "createDirectory"] });
     if (r.canceled || !r.filePaths[0]) return { iptal: true };
@@ -176,7 +180,7 @@ function registerYedekHandlers(getSession) {
     return { ok: true, klasor: r.filePaths[0] };
   });
   ipcMain.handle("yedek:al", async () => {
-    yetki();
+    yonetici();
     if (config.istemciMi()) return istemciHata();
     const klasor = db.getSetting("yedek_klasoru");
     if (!klasor) return { error: "Önce yedek klasörü seçin" };
@@ -243,7 +247,7 @@ function registerYedekHandlers(getSession) {
   });
   ipcMain.handle("yedek:durum", () => config.istemciMi() ? { klasor: null, son: null, istemci: true } : ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek"), siklik: sikliktNormalize(db.getSetting("yedek_sikligi")), sikliklar: SIKLIKLAR }));
   ipcMain.handle("yedek:siklik", (_e, siklik) => {
-    yetki();
+    yonetici();
     if (config.istemciMi()) return istemciHata();
     if (!SIKLIKLAR.some((x) => x.kod === siklik)) return { error: "Geçersiz sıklık" };
     db.setSetting("yedek_sikligi", siklik);

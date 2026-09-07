@@ -2,7 +2,7 @@
 // Okuma her oturuma açık; yazma lisans salt-okunurken reddedilir; admin işlemleri yalnız yönetici.
 const OKUMA = new Set([
   "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "playersPage", "listGuardians", "listEmergency",
-  "listDocuments", "saglikRaporuDurumu", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
+  "listDocuments", "saglikRaporuDurumu", "saglikRaporuListesi", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
   "listReceiptsByDate", "listCancelledReceipts", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "playerAttendanceSon", "getSetting", "aidatAyarlari", "panoOzet",
   "attendanceSummary", "attendanceReport", "listUsers", "sezonAdayListesi", "sezonDurumu", "listFeeTypes", "sonMesajlar", "antrenmanVelileri",
 ]);
@@ -10,10 +10,11 @@ const YAZMA = new Set([
   "createAgeGroup", "updateAgeGroup", "deleteAgeGroup",
   "createPlayer", "updatePlayer", "deletePlayer",
   "addGuardian", "updateGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument", "mesajKaydet", "mesajSil", "updateTraining", "bildirimGerekliAyarla", "grupBildirimKaydet", "grupBildirimSil",
-  "updateFeeItem", "aidatAyarlariKaydet", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
-  "createTraining", "cancelTraining", "setAttendance", "setSetting", "haftayiProgramdanDoldur",
+  "ensureMonthlyDues", "createReceipt", "cancelReceipt",
+  "createTraining", "cancelTraining", "setAttendance", "haftayiProgramdanDoldur",
 ]);
-const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser", "deleteUser", "yeniSezonaGec"]);
+// Ayarlar ekranı yalnız yönetici (07.09.2026): ayar yazma, aidat kalemleri/ücret tipleri, kullanıcılar, sezon geçişi.
+const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser", "deleteUser", "yeniSezonaGec", "setSetting", "aidatAyarlariKaydet", "updateFeeItem"]);
 
 // Dönüş: { ok: true } | { ok: false, kod: 401|403, mesaj }
 function cagriYetkisi(fn, session, saltOkunur) {

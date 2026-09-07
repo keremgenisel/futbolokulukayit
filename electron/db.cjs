@@ -510,17 +510,31 @@ const deleteDocument = (id) => db.prepare("DELETE FROM documents WHERE id=?").ru
 const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get(id) || null;
 
 // Sağlık raporu uyarıları: aktif oyuncuların EN SON sağlık raporu; yoksa, süresi dolduysa ya da esik gün içinde dolacaksa listelenir.
-function saglikRaporuDurumu(bugun, esikGun = 30) {
-  const rows = db.prepare(`SELECT p.id, p.ad_soyad, g.ad AS yas_grubu_ad,
+// Sağlık raporu satırları: aktif/deneme/sakat oyuncular, son raporun geçerliliği ve durum (gecerli|dolacak|doldu|tarihsiz|yok).
+function saglikSatirlari(bugun, esikGun = 30, age_group_id = null) {
+  const rows = db.prepare(`SELECT p.id, p.ad_soyad, p.durum AS oyuncu_durum, g.ad AS yas_grubu_ad, g.sira,
       (SELECT d.gecerlilik_tarihi FROM documents d WHERE d.player_id=p.id AND d.tip='saglik' ORDER BY COALESCE(d.gecerlilik_tarihi,'') DESC, d.id DESC LIMIT 1) AS gecerlilik,
-      (SELECT count(*) FROM documents d WHERE d.player_id=p.id AND d.tip='saglik') AS rapor_adet
-    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`).all();
+      (SELECT count(*) FROM documents d WHERE d.player_id=p.id AND d.tip='saglik') AS rapor_adet,
+      (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel
+    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY g.sira, p.ad_soyad`).all(age_group_id, age_group_id);
   const esik = new Date(bugun + "T00:00:00"); esik.setDate(esik.getDate() + esikGun);
   const esikIso = esik.toISOString().slice(0, 10);
-  const uyarilar = rows.filter((r) => r.rapor_adet === 0 || !r.gecerlilik || r.gecerlilik <= esikIso)
-    .map((r) => ({ player_id: r.id, ad_soyad: r.ad_soyad, yas_grubu_ad: r.yas_grubu_ad, gecerlilik: r.gecerlilik || null, durum: r.rapor_adet === 0 ? "yok" : !r.gecerlilik ? "tarihsiz" : r.gecerlilik < bugun ? "doldu" : "dolacak" }));
+  const b = new Date(bugun + "T00:00:00").getTime();
+  return rows.map((r) => {
+    const durum = r.rapor_adet === 0 ? "yok" : !r.gecerlilik ? "tarihsiz" : r.gecerlilik < bugun ? "doldu" : r.gecerlilik <= esikIso ? "dolacak" : "gecerli";
+    const kalanGun = r.gecerlilik ? Math.round((new Date(r.gecerlilik + "T00:00:00").getTime() - b) / 86400000) : null;
+    return { player_id: r.id, ad_soyad: r.ad_soyad, yas_grubu_ad: r.yas_grubu_ad, oyuncu_durum: r.oyuncu_durum, veli_tel: r.veli_tel || "", gecerlilik: r.gecerlilik || null, durum, kalanGun };
+  });
+}
+function saglikRaporuDurumu(bugun, esikGun = 30) {
+  const rows = saglikSatirlari(bugun, esikGun);
+  const uyarilar = rows.filter((r) => r.durum !== "gecerli").map(({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }) => ({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }));
   return { toplam: rows.length, uyarilar, doldu: uyarilar.filter((u) => u.durum === "doldu").length, dolacak: uyarilar.filter((u) => u.durum === "dolacak").length, yok: uyarilar.filter((u) => u.durum === "yok" || u.durum === "tarihsiz").length };
 }
+// Raporlar > Sağlık Raporu Durumu: tüm satırlar (geçerliler dahil), en acil önce.
+const ACILIYET_SIRA = { doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3, gecerli: 4 };
+const saglikRaporuListesi = (bugun, age_group_id = null, esikGun = 30) => saglikSatirlari(bugun, esikGun, age_group_id ? Number(age_group_id) : null)
+  .sort((a, b) => ACILIYET_SIRA[a.durum] - ACILIYET_SIRA[b.durum] || String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || "")) || a.ad_soyad.localeCompare(b.ad_soyad, "tr"));
 
 // ── fee items ──
 const listFeeItems = () => db.prepare("SELECT * FROM fee_items ORDER BY sira, id").all();
@@ -1056,7 +1070,7 @@ module.exports = {
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, updateGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
   mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla, grupBildirimKaydet, grupBildirimSil,
-  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
+  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu, saglikRaporuListesi,
   listFeeItems, updateFeeItem, listFeeTypes,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, listCancelledReceipts, setReceiptPdf,

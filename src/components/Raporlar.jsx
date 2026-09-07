@@ -11,6 +11,7 @@ const RAPORLAR = [
   { kod: "borclu", ad: "Borçlu Listesi", aciklama: "Seçilen ayda aidatı ödenmemiş oyuncular ve veli telefonları" },
   { kod: "tahsilat", ad: "Tahsilat Raporu", aciklama: "Tarih aralığında kesilen makbuzlar, yöntem ve toplam" },
   { kod: "yoklama", ad: "Yoklama Özeti", aciklama: "Tarih aralığında oyuncu bazında geldi / gelmedi / izinli" },
+  { kod: "saglik", ad: "Sağlık Raporu Durumu", aciklama: "Aktif oyuncuların sağlık raporu: süresi dolan, 30 gün içinde dolacak, yüklenmemiş ve geçerli (en acil önce)" },
 ];
 
 export function Raporlar() {
@@ -51,6 +52,15 @@ export function Raporlar() {
           sutunlar: [{ baslik: "Makbuz No", anahtar: "no", genislik: 12 }, { baslik: "Tarih", anahtar: "tarih", genislik: 12 }, { baslik: "Oyuncu", anahtar: "ad", genislik: 28 }, { baslik: "Tutar", anahtar: "tutar", genislik: 10, sag: true }, { baslik: "Yöntem", anahtar: "yontem", genislik: 14 }, { baslik: "Tahsil eden", anahtar: "eden", genislik: 18 }, { baslik: "Açıklama", anahtar: "not", genislik: 30 }],
           satirlar: [...l.map((m) => ({ no: m.makbuz_no, tarih: tarihTR(m.tarih), ad: m.ad_soyad, tutar: m.toplam, yontem: ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad, eden: m.tahsil_eden, not: m.not_ || "" })), ...iptaller.map((m) => ({ no: m.makbuz_no + " (İPTAL)", tarih: tarihTR(m.tarih), ad: m.ad_soyad, tutar: 0, yontem: ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad, eden: m.tahsil_eden, not: `İptal: ${m.iptal_nedeni || ""}${m.iptal_eden ? " · " + m.iptal_eden : ""} · asıl tutar ${paraTR(m.toplam)}` }))] };
       }
+      if (rapor === "saglik") {
+        const bugunIso = bugun().iso;
+        const l = await db("saglikRaporuListesi", bugunIso, grup ? Number(grup) : null);
+        const ETIKET = { doldu: "Süresi doldu", dolacak: "Dolmak üzere", tarihsiz: "Tarihsiz rapor", yok: "Rapor yok", gecerli: "Geçerli" };
+        const sayi = (d) => l.filter((x) => x.durum === d).length;
+        return { baslik: "Sağlık Raporu Durumu", alt: `${tarihTR(bugunIso)} itibarıyla${grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : ""} · ${sayi("doldu")} doldu · ${sayi("dolacak")} dolacak · ${sayi("yok") + sayi("tarihsiz")} yok · ${sayi("gecerli")} geçerli`,
+          sutunlar: [{ baslik: "Ad Soyad", anahtar: "ad", genislik: 28 }, { baslik: "Grup", anahtar: "grup", genislik: 8 }, { baslik: "Veli telefonu", anahtar: "tel", genislik: 16 }, { baslik: "Geçerlilik", anahtar: "gecerlilik", genislik: 12 }, { baslik: "Kalan gün", anahtar: "kalan", genislik: 10, sag: true }, { baslik: "Durum", anahtar: "durum", genislik: 16 }],
+          satirlar: l.map((o) => ({ ad: o.ad_soyad, grup: o.yas_grubu_ad || "", tel: o.veli_tel || "", gecerlilik: o.gecerlilik ? tarihTR(o.gecerlilik) : "", kalan: o.kalanGun === null ? "" : o.kalanGun, durum: ETIKET[o.durum] || o.durum })) };
+      }
       const l = await db("attendanceReport", from, to, grup ? Number(grup) : null);
       return { baslik: "Yoklama Özeti", alt: `${tarihTR(from)} – ${tarihTR(to)}${grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : ""}`,
         sutunlar: [{ baslik: "Ad Soyad", anahtar: "ad", genislik: 28 }, { baslik: "Grup", anahtar: "grup", genislik: 8 }, { baslik: "Geldi", anahtar: "geldi", genislik: 8, sag: true }, { baslik: "Gelmedi", anahtar: "gelmedi", genislik: 8, sag: true }, { baslik: "İzinli", anahtar: "izinli", genislik: 8, sag: true }, { baslik: "Katılım %", anahtar: "oran", genislik: 10, sag: true }],
@@ -64,18 +74,19 @@ export function Raporlar() {
   const pdf = async () => { const v = veri || await hazirla(); if (!v) return; try { const logo = await uygulama().logo(); await cikti().pdfKaydet(raporHtml({ baslik: v.baslik, altBaslik: v.alt, sutunlar: v.sutunlar, satirlar: v.satirlar, logo, yatay: !!v.yatay }), `${rapor}.pdf`, !!v.yatay); } catch (e) { toast("err", hataMetni(e)); } };
 
   const aylik = rapor === "oyuncu" || rapor === "borclu";
+  const tarihsiz = rapor === "saglik"; // bugüne göre; tarih filtresi yok
   const yillar = [yil - 1, yil, yil + 1].map((y) => ({ kod: y, ad: String(y) }));
   return (
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
         {RAPORLAR.map((r) => <button key={r.kod} type="button" onClick={() => { setRapor(r.kod); setVeri(null); }} style={{ textAlign: "left", padding: "12px 14px", borderRadius: 10, cursor: "pointer", border: `1px solid ${rapor === r.kod ? "var(--mor)" : "var(--cizgi)"}`, background: rapor === r.kod ? "var(--mor-acik)" : "#fff" }}><div style={{ fontWeight: 700, color: "var(--mor-koyu)" }}>{r.ad}</div><div style={{ fontSize: 12, color: "var(--soluk)", marginTop: 2 }}>{r.aciklama}</div></button>)}
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          {aylik ? (
+          {tarihsiz ? <div style={{ fontSize: 13, color: "var(--soluk)" }}>Bugünün tarihine göre hesaplanır; 30 gün içinde dolacak raporlar "Dolmak üzere" sayılır.</div> : aylik ? (
             <div style={{ display: "flex", gap: 8 }}><Alan etiket="Ay" style={{ flex: 1 }}><Secim secenekler={AY_ADLARI.map((a, i) => ({ kod: i + 1, ad: a }))} value={ayS} onChange={(e) => setAyS(Number(e.target.value))} /></Alan><Alan etiket="Yıl" style={{ width: 100 }}><Secim secenekler={yillar} value={yilS} onChange={(e) => setYilS(Number(e.target.value))} /></Alan></div>
           ) : (
             <div style={{ display: "flex", gap: 8 }}><Alan etiket="Başlangıç" style={{ flex: 1 }}><Girdi type="date" value={from} onChange={(e) => setFrom(e.target.value)} /></Alan><Alan etiket="Bitiş" style={{ flex: 1 }}><Girdi type="date" value={to} onChange={(e) => setTo(e.target.value)} /></Alan></div>
           )}
-          {(rapor === "oyuncu" || rapor === "yoklama") && <Alan etiket="Yaş grubu"><Secim secenekler={gruplar} bos="Tümü" value={grup} onChange={(e) => setGrup(e.target.value)} /></Alan>}
+          {(rapor === "oyuncu" || rapor === "yoklama" || rapor === "saglik") && <Alan etiket="Yaş grubu"><Secim secenekler={gruplar} bos="Tümü" value={grup} onChange={(e) => setGrup(e.target.value)} /></Alan>}
           <Btn ikon={<Ikon ad="goz" />} onClick={onizle}>Önizle</Btn>
           <div style={{ display: "flex", gap: 8 }}><Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={excel} style={{ flex: 1 }}>Excel</Btn><Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={pdf} style={{ flex: 1 }}>PDF</Btn></div>
         </div>

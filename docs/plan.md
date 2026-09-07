@@ -329,7 +329,8 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - WhatsApp bildirimleri → KARAR 07.09.2026: API yok (ücret/hesap/yasak riski); bağlantıyla gönderme, bkz. §13.
 - ~~Sporcu kimlik kartı basımı, aidat borcunda kart bloke~~ — KALDIRILDI 07.09.2026 (Kerem).
 - ~~Sağlık raporu geçerlilik uyarısı~~ — YAPILDI 07.09.2026 (pano sayaç/liste, oyuncu kartı rozeti).
-- Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
+- ~~Kullanıcı rolleri ince ayarı~~ — YAPILDI 07.09.2026 (Kerem kararı): "kullanıcı" rolü Ayarlar'ı görmez (sekme yok; ana süreçte
+  setSetting/aidatAyarlariKaydet/updateFeeItem/yedek klasör-al-sıklık yalnız yönetici), kalan her şeyi yapar (Excel aktarımı dahil).
 - ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
 - ~~Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız)~~ — YAPILDI 07.09.2026 (§14).
 
@@ -443,7 +444,7 @@ Uygulandı (12 madde, 07.09.2026):
 ### 11.1 Faz 3'e kalanlar (öneri listesinden)
 - **Otomatik güncelleme + lisans sunucusu yayını** (Kerem): GitHub deposu push, `aktivasyon-sunucu/deploy.sh`,
   `AKTIVASYON_URL`, tag `v1.0.0` (bkz. §8.1).
-- **Yeni rapor:** sağlık raporu durumu (Excel/PDF; süresi dolan/dolacak/yok). ~~Yönteme göre aylık tahsilat özeti; yoklama yüzdesi düşük oyuncular~~ — KALDIRILDI 07.09.2026 (Kerem).
+- ~~**Yeni rapor:** sağlık raporu durumu~~ — YAPILDI 07.09.2026 (Raporlar > Sağlık Raporu Durumu; `db.saglikRaporuListesi`). ~~Yönteme göre aylık tahsilat özeti; yoklama yüzdesi düşük oyuncular~~ — KALDIRILDI 07.09.2026 (Kerem).
 - **Windows'ta gerçek yazıcı testi:** kulüp bilgisayarında makbuz basımı, kağıt boyutu ve kenar boşlukları.
 - ~~Arayüz tercihlerini ana sürece taşıma (kenar menü, hatırlanan kullanıcı adı)~~ — KALDIRILDI 07.09.2026 (Kerem): görünüm
   tercihi; kaba kapanışta kaybolması kabul edildi.

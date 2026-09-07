@@ -53,7 +53,7 @@ function aktarUygula(kayitlar) {
 function registerAktarHandlers(getSession) {
   const kontrol = () => {
     const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    if (!s) return { error: "Oturum gerekli" }; // Oyuncular > İçe Aktar: her kullanıcı (Ayarlar dışı; 07.09.2026)
     if (config.istemciMi()) return { error: "Aktarım yalnızca sunucu bilgisayarında yapılır" };
     if (db.lisansSaltOkunurMu()) return { error: "Lisans salt okunur modda" };
     return null;
