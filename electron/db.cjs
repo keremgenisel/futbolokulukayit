@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 10; // …8: fee_types; 9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim
+const SCHEMA_VERSION = 11; // …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -59,7 +59,8 @@ const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             --
   training_id INTEGER REFERENCES trainings(id) ON DELETE CASCADE,
   metin TEXT NOT NULL DEFAULT '',
   tarih TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  kullanici TEXT DEFAULT ''
+  kullanici TEXT DEFAULT '',
+  olay TEXT DEFAULT ''                                -- iptal/değişiklik bildirimi: antrenmanın o anki bildirim_olay damgası (şema 11)
 );`;
 
 const SCHEMA_SQL = `
@@ -220,7 +221,8 @@ CREATE TABLE IF NOT EXISTS trainings (
   notlar TEXT DEFAULT '',
   bildirim_gerekli INTEGER NOT NULL DEFAULT 0,        -- elle iptal/değişiklik yapıldı, veliler henüz bilgilendirilmedi
   degisiklik_notu TEXT DEFAULT '',                    -- son değişikliğin eski değerleri JSON {eskiTarih, eskiSaat, eskiSaha, zaman}
-  grup_bildirim TEXT DEFAULT ''                       -- veli WhatsApp grubuna tek mesaj açıldı: JSON {zaman, kullanici} (şema 10)
+  grup_bildirim TEXT DEFAULT '',                      -- veli WhatsApp grubuna tek mesaj açıldı: JSON {zaman, kullanici} (şema 10)
+  bildirim_olay TEXT DEFAULT ''                       -- son iptal/değişiklik olayının damgası; bildirimler bu olaya bağlanır (şema 11)
 );
 
 ${MESSAGE_LOG_SQL}
@@ -295,12 +297,15 @@ function migrate() {
   if (!antKolon.has("bildirim_gerekli")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_gerekli INTEGER NOT NULL DEFAULT 0");
   if (!antKolon.has("degisiklik_notu")) db.exec("ALTER TABLE trainings ADD COLUMN degisiklik_notu TEXT DEFAULT ''");
   if (!antKolon.has("grup_bildirim")) db.exec("ALTER TABLE trainings ADD COLUMN grup_bildirim TEXT DEFAULT ''"); // 10
+  if (!antKolon.has("bildirim_olay")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_olay TEXT DEFAULT ''"); // 11
   const mlKolon = new Set(db.prepare("PRAGMA table_info(message_log)").all().map((c) => c.name));
   if (mlKolon.size && !mlKolon.has("tur")) { // ilk iskeletin kullanılmayan message_log'u
     const dolu = db.prepare("SELECT count(*) AS n FROM message_log").get().n > 0;
     db.exec(dolu ? "ALTER TABLE message_log RENAME TO message_log_eski_v1" : "DROP TABLE message_log");
     db.exec(MESSAGE_LOG_SQL);
   }
+  const mlKolon2 = new Set(db.prepare("PRAGMA table_info(message_log)").all().map((c) => c.name));
+  if (!mlKolon2.has("olay")) db.exec("ALTER TABLE message_log ADD COLUMN olay TEXT DEFAULT ''"); // 11
   db.exec("CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay); CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id)");
   // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
   // Varsayılan tipler YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
@@ -459,8 +464,10 @@ const MESAJ_TURLERI = new Set(["aidat", "genel", "iptal", "degisiklik"]);
 function mesajKaydet({ player_id, guardian_id = null, tur, yil = null, ay = null, training_id = null, metin = "", kullanici = "" }) {
   if (!MESAJ_TURLERI.has(tur)) throw new Error("Geçersiz mesaj türü: " + tur);
   if (!db.prepare("SELECT 1 FROM players WHERE id=?").get(Number(player_id))) throw new Error("Oyuncu bulunamadı");
-  const r = db.prepare("INSERT INTO message_log (player_id,guardian_id,tur,yil,ay,training_id,metin,kullanici) VALUES (?,?,?,?,?,?,?,?)")
-    .run(Number(player_id), guardian_id ? Number(guardian_id) : null, tur, yil, ay, training_id ? Number(training_id) : null, String(metin || "").slice(0, 2000), String(kullanici || ""));
+  // İptal/değişiklik bildirimi antrenmanın O ANKİ olayına bağlanır: sonraki iptal/değişiklik yeni olay, eski bildirim sayılmaz
+  const olay = training_id ? (db.prepare("SELECT bildirim_olay FROM trainings WHERE id=?").get(Number(training_id))?.bildirim_olay || "") : "";
+  const r = db.prepare("INSERT INTO message_log (player_id,guardian_id,tur,yil,ay,training_id,metin,kullanici,olay) VALUES (?,?,?,?,?,?,?,?,?)")
+    .run(Number(player_id), guardian_id ? Number(guardian_id) : null, tur, yil, ay, training_id ? Number(training_id) : null, String(metin || "").slice(0, 2000), String(kullanici || ""), olay);
   return { id: Number(r.lastInsertRowid) };
 }
 const mesajSil = (id) => db.prepare("DELETE FROM message_log WHERE id=?").run(Number(id));
@@ -468,7 +475,7 @@ const sonMesajlar = (pid, n = 12) => db.prepare("SELECT m.*, g.ad_soyad AS veli_
 // Antrenmanın velileri (grubun aktif oyuncuları + birincil veli + onay/numara) ve bu antrenman için açılmış bildirim.
 const antrenmanVelileri = (tid) => db.prepare(`SELECT p.id AS player_id, p.ad_soyad, p.durum, gu.id AS guardian_id, gu.ad_soyad AS veli_ad,
     COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') AS veli_wa, gu.mesaj_onayi AS veli_onay,
-    (SELECT m.id FROM message_log m WHERE m.training_id=t.id AND m.player_id=p.id ORDER BY m.id DESC LIMIT 1) AS mesaj_id
+    (SELECT m.id FROM message_log m WHERE m.training_id=t.id AND m.player_id=p.id AND m.olay=t.bildirim_olay ORDER BY m.id DESC LIMIT 1) AS mesaj_id
   FROM trainings t JOIN players p ON p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')
   LEFT JOIN guardians gu ON gu.id=(SELECT g2.id FROM guardians g2 WHERE g2.player_id=p.id ORDER BY g2.veli_mi DESC, g2.id LIMIT 1)
   WHERE t.id=? ORDER BY p.ad_soyad`).all(Number(tid));
@@ -680,11 +687,13 @@ const trainingCalendar = (from, to) => db.prepare(`SELECT t.*, g.ad AS yas_grubu
     (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
     (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
     (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi,
-    (SELECT count(DISTINCT m.player_id) FROM message_log m WHERE m.training_id=t.id) AS bildirilen
+    (SELECT count(DISTINCT m.player_id) FROM message_log m WHERE m.training_id=t.id AND m.olay=t.bildirim_olay) AS bildirilen
   FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat`).all(from, to);
 const listTrainings = (from, to) => db.prepare("SELECT t.*, g.ad AS yas_grubu_ad FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat").all(from, to);
 // Elle iptal: veliler bilgilendirilene kadar bildirim_gerekli=1 (programdan otomatik dolan antrenmanlar bu yoldan geçmez).
-const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=?, bildirim_gerekli=1 WHERE id=?").run(neden, id);
+// Olay damgası: zaman + rastgele ek (aynı milisaniyede iki olay bile ayrışsın)
+const yeniOlay = () => new Date().toISOString() + "-" + require("crypto").randomBytes(3).toString("hex");
+const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=?, bildirim_gerekli=1, bildirim_olay=?, grup_bildirim='' WHERE id=?").run(neden, yeniOlay(), id);
 // Antrenman düzenleme (tarih/saat/saha): yoklaması alınmış antrenmanda tarih değişmez; eski değerler degisiklik_notu'na.
 function updateTraining(id, { tarih, saat, saha } = {}) {
   const t = db.prepare("SELECT * FROM trainings WHERE id=?").get(Number(id));
@@ -697,8 +706,9 @@ function updateTraining(id, { tarih, saat, saha } = {}) {
   const yoklamaVar = db.prepare("SELECT count(*) AS n FROM attendance WHERE training_id=?").get(t.id).n > 0;
   if (yoklamaVar && yeni.tarih !== t.tarih) throw new Error("Yoklaması alınmış antrenmanın tarihi değiştirilemez; yalnız saat ve saha");
   const not_ = JSON.stringify({ eskiTarih: t.tarih, eskiSaat: t.saat, eskiSaha: t.saha, zaman: new Date().toISOString() });
-  db.prepare("UPDATE trainings SET tarih=?, saat=?, saha=?, bildirim_gerekli=1, degisiklik_notu=? WHERE id=?").run(yeni.tarih, yeni.saat, yeni.saha, not_, t.id);
-  return { ...t, ...yeni, bildirim_gerekli: 1, degisiklik_notu: not_, degisti: true };
+  const olay = yeniOlay();
+  db.prepare("UPDATE trainings SET tarih=?, saat=?, saha=?, bildirim_gerekli=1, degisiklik_notu=?, bildirim_olay=?, grup_bildirim='' WHERE id=?").run(yeni.tarih, yeni.saat, yeni.saha, not_, olay, t.id);
+  return { ...t, ...yeni, bildirim_gerekli: 1, degisiklik_notu: not_, bildirim_olay: olay, grup_bildirim: "", degisti: true };
 }
 const bildirimGerekliAyarla = (id, deger) => db.prepare("UPDATE trainings SET bildirim_gerekli=? WHERE id=?").run(deger ? 1 : 0, Number(id));
 // Veli WhatsApp grubuna tek mesaj açıldı (plan §13.7): bildirim gereği iner, kim/ne zaman kaydedilir.

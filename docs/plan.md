@@ -582,7 +582,8 @@ onay altyapısı ortak kullanılır.
   tek mesaj" bloğu, **Veli Grubuna Gönder** → numarasız bağlantı (`https://wa.me/?text=…`) WhatsApp'ta "sohbet seç" ekranını
   metin hazır açar; kullanıcı kulübün veli grubunu seçip Gönder'e basar. Hitap "Sayın Veliler" (aynı şablon, {veli}=Veliler).
 - Kayıt: `trainings.grup_bildirim` JSON {zaman, kullanici} (şema 10), `bildirim_gerekli` iner; kartta "Veli grubuna bildirildi".
-  Gruba üye olmayan veliler için tek tek liste pencerede kalır. Her iki yolda da **Geri al** (tek satır: kayıt silinir; toplu:
+  Gruba üye olmayan veliler için tek tek liste pencerede kalır. **Her iptal/değişiklik ayrı olaydır** (şema 11 `bildirim_olay`):
+  saati değişip bildirilen antrenman sonra iptal edilirse tek tek ve toplu bildirim sıfırdan başlar. Her iki yolda da **Geri al** (tek satır: kayıt silinir; toplu:
   `grupBildirimSil` → kayıt boşalır, bildirim gereği yeniden açılır).
 - Aidat hatırlatması toplu DEĞİL (kişiye özel borç bilgisi; gruba yazılmaz).
 - Ön koşul (kulüp): her yaş grubunun WhatsApp'ta bir veli grubu olması.

@@ -98,9 +98,11 @@ export function Yoklama({ saltOkunur }) {
     } catch (e) { toast("err", hataMetni(e)); }
   };
   // Bildirim penceresi: grubun aktif oyuncularının birincil velileri (onay + numara) ve bu antrenman için açılmış kayıtlar
-  const bildirimAc = async (t, tur) => {
+  const bildirimAc = async (t0, tur) => {
     setBildir(null);
     try {
+      // Antrenmanı taze oku: iptal/değişiklik yeni olay açar (grup_bildirim sıfırlanır); ekrandaki eski kopya yanıltmasın
+      const t = (await db("trainingCalendar", t0.tarih, t0.tarih)).find((x) => x.id === t0.id) || t0;
       const l = await db("antrenmanVelileri", t.id);
       setWaAnt({ t, tur, alicilar: l.map((v) => ({ key: String(v.player_id), player_id: v.player_id, guardian_id: v.guardian_id, oyuncu_ad: v.ad_soyad, veli_ad: v.veli_ad || "", grup: t.yas_grubu_ad, numara: v.veli_wa || "", onay: v.veli_onay, mesaj_id: v.mesaj_id, degerler: antrenmanDegerleri(t, { veli_ad: v.veli_ad, ad_soyad: v.ad_soyad }) })) });
     } catch (e) { toast("err", hataMetni(e)); }

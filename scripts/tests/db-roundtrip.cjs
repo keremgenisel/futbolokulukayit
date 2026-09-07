@@ -104,7 +104,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 10 ve pasaport sütunu var", db.getMetaValue("schema_version") === "10" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 11 ve pasaport sütunu var", db.getMetaValue("schema_version") === "11" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -340,7 +340,7 @@ app.whenReady().then(async () => {
     db.setMetaValue("schema_version", "7"); db.setSetting("indirim_burslu", "33"); db.setSetting("indirim_ucretsiz", "10");
     db.close(); db.init();
     const goc = db.listFeeTypes();
-    check("göç 7→10: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 10", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "10");
+    check("göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "11");
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } }); db.close(); db.init();
     check("şema 8'de yeniden açılış eski ayarı tekrar yazmaz (40 kaldı)", db.listFeeTypes().find((t) => t.kod === "burslu").indirim === 40);
     // İlk iskeletin (06.09.2026) farklı sütunlu message_log'u: boşsa silinip yeniden kurulur, doluysa kenara alınır; açılış çökmez
@@ -396,6 +396,17 @@ app.whenReady().then(async () => {
     db.grupBildirimSil(waT.id);
     const gbS = db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id);
     check("grup gönderimi geri alınır: kayıt silinir, bildirim gereği yeniden açılır", gbS.grup_bildirim === "" && gbS.bildirim_gerekli === 1);
+    // Değişiklik bildirildi → sonra İPTAL: ayrı olay; eski bildirimler (tek tek + grup) yeni olayda sayılmaz
+    const evT = db.createTraining({ age_group_id: waP.yas_grubu_id, tarih: "2026-10-12", saat: "17:00", saha: "Saha 1" });
+    db.updateTraining(evT.id, { saat: "18:00" });
+    db.mesajKaydet({ player_id: waP.id, guardian_id: waV.id, tur: "degisiklik", training_id: evT.id, metin: "saat" }); db.grupBildirimKaydet(evT.id, "Y");
+    const ev1 = db.trainingCalendar("2026-10-12", "2026-10-12").find((t) => t.id === evT.id);
+    check("değişiklik olayı: tek tek 1 bildirildi, gruba gönderildi, bildirim gereği yok", ev1.bildirilen === 1 && !!ev1.grup_bildirim && ev1.bildirim_gerekli === 0 && db.antrenmanVelileri(evT.id).find((v) => v.player_id === waP.id).mesaj_id > 0);
+    db.cancelTraining(evT.id, "Yağmur");
+    const ev2 = db.trainingCalendar("2026-10-12", "2026-10-12").find((t) => t.id === evT.id);
+    check("sonraki iptal yeni olay: bildirilen 0, grup kaydı boş, bildirim gerekli, satır mesaj_id boş; eski kayıt geçmişte durur", ev2.bildirilen === 0 && ev2.grup_bildirim === "" && ev2.bildirim_gerekli === 1 && db.antrenmanVelileri(evT.id).find((v) => v.player_id === waP.id).mesaj_id === null && db.sonMesajlar(waP.id).some((m) => m.tur === "degisiklik" && m.training_id === evT.id));
+    db.mesajKaydet({ player_id: waP.id, guardian_id: waV.id, tur: "iptal", training_id: evT.id, metin: "iptal" });
+    check("iptal bildirimi yeni olaya bağlanır", db.trainingCalendar("2026-10-12", "2026-10-12").find((t) => t.id === evT.id).bildirilen === 1);
     check("silinen varsayılan kalem ve ücret tipi yeniden açılışta geri gelmez", !db.listFeeItems().some((k) => k.kod === "top") && !db.listFeeTypes().some((t) => t.kod === "indirimli") && db.listFeeItems().some((k) => k.kod === "aidat"));
 
     db.close();
