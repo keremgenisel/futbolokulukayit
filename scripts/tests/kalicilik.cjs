@@ -115,6 +115,13 @@ app.on("browser-window-created", async (_e, win) => {
       // Taşıma paketi (plan §14): tüm kayıtlardan sonra oluşturulur; yeniden açılışta parolayla açılıp sayıları beklenenle karşılaştırılır
       const tp = require("../../electron/ipc/yedek.cjs").tasimaPaketiOlustur(path.join(dizin, "kalici-tasima.eyupspor"), "kalici-parola-1");
       check("taşıma paketi oluşturuldu", tp.ok && fs.existsSync(path.join(dizin, "kalici-tasima.eyupspor")));
+      // Normal yedek → aynı saniyede İKİ geri yükleme (ENOTEMPTY düzeltmesi) → yeniden açılışta veri aynı, .pre-restore klasörleri iki adet
+      const yk = require("../../electron/ipc/yedek.cjs");
+      const yedekKlasoru = path.join(dizin, "yedekler"); fs.mkdirSync(yedekKlasoru, { recursive: true });
+      const ya = yk.yedekAl(yedekKlasoru);
+      const gy1 = yk.geriYukleCekirdek(ya.yol); db.init();
+      const gy2 = yk.geriYukleCekirdek(ya.yol); db.init();
+      check("yedek alındı; aynı saniyede iki geri yükleme de başarılı, kenara alma adları farklı", ya.ok && gy1.ok && gy2.ok && gy1.kenarDb !== gy2.kenarDb && fs.existsSync(gy1.kenarDb) && fs.existsSync(gy2.kenarDb));
       const tpOyuncu = db.listPlayers({ durum: null }).length, tpMakbuz = db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts").get().n;
       fs.writeFileSync(path.join(dizin, "beklenen.json"), JSON.stringify({ tpOyuncu, tpMakbuz, oyuncu: o.ad_soyad, makbuz: m.makbuz_no, yabanci: yab.id, kod: kk.kodlar[0], kodSayisi: kk.kodlar.length, kismi: kismi.id, iptalli: iptalli.id, yil: y2, ay: a2, doldurulan: hd.eklenen, yabanciDueTutar: yabanciDue?.tutar ?? null }));
       console.log("YAZ TAMAM");
@@ -169,6 +176,7 @@ app.on("browser-window-created", async (_e, win) => {
       check("olay ayrımı kalıcı: değişiklik sonrası iptal yeni olay (bildirilen 0, grup boş, gerekli 1); eski değişiklik kaydı geçmişte", t4 && t4.iptal === 1 && t4.bildirilen === 0 && t4.grup_bildirim === "" && t4.bildirim_gerekli === 1 && !!t4.bildirim_olay && db.sonMesajlar(o.id).some((m) => m.training_id === t4.id && m.tur === "degisiklik"));
       check("grup bildirimi geri alma kalıcı (kayıt boş, bildirim gerekli)", t5 && t5.grup_bildirim === "" && t5.bildirim_gerekli === 1);
       const tpa = require("../../electron/ipc/yedek.cjs").tasimaPaketiAc(path.join(dizin, "kalici-tasima.eyupspor"), "kalici-parola-1");
+      check("iki geri yükleme sonrası yeniden açılış: oyuncu/makbuz sayısı korunmuş, kenara alınan iki kopya duruyor", db.listPlayers({ durum: null }).length === b.tpOyuncu && db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts").get().n === b.tpMakbuz && fs.readdirSync(dizin).filter((f) => f.startsWith("data.db.pre-restore-")).length === 2);
       check("yeniden açılışta taşıma paketi parolayla açılıyor; oyuncu/makbuz sayısı paket anındaki veriyle aynı", tpa.ok && tpa.oyuncu === b.tpOyuncu && tpa.makbuz === b.tpMakbuz && tpa.oyuncu === db.listPlayers({ durum: null }).length);
       if (tpa.ok) fs.rmSync(tpa.klasor, { recursive: true, force: true });
       check("haftalık program ve doldurulan antrenmanlar kalıcı", JSON.parse(db.listAgeGroups().find((g) => g.id === o.yas_grubu_id).program)[0]?.saat === "18:00" && b.doldurulan === 1 && db.listTrainings("2027-04-05", "2027-04-11").some((tr) => tr.saat === "18:00" && tr.saha === "Saha 3"));
