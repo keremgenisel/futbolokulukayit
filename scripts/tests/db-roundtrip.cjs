@@ -343,6 +343,15 @@ app.whenReady().then(async () => {
     check("göç 7→9: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 9", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "9");
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } }); db.close(); db.init();
     check("şema 8'de yeniden açılış eski ayarı tekrar yazmaz (40 kaldı)", db.listFeeTypes().find((t) => t.kod === "burslu").indirim === 40);
+    // İlk iskeletin (06.09.2026) farklı sütunlu message_log'u: boşsa silinip yeniden kurulur, doluysa kenara alınır; açılış çökmez
+    const ham = db.hamBaglanti();
+    ham.exec("DROP TABLE message_log; CREATE TABLE message_log (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, kanal TEXT NOT NULL DEFAULT 'whatsapp', tip TEXT NOT NULL, metin TEXT NOT NULL, durum TEXT NOT NULL DEFAULT 'hazir', tarih TEXT NOT NULL DEFAULT (datetime('now')))");
+    db.close(); db.init();
+    const mlKol = db.hamBaglanti().prepare("PRAGMA table_info(message_log)").all().map((c) => c.name);
+    check("eski boş message_log yeni şemayla değiştirildi (tur sütunu var, eski tablo yok)", mlKol.includes("tur") && !db.hamBaglanti().prepare("SELECT name FROM sqlite_master WHERE name='message_log_eski_v1'").get());
+    db.hamBaglanti().exec("DROP TABLE message_log; CREATE TABLE message_log (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, kanal TEXT, tip TEXT NOT NULL, metin TEXT NOT NULL, durum TEXT, tarih TEXT); INSERT INTO message_log (tip, metin) VALUES ('x', 'eski kayıt')");
+    db.close(); db.init();
+    check("eski dolu message_log kenara alındı (message_log_eski_v1, 1 satır), yeni tablo çalışıyor", db.hamBaglanti().prepare("SELECT count(*) AS n FROM message_log_eski_v1").get().n === 1 && !!db.mesajKaydet({ player_id: db.listPlayers()[0].id, tur: "genel", metin: "yeni" }).id);
     // Silinen varsayılan kalem/tip yeniden açılışta geri gelmemeli (tohum tek seferlik)
     db.aidatAyarlariKaydet({ kalemler: [{ id: db.listFeeItems().find((k) => k.kod === "top").id, sil: true }], ucretTipleri: [{ kod: "indirimli", sil: true }] });
     db.close(); db.init();

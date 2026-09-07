@@ -48,6 +48,20 @@ const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
 const SCHEMA_VERSION = 9; // …6: age_groups.program; 7: receipts.iptal_*; 8: fee_types; 9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu)
+// WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
+// migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
+const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  guardian_id INTEGER REFERENCES guardians(id) ON DELETE SET NULL,
+  tur TEXT NOT NULL,                                  -- aidat|genel|iptal|degisiklik
+  yil INTEGER, ay INTEGER,                            -- aidat hatırlatmasının dönemi
+  training_id INTEGER REFERENCES trainings(id) ON DELETE CASCADE,
+  metin TEXT NOT NULL DEFAULT '',
+  tarih TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  kullanici TEXT DEFAULT ''
+);`;
+
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -208,19 +222,7 @@ CREATE TABLE IF NOT EXISTS trainings (
   degisiklik_notu TEXT DEFAULT ''                     -- son değişikliğin eski değerleri JSON {eskiTarih, eskiSaat, eskiSaha, zaman}
 );
 
-CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  guardian_id INTEGER REFERENCES guardians(id) ON DELETE SET NULL,
-  tur TEXT NOT NULL,                                  -- aidat|genel|iptal|degisiklik
-  yil INTEGER, ay INTEGER,                            -- aidat hatırlatmasının dönemi
-  training_id INTEGER REFERENCES trainings(id) ON DELETE CASCADE,
-  metin TEXT NOT NULL DEFAULT '',
-  tarih TEXT NOT NULL DEFAULT (datetime('now','localtime')),
-  kullanici TEXT DEFAULT ''
-);
-CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay);
-CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id);
+${MESSAGE_LOG_SQL}
 
 CREATE TABLE IF NOT EXISTS attendance (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -228,16 +230,6 @@ CREATE TABLE IF NOT EXISTS attendance (
   player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   durum TEXT NOT NULL,                            -- geldi|gelmedi|izinli
   UNIQUE(training_id, player_id)
-);
-
-CREATE TABLE IF NOT EXISTS message_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  player_id INTEGER REFERENCES players(id) ON DELETE SET NULL,
-  kanal TEXT NOT NULL DEFAULT 'whatsapp',
-  tip TEXT NOT NULL,
-  metin TEXT NOT NULL,
-  durum TEXT NOT NULL DEFAULT 'hazir',
-  tarih TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
@@ -301,6 +293,13 @@ function migrate() {
   const antKolon = new Set(db.prepare("PRAGMA table_info(trainings)").all().map((c) => c.name));
   if (!antKolon.has("bildirim_gerekli")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_gerekli INTEGER NOT NULL DEFAULT 0");
   if (!antKolon.has("degisiklik_notu")) db.exec("ALTER TABLE trainings ADD COLUMN degisiklik_notu TEXT DEFAULT ''");
+  const mlKolon = new Set(db.prepare("PRAGMA table_info(message_log)").all().map((c) => c.name));
+  if (mlKolon.size && !mlKolon.has("tur")) { // ilk iskeletin kullanılmayan message_log'u
+    const dolu = db.prepare("SELECT count(*) AS n FROM message_log").get().n > 0;
+    db.exec(dolu ? "ALTER TABLE message_log RENAME TO message_log_eski_v1" : "DROP TABLE message_log");
+    db.exec(MESSAGE_LOG_SQL);
+  }
+  db.exec("CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay); CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id)");
   // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
   // Varsayılan tipler YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
   if (!getMetaValue("tohum_fee_types")) {
@@ -1008,6 +1007,7 @@ const islem = (fn) => db.transaction(fn);
 module.exports = {
   islem,
   init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi,
+  hamBaglanti: () => db, // YALNIZ testler: göç senaryoları için ham SQL
   getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
   sezonAdayListesi, sezonDurumu, yeniSezonaGec, SEZON_DURUMLARI,
   getUserByUsername, createUser, verifyPassword, changePassword,
