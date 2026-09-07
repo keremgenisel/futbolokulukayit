@@ -119,6 +119,16 @@ app.whenReady().then(async () => {
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
 
+    // Sağlık raporu uyarıları: raporu olmayan "yok", süresi dolan "doldu", 30 gün içinde "dolacak", uzun geçerli listelenmez
+    db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/eski.pdf", orijinal_ad: "eski.pdf", gecerlilik_tarihi: "2026-01-01" });
+    db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/yeni.pdf", orijinal_ad: "yeni.pdf", gecerlilik_tarihi: "2026-09-20" });
+    const sr = db.saglikRaporuDurumu("2026-09-07", 30);
+    const srO = sr.uyarilar.find((u) => u.player_id === oyuncu.id);
+    check("sağlık raporu: en son rapor 13 gün içinde dolacak", srO?.durum === "dolacak" && srO.gecerlilik === "2026-09-20");
+    check("raporu olmayan aktif oyuncu 'yok' olarak listelenir", sr.uyarilar.some((u) => u.durum === "yok") && sr.yok >= 1);
+    db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/uzun.pdf", orijinal_ad: "uzun.pdf", gecerlilik_tarihi: "2027-09-01" });
+    check("uzun geçerli rapor gelince uyarıdan çıkar", !db.saglikRaporuDurumu("2026-09-07", 30).uyarilar.some((u) => u.player_id === oyuncu.id));
+
     // Haftalık program: gruba Pzt/Çar 17:00 yaz → haftayı doldur → 2 antrenman; tekrar → 2 atlanır; bozuk saat süzülür
     db.updateAgeGroup(grp.id, { program: [{ gun: 1, saat: "17:00", saha: "Saha 1" }, { gun: 3, saat: "17:00", saha: "Saha 1" }, { gun: 5, saat: "bozuk" }] });
     check("program kaydı doğrulanarak saklanır", JSON.parse(db.listAgeGroups().find((g) => g.id === grp.id).program).length === 2);

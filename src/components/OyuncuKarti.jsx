@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
-import { db, files, hataMetni } from "../lib/api.js";
+import { db, files, hataMetni, bugun } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
+import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
 
 const BELGE_TIPLERI = [
   { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true }, { kod: "foto", ad: "Vesikalık fotoğraf", tekil: true },
@@ -134,7 +135,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
                     </div>
                   ))}
                 </div>
-                {mevcut.length ? <Rozet ton="green">Yüklü</Rozet> : <Rozet ton="red">Eksik</Rozet>}
+                {mevcut.length ? (t.gecerlilik ? (() => { const g = belgeGecerlilik(mevcut[0].gecerlilik_tarihi, bugun().iso); return <Rozet ton={g.durum === "gecerli" ? "green" : g.durum === "dolacak" ? "yellow" : "red"}>{belgeEtiketi(g)}</Rozet>; })() : <Rozet ton="green">Yüklü</Rozet>) : <Rozet ton="red">Eksik</Rozet>}
                 {!saltOkunur && <BelgeYukleDugmesi tip={t} mevcut={mevcut.length} onYukle={belgeYukle} />}
               </div>
             );

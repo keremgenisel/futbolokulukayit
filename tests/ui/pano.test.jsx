@@ -44,4 +44,22 @@ describe("Pano — tesise giriş kontrolü", () => {
     expect(screen.queryByRole("button", { name: "Makbuz Kes" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Makbuz" })).toBeNull();
   });
+
+  it("sağlık raporu uyarıları: kart ve sayaç; satır tıklanınca oyuncu kartı", async () => {
+    window.okul.db.mockImplementation(async (fn) => {
+      if (fn === "panoOzet") return { aktif: 3, grup: 2, odeyen: 1, borclu: 1, antrenmanlar: [], bugunTahsilat: 0 };
+      if (fn === "saglikRaporuDurumu") return { toplam: 3, doldu: 1, dolacak: 1, yok: 0, uyarilar: [
+        { player_id: 2, ad_soyad: "Kaan Yıldız", yas_grubu_ad: "U11", gecerlilik: "2020-01-01", durum: "doldu" },
+        { player_id: 3, ad_soyad: "Ela Demir", yas_grubu_ad: "U11", gecerlilik: new Date(Date.now() + 5 * 86400000).toISOString().slice(0, 10), durum: "dolacak" }] };
+      return [];
+    });
+    const onOyuncu = vi.fn();
+    render(<ToastSaglayici><Pano onOyuncu={onOyuncu} onSekme={() => {}} onMakbuzKes={() => {}} /></ToastSaglayici>);
+    await screen.findByText("Sağlık Raporu Uyarıları");
+    expect(screen.getByText("1 doldu · 1 dolacak · 0 yok")).toBeInTheDocument();
+    expect(screen.getByText(/Süresi doldu/)).toBeInTheDocument();
+    expect(screen.getByText("5 gün kaldı")).toBeInTheDocument();
+    fireEvent.click(screen.getByText("Kaan Yıldız"));
+    expect(onOyuncu).toHaveBeenCalledWith(2);
+  });
 });

@@ -404,6 +404,19 @@ const addDocument = (pid, d) => belgeEkle(pid, d).id;
 const deleteDocument = (id) => db.prepare("DELETE FROM documents WHERE id=?").run(id);
 const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get(id) || null;
 
+// Sağlık raporu uyarıları: aktif oyuncuların EN SON sağlık raporu; yoksa, süresi dolduysa ya da esik gün içinde dolacaksa listelenir.
+function saglikRaporuDurumu(bugun, esikGun = 30) {
+  const rows = db.prepare(`SELECT p.id, p.ad_soyad, g.ad AS yas_grubu_ad,
+      (SELECT d.gecerlilik_tarihi FROM documents d WHERE d.player_id=p.id AND d.tip='saglik' ORDER BY COALESCE(d.gecerlilik_tarihi,'') DESC, d.id DESC LIMIT 1) AS gecerlilik,
+      (SELECT count(*) FROM documents d WHERE d.player_id=p.id AND d.tip='saglik') AS rapor_adet
+    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`).all();
+  const esik = new Date(bugun + "T00:00:00"); esik.setDate(esik.getDate() + esikGun);
+  const esikIso = esik.toISOString().slice(0, 10);
+  const uyarilar = rows.filter((r) => r.rapor_adet === 0 || !r.gecerlilik || r.gecerlilik <= esikIso)
+    .map((r) => ({ player_id: r.id, ad_soyad: r.ad_soyad, yas_grubu_ad: r.yas_grubu_ad, gecerlilik: r.gecerlilik || null, durum: r.rapor_adet === 0 ? "yok" : !r.gecerlilik ? "tarihsiz" : r.gecerlilik < bugun ? "doldu" : "dolacak" }));
+  return { toplam: rows.length, uyarilar, doldu: uyarilar.filter((u) => u.durum === "doldu").length, dolacak: uyarilar.filter((u) => u.durum === "dolacak").length, yok: uyarilar.filter((u) => u.durum === "yok" || u.durum === "tarihsiz").length };
+}
+
 // ── fee items ──
 const listFeeItems = () => db.prepare("SELECT * FROM fee_items ORDER BY sira, id").all();
 const updateFeeItem = (id, { ad, varsayilan_fiyat, aktif }) =>
@@ -834,7 +847,7 @@ module.exports = {
   listAgeGroups, createAgeGroup, updateAgeGroup, haftayiProgramdanDoldur,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
-  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument,
+  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
   listFeeItems, updateFeeItem,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,
