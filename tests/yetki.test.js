@@ -19,6 +19,7 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     expect(cagriYetkisi("updateTraining", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("updateGuardian", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("grupBildirimKaydet", kullanici, true).kod).toBe(403);
+    expect(cagriYetkisi("grupBildirimSil", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("haftayiProgramdanDoldur", kullanici, false).ok).toBe(true);
     const r = cagriYetkisi("createPlayer", kullanici, true);
     expect(r.ok).toBe(false); expect(r.kod).toBe(403); expect(r.mesaj).toMatch(/salt okunur/);

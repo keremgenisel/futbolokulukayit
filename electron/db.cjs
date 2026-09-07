@@ -708,6 +708,8 @@ function grupBildirimKaydet(id, kullanici = "") {
   db.prepare("UPDATE trainings SET grup_bildirim=?, bildirim_gerekli=0 WHERE id=?").run(not_, Number(id));
   return { ok: true, grup_bildirim: not_ };
 }
+// Geri al: grup kaydı silinir; bildirim gereği yeniden açılır (tek tek bildirilenler pencere kapanışında yeniden değerlendirilir)
+const grupBildirimSil = (id) => db.prepare("UPDATE trainings SET grup_bildirim='', bildirim_gerekli=1 WHERE id=?").run(Number(id));
 const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum").run(tid, pid, durum);
 const listAttendance = (tid) => db.prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad").all(tid);
 // Son N yoklama (yeniden eskiye) — oyuncu kartı; tam liste için playerAttendance.
@@ -1023,7 +1025,7 @@ module.exports = {
   listAgeGroups, createAgeGroup, updateAgeGroup, haftayiProgramdanDoldur,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, updateGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
-  mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla, grupBildirimKaydet,
+  mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla, grupBildirimKaydet, grupBildirimSil,
   listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
   listFeeItems, updateFeeItem, listFeeTypes,
   ensureMonthlyDues, getDue, listDues, listUnpaid,

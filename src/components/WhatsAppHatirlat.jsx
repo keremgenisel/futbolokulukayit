@@ -68,6 +68,9 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
       setGrupGonderildi(true); onDegisti?.();
     } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
   };
+  const grupGeriAl = async () => {
+    try { if (!saltOkunur && grup?.training_id) await db("grupBildirimSil", grup.training_id); setGrupGonderildi(false); onDegisti?.(); } catch (e) { toast("err", hataMetni(e)); }
+  };
   const TUR_ETIKET = { aidat: "hatırlatıldı", genel: "gönderildi", iptal: "bildirildi", degisiklik: "bildirildi" };
   const etiket = TUR_ETIKET[tur] || "açıldı";
   const Etiket = etiket.charAt(0).toLocaleUpperCase("tr-TR") + etiket.slice(1);
@@ -93,7 +96,7 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
             <div style={{ fontWeight: 700 }}>Toplu: {grup.ad} veli WhatsApp grubuna tek mesaj</div>
             <div style={{ fontSize: 13, color: "var(--soluk)" }}>{grupGonderildi ? "Gruba gönderildi olarak işaretlendi. Ulaşmayan veliler için aşağıdan tek tek açabilirsiniz." : "WhatsApp'ta sohbet seçme ekranı metin hazır açılır; grubu seçip Gönder'e basın. Gruba üye olmayan veliler için aşağıdaki tek tek liste kullanılır."}</div>
           </div>
-          {grupGonderildi ? <Rozet ton="green">Gruba gönderildi</Rozet> : <Btn tur="yesil" ikon={<Ikon ad="whatsapp" />} onClick={grubaGonder} disabled={bekliyor}>Veli Grubuna Gönder</Btn>}
+          {grupGonderildi ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Rozet ton="green">Gruba gönderildi</Rozet>{!saltOkunur && <button type="button" onClick={grupGeriAl} aria-label="Grup gönderimini geri al" style={{ background: "none", border: 0, color: "var(--soluk)", cursor: "pointer", fontSize: 12.5, textDecoration: "underline" }}>Geri al</button>}</span> : <Btn tur="yesil" ikon={<Ikon ad="whatsapp" />} onClick={grubaGonder} disabled={bekliyor}>Veli Grubuna Gönder</Btn>}
         </div>
       )}
       <div style={{ display: "flex", gap: 20, minHeight: 0, flex: 1 }}>

@@ -92,6 +92,7 @@ describe("WhatsApp bildirim penceresi — veli grubuna tek mesaj", () => {
     window.okul = { app: { whatsappAc: vi.fn(async () => ({ ok: true })) }, db: vi.fn(async (fn, ...a) => {
       if (fn === "getSetting") return a[0] === "kulup_adi" ? "TEST KULÜBÜ" : "";
       if (fn === "grupBildirimKaydet") return { ok: true };
+      if (fn === "grupBildirimSil" || fn === "mesajKaydet" || fn === "mesajSil") return fn === "mesajKaydet" ? { id: 77 } : {};
       return null;
     }) };
     const { antrenmanDegerleri } = await import("../../src/lib/whatsapp.js");
@@ -106,6 +107,18 @@ describe("WhatsApp bildirim penceresi — veli grubuna tek mesaj", () => {
     expect(await within(blok).findByText("Gruba gönderildi")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Ayşe WhatsApp'ta aç" })).toBeInTheDocument(); // tek tek liste hâlâ var
     expect(screen.getByTestId("wa-onizleme")).toHaveTextContent("Sayın Ayşe,"); // tek tek önizleme kişiye özel kalır
+    // Geri al: toplu
+    fireEvent.click(within(blok).getByRole("button", { name: "Grup gönderimini geri al" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("grupBildirimSil", 5));
+    expect(within(blok).getByRole("button", { name: "Veli Grubuna Gönder" })).toBeInTheDocument();
+    // Geri al: tek tek (bildirim türünde de)
+    fireEvent.click(screen.getByRole("button", { name: "Ayşe WhatsApp'ta aç" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("mesajKaydet", expect.objectContaining({ tur: "degisiklik", training_id: 5 })));
+    expect(await screen.findByText("Bildirildi")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Geri al" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("mesajSil", 77));
+    expect(screen.queryByText("Bildirildi")).toBeNull();
+    expect(screen.getByRole("button", { name: "Ayşe WhatsApp'ta aç" })).toBeInTheDocument();
   });
 });
 

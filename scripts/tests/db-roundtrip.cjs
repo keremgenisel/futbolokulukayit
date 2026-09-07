@@ -393,6 +393,9 @@ app.whenReady().then(async () => {
     const gb = db.grupBildirimKaydet(waT.id, "Yönetici");
     const gbT = db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id);
     check("veli grubuna gönderim kaydı: bildirim gereği iner, kim/ne zaman yazılır", gb.ok && gbT.bildirim_gerekli === 0 && JSON.parse(gbT.grup_bildirim).kullanici === "Yönetici");
+    db.grupBildirimSil(waT.id);
+    const gbS = db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id);
+    check("grup gönderimi geri alınır: kayıt silinir, bildirim gereği yeniden açılır", gbS.grup_bildirim === "" && gbS.bildirim_gerekli === 1);
     check("silinen varsayılan kalem ve ücret tipi yeniden açılışta geri gelmez", !db.listFeeItems().some((k) => k.kod === "top") && !db.listFeeTypes().some((t) => t.kod === "indirimli") && db.listFeeItems().some((k) => k.kod === "aidat"));
 
     db.close();
