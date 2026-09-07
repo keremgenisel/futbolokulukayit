@@ -80,6 +80,8 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 
 - Her hata düzeltmesi, onu yakalayacak bir testle birlikte gelir.
 - Aidat ve makbuz mantığı önce `src/lib/aidat.js` / `electron/db.cjs`'de saf fonksiyon, sonra arayüz.
+- Ayar tablolarında satır başına Kaydet YOK: değişiklikler ekranda birikir, tek Kaydet tek işlemde yazar
+  (`db.aidatAyarlariKaydet`); bölüm değişiminde kaydedilmemiş değişiklik uyarısı (`Ayarlar` kabuğu, `onKirli`).
 - Renderer doğrudan `fs`/`sqlite` görmez; her şey `window.okul.db` üzerinden beyaz listeli.
 - İlk admin `admin`/`admin`, `must_change_password=1` — ilk girişte parola değişimi zorunlu. Tohum yalnız
   hiç kullanıcı yokken çalışır (yeni yönetici ilk admin'i silebilir; son aktif yönetici silinemez).

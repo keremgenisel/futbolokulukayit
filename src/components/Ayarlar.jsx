@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, ParaGirdi, Secim, Rozet, Onay, Modal, useToast } from "./ui.jsx";
 import { db, yedek, optimize, uygulama, hataMetni } from "../lib/api.js";
-import { paraTR, tarihTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimAnahtari, indirimYuzdesi, aidatHesapla } from "../lib/aidat.js";
+import { paraTR, tarihTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimYuzdesi, aidatHesapla } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
 import { SettingsLisans } from "./SettingsLisans.jsx";
 import { SettingsSunucu } from "./SettingsSunucu.jsx";
@@ -12,15 +12,18 @@ const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { 
 
 export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum }) {
   const [bolum, setBolum] = useState(baslangicBolum || "kulup");
+  const [kirli, setKirli] = useState(false);     // açık bölümde kaydedilmemiş değişiklik var mı
+  const [hedefBolum, setHedefBolum] = useState(null); // onay bekleyen bölüm geçişi
   const admin = oturum?.role === "admin";
+  const bolumeGit = (kod) => { if (kod === bolum) return; if (kirli) setHedefBolum(kod); else setBolum(kod); };
   return (
     <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 20, alignItems: "start" }}>
       <Kart style={{ padding: 10, display: "flex", flexDirection: "column", gap: 4 }}>
-        {BOLUMLER.map((b) => <button key={b.kod} type="button" onClick={() => setBolum(b.kod)} style={{ textAlign: "left", padding: "11px 14px", borderRadius: 8, cursor: "pointer", border: 0, background: bolum === b.kod ? "var(--mor-acik)" : "transparent", color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)", fontWeight: bolum === b.kod ? 700 : 500, fontSize: 15, display: "flex", alignItems: "center", gap: 10 }}><Ikon ad={b.ikon} /><span>{b.ad}</span></button>)}
+        {BOLUMLER.map((b) => <button key={b.kod} type="button" onClick={() => bolumeGit(b.kod)} style={{ textAlign: "left", padding: "11px 14px", borderRadius: 8, cursor: "pointer", border: 0, background: bolum === b.kod ? "var(--mor-acik)" : "transparent", color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)", fontWeight: bolum === b.kod ? 700 : 500, fontSize: 15, display: "flex", alignItems: "center", gap: 10 }}><Ikon ad={b.ikon} /><span>{b.ad}</span></button>)}
       </Kart>
       <Kart style={{ padding: 24 }}>
         {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} />}
-        {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} />}
+        {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
         {bolum === "yedek" && <YedekAyar admin={admin} />}
         {bolum === "optimize" && <OptimizeAyar admin={admin} saltOkunur={saltOkunur} />}
@@ -28,6 +31,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
         {bolum === "lisans" && <SettingsLisans admin={admin} onLisansDegisti={onLisansDegisti} />}
         {bolum === "hakkinda" && <Hakkinda />}
       </Kart>
+      {hedefBolum && <Onay tehlikeli mesaj="Bu bölümde kaydedilmemiş değişiklikler var. Kaydetmeden çıkılsın mı? (Değişiklikler kaybolur.)" onEvet={() => { setKirli(false); setBolum(hedefBolum); setHedefBolum(null); }} onHayir={() => setHedefBolum(null)} />}
     </div>
   );
 }
@@ -47,77 +51,90 @@ function KulupAyar({ saltOkunur }) {
   );
 }
 
-function KalemAyar({ saltOkunur }) {
-  const [kalemler, setKalemler] = useState([]);
-  const toast = useToast();
-  const yukle = () => db("listFeeItems").then(setKalemler).catch(() => {});
-  useEffect(() => { yukle(); }, []);
-  const kaydet = async (k) => { try { await db("updateFeeItem", k.id, { ad: k.ad, varsayilan_fiyat: Number(k.varsayilan_fiyat) || 0, aktif: k.aktif ? 1 : 0 }); toast("ok", "Kaydedildi"); yukle(); } catch (e) { toast("err", hataMetni(e)); } };
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <h3 style={{ fontSize: 22 }}>Aidat Kalemleri ve Varsayılan Fiyatlar</h3>
-      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Aidat satırındaki fiyat aylık aidatın taban fiyatıdır; oyuncu kaydında ücret tipine göre indirim düşülerek gelir. Diğer kalemlerin fiyatı makbuz keserken gelir, makbuzda değiştirilebilir.</p>
-      <table><thead><tr><th>Kalem</th><th>Fiyat (₺)</th><th>Aktif</th><th></th></tr></thead><tbody>
-        {kalemler.map((k) => <KalemSatir key={k.id} k={k} onKaydet={kaydet} saltOkunur={saltOkunur} />)}
-      </tbody></table>
-      <IndirimAyar taban={Number(kalemler.find((k) => k.kod === "aidat")?.varsayilan_fiyat) || 0} saltOkunur={saltOkunur} />
-    </div>
-  );
-}
-
-// Ücret tipi başına indirim yüzdesi; hesaplanan aidat taban fiyattan düşülerek gösterilir.
-function IndirimAyar({ taban, saltOkunur }) {
-  const [ind, setInd] = useState(null); // kod → yüzde (metin)
-  const [kayitli, setKayitli] = useState({});
+// Aidat kalemleri + ücret tipi indirimleri: değişiklikler ekranda birikir, TEK Kaydet ile tek işlemde yazılır.
+// (Satır başına Kaydet, kaydetme sonrası yenilemede diğer satırların girdisini siliyordu.)
+function KalemAyar({ saltOkunur, onKirli }) {
+  const [kalemler, setKalemler] = useState([]);   // kayıtlı
+  const [taslak, setTaslak] = useState({});        // id → düzenlenen satır
+  const [kayitliInd, setKayitliInd] = useState(null);
+  const [ind, setInd] = useState({});              // kod → yüzde (metin)
+  const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
   const yukle = useCallback(async () => {
     try {
+      const l = await db("listFeeItems");
       const a = await db("aidatAyarlari");
       const m = {}; for (const t of UCRET_TIPLERI) m[t.kod] = String(indirimYuzdesi(t.kod, a.indirimler[t.kod]));
-      setInd(m); setKayitli(m);
+      setKalemler(l); setTaslak(Object.fromEntries(l.map((k) => [k.id, { ...k }]))); setKayitliInd(m); setInd(m);
     } catch (e) { toast("err", hataMetni(e)); }
   }, [toast]);
   useEffect(() => { yukle(); }, [yukle]);
+
+  const satirDegisti = (k) => { const t = taslak[k.id]; return !!t && (t.ad !== k.ad || Number(t.varsayilan_fiyat) !== Number(k.varsayilan_fiyat) || !!t.aktif !== !!k.aktif); };
+  const degisenKalemler = kalemler.filter(satirDegisti);
+  const degisenInd = kayitliInd ? UCRET_TIPLERI.filter((t) => !SABIT_INDIRIM.has(t.kod) && ind[t.kod] !== kayitliInd[t.kod]) : [];
+  const degisiklik = degisenKalemler.length + degisenInd.length;
+  useEffect(() => { onKirli?.(degisiklik > 0); }, [degisiklik]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => onKirli?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const duzenle = (id, alan, deger) => setTaslak({ ...taslak, [id]: { ...taslak[id], [alan]: deger } });
+  const vazgec = () => { setTaslak(Object.fromEntries(kalemler.map((k) => [k.id, { ...k }]))); setInd(kayitliInd); };
   const kaydet = async () => {
+    setBekliyor(true);
     try {
-      for (const t of UCRET_TIPLERI) if (!SABIT_INDIRIM.has(t.kod)) await db("setSetting", indirimAnahtari(t.kod), String(indirimYuzdesi(t.kod, ind[t.kod])));
-      toast("ok", "İndirimler kaydedildi"); yukle();
-    } catch (e) { toast("err", hataMetni(e)); }
+      const r = await db("aidatAyarlariKaydet", {
+        kalemler: degisenKalemler.map((k) => { const t = taslak[k.id]; return { id: k.id, ad: t.ad, varsayilan_fiyat: Number(t.varsayilan_fiyat) || 0, aktif: t.aktif ? 1 : 0 }; }),
+        indirimler: Object.fromEntries(degisenInd.map((t) => [t.kod, indirimYuzdesi(t.kod, ind[t.kod])])),
+      });
+      if (r?.error) return toast("err", r.error);
+      toast("ok", `${degisiklik} değişiklik kaydedildi`);
+      await yukle();
+    } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
   };
-  if (!ind) return null;
-  const degisti = UCRET_TIPLERI.some((t) => ind[t.kod] !== kayitli[t.kod]);
+
+  const taban = Number(taslak[kalemler.find((k) => k.kod === "aidat")?.id]?.varsayilan_fiyat) || 0;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
-      <h3 style={{ fontSize: 22 }}>Ücret Tipleri ve İndirimler</h3>
-      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Yeni oyuncu kaydında ücret tipi seçilince aylık aidat şöyle hesaplanır: taban fiyat − indirim yüzdesi. Tutar oyuncu kartında elle değiştirilebilir. %100 indirim aidattan muaf demektir.</p>
-      <table><thead><tr><th>Ücret tipi</th><th>İndirim (%)</th><th>Hesaplanan aylık aidat</th></tr></thead><tbody>
-        {UCRET_TIPLERI.map((t) => {
-          const sabit = SABIT_INDIRIM.has(t.kod);
-          const hesap = aidatHesapla(taban, t.kod, { [t.kod]: ind[t.kod] });
-          return (
-            <tr key={t.kod}>
-              <td><b>{t.ad}</b></td>
-              <td>{sabit ? <span style={{ color: "var(--soluk)" }}>%{ind[t.kod]}</span> : <Girdi type="number" min="0" max="100" value={ind[t.kod]} onChange={(e) => setInd({ ...ind, [t.kod]: e.target.value })} disabled={saltOkunur} aria-label={`${t.ad} indirimi`} style={{ height: 36, width: 110 }} />}</td>
-              <td>{hesap === 0 ? <Rozet ton="gray">Muaf</Rozet> : <b>{paraTR(hesap)}</b>}</td>
-            </tr>
-          );
-        })}
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <h3 style={{ fontSize: 22 }}>Aidat Kalemleri ve Varsayılan Fiyatlar</h3>
+      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Aidat satırındaki fiyat aylık aidatın taban fiyatıdır; oyuncu kaydında ücret tipine göre indirim düşülerek gelir. Diğer kalemlerin fiyatı makbuz keserken gelir, makbuzda değiştirilebilir. Değişiklikler alttaki Kaydet ile birlikte kaydedilir.</p>
+      <table><thead><tr><th>Kalem</th><th>Fiyat (₺)</th><th>Aktif</th></tr></thead><tbody>
+        {kalemler.map((k) => { const t = taslak[k.id] || k; const d = satirDegisti(k); return (
+          <tr key={k.id} style={{ background: d ? "var(--sari-acik)" : undefined }}>
+            <td>{k.kod === "aidat" ? <b>{k.ad}</b> : <Girdi value={t.ad} onChange={(e) => duzenle(k.id, "ad", e.target.value)} disabled={saltOkunur} aria-label={`${k.ad} adı`} style={{ height: 36, width: 240 }} />}</td>
+            <td><ParaGirdi value={t.varsayilan_fiyat} onDegis={(v) => duzenle(k.id, "varsayilan_fiyat", v)} disabled={saltOkunur} aria-label={`${k.ad} fiyatı`} style={{ height: 36, width: 140 }} /></td>
+            <td>{k.kod === "aidat" ? <Rozet ton="green">Aktif</Rozet> : <input type="checkbox" checked={!!t.aktif} onChange={(e) => duzenle(k.id, "aktif", e.target.checked)} disabled={saltOkunur} aria-label={`${k.ad} aktif`} />}</td>
+          </tr>
+        ); })}
       </tbody></table>
-      {!saltOkunur && degisti && <div><Btn onClick={kaydet}>İndirimleri Kaydet</Btn></div>}
+
+      {kayitliInd && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 8 }}>
+          <h3 style={{ fontSize: 22 }}>Ücret Tipleri ve İndirimler</h3>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Yeni oyuncu kaydında ücret tipi seçilince aylık aidat şöyle hesaplanır: taban fiyat − indirim yüzdesi. Tutar oyuncu kartında elle değiştirilebilir. %100 indirim aidattan muaf demektir.</p>
+          <table><thead><tr><th>Ücret tipi</th><th>İndirim (%)</th><th>Hesaplanan aylık aidat</th></tr></thead><tbody>
+            {UCRET_TIPLERI.map((t) => {
+              const sabit = SABIT_INDIRIM.has(t.kod);
+              const hesap = aidatHesapla(taban, t.kod, { [t.kod]: ind[t.kod] });
+              return (
+                <tr key={t.kod} style={{ background: !sabit && ind[t.kod] !== kayitliInd[t.kod] ? "var(--sari-acik)" : undefined }}>
+                  <td><b>{t.ad}</b></td>
+                  <td>{sabit ? <span style={{ color: "var(--soluk)" }}>%{ind[t.kod]}</span> : <Girdi type="number" min="0" max="100" value={ind[t.kod]} onChange={(e) => setInd({ ...ind, [t.kod]: e.target.value })} disabled={saltOkunur} aria-label={`${t.ad} indirimi`} style={{ height: 36, width: 110 }} />}</td>
+                  <td>{hesap === 0 ? <Rozet ton="gray">Muaf</Rozet> : <b>{paraTR(hesap)}</b>}</td>
+                </tr>
+              );
+            })}
+          </tbody></table>
+        </div>
+      )}
+
+      {!saltOkunur && degisiklik > 0 && (
+        <div role="status" style={{ position: "sticky", bottom: 0, display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", background: "#fff", border: "1px solid var(--sari)", borderRadius: 10, boxShadow: "0 -4px 20px rgba(0,0,0,.06)" }}>
+          <span style={{ flex: 1, fontWeight: 600 }}>{degisiklik} değişiklik kaydedilmedi</span>
+          <Btn tur="ghost" onClick={vazgec} disabled={bekliyor}>Vazgeç</Btn>
+          <Btn onClick={kaydet} disabled={bekliyor}>Kaydet</Btn>
+        </div>
+      )}
     </div>
-  );
-}
-function KalemSatir({ k, onKaydet, saltOkunur }) {
-  const [s, setS] = useState({ ...k });
-  useEffect(() => setS({ ...k }), [k]);
-  const degisti = s.ad !== k.ad || Number(s.varsayilan_fiyat) !== Number(k.varsayilan_fiyat) || !!s.aktif !== !!k.aktif;
-  return (
-    <tr>
-      <td>{k.kod === "aidat" ? <b>{k.ad}</b> : <Girdi value={s.ad} onChange={(e) => setS({ ...s, ad: e.target.value })} disabled={saltOkunur} style={{ height: 36, width: 240 }} />}</td>
-      <td><ParaGirdi value={s.varsayilan_fiyat} onDegis={(v) => setS({ ...s, varsayilan_fiyat: v })} disabled={saltOkunur} aria-label={`${k.ad} fiyatı`} style={{ height: 36, width: 140 }} /></td>
-      <td>{k.kod === "aidat" ? <Rozet ton="green">Aktif</Rozet> : <input type="checkbox" checked={!!s.aktif} onChange={(e) => setS({ ...s, aktif: e.target.checked })} disabled={saltOkunur} />}</td>
-      <td>{degisti && !saltOkunur && <Btn kucuk onClick={() => onKaydet(s)}>Kaydet</Btn>}</td>
-    </tr>
   );
 }
 

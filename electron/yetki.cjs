@@ -10,7 +10,7 @@ const YAZMA = new Set([
   "createAgeGroup", "updateAgeGroup", "deleteAgeGroup",
   "createPlayer", "updatePlayer", "deletePlayer",
   "addGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument",
-  "updateFeeItem", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
+  "updateFeeItem", "aidatAyarlariKaydet", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
   "createTraining", "cancelTraining", "setAttendance", "setSetting",
 ]);
 const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser", "deleteUser"]);

@@ -367,6 +367,27 @@ const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get
 const listFeeItems = () => db.prepare("SELECT * FROM fee_items ORDER BY sira, id").all();
 const updateFeeItem = (id, { ad, varsayilan_fiyat, aktif }) =>
   db.prepare("UPDATE fee_items SET ad=COALESCE(?,ad), varsayilan_fiyat=COALESCE(?,varsayilan_fiyat), aktif=COALESCE(?,aktif) WHERE id=?").run(ad, varsayilan_fiyat, aktif, id);
+// Ayarlar > Aidat Kalemleri: değişen kalemler + indirim yüzdeleri TEK işlemde (biri hata verirse hiçbiri yazılmaz).
+function aidatAyarlariKaydet({ kalemler = [], indirimler = {} } = {}) {
+  const tx = db.transaction(() => {
+    for (const k of kalemler) {
+      const ad = k.ad === undefined ? null : String(k.ad).trim();
+      if (ad !== null && !ad) throw new Error("Kalem adı boş olamaz");
+      const fiyat = k.varsayilan_fiyat === undefined ? null : Math.max(0, Number(k.varsayilan_fiyat) || 0);
+      const aktif = k.aktif === undefined ? null : (k.aktif ? 1 : 0);
+      const r = updateFeeItem(Number(k.id), { ad, varsayilan_fiyat: fiyat, aktif });
+      if (r.changes === 0) throw new Error("Kalem bulunamadı: " + k.id);
+    }
+    for (const [kod, yuzde] of Object.entries(indirimler)) {
+      if (!/^[a-z_]+$/.test(kod)) throw new Error("Geçersiz ücret tipi: " + kod);
+      const y = Number(yuzde);
+      if (!Number.isFinite(y) || y < 0 || y > 100) throw new Error("İndirim yüzdesi 0-100 arası olmalı");
+      setSetting("indirim_" + kod, String(Math.round(y)));
+    }
+  });
+  tx();
+  return { ok: true, kalem: kalemler.length, indirim: Object.keys(indirimler).length };
+}
 
 // ── monthly dues ──
 // Aidat ödemesi beklenen durumlar. Ücretsiz/burslu ücret tipi ve dondurma/pasif/ayrıldı durumu muaf.
@@ -696,7 +717,7 @@ function yedekBilgisi(dbPath) {
 
 module.exports = {
   init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi,
-  getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari,
+  getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
   getUserByUsername, createUser, verifyPassword, changePassword,
   listAgeGroups, createAgeGroup, updateAgeGroup,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,

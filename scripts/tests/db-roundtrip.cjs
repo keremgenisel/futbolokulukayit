@@ -95,6 +95,16 @@ app.whenReady().then(async () => {
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
     check("şema sürümü 3 ve pasaport sütunu var", db.getMetaValue("schema_version") === "3" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
+    // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
+    const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
+    const ak = db.aidatAyarlariKaydet({ kalemler: [{ id: forma.id, varsayilan_fiyat: 9000 }, { id: mont.id, varsayilan_fiyat: 8000, ad: "Mont (kışlık)" }], indirimler: { indirimli: 25 } });
+    const l2 = db.listFeeItems();
+    check("iki kalem ve indirim tek çağrıda kaydedildi", ak.ok && l2.find((k) => k.id === forma.id).varsayilan_fiyat === 9000 && l2.find((k) => k.id === mont.id).ad === "Mont (kışlık)" && db.aidatAyarlari().indirimler.indirimli === 25);
+    let geriAlindi = false; try { db.aidatAyarlariKaydet({ kalemler: [{ id: forma.id, varsayilan_fiyat: 1 }, { id: 99999, varsayilan_fiyat: 2 }], indirimler: { kardes: 10 } }); } catch (e) { geriAlindi = /bulunamadı/.test(e.message); }
+    check("hatalı satır tüm işlemi geri alır (forma 9000 kaldı, kardeş indirimi yazılmadı)", geriAlindi && db.listFeeItems().find((k) => k.id === forma.id).varsayilan_fiyat === 9000 && db.aidatAyarlari().indirimler.kardes === 15); // önceki adımda 15 yazılmıştı; 10 uygulanmamalı
+    let yuzdeRed = false; try { db.aidatAyarlariKaydet({ indirimler: { indirimli: 150 } }); } catch (e) { yuzdeRed = /0-100/.test(e.message); }
+    check("yüzde 0-100 dışı reddedilir", yuzdeRed && db.aidatAyarlari().indirimler.indirimli === 25);
+
     // Sayfalama: playersPage toplam/sayfa/offset; listDues ve listReceipts limit; playerAttendanceSon yeniden eskiye
     for (let i = 0; i < 7; i++) db.createPlayer({ ad_soyad: `Sayfa Oyuncu ${String(i).padStart(2, "0")}`, dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "aktif" });
     const tumu = db.listPlayersWithDue({ yil: 2026, ay: 9 });
