@@ -15,7 +15,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [gruplar, setGruplar] = useState([]);
   const [q, setQ] = useState("");
   const [grup, setGrup] = useState("");
-  const [durum, setDurum] = useState("");
+  const [durum, setDurum] = useState("aktif"); // varsayılan: aktif oyuncular (geçen sezonun pasifleri gizli, filtreyle görülür)
   const [odemeyen, setOdemeyen] = useState(false);
   const [yeni, setYeni] = useState(false);
   const [acik, setAcik] = useState(null);

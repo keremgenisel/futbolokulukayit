@@ -69,6 +69,8 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `aktivasyon-sunucu/` — Cloudflare Worker + D1 (GenCRM kopyası, EYUPSPOR önekleri). `deploy.sh`
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
+- `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi); Ayarlar > Yeni Sezon
+  sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup, diğerleri pasif+not). Bkz. `docs/plan.md §10`.
 - `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.
 - `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`, `Sayfalama`). Sayfalama: Oyuncular DB'de
   (`db.playersPage`, 50/sayfa; dışa aktarım tam liste), Raporlar önizleme 100 satır (Excel/PDF tam), oyuncu kartı son

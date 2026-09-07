@@ -400,3 +400,23 @@ antrenman seçme yolu değişir.
 - **Haftalık program şablonu:** grup başına sabit gün/saat/saha (U11 Pzt-Çar 17:00 Saha 1). Şeritte
   "Bu haftayı programdan doldur" ile antrenmanlar toplu eklenir. Antrenörün her gün elle eklemesini
   ortadan kaldırır; kulüp isterse yarım gün.
+
+## 10. Yeni Sezon Geçişi (UYGULANDI, 07.09.2026)
+
+**Sorun:** Sezon bitince yenilemeyen oyuncular "aktif" kalır; her ay sahte aidat borcu açılır, borçlu
+listesi ve tesise giriş kontrolü kirlenir.
+
+**Çözüm — Ayarlar > Yeni Sezon sihirbazı (yalnız yönetici, yılda bir):**
+- Aktif/deneme/sakat oyuncular listelenir; antrenör yenileyenleri işaretler ("Tümünü yeniledi işaretle" /
+  "Tümünü kaldır"). Her yenileyene yeni sezon grubu seçilir; öneri bir üst grup (U11 → U12, ad uymuyorsa
+  mevcut grup). Ödenmemiş eski aidat sayısı/tutarı satırda görünür.
+- Geçiş tek işlemde (`db.yeniSezonaGec`): yenileyenler `players.sezon` = yeni sezon (+ grup), diğerleri
+  **silinmez**, `durum='pasif'` ve notlarına "<eski sezon> sezonu sonunda yenilemedi (tarih)" eklenir.
+  Pasife yeni aidat açılmaz; makbuz/yoklama/belge geçmişi kalır; kartından yeniden Aktif yapılabilir.
+- Yenilemeyenlerin ödenmemiş eski aidatı isteğe bağlı silinir (kayıt `muaf` olur); işaretlenmezse borç
+  kayıtta kalır ve raporlarda görünür.
+- Aktif yaş gruplarının `sezon` alanı ve `aktif_sezon` ayarı yeni sezona çekilir; `son_sezon_gecisi` yazılır.
+- Ayarlar: aktif sezon (2026-2027) ve sezon başlangıç ayı (varsayılan Eylül). Pano: aktif sezon bugünün
+  sezonundan eskiyse "sezon bitti" uyarısı + "Yeni Sezona Geç" düğmesi (Ayarlar > Yeni Sezon'a götürür).
+- Oyuncular listesi varsayılan filtre **Aktif** oldu; pasifler "Tüm durumlar"/"Pasif" ile görülür.
+- Saf mantık `src/lib/sezon.js` (güncel sezon, sonraki sezon, sezon sonu, üst grup önerisi); şema 4.

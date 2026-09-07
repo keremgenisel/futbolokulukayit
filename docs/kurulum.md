@@ -51,6 +51,14 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
 
 **Yedek** yalnızca sunucu bilgisayarında alınır.
 
+## 3b. Sezon sonu
+
+Sezon bitince (varsayılan Eylül'de) panoda "sezon bitti" uyarısı çıkar. **Ayarlar > Yeni Sezon**'da
+yenileyen oyuncuları işaretleyin, gerekiyorsa yeni yaş grubunu seçin (U11 → U12 önerilir) ve "Yeni Sezona
+Geç" deyin. Yenilemeyenler silinmez, "Pasif" olur: aidat borcu açılmaz, listede görünmez; geri dönerse
+kartından durumu Aktif yapmanız yeter. Oyuncular listesi varsayılan olarak yalnız aktif oyuncuları
+gösterir; pasifleri görmek için durum filtresini değiştirin.
+
 ## 4. Sorun giderme
 - **"Lisans salt okunur modda"**: Ayarlar > Lisans'tan geçerli anahtar girin.
 - **"Sunucuya ulaşılamadı"**: Sunucu bilgisayarda program açık mı, aynı ağda mısınız, Tailscale bağlı mı?

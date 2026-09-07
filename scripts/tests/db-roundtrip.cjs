@@ -93,7 +93,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 3 ve pasaport sütunu var", db.getMetaValue("schema_version") === "3" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 4 ve pasaport sütunu var", db.getMetaValue("schema_version") === "4" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -118,6 +118,27 @@ app.whenReady().then(async () => {
     const t2 = db.createTraining({ age_group_id: grp.id, tarih: "2026-09-20", saat: "10:00" }); db.setAttendance(t2.id, oyuncu.id, "gelmedi");
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
+
+    // Yeni sezon geçişi: yenileyen yeni sezon + üst grup; yenilemeyen pasif + not; eski borç isteğe bağlı muaf; gruplar/aktif sezon güncellenir
+    const u12 = db.createAgeGroup({ ad: "U12", sezon: "2026-2027" });
+    db.setSetting("aktif_sezon", "2026-2027");
+    const yenileyen = db.createPlayer({ ad_soyad: "Sezon Yenileyen", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "aktif", aylik_aidat: 3500, odeme_donemi: "1-10" });
+    const yenilemeyen = db.createPlayer({ ad_soyad: "Sezon Yenilemeyen", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "deneme", aylik_aidat: 3500, odeme_donemi: "1-10", notlar: "eski not" });
+    const pasifZaten = db.createPlayer({ ad_soyad: "Zaten Pasif", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "pasif" });
+    db.ensureMonthlyDues(2027, 5);
+    check("sezon aday listesi aktif/deneme/sakat oyuncuları ve borç bilgisini verir", db.sezonAdayListesi().some((o) => o.id === yenilemeyen.id && o.borc_adet >= 1 && o.borc_tutar >= 3500) && !db.sezonAdayListesi().some((o) => o.id === pasifZaten.id));
+    check("sezon durumu", db.sezonDurumu().aktifSezon === "2026-2027" && db.sezonDurumu().baslangicAyi === 9);
+    let sezonHata = false; try { db.yeniSezonaGec({ sezon: "bozuk" }); } catch (e) { sezonHata = /biçiminde/.test(e.message); }
+    check("bozuk sezon adı reddedilir", sezonHata);
+    const sg = db.yeniSezonaGec({ sezon: "2027-2028", yenileyenler: [{ id: yenileyen.id, yas_grubu_id: u12.id }], eskiBorcSil: true });
+    const y1 = db.getPlayer(yenileyen.id), y2 = db.getPlayer(yenilemeyen.id);
+    check("yenileyen yeni sezon ve üst grupta", sg.ok && y1.sezon === "2027-2028" && y1.yas_grubu_id === u12.id && y1.durum === "aktif" && sg.yenilenen >= 1 && sg.grupDegisen >= 1);
+    check("yenilemeyen pasif, not eklendi, eski notu korundu", y2.durum === "pasif" && /2026-2027 sezonu sonunda yenilemedi/.test(y2.notlar) && /eski not/.test(y2.notlar));
+    check("yenilemeyenin eski borcu muaf oldu", db.listDues(yenilemeyen.id).every((d) => d.durum !== "odenmedi") && sg.borcSilinen >= 1);
+    check("gruplar ve aktif sezon güncellendi", db.listAgeGroups().filter((g) => g.aktif).every((g) => g.sezon === "2027-2028") && db.sezonDurumu().aktifSezon === "2027-2028" && !!db.sezonDurumu().sonGecis);
+    db.ensureMonthlyDues(2027, 10);
+    check("pasif oyuncuya yeni aidat açılmaz, yenileyene açılır", db.getDue(yenilemeyen.id, 2027, 10) === null && !!db.getDue(yenileyen.id, 2027, 10));
+    check("makbuz/yoklama geçmişi silinmedi (oyuncu kaydı duruyor)", !!db.getPlayer(yenilemeyen.id));
 
     // Kullanıcı silme: son aktif yönetici silinemez; yeni yönetici ilk admin'i silebilir; açılışta admin geri gelmez
     const ilkAdmin = db.getUserByUsername("admin");

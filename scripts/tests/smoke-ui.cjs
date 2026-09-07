@@ -89,6 +89,7 @@ app.whenReady().then(async () => {
     await tikla("Vazgeç"); await bekle(200); // kaydedilmemiş değişiklik uyarısı sonraki bölüm geçişini engellemesin
     await tikla("Kullanıcılar"); await bekle(500); await shot("13c-kullanicilar");
     await tikla("Lisans"); await bekle(400); await shot("14-lisans");
+    await tikla("Yeni Sezon"); await bekle(600); await js(`document.querySelector("input[aria-label='Kerem Yılmaz yeniledi']")?.click()`); await bekle(300); await shot("14b-yeni-sezon");
     await tikla("Yedekleme"); await bekle(400); await shot("15-yedekleme");
     await tikla("Resim ve Belge Optimizasyonu"); await bekle(300); await tikla("Analiz Et"); await bekle(600); await shot("15b-optimizasyon");
     // Makbuz PDF üretildi mi?

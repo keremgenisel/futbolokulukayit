@@ -4,7 +4,7 @@ const OKUMA = new Set([
   "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "playersPage", "listGuardians", "listEmergency",
   "listDocuments", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
   "listReceiptsByDate", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "playerAttendanceSon", "getSetting", "aidatAyarlari", "panoOzet",
-  "attendanceSummary", "attendanceReport", "listUsers",
+  "attendanceSummary", "attendanceReport", "listUsers", "sezonAdayListesi", "sezonDurumu",
 ]);
 const YAZMA = new Set([
   "createAgeGroup", "updateAgeGroup", "deleteAgeGroup",
@@ -13,7 +13,7 @@ const YAZMA = new Set([
   "updateFeeItem", "aidatAyarlariKaydet", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
   "createTraining", "cancelTraining", "setAttendance", "setSetting",
 ]);
-const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser", "deleteUser"]);
+const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser", "deleteUser", "yeniSezonaGec"]);
 
 // Dönüş: { ok: true } | { ok: false, kod: 401|403, mesaj }
 function cagriYetkisi(fn, session, saltOkunur) {

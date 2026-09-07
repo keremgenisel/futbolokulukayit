@@ -3,12 +3,14 @@ import { Kart, Btn, Girdi, Avatar, Rozet, useToast } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun, hataMetni } from "../lib/api.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir } from "../lib/aidat.js";
+import { sezonSonuMu, guncelSezon } from "../lib/sezon.js";
 
 function Stat({ etiket, deger, renk, not }) {
   return <Kart style={{ padding: "18px 20px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}><span style={{ fontSize: 13, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>{etiket}</span><span className="baslik" style={{ fontSize: 40, color: renk, lineHeight: 1 }}>{deger}</span><span style={{ fontSize: 13, color: "var(--soluk)" }}>{not}</span></Kart>;
 }
 
-export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
+export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
+  const [sezon, setSezon] = useState(null);
   const [ozet, setOzet] = useState(null);
   const [borclular, setBorclular] = useState([]);
   const [q, setQ] = useState("");
@@ -19,7 +21,9 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
   useEffect(() => {
     db("panoOzet", { yil, ay, bugun: iso }).then(setOzet).catch((e) => toast("err", hataMetni(e)));
     db("listUnpaid", yil, ay).then(setBorclular).catch(() => {});
+    db("sezonDurumu").then((d) => d && setSezon(d)).catch(() => {});
   }, [yil, ay, iso, toast]);
+  const sezonUyari = sezon && sezon.aktifSezon && sezonSonuMu(sezon.aktifSezon, iso, sezon.baslangicAyi);
 
   useEffect(() => {
     if (!q.trim()) { setSonuc([]); return; }
@@ -41,6 +45,12 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
         <Stat etiket="Aidat borcu olan" deger={ozet?.borclu ?? "—"} renk="var(--kirmizi)" not="Tesise giremez" />
         <Stat etiket="Bugün antrenman" deger={ozet?.antrenmanlar?.length ?? "—"} renk="#9A7D00" not={(ozet?.antrenmanlar || []).map((t) => t.yas_grubu_ad).join(" · ") || "Antrenman yok"} />
       </div>
+      {sezonUyari && (
+        <div role="alert" style={{ background: "var(--sari-acik)", border: "1.5px solid var(--sari)", borderRadius: 10, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: 1 }}><b>{sezon.aktifSezon} sezonu bitti.</b> {guncelSezon(iso, sezon.baslangicAyi)} sezonu başladı; yenileyen oyuncuları işaretleyip yenilemeyenleri pasife almak için yeni sezona geçin.</div>
+          {onSezon && <Btn onClick={onSezon} ikon={<Ikon ad="takvim" />}>Yeni Sezona Geç</Btn>}
+        </div>
+      )}
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Tesise Giriş Kontrolü</h3><span style={{ fontSize: 13, color: "var(--soluk)" }}>Ad, soyad, TC veya pasaport ile ara</span></div>
         <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 16, top: 15, color: "var(--soluk)" }}><Ikon ad="ara" boyut={22} /></span><Girdi value={q} onChange={(e) => setQ(e.target.value)} placeholder="Oyuncu adı, TC veya pasaport no yazın" style={{ height: 52, fontSize: 17, paddingLeft: 48 }} aria-label="Tesise giriş araması" /></div>

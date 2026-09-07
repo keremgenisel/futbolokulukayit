@@ -81,7 +81,7 @@ export function App() {
           {!saltOkunur && lisans?.mod === "lisansli" && lisans.kalanGun != null && lisans.kalanGun <= 30 && (
             <div style={{ background: "var(--sari-acik)", border: "1.5px solid var(--sari)", borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontSize: 13.5 }}>Lisansınızın bitmesine <b>{lisans.kalanGun} gün</b> kaldı ({tarihTR(lisans.bitis)}). Yenileme anahtarınızı hazırlayın.</div>
           )}
-          {tab === "pano" && <Pano key={sekmeKey} onOyuncu={oyuncuAc} onSekme={git} onMakbuzKes={makbuzKes} saltOkunur={saltOkunur} />}
+          {tab === "pano" && <Pano key={sekmeKey} onOyuncu={oyuncuAc} onSekme={git} onMakbuzKes={makbuzKes} saltOkunur={saltOkunur} onSezon={() => { setTab("ayarlar"); setAyarBolum("sezon"); setSekmeKey((k) => k + 1); }} />}
           {tab === "oyuncular" && <Oyuncular key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onMakbuzKes={makbuzKes} acilacakOyuncu={acilacakOyuncu} onAcildi={() => setAcilacakOyuncu(null)} />}
           {tab === "gruplar" && <YasGruplari key={sekmeKey} saltOkunur={saltOkunur} />}
           {tab === "tahsilat" && <Tahsilat key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onOyuncu={oyuncuAc} secilenOyuncuId={tahsilatOyuncu} onSecildi={() => setTahsilatOyuncu(null)} />}

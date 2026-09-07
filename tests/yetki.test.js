@@ -28,6 +28,12 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     for (const f of ADMIN) expect(OKUMA.has(f)).toBe(false);
   });
 
+  it("sezon: okuma herkese, geçiş yalnız yönetici", () => {
+    expect(cagriYetkisi("sezonAdayListesi", kullanici, true).ok).toBe(true);
+    expect(cagriYetkisi("sezonDurumu", kullanici, true).ok).toBe(true);
+    expect(cagriYetkisi("yeniSezonaGec", kullanici, false).kod).toBe(403);
+    expect(cagriYetkisi("yeniSezonaGec", admin, false).ok).toBe(true);
+  });
   it("deleteUser yalnız yönetici", () => {
     expect(cagriYetkisi("deleteUser", admin, false).ok).toBe(true);
     expect(cagriYetkisi("deleteUser", { username: "u", role: "kullanici" }, false).kod).toBe(403);
