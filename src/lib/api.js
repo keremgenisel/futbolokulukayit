@@ -14,6 +14,7 @@ export const db = (fn, ...args) => okul().db(fn, ...args);
 export const files = () => okul().files;
 export const cikti = () => okul().cikti;
 export const yedek = () => okul().yedek;
+export const optimize = () => okul().optimize;
 export const lisans = () => okul().lisans;
 export const uygulama = () => okul().app;
 

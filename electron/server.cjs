@@ -14,6 +14,7 @@ const serverTls = require("./serverTls.cjs");
 const { getSecret } = require("./jwtSecret.cjs");
 const { rateAllow, rateHit, rateRetryAfter, rateReset } = require("./rateLimit.cjs");
 const { cagriYetkisi } = require("./yetki.cjs");
+const { optimizeImage } = require("./imageOptimize.cjs");
 
 let srv = null;
 let bilgi = null; // { port, fp, adresler }
@@ -130,7 +131,7 @@ function buildApp({ surum = "" } = {}) {
       const klasor = "oyuncu-" + Number(playerId);
       fs.mkdirSync(uploadsIci(klasor), { recursive: true });
       const hedef = path.join(klasor, `${Date.now()}-${tip}-${guvenliAd(path.basename(ad))}`);
-      fs.writeFileSync(uploadsIci(hedef), buf);
+      fs.writeFileSync(uploadsIci(hedef), optimizeImage(buf, uz));
       const { id, silinen } = db.belgeEkle(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(ad), gecerlilik_tarihi: gecerlilik || null });
       for (const y of silinen) { try { fs.unlinkSync(uploadsIci(y)); } catch { /* dosya zaten yok */ } }
       res.json({ ok: true, id, dosya_yolu: hedef });

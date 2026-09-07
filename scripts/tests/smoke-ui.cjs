@@ -22,10 +22,11 @@ app.whenReady().then(async () => {
     const { registerFileHandlers } = require("../../electron/ipc/files.cjs");
     const { registerCiktiHandlers } = require("../../electron/ipc/cikti.cjs");
     const { registerYedekHandlers } = require("../../electron/ipc/yedek.cjs");
+    const { registerOptimizeHandlers } = require("../../electron/ipc/optimize.cjs");
     const { ipcMain } = require("electron");
     db.init();
     const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1);
-    registerDataHandlers(); registerFileHandlers(getSession); registerCiktiHandlers(getSession); registerYedekHandlers(getSession);
+    registerDataHandlers(); registerFileHandlers(getSession); registerCiktiHandlers(getSession); registerYedekHandlers(getSession); registerOptimizeHandlers(getSession);
     ipcMain.handle("app:version", () => "smoke");
     ipcMain.handle("app:logo", () => "");
 
@@ -86,6 +87,7 @@ app.whenReady().then(async () => {
     await tikla("Kullanıcılar"); await bekle(500); await shot("13c-kullanicilar");
     await tikla("Lisans"); await bekle(400); await shot("14-lisans");
     await tikla("Yedekleme"); await bekle(400); await shot("15-yedekleme");
+    await tikla("Resim Optimizasyonu"); await bekle(300); await tikla("Analiz Et"); await bekle(600); await shot("15b-optimizasyon");
     await tikla("Sunucu / Çoklu PC"); await bekle(400); await shot("16-sunucu");
     // Makbuz PDF üretildi mi?
     const makbuzlar = db.listReceipts(o2.id);

@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Rozet, Onay, Modal, useToast } from "./ui.jsx";
-import { db, yedek, uygulama, hataMetni } from "../lib/api.js";
+import { db, yedek, optimize, uygulama, hataMetni } from "../lib/api.js";
 import { paraTR, tarihTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimAnahtari, indirimYuzdesi, aidatHesapla } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
 import { SettingsLisans } from "./SettingsLisans.jsx";
 import { SettingsSunucu } from "./SettingsSunucu.jsx";
 import { Ikon } from "./Ikon.jsx";
 
-const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }, { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
+const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim Optimizasyonu", ikon: "dosya" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }, { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
 
 export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum }) {
   const [bolum, setBolum] = useState(baslangicBolum || "kulup");
@@ -22,6 +22,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
         {bolum === "yedek" && <YedekAyar admin={admin} />}
+        {bolum === "optimize" && <OptimizeAyar admin={admin} saltOkunur={saltOkunur} />}
         {bolum === "sunucu" && <SettingsSunucu admin={admin} onModDegisti={onModDegisti} />}
         {bolum === "lisans" && <SettingsLisans admin={admin} onLisansDegisti={onLisansDegisti} />}
         {bolum === "hakkinda" && <Hakkinda />}
@@ -208,6 +209,51 @@ function KurtarmaKodlari({ username, kodlar, onKapat }) {
   );
 }
 
+const KATEGORI_AD = { foto: "Vesikalık fotoğraf", saglik: "Sağlık raporu", sporcu_kimlik: "Sporcu kimlik", veli_kimlik: "Veli kimlik", kayit_formu: "Kayıt formu", makbuz: "Makbuz", diger: "Diğer" };
+const kb = (b) => `${Math.round((b || 0) / 1024).toLocaleString("tr-TR")} KB`;
+
+// makina-crm'deki Resim Optimizasyonu: analiz et → optimize et; yalnız jpg/png, PDF'lere dokunmaz.
+function OptimizeAyar({ admin, saltOkunur }) {
+  const [durum, setDurum] = useState(null); // analiz sonucu
+  const [sonuc, setSonuc] = useState(null); // uygulama sonucu
+  const [bekliyor, setBekliyor] = useState(false);
+  const toast = useToast();
+  const analiz = async () => { setBekliyor(true); try { const r = await optimize().analiz(); if (r.error) toast("err", r.error); else { setDurum(r); setSonuc(null); } } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); } };
+  const uygula = async () => {
+    setBekliyor(true);
+    try {
+      const r = await optimize().uygula();
+      if (r.error) return toast("err", r.error);
+      setSonuc(r);
+      const yuzde = r.once > 0 ? Math.round((r.tasarruf / r.once) * 100) : 0;
+      toast("ok", r.adet === 0 ? "Optimize edilecek resim yok" : `${r.kucultulen} resim küçültüldü, ${kb(r.tasarruf)} tasarruf (%${yuzde})`);
+      const a = await optimize().analiz(); if (!a.error) setDurum(a);
+    } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
+  };
+  if (!admin) return <div style={{ color: "var(--soluk)" }}>Bu bölüm yalnız yöneticiler içindir.</div>;
+  const yuzde = sonuc && sonuc.once > 0 ? Math.round((sonuc.tasarruf / sonuc.once) * 100) : 0;
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 720 }}>
+      <h3 style={{ fontSize: 22 }}>Resim ve Belge Optimizasyonu</h3>
+      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Vesikalık ve belge fotoğraflarını (JPG/PNG) en fazla 2000 piksele küçültür ve yeniden sıkıştırır; yedekler küçülür, program hızlanır. Yeni yüklenen resimler zaten yükleme anında optimize edilir; bu araç eski dosyalara uygular. PDF ve Office belgelerine dokunulmaz, okunurluk korunur. Yalnız gerçekten küçülen dosyalar değiştirilir.</p>
+      {durum && (
+        <div style={{ background: "var(--zemin)", border: "1px solid var(--cizgi)", borderRadius: 10, padding: "14px 18px", fontSize: 14, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            {Object.entries(durum.resim.gruplar).map(([k, g]) => <span key={k}><span style={{ color: "var(--soluk)" }}>{KATEGORI_AD[k] || k}:</span> <b>{g.adet} resim</b> <span style={{ color: "var(--soluk)" }}>({kb(g.bayt)})</span></span>)}
+            {durum.resim.adet === 0 && <span style={{ color: "var(--soluk)" }}>Optimize edilebilecek resim yok.</span>}
+          </div>
+          <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 8 }}>Resimler toplam <b>{kb(durum.resim.bayt)}</b> · PDF ve diğer belgeler {durum.diger.adet} dosya, {kb(durum.diger.bayt)} (dokunulmaz)</div>
+          {sonuc && sonuc.adet > 0 && <div><span style={{ color: "var(--soluk)" }}>{kb(sonuc.once)}</span> → <b style={{ color: "var(--yesil)" }}>{kb(sonuc.sonra)}</b> <Rozet ton="green">{kb(sonuc.tasarruf)} tasarruf (%{yuzde})</Rozet></div>}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 10 }}>
+        <Btn tur="ghost" onClick={analiz} disabled={bekliyor}>Analiz Et</Btn>
+        {!saltOkunur && <Btn ikon={<Ikon ad="dosya" />} onClick={uygula} disabled={bekliyor}>{bekliyor ? "Çalışıyor…" : sonuc ? "Tekrar Optimize Et" : "Optimize Et"}</Btn>}
+      </div>
+    </div>
+  );
+}
+
 function YedekAyar({ admin }) {
   const [d, setD] = useState({ klasor: null, son: null });
   const [bekliyor, setBekliyor] = useState(false);
@@ -229,7 +275,7 @@ function YedekAyar({ admin }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 640 }}>
       <h3 style={{ fontSize: 22 }}>Yedekleme</h3>
-      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Veritabanı ve tüm belgeler seçilen klasöre kopyalanır. Uygulama her açılışta günde bir kez otomatik yedek alır, 30 günden eski yedekleri siler. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.</p>
+      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir zip dosyasına (<code>eyupspor-yedek-tarih.zip</code>) yazılır. Uygulama her açılışta günde bir kez otomatik yedek alır, 30 günden eski yedekleri siler. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 15 }}>
         <div><span style={{ color: "var(--soluk)" }}>Yedek klasörü:</span> <b>{d.klasor || "Seçilmedi"}</b></div>
         <div><span style={{ color: "var(--soluk)" }}>Son yedek:</span> <b>{d.son ? `${tarihTR(d.son)} ${d.son.slice(11, 16)}` : "Henüz alınmadı"}</b></div>
@@ -238,8 +284,8 @@ function YedekAyar({ admin }) {
       {admin && !d.istemci && (
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Yedekten geri yükle</div>
-          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Bir yedek klasörü seçin (içinde <code>data.db</code> olmalı). Mevcut veriler silinmez, <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda alınmış olmalıdır.</p>
-          <div><Btn tur="danger" ikon={<Ikon ad="geri" />} onClick={geriYukleSec} disabled={bekliyor}>Yedek Klasörü Seç ve Geri Yükle</Btn></div>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Bir yedek zip dosyası seçin. Mevcut veriler silinmez, <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda alınmış olmalıdır.</p>
+          <div><Btn tur="danger" ikon={<Ikon ad="geri" />} onClick={geriYukleSec} disabled={bekliyor}>Yedek Dosyası Seç ve Geri Yükle</Btn></div>
         </div>
       )}
       {aday && <Onay tehlikeli mesaj={`Seçilen yedek: ${aday.oyuncu} oyuncu, ${aday.makbuz} makbuz${aday.sonMakbuz ? ", son makbuz " + tarihTR(aday.sonMakbuz) : ""}. Mevcut veriler kenara alınıp bu yedek yüklenecek ve program yeniden başlayacak. Devam edilsin mi?`} onEvet={geriYukleOnayla} onHayir={() => setAday(null)} />}

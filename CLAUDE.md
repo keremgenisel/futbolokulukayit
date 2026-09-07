@@ -47,10 +47,13 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `electron/db.cjs` — SQLite şeması, göç (`schema_version`), tohum (aidat kalemleri, ilk admin),
   tüm sorgular, lisans durumu (`lisansDurumu`/`lisansKaydet`/`leaseKaydet`). Şema `docs/plan.md §3`.
   Anahtar `safeStorage` ile OS anahtarlığında.
-- `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması.
+- `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması. JPG/PNG
+  yükleme anında `electron/imageOptimize.cjs` ile nazikçe küçültülür (≤2000px, JPEG %82; yalnız küçülürse).
+  `electron/ipc/optimize.cjs` — Ayarlar > Resim Optimizasyonu (analiz/uygula, eski dosyalar için).
 - `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
-- `electron/ipc/yedek.cjs` — elle ve günlük otomatik yedek (data.db + uploads → seçilen klasör, 30 gün saklama) ve
-  geri yükleme (`geriYukleCekirdek`: doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
+- `electron/ipc/yedek.cjs` — elle ve günlük otomatik yedek (data.db + uploads → TEK zip `eyupspor-yedek-<damga>.zip`,
+  fflate, 30 gün saklama) ve
+  geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
   Yedek aynı PC'nin safeStorage anahtarıyla şifreli; başka PC'de açılmaz (`db.yedekBilgisi` bunu raporlar).
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;

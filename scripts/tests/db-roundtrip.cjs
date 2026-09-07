@@ -119,16 +119,63 @@ app.whenReady().then(async () => {
     const { yedekAl, geriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
     const yedekKok = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-yedek-"));
     const yedekOncesi = db.listPlayers().length;
+    // Bir belge dosyası koy: yedek zip'ine girmeli ve geri yüklemede geri gelmeli
+    const upKok = db.getUploadsDir();
+    fs.mkdirSync(path.join(upKok, "oyuncu-1"), { recursive: true });
+    fs.writeFileSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf"), "%PDF-1.4 yedek testi");
     const y = yedekAl(yedekKok);
-    check("yedek alındı", y.ok && fs.existsSync(path.join(y.yol, "data.db")));
-    check("yedek doğrulanıyor", db.yedekBilgisi(path.join(y.yol, "data.db")).oyuncu === yedekOncesi);
+    check("yedek tek zip dosyası", y.ok && /eyupspor-yedek-.*\.zip$/.test(y.yol) && fs.existsSync(y.yol) && y.dosya >= 1);
+    const { unzipSync } = require("fflate");
+    const arsiv = unzipSync(new Uint8Array(fs.readFileSync(y.yol)));
+    check("zip içinde data.db ve belge var", !!arsiv["data.db"] && Buffer.from(arsiv["uploads/oyuncu-1/1-saglik-rapor.pdf"]).toString() === "%PDF-1.4 yedek testi");
+    const { yedekHazirla } = require("../../electron/ipc/yedek.cjs");
+    const hz = yedekHazirla(y.yol);
+    check("zip yedek doğrulanıyor", hz.ok && hz.oyuncu === yedekOncesi && hz.gecici);
+    fs.rmSync(hz.klasor, { recursive: true, force: true });
     db.createPlayer({ ad_soyad: "Sonradan Eklenen", dogum_tarihi: "2016-01-01" });
-    check("geri yükleme öncesi bir oyuncu fazla", db.listPlayers().length === yedekOncesi + 1);
+    fs.unlinkSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf"));
+    check("geri yükleme öncesi bir oyuncu fazla, belge silinmiş", db.listPlayers().length === yedekOncesi + 1 && !fs.existsSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf")));
     const g = geriYukleCekirdek(y.yol);
-    check("geri yükleme başarılı", !!g.ok);
+    check("zip'ten geri yükleme başarılı", !!g.ok);
     db.init();
     check("geri yükleme sonrası eski oyuncu sayısı", db.listPlayers().length === yedekOncesi);
+    check("belge zip'ten geri geldi", fs.readFileSync(path.join(db.getUploadsDir(), "oyuncu-1", "1-saglik-rapor.pdf"), "utf8") === "%PDF-1.4 yedek testi");
     check("eski veri kenara alındı", fs.existsSync(g.kenarDb));
+    // Kötü niyetli zip: yol geçişi reddedilir; data.db'siz zip reddedilir
+    const { zipSync } = require("fflate");
+    const kotu = path.join(yedekKok, "kotu.zip");
+    fs.writeFileSync(kotu, Buffer.from(zipSync({ "data.db": arsiv["data.db"], "../kacak.txt": new Uint8Array([65]) })));
+    check("yol geçişi içeren zip reddedilir", !!yedekHazirla(kotu).error && !fs.existsSync(path.join(os.tmpdir(), "kacak.txt")));
+    const bos = path.join(yedekKok, "bos.zip");
+    fs.writeFileSync(bos, Buffer.from(zipSync({ "not.txt": new Uint8Array([65]) })));
+    check("data.db'siz zip reddedilir", !!yedekHazirla(bos).error);
+    // Eski biçim (klasör) yedek hâlâ geri yüklenebilir
+    const eskiKlasor = path.join(yedekKok, "eski-bicim"); fs.mkdirSync(eskiKlasor);
+    fs.writeFileSync(path.join(eskiKlasor, "data.db"), Buffer.from(arsiv["data.db"]));
+    check("klasör biçimi yedek de doğrulanır", yedekHazirla(eskiKlasor).ok === true);
+
+    // Resim optimizasyonu: büyük PNG küçülür (≤2000px), küçük dosya ve PDF dokunulmaz
+    const { nativeImage } = require("electron");
+    const { optimizeImage } = require("../../electron/imageOptimize.cjs");
+    const W = 3000, H = 2000, bitmap = Buffer.alloc(W * H * 4);
+    // Fotoğraf benzeri yumuşak geçiş (periyodik desen PNG'de aşırı sıkışıp küçültmeyi anlamsız kılar)
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const i = (y * W + x) * 4; bitmap[i] = (x * 255 / W) | 0; bitmap[i + 1] = (y * 255 / H) | 0; bitmap[i + 2] = ((x + y) * 127 / (W + H)) | 0; bitmap[i + 3] = 255; }
+    const buyukPng = nativeImage.createFromBitmap(bitmap, { width: W, height: H }).toPNG();
+    const kucuk = optimizeImage(buyukPng, ".png");
+    const kucukBoyut = nativeImage.createFromBuffer(kucuk).getSize();
+    check("büyük PNG 2000px'e küçülür ve dosya küçülür", kucuk.length < buyukPng.length && kucukBoyut.width === 2000 && kucukBoyut.height === 1333);
+    const buyukJpg = nativeImage.createFromBitmap(bitmap, { width: W, height: H }).toJPEG(100);
+    const jpgOpt = optimizeImage(buyukJpg, ".jpg");
+    check("büyük JPG küçülür", jpgOpt.length < buyukJpg.length && nativeImage.createFromBuffer(jpgOpt).getSize().width === 2000);
+    check("PDF ve bozuk veri dokunulmaz", optimizeImage(Buffer.from("%PDF"), ".pdf").toString() === "%PDF" && optimizeImage(Buffer.from("bozuk"), ".png").toString() === "bozuk");
+    // Ayarlar aracı: analiz + uygula uploads üzerinde
+    const { analiz, uygula } = require("../../electron/ipc/optimize.cjs");
+    fs.writeFileSync(path.join(db.getUploadsDir(), "oyuncu-1", `${Date.now()}-foto-vesika.png`), buyukPng);
+    const an = analiz();
+    check("analiz: 1 resim (vesikalık), 1 diğer (pdf)", an.resim.adet === 1 && an.resim.gruplar.foto?.adet === 1 && an.diger.adet === 1);
+    const uy = uygula();
+    check("uygula: resim küçültüldü, tasarruf > 0", uy.adet === 1 && uy.kucultulen === 1 && uy.tasarruf > 0 && analiz().resim.bayt === uy.sonra);
+    check("ikinci uygulama değişiklik yapmaz", uygula().kucultulen === 0);
     check("geçersiz klasör reddedilir", !!geriYukleCekirdek(yedekKok).error);
     db.init(); // geçersiz denemeden sonra DB yeniden açılır
     fs.rmSync(yedekKok, { recursive: true, force: true });

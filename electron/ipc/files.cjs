@@ -6,6 +6,7 @@ const path = require("path");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
 const istemci = require("../istemci.cjs");
+const { optimizeImage } = require("../imageOptimize.cjs");
 
 const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
@@ -48,7 +49,7 @@ function registerFileHandlers(getSession) {
     fs.mkdirSync(uploadsIci(klasor), { recursive: true });
     const ad = `${Date.now()}-${tip}-${guvenliAd(path.basename(kaynak))}`;
     const hedef = path.join(klasor, ad);
-    fs.copyFileSync(kaynak, uploadsIci(hedef));
+    fs.writeFileSync(uploadsIci(hedef), optimizeImage(fs.readFileSync(kaynak), uz)); // jpg/png nazikçe küçültülür
     const { id, silinen } = db.belgeEkle(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(kaynak), gecerlilik_tarihi: gecerlilik || null });
     eskiDosyalariSil(silinen);
     return { ok: true, id, dosya_yolu: hedef };
