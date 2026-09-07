@@ -63,6 +63,14 @@ app.on("browser-window-created", async (_e, win) => {
       const m = db.createReceipt({ player_id: o.id, tarih: "2026-09-06", odeme_yontemi: "havale", tahsil_eden: "T", satirlar: [{ fee_item_id: aidat.id, tutar: 1234, yil: t.getFullYear(), ay: t.getMonth() + 1 }] });
       const tr = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-06", saat: "10:00" });
       db.setAttendance(tr.id, o.id, "izinli");
+      // WhatsApp (plan §13): veli onayı kapatma, aidat hatırlatma kaydı, antrenman saat değişikliği + bildirim kaydı
+      const waVeli = db.listGuardians(o.id)[0] || null;
+      const waVeliId = waVeli ? waVeli.id : db.addGuardian(o.id, { tip: "anne", ad_soyad: "Kalıcı Veli", gsm: "0532 000 00 01", veli_mi: 1 });
+      db.updateGuardian(waVeliId, { mesaj_onayi: 0 });
+      db.mesajKaydet({ player_id: o.id, guardian_id: waVeliId, tur: "aidat", yil: t.getFullYear(), ay: t.getMonth() + 1, metin: "Kalıcı hatırlatma", kullanici: "admin" });
+      const tr2 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-08", saat: "17:00", saha: "Saha 1" });
+      db.updateTraining(tr2.id, { saat: "18:30" });
+      db.mesajKaydet({ player_id: o.id, guardian_id: waVeliId, tur: "degisiklik", training_id: tr2.id, metin: "Saat değişti" });
       // Son eklenen özellikler (07.09.2026): aidat taban fiyatı + indirim, yedek sıklığı, yabancı oyuncu,
       // ikinci kullanıcı + kurtarma kodları, belge kaydı (dosya + tekil vesikalık), kenar menü tercihi
       db.updateFeeItem(aidat.id, { varsayilan_fiyat: 4321 });
@@ -126,11 +134,15 @@ app.on("browser-window-created", async (_e, win) => {
       check("kurtarma kodu yeniden açılışta çalışır, tek kullanımlık", sf.ok && sf.kalan === b.kodSayisi - 1 && !!db.verifyPassword("hoca", "yeni-parola-77") && !!db.kurtarmaIleSifirla("hoca", b.kod, "x-parola-1").error);
       const fotolar = db.listDocuments(o.id).filter((d) => d.tip === "foto");
       check("vesikalık tek kayıt ve oyuncu foto yolu kalıcı", fotolar.length === 1 && fotolar[0].orijinal_ad === "v2.png" && db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu && fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)));
-      check("şema sürümü 8 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "8");
+      check("şema sürümü 9 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "9");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check("kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)", kd?.durum === "kismi" && kd.odenen === 1000 && db.listUnpaid(b.yil, b.ay).some((x) => x.player_id === b.yabanci && x.kalan === kd.tutar - 1000));
       const ip = db.getReceipt(b.iptalli);
       check("makbuz iptal nedeni ve iptal eden kalıcı", ip?.iptal === 1 && ip.iptal_nedeni === "Yanlış oyuncu" && ip.iptal_eden === "Test Yönetici" && !!ip.iptal_zamani);
+      const waV = db.listGuardians(o.id)[0];
+      const waM = db.sonMesajlar(o.id);
+      const waT = db.trainingCalendar("2026-09-08", "2026-09-08").find((x) => x.saat === "18:30");
+      check("WhatsApp: veli onayı, hatırlatma ve bildirim kayıtları, antrenman değişikliği kalıcı", waV?.mesaj_onayi === 0 && waM.length === 2 && waM.some((m) => m.tur === "aidat" && m.kullanici === "admin") && !!waT && waT.bildirim_gerekli === 1 && waT.bildirilen === 1 && JSON.parse(waT.degisiklik_notu).eskiSaat === "17:00");
       check("haftalık program ve doldurulan antrenmanlar kalıcı", JSON.parse(db.listAgeGroups().find((g) => g.id === o.yas_grubu_id).program)[0]?.saat === "18:00" && b.doldurulan === 1 && db.listTrainings("2027-04-05", "2027-04-11").some((tr) => tr.saat === "18:00" && tr.saha === "Saha 3"));
       const akt = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan Kalıcı");
       check("Excel'den aktarılan oyuncu, yeni grubu ve velisi kalıcı", !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009");

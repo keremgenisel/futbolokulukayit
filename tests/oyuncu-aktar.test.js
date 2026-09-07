@@ -44,7 +44,7 @@ describe("Excel oyuncu aktarımı — satır çözümleme", () => {
     expect(r.kayitlar.map((k) => k.ad_soyad)).toEqual(["Kaan Yıldız", "Ela Demir", "Ivan Petrov", "Garip"]);
     const kaan = r.kayitlar[0];
     expect(kaan).toMatchObject({ tc_no: "12345678901", dogum_tarihi: "2015-11-02", yas_grubu_id: 1, durum: "aktif", ucret_tipi: "kardes", aylik_aidat: 3500, odeme_donemi: "11-20", gsm: "05321112233", satir: 2 });
-    expect(kaan.veli).toEqual({ ad_soyad: "Ayşe Yıldız", gsm: "05324445566" });
+    expect(kaan.veli).toEqual({ ad_soyad: "Ayşe Yıldız", gsm: "05324445566", mesaj_onayi: 1 });
     expect(r.kayitlar[1]).toMatchObject({ yas_grubu_id: 2, durum: "deneme", ucret_tipi: "burslu", aylik_aidat: 0, odeme_donemi: "1-10", tc_no: null });
     expect(r.kayitlar[2]).toMatchObject({ uyruk: "yabanci", pasaport_no: "U1234567", yeni_grup: "U13" });
     expect(r.yeniGruplar).toEqual(["U13"]);
@@ -57,5 +57,10 @@ describe("Excel oyuncu aktarımı — satır çözümleme", () => {
     const r = satirlariCoz([["Ad Soyad", "Doğum Tarihi", "Ücret Tipi"], ["A", "01.01.2015", "Şampiyon Bursu"], ["B", "01.01.2015", "sampiyon_bursu"], ["C", "01.01.2015", "Bilinmeyen"]], { gruplar: [], ucretTipleri: tipler });
     expect(r.kayitlar.map((k) => k.ucret_tipi)).toEqual(["sampiyon_bursu", "sampiyon_bursu", "normal"]);
     expect(r.uyarilar.some((u) => /"bilinmeyen" tanınmadı/.test(u.mesaj))).toBe(true);
+  });
+
+  it("Mesaj Onayı sütunu: boş/evet → onaylı, hayır/0 → onaysız", () => {
+    const r = satirlariCoz([["Ad Soyad", "Doğum Tarihi", "Veli Adı", "Veli Telefonu", "Mesaj Onayı"], ["A", "01.01.2015", "Veli A", "05321234567", ""], ["B", "01.01.2015", "Veli B", "05321234568", "Hayır"], ["C", "01.01.2015", "Veli C", "05321234569", "evet"], ["D", "01.01.2015", "Veli D", "05321234560", "0"]], { gruplar: [] });
+    expect(r.kayitlar.map((k) => k.veli.mesaj_onayi)).toEqual([1, 0, 1, 0]);
   });
 });

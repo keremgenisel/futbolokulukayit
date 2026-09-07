@@ -6,6 +6,8 @@ import { htmlYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
 import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi } from "../lib/takvim.js";
+import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
+import { antrenmanDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
 
 // Şerit kaydırıldıkça ±4 haftalık pencere tek sorguda yüklenir (plan §9.2).
 const PENCERE_GUN = 28;
@@ -22,6 +24,9 @@ export function Yoklama({ saltOkunur }) {
   const [formAcik, setFormAcik] = useState(false);
   const [yeni, setYeni] = useState({ age_group_id: "", saat: "", saha: "" });
   const [iptal, setIptal] = useState(null);
+  const [duzen, setDuzen] = useState(null);   // antrenman düzenleme formu { tarih, saat, saha }
+  const [bildir, setBildir] = useState(null); // "Velilere bildirilsin mi?" sorusu { t, tur }
+  const [waAnt, setWaAnt] = useState(null);   // açık bildirim penceresi { t, tur, alicilar }
   const toast = useToast();
 
   const takvimYukle = useCallback(async () => {
@@ -78,7 +83,39 @@ export function Yoklama({ saltOkunur }) {
       await takvimYukle();
     } catch (e) { toast("err", hataMetni(e)); }
   };
-  const iptalEt = async () => { try { await db("cancelTraining", iptal.id, "İptal"); toast("ok", "Antrenman iptal edildi"); setIptal(null); setAktif(null); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
+  const iptalEt = async () => { try { await db("cancelTraining", iptal.id, "İptal"); toast("ok", "Antrenman iptal edildi"); const t = { ...iptal, iptal: 1, iptal_nedeni: "İptal", bildirim_gerekli: 1 }; setIptal(null); setAktif(null); await takvimYukle(); setBildir({ t, tur: "iptal" }); } catch (e) { toast("err", hataMetni(e)); } };
+  // Antrenman düzenleme (plan §13): tarih/saat/saha; değiştiyse velilere bildirim sorulur
+  const duzenKaydet = async () => {
+    try {
+      const t = await db("updateTraining", aktif.id, { tarih: duzen.tarih, saat: duzen.saat, saha: duzen.saha });
+      setDuzen(null);
+      if (!t.degisti) return toast("ok", "Değişiklik yok");
+      toast("ok", "Antrenman güncellendi");
+      if (t.tarih !== tarih) setTarih(t.tarih); // başka güne taşındıysa o güne git
+      await takvimYukle();
+      setAktif((a) => (a ? { ...a, ...t } : a));
+      setBildir({ t: { ...aktif, ...t }, tur: "degisiklik" });
+    } catch (e) { toast("err", hataMetni(e)); }
+  };
+  // Bildirim penceresi: grubun aktif oyuncularının birincil velileri (onay + numara) ve bu antrenman için açılmış kayıtlar
+  const bildirimAc = async (t, tur) => {
+    setBildir(null);
+    try {
+      const l = await db("antrenmanVelileri", t.id);
+      setWaAnt({ t, tur, alicilar: l.map((v) => ({ key: String(v.player_id), player_id: v.player_id, guardian_id: v.guardian_id, oyuncu_ad: v.ad_soyad, veli_ad: v.veli_ad || "", grup: t.yas_grubu_ad, numara: v.veli_wa || "", onay: v.veli_onay, mesaj_id: v.mesaj_id, degerler: antrenmanDegerleri(t, { veli_ad: v.veli_ad, ad_soyad: v.ad_soyad }) })) });
+    } catch (e) { toast("err", hataMetni(e)); }
+  };
+  const bildirimKapat = async () => {
+    const t = waAnt.t; setWaAnt(null);
+    try {
+      // Uygun velilerin hepsine açıldıysa bayrak iner; kalan varsa kartta "x/y veli bildirildi" sürer
+      const l = await db("antrenmanVelileri", t.id);
+      const uygun = l.filter((v) => hatirlatmaUygunMu({ numara: v.veli_wa, onay: v.veli_onay }).ok);
+      if (!saltOkunur && uygun.length > 0 && uygun.every((v) => v.mesaj_id)) await db("bildirimGerekliAyarla", t.id, 0);
+    } catch { /* yalnız bayrak */ }
+    takvimYukle();
+  };
+  const bildirimGerekmiyor = async () => { try { await db("bildirimGerekliAyarla", aktif.id, 0); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
 
   // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
   const formHtml = async () => {
@@ -122,6 +159,7 @@ export function Yoklama({ saltOkunur }) {
                 <button key={t.id} type="button" onClick={() => antrenmanSec(t)} aria-pressed={on} style={{ display: "flex", flexDirection: "column", gap: 6, width: 200, padding: "12px 14px", borderRadius: 10, cursor: "pointer", textAlign: "left", border: `1px solid ${on ? "var(--mor)" : "var(--cizgi)"}`, background: on ? "var(--mor-acik)" : "#fff", opacity: t.iptal ? .7 : 1 }}>
                   <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}><span className="baslik" style={{ fontSize: 20, fontWeight: 700, color: "var(--mor-koyu)" }}>{t.yas_grubu_ad} · {t.saat || "—"}</span>{t.iptal ? <Rozet ton="red">İptal</Rozet> : null}</span>
                   <span style={{ fontSize: 13, color: "var(--soluk)" }}>{t.saha || "Saha belirtilmedi"}</span>
+                  {t.bildirim_gerekli ? <span style={{ fontSize: 12, fontWeight: 600, color: t.bildirilen > 0 ? "var(--mor)" : "var(--kirmizi)" }}>{t.bildirilen > 0 ? `${t.bildirilen}/${t.oyuncu} veli bildirildi` : "Velilere bildirilmedi"}</span> : null}
                   <span style={{ fontSize: 12, fontWeight: 600, color: t.oyuncu > 0 && t.isaretli >= t.oyuncu ? "var(--yesil)" : "var(--soluk)" }}>{t.isaretli}/{t.oyuncu} işaretli</span>
                 </button>
               );
@@ -150,15 +188,28 @@ export function Yoklama({ saltOkunur }) {
                 </div>
                 {borclu > 0 && <Rozet ton="red">{borclu} aidat borcu</Rozet>}{aktif.iptal ? <Rozet ton="red">İptal edildi</Rozet> : null}
               </div>
-              {!aktif.iptal && (
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                {aktif.bildirim_gerekli ? <Btn tur="yesil" ikon={<Ikon ad="whatsapp" />} onClick={() => bildirimAc(aktif, aktif.iptal ? "iptal" : "degisiklik")} title="Grubun velilerine WhatsApp ile iptal/değişiklik bildir">Velilere Bildir</Btn> : null}
+                {aktif.bildirim_gerekli && !saltOkunur ? <Btn tur="ghost" kucuk onClick={bildirimGerekmiyor} title="Bildirim yapılmayacak; rozeti kaldır">Bildirim gerekmiyor</Btn> : null}
+                {!aktif.iptal && <>
                   <Btn tur="ghost" ikon={<Ikon ad="yazdir" />} onClick={formYazdir} title="Sahada elle doldurulacak A4 yoklama formu; programda işaretli olanlar dolu gelir">Formu Yazdır</Btn>
                   <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={formPdf} title="Yoklama formunu PDF olarak kaydet">PDF</Btn>
                   {!saltOkunur && <Btn tur="ghost" ikon={<Ikon ad="onay" />} onClick={tumuGeldi}>Kalanları Geldi İşaretle</Btn>}
+                  {!saltOkunur && !duzen && <Btn tur="ghost" ikon={<Ikon ad="takvim" />} onClick={() => setDuzen({ tarih: aktif.tarih, saat: aktif.saat || "", saha: aktif.saha || "" })}>Düzenle</Btn>}
                   {!saltOkunur && <Btn tur="danger" ikon={<Ikon ad="kapat" />} onClick={() => setIptal(aktif)}>İptal Et</Btn>}
-                </div>
-              )}
+                </>}
+              </div>
             </div>
+            {duzen && (
+              <div style={{ display: "flex", gap: 10, alignItems: "flex-end", padding: "12px 16px", borderBottom: "1px solid var(--cizgi)", background: "var(--sari-acik)", flexWrap: "wrap" }}>
+                <Alan etiket="Tarih" style={{ width: 170 }}><Girdi type="date" value={duzen.tarih} onChange={(e) => setDuzen({ ...duzen, tarih: e.target.value })} aria-label="Antrenman tarihi" disabled={aktif.isaretli > 0} title={aktif.isaretli > 0 ? "Yoklaması alınmış antrenmanın tarihi değiştirilemez" : ""} /></Alan>
+                <Alan etiket="Saat" style={{ width: 130 }}><Girdi type="time" value={duzen.saat} onChange={(e) => setDuzen({ ...duzen, saat: e.target.value })} aria-label="Antrenman saati" /></Alan>
+                <Alan etiket="Saha" style={{ width: 160 }}><Girdi value={duzen.saha} onChange={(e) => setDuzen({ ...duzen, saha: e.target.value })} aria-label="Antrenman sahası" /></Alan>
+                <Btn onClick={duzenKaydet}>Kaydet</Btn>
+                <Btn tur="ghost" onClick={() => setDuzen(null)}>Vazgeç</Btn>
+                {aktif.isaretli > 0 && <span style={{ fontSize: 12.5, color: "var(--soluk)" }}>Yoklama alındığı için yalnız saat ve saha değişir.</span>}
+              </div>
+            )}
             {oyuncular.length === 0 ? <Bos metin="Bu grupta aktif oyuncu yok." /> : oyuncular.map((o) => (
               <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderBottom: "1px solid var(--cizgi)" }}>
                 <Avatar ad={o.ad_soyad} boyut={40} />
@@ -170,6 +221,8 @@ export function Yoklama({ saltOkunur }) {
         )}
       </Kart>
       {iptal && <Onay tehlikeli mesaj={`${iptal.yas_grubu_ad} ${iptal.saat} antrenmanı iptal edilsin mi?`} onEvet={iptalEt} onHayir={() => setIptal(null)} />}
+      {bildir && <Onay mesaj={`${bildir.t.yas_grubu_ad} grubunun velilerine WhatsApp ile ${bildir.tur === "iptal" ? "iptal" : "değişiklik"} bildirilsin mi? Her veli için WhatsApp açılır, Gönder'e siz basarsınız.`} onEvet={() => bildirimAc(bildir.t, bildir.tur)} onHayir={() => setBildir(null)} />}
+      {waAnt && <WhatsAppHatirlat tur={waAnt.tur} baslik={waAnt.tur === "iptal" ? "Antrenman İptali — Velilere Bildir" : "Antrenman Değişikliği — Velilere Bildir"} altBaslik={`${waAnt.t.yas_grubu_ad} · ${uzunTarih(waAnt.t.tarih)}${waAnt.t.saat ? " · " + waAnt.t.saat : ""}`} alicilar={waAnt.alicilar} kayit={{ training_id: waAnt.t.id }} saltOkunur={saltOkunur} onKapat={bildirimKapat} />}
     </div>
   );
 }

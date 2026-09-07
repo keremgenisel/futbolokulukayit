@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require("electron");
+const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const db = require("./db.cjs");
@@ -79,6 +79,14 @@ if (!app.requestSingleInstanceLock()) {
     registerAktarHandlers(getSession);
 
     ipcMain.handle("app:version", () => app.getVersion());
+    // WhatsApp "tıkla ve yaz" (plan §13): yalnız https://wa.me/<90…> açılır; renderer başka dış adres açamaz.
+    ipcMain.handle("app:whatsappAc", async (_e, numara, metin) => {
+      if (!getSession()) return { error: "Oturum gerekli" };
+      const n = String(numara || "").replace(/\D/g, "");
+      if (!/^90\d{10}$/.test(n)) return { error: "Geçersiz WhatsApp numarası" };
+      const url = `https://wa.me/${n}?text=${encodeURIComponent(String(metin || "").slice(0, 4000))}`;
+      try { await shell.openExternal(url); return { ok: true }; } catch (e) { return { error: "WhatsApp açılamadı: " + e.message }; }
+    });
     let logoCache = null;
     ipcMain.handle("app:logo", () => {
       if (!logoCache) {

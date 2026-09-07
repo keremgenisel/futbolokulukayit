@@ -2,14 +2,14 @@
 // Okuma her oturuma açık; yazma lisans salt-okunurken reddedilir; admin işlemleri yalnız yönetici.
 const OKUMA = new Set([
   "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "playersPage", "listGuardians", "listEmergency",
-  "listDocuments", "saglikRaporuDurumu", "listFeeItems", "listFeeTypes", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
+  "listDocuments", "saglikRaporuDurumu", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
   "listReceiptsByDate", "listCancelledReceipts", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "playerAttendanceSon", "getSetting", "aidatAyarlari", "panoOzet",
-  "attendanceSummary", "attendanceReport", "listUsers", "sezonAdayListesi", "sezonDurumu",
+  "attendanceSummary", "attendanceReport", "listUsers", "sezonAdayListesi", "sezonDurumu", "listFeeTypes", "sonMesajlar", "antrenmanVelileri",
 ]);
 const YAZMA = new Set([
   "createAgeGroup", "updateAgeGroup", "deleteAgeGroup",
   "createPlayer", "updatePlayer", "deletePlayer",
-  "addGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument",
+  "addGuardian", "updateGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument", "mesajKaydet", "mesajSil", "updateTraining", "bildirimGerekliAyarla",
   "updateFeeItem", "aidatAyarlariKaydet", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
   "createTraining", "cancelTraining", "setAttendance", "setSetting", "haftayiProgramdanDoldur",
 ]);

@@ -87,6 +87,10 @@ app.whenReady().then(async () => {
     await tikla("Kaydet"); await bekle(1500); await shot("10-tahsilat-sonrasi");
     await tikla("Yoklama"); await bekle(600);
     await js(`(() => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.startsWith("U12")); b && b.click(); })()`); await bekle(600); await shot("11-yoklama");
+    // WhatsApp (plan §13): Yoklama'da Düzenle formu; Pano'da Borçlulara Hatırlat penceresi; Ayarlar > WhatsApp Mesajları
+    if (await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Düzenle")`)) { await tikla("Düzenle"); await bekle(300); await shot("11b-antrenman-duzenle"); await tikla("Vazgeç"); }
+    await tikla("Pano"); await bekle(700);
+    if (await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Borçlulara Hatırlat")`)) { await tikla("Borçlulara Hatırlat"); await bekle(700); await shot("03c-whatsapp-hatirlat"); await js(`document.querySelector("[role=dialog] button[aria-label='Pencereyi kapat']")?.click()`); await bekle(300); }
     await tikla("Raporlar"); await bekle(400); await tikla("Önizle"); await bekle(600); await shot("12-raporlar");
     await tikla("Yaş Grupları"); await bekle(400); await shot("13-gruplar");
     await tikla("Ayarlar"); await bekle(400); await tikla("Kurulum Sihirbazını Aç"); await bekle(500); await shot("13a-kurulum-sihirbazi");
@@ -97,7 +101,9 @@ app.whenReady().then(async () => {
     await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const i = document.querySelector("input[aria-label='Yeni ücret tipi adı']"); set.call(i, "Şampiyon Bursu"); i.dispatchEvent(new Event("input", { bubbles: true })); const j = document.querySelector("input[aria-label='Yeni ücret tipi indirimi']"); set.call(j, "50"); j.dispatchEvent(new Event("input", { bubbles: true })); })()`);
     await tikla("Ücret Tipi Ekle"); await bekle(200);
     await js(`[...document.querySelectorAll("h3")].find((h) => /Ücret Tipleri/.test(h.textContent))?.scrollIntoView({ block: "start" })`); await bekle(300); await shot("13c-ucret-tipleri");
-    await tikla("Vazgeç"); await bekle(200); // kaydedilmemiş değişiklik uyarısı sonraki bölüm geçişini engellemesin
+    await tikla("WhatsApp Mesajları"); await bekle(400);
+    if (await js(`!!document.querySelector("[role=dialog]")`)) { await js(`[...document.querySelectorAll("[role=dialog] button")].find((b) => b.textContent.trim() === "Evet")?.click()`); await bekle(500); } // kaydedilmemiş kalem değişikliği uyarısı
+    await shot("13d-whatsapp-mesajlari"); // bölüm geçişinde kalem değişiklikleri "Evet" ile bırakıldı; artık uyarı çıkmaz
     await tikla("Kullanıcılar"); await bekle(500); await shot("13c-kullanicilar");
     await tikla("Lisans"); await bekle(400); await shot("14-lisans");
     await tikla("Yeni Sezon"); await bekle(600); await js(`document.querySelector("input[aria-label='Kerem Yılmaz yeniledi']")?.click()`); await bekle(300); await shot("14b-yeni-sezon");

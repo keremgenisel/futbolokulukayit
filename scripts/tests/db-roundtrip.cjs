@@ -104,7 +104,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 8 ve pasaport sütunu var", db.getMetaValue("schema_version") === "8" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 9 ve pasaport sütunu var", db.getMetaValue("schema_version") === "9" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -340,12 +340,47 @@ app.whenReady().then(async () => {
     db.setMetaValue("schema_version", "7"); db.setSetting("indirim_burslu", "33"); db.setSetting("indirim_ucretsiz", "10");
     db.close(); db.init();
     const goc = db.listFeeTypes();
-    check("göç 7→8: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 8", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "8");
+    check("göç 7→9: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 9", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "9");
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } }); db.close(); db.init();
     check("şema 8'de yeniden açılış eski ayarı tekrar yazmaz (40 kaldı)", db.listFeeTypes().find((t) => t.kod === "burslu").indirim === 40);
     // Silinen varsayılan kalem/tip yeniden açılışta geri gelmemeli (tohum tek seferlik)
     db.aidatAyarlariKaydet({ kalemler: [{ id: db.listFeeItems().find((k) => k.kod === "top").id, sil: true }], ucretTipleri: [{ kod: "indirimli", sil: true }] });
     db.close(); db.init();
+    // ── WhatsApp (plan §13, şema 9): veli onayı, mesaj kaydı, antrenman düzenleme/bildirim ──
+    const waP = db.createPlayer({ ad_soyad: "Wa Oyuncu", dogum_tarihi: "2015-06-06", yas_grubu_id: db.listAgeGroups()[0].id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3000, odeme_donemi: "1-10" });
+    const waV = { id: db.addGuardian(waP.id, { tip: "anne", ad_soyad: "Wa Veli", gsm: "0532 111 22 33", whatsapp_no: "", veli_mi: 1 }) };
+    const waV2 = { id: db.addGuardian(waP.id, { tip: "baba", ad_soyad: "Wa Baba", gsm: "0533 000 00 00", whatsapp_no: "", veli_mi: 0, mesaj_onayi: 0 }) };
+    const vl = db.listGuardians(waP.id);
+    check("veli mesaj onayı varsayılan 1, açıkça 0 verilebilir", vl.find((g) => g.id === waV.id).mesaj_onayi === 1 && vl.find((g) => g.id === waV2.id).mesaj_onayi === 0);
+    db.updateGuardian(waV.id, { mesaj_onayi: 0 }); check("updateGuardian onayı kapatır", db.listGuardians(waP.id).find((g) => g.id === waV.id).mesaj_onayi === 0);
+    db.updateGuardian(waV.id, { mesaj_onayi: 1, whatsapp_no: "0532 999 88 77" });
+    db.ensureMonthlyDues(2026, 10, waP.id);
+    const u0 = db.listUnpaid(2026, 10).find((x) => x.player_id === waP.id);
+    check("listUnpaid veli id/onay/wa taşır, hatırlatma 0", u0 && u0.veli_id === waV.id && u0.veli_onay === 1 && u0.veli_wa === "0532 999 88 77" && u0.hatirlatma === 0 && u0.son_mesaj_id === null);
+    const m1 = db.mesajKaydet({ player_id: waP.id, guardian_id: waV.id, tur: "aidat", yil: 2026, ay: 10, metin: "Sayın Wa Veli…", kullanici: "admin" });
+    const u1 = db.listUnpaid(2026, 10).find((x) => x.player_id === waP.id);
+    check("mesajKaydet sonrası hatırlatma 1, son mesaj id ve tarih dolu", u1.hatirlatma === 1 && u1.son_mesaj_id === m1.id && !!u1.son_hatirlatma && db.sonMesajlar(waP.id)[0].veli_ad === "Wa Veli");
+    db.mesajSil(m1.id); check("mesajSil geri alır", db.listUnpaid(2026, 10).find((x) => x.player_id === waP.id).hatirlatma === 0);
+    let turRed = ""; try { db.mesajKaydet({ player_id: waP.id, tur: "spam" }); } catch (e) { turRed = e.message; }
+    check("geçersiz mesaj türü reddedilir", /Geçersiz mesaj türü/.test(turRed));
+    const waT = db.createTraining({ age_group_id: waP.yas_grubu_id, tarih: "2026-10-05", saat: "17:00", saha: "Saha 1" });
+    check("yeni antrenmanda bildirim gerekmiyor", db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id).bildirim_gerekli === 0);
+    const ut = db.updateTraining(waT.id, { saat: "18:30", saha: "Saha 2" });
+    const cal = db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id);
+    check("updateTraining saat/saha değiştirir, eski değeri nota yazar, bildirim gerekli olur", ut.degisti && cal.saat === "18:30" && cal.bildirim_gerekli === 1 && JSON.parse(cal.degisiklik_notu).eskiSaat === "17:00" && cal.bildirilen === 0);
+    check("aynı değerlerle updateTraining değişiklik saymaz", db.updateTraining(waT.id, { saat: "18:30", saha: "Saha 2" }).degisti === false);
+    const veliler = db.antrenmanVelileri(waT.id);
+    const waSatir = veliler.find((v) => v.player_id === waP.id);
+    check("antrenmanVelileri grubun aktif oyuncuları + birincil veli + onay + numara", veliler.length >= 1 && waSatir && waSatir.guardian_id === waV.id && waSatir.veli_wa === "0532 999 88 77" && waSatir.veli_onay === 1 && waSatir.mesaj_id === null);
+    db.mesajKaydet({ player_id: waP.id, guardian_id: waV.id, tur: "degisiklik", training_id: waT.id, metin: "değişti" });
+    check("bildirim kaydı antrenman velilerinde ve takvimde görünür", db.antrenmanVelileri(waT.id).find((v) => v.player_id === waP.id).mesaj_id > 0 && db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id).bildirilen === 1);
+    db.setAttendance(waT.id, waP.id, "geldi");
+    let tarihRed = ""; try { db.updateTraining(waT.id, { tarih: "2026-10-06" }); } catch (e) { tarihRed = e.message; }
+    check("yoklaması alınmış antrenmanın tarihi değiştirilemez, saat değişir", /tarihi değiştirilemez/.test(tarihRed) && db.updateTraining(waT.id, { saat: "19:00" }).degisti);
+    db.bildirimGerekliAyarla(waT.id, 0); check("bildirim gerekli bayrağı kapatılır", db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id).bildirim_gerekli === 0);
+    db.cancelTraining(waT.id, "Yağmur"); check("iptal bildirim gerekli yapar", db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id).bildirim_gerekli === 1);
+    let iptalRed = ""; try { db.updateTraining(waT.id, { saat: "20:00" }); } catch (e) { iptalRed = e.message; }
+    check("iptal edilmiş antrenman düzenlenemez", /İptal edilmiş/.test(iptalRed));
     check("silinen varsayılan kalem ve ücret tipi yeniden açılışta geri gelmez", !db.listFeeItems().some((k) => k.kod === "top") && !db.listFeeTypes().some((t) => t.kod === "indirimli") && db.listFeeItems().some((k) => k.kod === "aidat"));
 
     db.close();

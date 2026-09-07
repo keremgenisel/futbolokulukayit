@@ -59,5 +59,6 @@ contextBridge.exposeInMainWorld("okul", {
   app: {
     version: () => ipcRenderer.invoke("app:version"),
     logo: () => ipcRenderer.invoke("app:logo"),
+    whatsappAc: (numara, metin) => ipcRenderer.invoke("app:whatsappAc", numara, metin),
   },
 });

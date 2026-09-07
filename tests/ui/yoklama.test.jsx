@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
-import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-library/react";
 import { Yoklama } from "../../src/components/Yoklama.jsx";
 import { ToastSaglayici } from "../../src/components/ui.jsx";
 import { bugun } from "../../src/lib/api.js";
@@ -90,5 +90,60 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Formu Yazdır" }));
     expect(await screen.findByText(/Yazdırma iptal edildi/)).toBeInTheDocument();
     expect(window.okul.cikti.pdfAc).not.toHaveBeenCalled();
+  });
+
+  it("Düzenle: saat/saha değişince güncellenir, 'Velilere bildirilsin mi?' sorulur, Evet → grubun velileriyle bildirim penceresi; kartta rozet", async () => {
+    let veliler = [{ player_id: 10, ad_soyad: "Ada Kaya", guardian_id: 50, veli_ad: "Selin Kaya", veli_wa: "05421234567", veli_onay: 1, mesaj_id: null }, { player_id: 11, ad_soyad: "Barış Güneş", guardian_id: 51, veli_ad: "Hakan Güneş", veli_wa: "", veli_onay: 1, mesaj_id: null }];
+    window.okul.app = { whatsappAc: vi.fn(async () => ({ ok: true })) };
+    const eskiDb = window.okul.db.getMockImplementation();
+    window.okul.db.mockImplementation(async (fn, ...args) => {
+      if (fn === "updateTraining") { Object.assign(antrenmanlar[0], { saat: args[1].saat, saha: args[1].saha, bildirim_gerekli: 1, degisiklik_notu: JSON.stringify({ eskiTarih: antrenmanlar[0].tarih, eskiSaat: "17:00" }) }); return { ...antrenmanlar[0], degisti: true }; }
+      if (fn === "antrenmanVelileri") return veliler;
+      if (fn === "mesajKaydet") { veliler = veliler.map((v) => (v.player_id === args[0].player_id ? { ...v, mesaj_id: 9 } : v)); antrenmanlar[0].bildirilen = 1; return { id: 9 }; }
+      if (fn === "bildirimGerekliAyarla") { antrenmanlar[0].bildirim_gerekli = args[1]; return {}; }
+      if (fn === "getSetting") return "";
+      return eskiDb(fn, ...args);
+    });
+    kur();
+    fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
+    await screen.findByText("Ada Kaya");
+    fireEvent.click(screen.getByRole("button", { name: "Düzenle" }));
+    fireEvent.change(screen.getByLabelText("Antrenman saati"), { target: { value: "18:30" } });
+    fireEvent.change(screen.getByLabelText("Antrenman sahası"), { target: { value: "Saha 2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("updateTraining", 5, { tarih: bugun().iso, saat: "18:30", saha: "Saha 2" }));
+    await screen.findByText(/velilerine WhatsApp ile değişiklik bildirilsin mi\?/);
+    const soru = screen.getByRole("dialog");
+    fireEvent.click(within(soru).getByRole("button", { name: "Evet" }));
+    await screen.findByText("Antrenman Değişikliği — Velilere Bildir");
+    const dlg = screen.getByRole("dialog");
+    expect(within(dlg).getByText("Veli numarası yok")).toBeInTheDocument(); // Barış'ın velisinde numara yok
+    expect(within(dlg).getByTestId("wa-onizleme")).toHaveTextContent("17:00 antrenmanı");
+    expect(within(dlg).getByTestId("wa-onizleme")).toHaveTextContent("18:30 saatine alınmıştır (Saha 2)");
+    fireEvent.click(within(dlg).getByRole("button", { name: "Selin Kaya WhatsApp'ta aç" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("mesajKaydet", expect.objectContaining({ player_id: 10, guardian_id: 50, tur: "degisiklik", training_id: 5 })));
+    fireEvent.click(within(dlg).getByRole("button", { name: "Kapat" }));
+    // Tek uygun veliye açıldı → bayrak iner
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("bildirimGerekliAyarla", 5, 0));
+  });
+
+  it("İptal Et sonrası bildirim sorusu; Hayır denirse kartta 'Velilere bildirilmedi' ve başlıkta 'Velilere Bildir'", async () => {
+    const eskiDb = window.okul.db.getMockImplementation();
+    window.okul.db.mockImplementation(async (fn, ...args) => {
+      if (fn === "cancelTraining") { Object.assign(antrenmanlar[0], { iptal: 1, bildirim_gerekli: 1, bildirilen: 0 }); return {}; }
+      return eskiDb(fn, ...args);
+    });
+    kur();
+    fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
+    await screen.findByText("Ada Kaya");
+    fireEvent.click(screen.getByRole("button", { name: "İptal Et" }));
+    fireEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Evet" }));
+    await screen.findByText(/iptal bildirilsin mi\?/);
+    const soru = screen.getByRole("dialog");
+    fireEvent.click(within(soru).getByRole("button", { name: "Vazgeç" }));
+    expect(await screen.findByText("Velilere bildirilmedi")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /U11 · 17:00/ }));
+    expect(await screen.findByRole("button", { name: "Velilere Bildir" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Düzenle" })).toBeNull(); // iptal edilmiş antrenman düzenlenmez
   });
 });

@@ -18,6 +18,7 @@ const SUTUNLAR = [
   { anahtar: "kayit_tarihi", basliklar: ["kayıt tarihi", "kayit tarihi"] },
   { anahtar: "veli_ad", basliklar: ["veli", "veli adı", "veli ad soyad", "anne baba"] },
   { anahtar: "veli_tel", basliklar: ["veli telefonu", "veli tel", "veli gsm", "veli telefon"] },
+  { anahtar: "veli_onay", basliklar: ["mesaj onayı", "mesaj onayi", "whatsapp onayı", "whatsapp onayi", "bilgilendirme onayı"] },
   { anahtar: "notlar", basliklar: ["not", "notlar", "açıklama"] },
 ];
 const DURUM = { aktif: "aktif", deneme: "deneme", pasif: "pasif", ayrıldı: "ayrildi", ayrildi: "ayrildi", sakat: "sakat", dondurma: "dondurma" };
@@ -105,7 +106,10 @@ function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasa
     const donemHam = String(al(row, "odeme_donemi") ?? "").trim().replace(/\s/g, ""); if (donemHam) { if (DONEM.has(donemHam)) k.odeme_donemi = donemHam; else uyarilar.push({ satir: no, mesaj: `${ad}: ödeme dönemi "${donemHam}" tanınmadı (1-10, 11-20, 21-31), 1-10 yazıldı` }); }
     const kayit = tarihCoz(al(row, "kayit_tarihi")); if (kayit) k.kayit_tarihi = kayit;
     const veliAd = String(al(row, "veli_ad") ?? "").trim(); const veliTel = al(row, "veli_tel");
-    if (veliAd || veliTel) k.veli = { ad_soyad: veliAd || "Veli", gsm: veliTel ? gsmCoz(veliTel) : "" };
+    if (veliAd || veliTel) {
+      const onayHam = norm(al(row, "veli_onay")); // boş → onaylı (kulüp kararı); hayır/0/yok → onaysız
+      k.veli = { ad_soyad: veliAd || "Veli", gsm: veliTel ? gsmCoz(veliTel) : "", mesaj_onayi: ["hayır", "hayir", "h", "0", "yok", "no"].includes(onayHam) ? 0 : 1 };
+    }
     k.satir = no;
     kayitlar.push(k);
   }
@@ -113,7 +117,7 @@ function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasa
 }
 
 /** Şablon başlıkları ve örnek satır (şablon indirme için). */
-const SABLON_BASLIKLAR = ["Ad Soyad", "TC Kimlik No", "Pasaport No", "Doğum Tarihi", "Yaş Grubu", "Durum", "Ücret Tipi", "Aylık Aidat", "Ödeme Dönemi", "GSM", "Veli Adı", "Veli Telefonu", "Okul", "Doğum Yeri", "Adres", "Kan Grubu", "Kayıt Tarihi", "Notlar"];
-const SABLON_ORNEK = ["Kaan Yıldız", "12345678901", "", "02.11.2015", "U11", "Aktif", "Normal", "3500", "1-10", "05321234567", "Ayşe Yıldız", "05329876543", "Eyüp İlkokulu", "İstanbul", "", "A Rh+", "01.09.2026", ""];
+const SABLON_BASLIKLAR = ["Ad Soyad", "TC Kimlik No", "Pasaport No", "Doğum Tarihi", "Yaş Grubu", "Durum", "Ücret Tipi", "Aylık Aidat", "Ödeme Dönemi", "GSM", "Veli Adı", "Veli Telefonu", "Mesaj Onayı", "Okul", "Doğum Yeri", "Adres", "Kan Grubu", "Kayıt Tarihi", "Notlar"];
+const SABLON_ORNEK = ["Kaan Yıldız", "12345678901", "", "02.11.2015", "U11", "Aktif", "Normal", "3500", "1-10", "05321234567", "Ayşe Yıldız", "05329876543", "Evet", "Eyüp İlkokulu", "İstanbul", "", "A Rh+", "01.09.2026", ""];
 
 module.exports = { satirlariCoz, basliklariEsle, tarihCoz, gsmCoz, SUTUNLAR, SABLON_BASLIKLAR, SABLON_ORNEK };

@@ -494,7 +494,7 @@ Uygulandı (12 madde, 07.09.2026):
 ### 12.4 Karar
 - Haftalık ızgara İSTENMİYOR (Kerem, 07.09.2026); yalnız tek antrenman formu. Mockup `design/YoklamaFormu.dc.html`.
 
-## 13. WhatsApp ile Hatırlatma — bağlantıyla gönderme (PLANLANDI, 07.09.2026)
+## 13. WhatsApp ile Hatırlatma — bağlantıyla gönderme (PLANLANDI ve UYGULANDI, 07.09.2026)
 
 **Karar (07.09.2026):** Kulüp WhatsApp'a ödeme yapmak istemiyor. Resmi Cloud API mesaj başı ücretli ve Meta işletme
 hesabı + kart + özel numara ister; gayri resmi kütüphaneler kulübün numarasını yasaklatır. Yol: WhatsApp'ın herkese
@@ -569,6 +569,13 @@ onay altyapısı ortak kullanılır.
   grubun velileriyle); yetki testi (`app:whatsappAc` yalnız wa.me).
 - Tahmini iş: 1,5 gün (aidat hatırlatma + şablonlar + onay 1 gün; antrenman düzenle + iptal/değişiklik bildirimi
   yarım gün).
+
+### 13.6 Uygulama notları (07.09.2026)
+- Şablonlar ayrı bölüm: Ayarlar > **WhatsApp Mesajları** (Kulüp ve Makbuz altına değil; kendi tek Kaydet'i ve kaydedilmemiş
+  değişiklik uyarısı var). Oyuncu kartı > Bilgiler'de "Son WhatsApp" satırı. Excel şablonuna "Mesaj Onayı" sütunu eklendi.
+- Pencere kapanırken uygun velilerin hepsine açıldıysa `bildirim_gerekli` iner; başlıkta "Bildirim gerekmiyor" ile elle de iner.
+- Gerçek uygulamada uçtan uca doğrulandı (Mac): Pano > Borçlulara Hatırlat > WhatsApp'ta Aç → `https://wa.me/905…?text=…`
+  açıldı, message_log'a oturum kullanıcısıyla yazıldı.
 
 ### 13.5 Kararlar (Kerem, 07.09.2026)
 - Mevcut veliler onaylı (13.3). Bildirim **yalnız birincil veliye**; oyuncunun kendi GSM'ine gönderim YOK.

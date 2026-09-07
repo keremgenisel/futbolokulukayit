@@ -42,7 +42,7 @@ function aktarUygula(kayitlar) {
         p.yas_grubu_id = grupId.get(yeni_grup);
       }
       const o = db.createPlayer(p);
-      if (veli) db.addGuardian(o.id, { tip: "veli", ad_soyad: veli.ad_soyad, gsm: veli.gsm || "", whatsapp_no: veli.gsm || "", veli_mi: 1 });
+      if (veli) db.addGuardian(o.id, { tip: "veli", ad_soyad: veli.ad_soyad, gsm: veli.gsm || "", whatsapp_no: veli.gsm || "", veli_mi: 1, mesaj_onayi: veli.mesaj_onayi === undefined ? 1 : veli.mesaj_onayi });
       eklenen++;
     }
     return { ok: true, eklenen, yeniGrup };

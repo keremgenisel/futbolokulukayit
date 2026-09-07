@@ -3,6 +3,8 @@ import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, use
 import { db, files, hataMetni, bugun } from "../lib/api.js";
 import { DURUMLAR, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
+import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
+import { aidatDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -35,6 +37,8 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   const [tumu, setTumu] = useState({ aidat: false, makbuz: false, yoklama: false }); // "Tümünü göster"
   const SON = { aidat: 12, makbuz: 12, yoklama: 40 };
   const [sil, setSil] = useState(null); // { tip, id, mesaj }
+  const [mesajlar, setMesajlar] = useState([]); // WhatsApp hatırlatma/bildirim kayıtları (son 12)
+  const [wa, setWa] = useState(null); // { tur, alicilar, baslik, altBaslik, kayit, duzenlenebilir }
   const toast = useToast();
 
   const yukle = useCallback(async () => {
@@ -48,6 +52,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       setYoklama(tumu.yoklama ? [...(await db("playerAttendance", oyuncuId, "1900-01-01", "2999-12-31"))].reverse() : await db("playerAttendanceSon", oyuncuId, SON.yoklama));
       const oz = {}; for (const r of await db("attendanceSummary", oyuncuId, "1900-01-01", "2999-12-31")) oz[r.durum] = r.n;
       setYoklamaOzet(oz);
+      try { setMesajlar(await db("sonMesajlar", oyuncuId, 12)); } catch { setMesajlar([]); }
     } catch (e) { toast("err", hataMetni(e)); }
   }, [oyuncuId, tumu, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { yukle(); }, [yukle]);
@@ -72,6 +77,13 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
 
   if (!o) return null;
   const veliAd = veliler.find((v) => v.veli_mi)?.ad_soyad;
+  // WhatsApp (plan §13): birincil veliye aidat hatırlatma / serbest mesaj
+  const birincilVeli = veliler.find((v) => v.veli_mi) || veliler[0] || null;
+  const waAlici = (v, degerler) => ({ key: String(v?.id || "yok"), player_id: o.id, guardian_id: v?.id || null, oyuncu_ad: o.ad_soyad, veli_ad: v?.ad_soyad || "", grup: o.yas_grubu_ad, numara: v ? (v.whatsapp_no || v.gsm || "") : "", onay: v?.mesaj_onayi, degerler });
+  const acikAidat = aidatlar.find((a) => a.durum === "odenmedi" || a.durum === "kismi") || null;
+  const aidatHatirlat = () => acikAidat && setWa({ tur: "aidat", baslik: "WhatsApp ile Aidat Hatırlat", altBaslik: `${AY_ADLARI[acikAidat.ay - 1]} ${acikAidat.yil}`, kayit: { yil: acikAidat.yil, ay: acikAidat.ay }, alicilar: [waAlici(birincilVeli, aidatDegerleri({ veli_ad: birincilVeli?.ad_soyad, ad_soyad: o.ad_soyad, yil: acikAidat.yil, ay: acikAidat.ay, tutar: acikAidat.tutar, kalan: aidatKalan(acikAidat), odeme_donemi: o.odeme_donemi, yas_grubu_ad: o.yas_grubu_ad }))] });
+  const veliyeMesaj = (v) => setWa({ tur: "genel", baslik: "WhatsApp Mesajı", altBaslik: v.ad_soyad, duzenlenebilir: true, kayit: {}, alicilar: [waAlici(v, aidatDegerleri({ veli_ad: v.ad_soyad, ad_soyad: o.ad_soyad, yil: bugun().yil, ay: bugun().ay, tutar: o.aylik_aidat, odeme_donemi: o.odeme_donemi, yas_grubu_ad: o.yas_grubu_ad }))] });
+  const sonMesaj = mesajlar[0] || null;
   const ust = (
     <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "20px 26px", background: "var(--mor)", color: "#fff" }}>
       <Avatar ad={o.ad_soyad} boyut={72} foto={foto} />
@@ -114,12 +126,12 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           <h3 style={{ fontSize: 20 }}>Kayıt ve Ücret</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 18 }}>
             <Bilgi etiket="Yaş Grubu" deger={o.yas_grubu_ad} /><Bilgi etiket="Ücret Tipi" deger={ucretAd(o.ucret_tipi)} /><Bilgi etiket="Aylık Aidat" deger={paraTR(o.aylik_aidat)} /><Bilgi etiket="Ödeme Dönemi" deger={`Her ayın ${o.odeme_donemi} arası`} />
-            <Bilgi etiket="Veli" deger={veliAd} /><Bilgi etiket="Veli WhatsApp" deger={veliler.find((v) => v.veli_mi)?.whatsapp_no} /><Bilgi etiket="Kayıt Tarihi" deger={tarihTR(o.kayit_tarihi)} /><Bilgi etiket="Notlar" deger={o.notlar} />
+            <Bilgi etiket="Veli" deger={veliAd} /><Bilgi etiket="Veli WhatsApp" deger={veliler.find((v) => v.veli_mi)?.whatsapp_no} /><Bilgi etiket="Kayıt Tarihi" deger={tarihTR(o.kayit_tarihi)} /><Bilgi etiket="Notlar" deger={o.notlar} /><Bilgi etiket="Son WhatsApp" deger={sonMesaj ? `${tarihTR(String(sonMesaj.tarih).slice(0, 10))} · ${{ aidat: "aidat hatırlatma", genel: "mesaj", iptal: "iptal bildirimi", degisiklik: "değişiklik bildirimi" }[sonMesaj.tur] || sonMesaj.tur}${sonMesaj.kullanici ? ` · ${sonMesaj.kullanici}` : ""}` : ""} />
           </div>
         </div>
       )}
 
-      {sekme === "aile" && <AileSekmesi oyuncu={o} veliler={veliler} acil={acil} saltOkunur={saltOkunur} onDegisti={yukle} onSil={setSil} />}
+      {sekme === "aile" && <AileSekmesi oyuncu={o} veliler={veliler} acil={acil} saltOkunur={saltOkunur} onDegisti={yukle} onSil={setSil} onWhatsApp={veliyeMesaj} />}
 
       {sekme === "belge" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -148,7 +160,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       {sekme === "odeme" && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
           <div>
-            <h3 style={{ fontSize: 20, marginBottom: 12 }}>Aylık Aidat</h3>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 10 }}><h3 style={{ fontSize: 20 }}>Aylık Aidat</h3>{acikAidat && (() => { const u = hatirlatmaUygunMu({ numara: birincilVeli ? (birincilVeli.whatsapp_no || birincilVeli.gsm) : "", onay: birincilVeli?.mesaj_onayi }); return <Btn kucuk tur={u.ok ? "yesil" : "ghost"} ikon={<Ikon ad="whatsapp" boyut={16} />} disabled={!u.ok} title={u.ok ? "" : u.neden} onClick={aidatHatirlat}>Aidat Hatırlat</Btn>; })()}</div>
             {aidatlar.length === 0 ? <Bos metin="Aidat kaydı yok." /> : (
               <table><thead><tr><th>Dönem</th><th>Tutar</th><th>Ödenen</th><th>Durum</th></tr></thead><tbody>
                 {aidatlar.map((a) => <tr key={a.id}><td>{AY_ADLARI[a.ay - 1]} {a.yil}</td><td>{paraTR(a.tutar)}</td><td>{a.durum === "muaf" ? "—" : paraTR(a.odenen || 0)}</td><td><Rozet ton={aidatTonu(a.durum)}>{aidatEtiket(a.durum)}</Rozet>{a.durum === "kismi" && <span style={{ fontSize: 12, color: "var(--kirmizi)", marginLeft: 6 }}>kalan {paraTR(aidatKalan(a))}</span>}</td></tr>)}
@@ -183,6 +195,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       )}
 
       {duzenle && <OyuncuForm oyuncu={o} gruplar={gruplar} onKapat={() => setDuzenle(false)} onKaydedildi={() => { setDuzenle(false); yukle(); }} />}
+      {wa && <WhatsAppHatirlat tur={wa.tur} baslik={wa.baslik} altBaslik={wa.altBaslik} alicilar={wa.alicilar} kayit={wa.kayit} duzenlenebilir={wa.duzenlenebilir} saltOkunur={saltOkunur} onKapat={() => { setWa(null); yukle(); }} />}
       {sil && <Onay tehlikeli mesaj={sil.mesaj} onEvet={silOnayla} onHayir={() => setSil(null)} />}
     </Modal>
   );
@@ -200,13 +213,14 @@ function BelgeYukleDugmesi({ tip, mevcut = 0, onYukle }) {
   );
 }
 
-function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil }) {
-  const [v, setV] = useState({ tip: "baba", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false });
+function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil, onWhatsApp }) {
+  const [v, setV] = useState({ tip: "baba", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false, mesaj_onayi: true });
+  const onayDegistir = async (x, deger) => { try { await db("updateGuardian", x.id, { mesaj_onayi: deger ? 1 : 0 }); onDegisti(); } catch (e) { toast("err", hataMetni(e)); } };
   const [a, setA] = useState({ ad_soyad: "", yakinlik: "", telefon: "" });
   const toast = useToast();
   const veliEkle = async () => {
     if (!v.ad_soyad.trim()) return;
-    try { await db("addGuardian", oyuncu.id, { ...v, whatsapp_no: v.whatsapp_no || v.gsm, veli_mi: v.veli_mi ? 1 : 0 }); setV({ tip: "anne", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false }); onDegisti(); } catch (e) { toast("err", hataMetni(e)); }
+    try { await db("addGuardian", oyuncu.id, { ...v, whatsapp_no: v.whatsapp_no || v.gsm, veli_mi: v.veli_mi ? 1 : 0, mesaj_onayi: v.mesaj_onayi ? 1 : 0 }); setV({ tip: "anne", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false, mesaj_onayi: true }); onDegisti(); } catch (e) { toast("err", hataMetni(e)); }
   };
   const acilEkle = async () => {
     if (!a.ad_soyad.trim()) return;
@@ -218,8 +232,8 @@ function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil }) {
       <div>
         <h3 style={{ fontSize: 20, marginBottom: 12 }}>Aile Bilgileri</h3>
         {veliler.length === 0 ? <Bos metin="Henüz veli eklenmedi." /> : (
-          <table><thead><tr><th>Yakınlık</th><th>Ad Soyad</th><th>GSM</th><th>WhatsApp</th><th>Veli</th><th></th></tr></thead><tbody>
-            {veliler.map((x) => <tr key={x.id}><td>{TIP.find((t) => t.kod === x.tip)?.ad}</td><td style={{ fontWeight: 600 }}>{x.ad_soyad}</td><td>{x.gsm}</td><td>{x.whatsapp_no}</td><td>{x.veli_mi ? <Rozet ton="purple">Veli</Rozet> : ""}</td><td>{!saltOkunur && <Btn kucuk tur="danger" onClick={() => onSil({ tip: "veli", id: x.id, mesaj: `${x.ad_soyad} silinsin mi?` })}>Sil</Btn>}</td></tr>)}
+          <table><thead><tr><th>Yakınlık</th><th>Ad Soyad</th><th>GSM</th><th>WhatsApp</th><th>Veli</th><th title="WhatsApp ile bilgilendirme onayı (KVKK)">Mesaj onayı</th><th></th></tr></thead><tbody>
+            {veliler.map((x) => { const u = hatirlatmaUygunMu({ numara: x.whatsapp_no || x.gsm, onay: x.mesaj_onayi }); return <tr key={x.id}><td>{TIP.find((t) => t.kod === x.tip)?.ad}</td><td style={{ fontWeight: 600 }}>{x.ad_soyad}</td><td>{x.gsm}</td><td>{x.whatsapp_no}</td><td>{x.veli_mi ? <Rozet ton="purple">Veli</Rozet> : ""}</td><td><input type="checkbox" checked={x.mesaj_onayi !== 0} onChange={(e) => onayDegistir(x, e.target.checked)} disabled={saltOkunur} aria-label={`${x.ad_soyad} mesaj onayı`} /></td><td><div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}><Btn kucuk tur={u.ok ? "yesil" : "ghost"} ikon={<Ikon ad="whatsapp" boyut={16} />} disabled={!u.ok} title={u.ok ? "WhatsApp'ta mesaj yaz" : u.neden} onClick={() => onWhatsApp(x)} aria-label={`${x.ad_soyad} WhatsApp`}>WhatsApp</Btn>{!saltOkunur && <Btn kucuk tur="danger" onClick={() => onSil({ tip: "veli", id: x.id, mesaj: `${x.ad_soyad} silinsin mi?` })}>Sil</Btn>}</div></td></tr>; })}
           </tbody></table>
         )}
         {!saltOkunur && (
@@ -229,6 +243,7 @@ function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil }) {
             <Alan etiket="GSM" style={{ width: 150 }}><Girdi value={v.gsm} onChange={(e) => setV({ ...v, gsm: e.target.value })} /></Alan>
             <Alan etiket="WhatsApp" style={{ width: 150 }}><Girdi value={v.whatsapp_no} onChange={(e) => setV({ ...v, whatsapp_no: e.target.value })} placeholder="GSM ile aynıysa boş" /></Alan>
             <label style={{ display: "flex", gap: 6, alignItems: "center", height: 42 }}><input type="checkbox" checked={v.veli_mi} onChange={(e) => setV({ ...v, veli_mi: e.target.checked })} /> Veli</label>
+            <label style={{ display: "flex", gap: 6, alignItems: "center", height: 42 }} title="WhatsApp ile bilgilendirme onayı (KVKK)"><input type="checkbox" checked={v.mesaj_onayi} onChange={(e) => setV({ ...v, mesaj_onayi: e.target.checked })} /> Mesaj onayı</label>
             <Btn onClick={veliEkle} disabled={!v.ad_soyad.trim()}>Ekle</Btn>
           </div>
         )}

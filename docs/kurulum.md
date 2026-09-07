@@ -68,6 +68,13 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
   o haftanın antrenmanlarını tek tıkla açar (var olanlar atlanır).
 - **Sağlık raporu:** panoda süresi dolan/dolacak raporlar listelenir; oyuncu kartında belge rozeti gösterir.
 - **Makbuz iptali** neden ister; iptal eden ve zaman kayda geçer, tahsilat raporunda ayrı görünür.
+- **WhatsApp ile hatırlatma (API yok, ücretsiz):** Pano'da borçlu satırındaki yeşil WhatsApp düğmesi ya da "Borçlulara Hatırlat";
+  oyuncu kartında veli satırında WhatsApp ve Ödemeler'de "Aidat Hatırlat". Program mesajı hazırlayıp bu bilgisayardaki
+  WhatsApp'ı (masaüstü ya da tarayıcıda WhatsApp Web) açar, Gönder'e siz basarsınız; satır "Hatırlatıldı" olur. Onayı olmayan
+  ya da numarası olmayan veliye düğme kapalıdır (Oyuncu kartı > Aile > Mesaj onayı). Şablonlar Ayarlar > WhatsApp Mesajları'nda.
+- **Antrenman iptali / saat değişikliği:** Yoklama'da antrenmanı seçip "Düzenle" (tarih, saat, saha; yoklama alındıysa tarih
+  kilitli) ya da "İptal Et"; ardından "Velilere bildirilsin mi?" sorusuna Evet deyin, grubun velileri için WhatsApp sırayla açılır.
+  Sonra bildirmek isterseniz kartta "Velilere bildirilmedi" rozeti ve "Velilere Bildir" düğmesi kalır.
 - **Saha yoklama formu:** Yoklama'da antrenmanı seçip "Formu Yazdır" (ya da "PDF") deyin; A4 formda programda işaretli
   oyuncular dolu, kalanlar boş kutuyla gelir, antrenör sahada elle işaretler. Kâğıttakileri sonra ekranda işleyin.
 - **Kalem ve ücret tipi ekleme:** Ayarlar > Aidat Kalemleri'nde alt satıra ad (ve fiyat / indirim) yazıp "Kalem Ekle" ya da

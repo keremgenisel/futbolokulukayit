@@ -12,6 +12,12 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
   it("yazma lisans salt okunurken 403, normalde serbest", () => {
     expect(cagriYetkisi("createPlayer", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("aidatAyarlariKaydet", kullanici, true).kod).toBe(403);
+    // WhatsApp (plan §13): okuma serbest, kayıt yazma; salt okunurda mesaj kaydı reddedilir ama bağlantı açma IPC'si db dışında
+    expect(cagriYetkisi("antrenmanVelileri", kullanici, true).ok).toBe(true);
+    expect(cagriYetkisi("sonMesajlar", kullanici, true).ok).toBe(true);
+    expect(cagriYetkisi("mesajKaydet", kullanici, true).kod).toBe(403);
+    expect(cagriYetkisi("updateTraining", kullanici, false).ok).toBe(true);
+    expect(cagriYetkisi("updateGuardian", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("haftayiProgramdanDoldur", kullanici, false).ok).toBe(true);
     const r = cagriYetkisi("createPlayer", kullanici, true);
     expect(r.ok).toBe(false); expect(r.kod).toBe(403); expect(r.mesaj).toMatch(/salt okunur/);

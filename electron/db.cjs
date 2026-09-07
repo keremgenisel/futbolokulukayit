@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 8; // …5: monthly_dues.odenen; 6: age_groups.program; 7: receipts.iptal_*; 8: fee_types (ücret tipleri tabloya)
+const SCHEMA_VERSION = 9; // …6: age_groups.program; 7: receipts.iptal_*; 8: fee_types; 9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu)
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -116,7 +116,8 @@ CREATE TABLE IF NOT EXISTS guardians (
   ad_soyad TEXT NOT NULL,
   gsm TEXT DEFAULT '',
   whatsapp_no TEXT DEFAULT '',
-  veli_mi INTEGER NOT NULL DEFAULT 0
+  veli_mi INTEGER NOT NULL DEFAULT 0,
+  mesaj_onayi INTEGER NOT NULL DEFAULT 1              -- WhatsApp ile bilgilendirme onayı (KVKK; kulüp kararı: varsayılan onaylı)
 );
 
 CREATE TABLE IF NOT EXISTS emergency_contacts (
@@ -202,8 +203,24 @@ CREATE TABLE IF NOT EXISTS trainings (
   saha TEXT DEFAULT '',
   iptal INTEGER NOT NULL DEFAULT 0,
   iptal_nedeni TEXT DEFAULT '',
-  notlar TEXT DEFAULT ''
+  notlar TEXT DEFAULT '',
+  bildirim_gerekli INTEGER NOT NULL DEFAULT 0,        -- elle iptal/değişiklik yapıldı, veliler henüz bilgilendirilmedi
+  degisiklik_notu TEXT DEFAULT ''                     -- son değişikliğin eski değerleri JSON {eskiTarih, eskiSaat, eskiSaha, zaman}
 );
+
+CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  guardian_id INTEGER REFERENCES guardians(id) ON DELETE SET NULL,
+  tur TEXT NOT NULL,                                  -- aidat|genel|iptal|degisiklik
+  yil INTEGER, ay INTEGER,                            -- aidat hatırlatmasının dönemi
+  training_id INTEGER REFERENCES trainings(id) ON DELETE CASCADE,
+  metin TEXT NOT NULL DEFAULT '',
+  tarih TEXT NOT NULL DEFAULT (datetime('now','localtime')),
+  kullanici TEXT DEFAULT ''
+);
+CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay);
+CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id);
 
 CREATE TABLE IF NOT EXISTS attendance (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -278,6 +295,12 @@ function migrate() {
   const dueKolon = new Set(db.prepare("PRAGMA table_info(monthly_dues)").all().map((c) => c.name));
   if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
+  // 9: WhatsApp — veli mesaj onayı (mevcut veliler onaylı: kulüp kararı 07.09.2026), antrenman bildirim alanları
+  const veliKolon = new Set(db.prepare("PRAGMA table_info(guardians)").all().map((c) => c.name));
+  if (!veliKolon.has("mesaj_onayi")) db.exec("ALTER TABLE guardians ADD COLUMN mesaj_onayi INTEGER NOT NULL DEFAULT 1");
+  const antKolon = new Set(db.prepare("PRAGMA table_info(trainings)").all().map((c) => c.name));
+  if (!antKolon.has("bildirim_gerekli")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_gerekli INTEGER NOT NULL DEFAULT 0");
+  if (!antKolon.has("degisiklik_notu")) db.exec("ALTER TABLE trainings ADD COLUMN degisiklik_notu TEXT DEFAULT ''");
   // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
   // Varsayılan tipler YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
   if (!getMetaValue("tohum_fee_types")) {
@@ -420,11 +443,34 @@ const deletePlayer = (id) => db.prepare("DELETE FROM players WHERE id=?").run(id
 // ── guardians / emergency ──
 const listGuardians = (pid) => db.prepare("SELECT * FROM guardians WHERE player_id=? ORDER BY veli_mi DESC, id").all(pid);
 function addGuardian(pid, g) {
-  const r = db.prepare("INSERT INTO guardians (player_id,tip,ad_soyad,gsm,whatsapp_no,veli_mi) VALUES (?,?,?,?,?,?)")
-    .run(pid, g.tip || "veli", g.ad_soyad, g.gsm || "", g.whatsapp_no || "", g.veli_mi ? 1 : 0);
+  const r = db.prepare("INSERT INTO guardians (player_id,tip,ad_soyad,gsm,whatsapp_no,veli_mi,mesaj_onayi) VALUES (?,?,?,?,?,?,?)")
+    .run(pid, g.tip || "veli", g.ad_soyad, g.gsm || "", g.whatsapp_no || "", g.veli_mi ? 1 : 0, g.mesaj_onayi === undefined ? 1 : (g.mesaj_onayi ? 1 : 0));
   return Number(r.lastInsertRowid);
 }
 const deleteGuardian = (id) => db.prepare("DELETE FROM guardians WHERE id=?").run(id);
+// Veli: WhatsApp bilgilendirme onayı ve numaralar (oyuncu kartı > Aile)
+const updateGuardian = (id, { mesaj_onayi, gsm, whatsapp_no }) =>
+  db.prepare("UPDATE guardians SET mesaj_onayi=COALESCE(?,mesaj_onayi), gsm=COALESCE(?,gsm), whatsapp_no=COALESCE(?,whatsapp_no) WHERE id=?")
+    .run(mesaj_onayi === undefined ? null : (mesaj_onayi ? 1 : 0), gsm === undefined ? null : String(gsm), whatsapp_no === undefined ? null : String(whatsapp_no), id);
+
+// ── WhatsApp mesaj kayıtları (plan §13): "WhatsApp'ta Aç" tıklandığında yazılır; gönderimi program göremez ──
+const MESAJ_TURLERI = new Set(["aidat", "genel", "iptal", "degisiklik"]);
+function mesajKaydet({ player_id, guardian_id = null, tur, yil = null, ay = null, training_id = null, metin = "", kullanici = "" }) {
+  if (!MESAJ_TURLERI.has(tur)) throw new Error("Geçersiz mesaj türü: " + tur);
+  if (!db.prepare("SELECT 1 FROM players WHERE id=?").get(Number(player_id))) throw new Error("Oyuncu bulunamadı");
+  const r = db.prepare("INSERT INTO message_log (player_id,guardian_id,tur,yil,ay,training_id,metin,kullanici) VALUES (?,?,?,?,?,?,?,?)")
+    .run(Number(player_id), guardian_id ? Number(guardian_id) : null, tur, yil, ay, training_id ? Number(training_id) : null, String(metin || "").slice(0, 2000), String(kullanici || ""));
+  return { id: Number(r.lastInsertRowid) };
+}
+const mesajSil = (id) => db.prepare("DELETE FROM message_log WHERE id=?").run(Number(id));
+const sonMesajlar = (pid, n = 12) => db.prepare("SELECT m.*, g.ad_soyad AS veli_ad FROM message_log m LEFT JOIN guardians g ON g.id=m.guardian_id WHERE m.player_id=? ORDER BY m.id DESC LIMIT ?").all(pid, Number(n));
+// Antrenmanın velileri (grubun aktif oyuncuları + birincil veli + onay/numara) ve bu antrenman için açılmış bildirim.
+const antrenmanVelileri = (tid) => db.prepare(`SELECT p.id AS player_id, p.ad_soyad, p.durum, gu.id AS guardian_id, gu.ad_soyad AS veli_ad,
+    COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') AS veli_wa, gu.mesaj_onayi AS veli_onay,
+    (SELECT m.id FROM message_log m WHERE m.training_id=t.id AND m.player_id=p.id ORDER BY m.id DESC LIMIT 1) AS mesaj_id
+  FROM trainings t JOIN players p ON p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')
+  LEFT JOIN guardians gu ON gu.id=(SELECT g2.id FROM guardians g2 WHERE g2.player_id=p.id ORDER BY g2.veli_mi DESC, g2.id LIMIT 1)
+  WHERE t.id=? ORDER BY p.ad_soyad`).all(Number(tid));
 const listEmergency = (pid) => db.prepare("SELECT * FROM emergency_contacts WHERE player_id=? ORDER BY id").all(pid);
 function addEmergency(pid, e) {
   const r = db.prepare("INSERT INTO emergency_contacts (player_id,ad_soyad,yakinlik,telefon) VALUES (?,?,?,?)").run(pid, e.ad_soyad, e.yakinlik || "", e.telefon || "");
@@ -569,7 +615,7 @@ const listDues = (pid, limit = null) => limit
   ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
   : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
 const listUnpaid = (yil, ay) => db.prepare(
-  "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad"
+  "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad"
 ).all(yil, ay);
 
 // ── receipts ──
@@ -632,10 +678,28 @@ function createTraining({ age_group_id, tarih, saat = "", saha = "" }) {
 const trainingCalendar = (from, to) => db.prepare(`SELECT t.*, g.ad AS yas_grubu_ad,
     (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
     (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
-    (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi
+    (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi,
+    (SELECT count(DISTINCT m.player_id) FROM message_log m WHERE m.training_id=t.id) AS bildirilen
   FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat`).all(from, to);
 const listTrainings = (from, to) => db.prepare("SELECT t.*, g.ad AS yas_grubu_ad FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat").all(from, to);
-const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=? WHERE id=?").run(neden, id);
+// Elle iptal: veliler bilgilendirilene kadar bildirim_gerekli=1 (programdan otomatik dolan antrenmanlar bu yoldan geçmez).
+const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=?, bildirim_gerekli=1 WHERE id=?").run(neden, id);
+// Antrenman düzenleme (tarih/saat/saha): yoklaması alınmış antrenmanda tarih değişmez; eski değerler degisiklik_notu'na.
+function updateTraining(id, { tarih, saat, saha } = {}) {
+  const t = db.prepare("SELECT * FROM trainings WHERE id=?").get(Number(id));
+  if (!t) throw new Error("Antrenman bulunamadı");
+  if (t.iptal) throw new Error("İptal edilmiş antrenman düzenlenemez");
+  const yeni = { tarih: tarih === undefined ? t.tarih : String(tarih), saat: saat === undefined ? t.saat : String(saat || ""), saha: saha === undefined ? t.saha : String(saha || "") };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(yeni.tarih)) throw new Error("Tarih geçersiz");
+  const degisti = yeni.tarih !== t.tarih || yeni.saat !== t.saat || yeni.saha !== t.saha;
+  if (!degisti) return { ...t, degisti: false };
+  const yoklamaVar = db.prepare("SELECT count(*) AS n FROM attendance WHERE training_id=?").get(t.id).n > 0;
+  if (yoklamaVar && yeni.tarih !== t.tarih) throw new Error("Yoklaması alınmış antrenmanın tarihi değiştirilemez; yalnız saat ve saha");
+  const not_ = JSON.stringify({ eskiTarih: t.tarih, eskiSaat: t.saat, eskiSaha: t.saha, zaman: new Date().toISOString() });
+  db.prepare("UPDATE trainings SET tarih=?, saat=?, saha=?, bildirim_gerekli=1, degisiklik_notu=? WHERE id=?").run(yeni.tarih, yeni.saat, yeni.saha, not_, t.id);
+  return { ...t, ...yeni, bildirim_gerekli: 1, degisiklik_notu: not_, degisti: true };
+}
+const bildirimGerekliAyarla = (id, deger) => db.prepare("UPDATE trainings SET bildirim_gerekli=? WHERE id=?").run(deger ? 1 : 0, Number(id));
 const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum").run(tid, pid, durum);
 const listAttendance = (tid) => db.prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad").all(tid);
 // Son N yoklama (yeniden eskiye) — oyuncu kartı; tam liste için playerAttendance.
@@ -949,7 +1013,8 @@ module.exports = {
   getUserByUsername, createUser, verifyPassword, changePassword,
   listAgeGroups, createAgeGroup, updateAgeGroup, haftayiProgramdanDoldur,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
-  listGuardians, addGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
+  listGuardians, addGuardian, updateGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
+  mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla,
   listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
   listFeeItems, updateFeeItem, listFeeTypes,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
