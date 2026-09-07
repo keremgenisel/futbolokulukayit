@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 9; // …6: age_groups.program; 7: receipts.iptal_*; 8: fee_types; 9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu)
+const SCHEMA_VERSION = 10; // …8: fee_types; 9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -219,7 +219,8 @@ CREATE TABLE IF NOT EXISTS trainings (
   iptal_nedeni TEXT DEFAULT '',
   notlar TEXT DEFAULT '',
   bildirim_gerekli INTEGER NOT NULL DEFAULT 0,        -- elle iptal/değişiklik yapıldı, veliler henüz bilgilendirilmedi
-  degisiklik_notu TEXT DEFAULT ''                     -- son değişikliğin eski değerleri JSON {eskiTarih, eskiSaat, eskiSaha, zaman}
+  degisiklik_notu TEXT DEFAULT '',                    -- son değişikliğin eski değerleri JSON {eskiTarih, eskiSaat, eskiSaha, zaman}
+  grup_bildirim TEXT DEFAULT ''                       -- veli WhatsApp grubuna tek mesaj açıldı: JSON {zaman, kullanici} (şema 10)
 );
 
 ${MESSAGE_LOG_SQL}
@@ -293,6 +294,7 @@ function migrate() {
   const antKolon = new Set(db.prepare("PRAGMA table_info(trainings)").all().map((c) => c.name));
   if (!antKolon.has("bildirim_gerekli")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_gerekli INTEGER NOT NULL DEFAULT 0");
   if (!antKolon.has("degisiklik_notu")) db.exec("ALTER TABLE trainings ADD COLUMN degisiklik_notu TEXT DEFAULT ''");
+  if (!antKolon.has("grup_bildirim")) db.exec("ALTER TABLE trainings ADD COLUMN grup_bildirim TEXT DEFAULT ''"); // 10
   const mlKolon = new Set(db.prepare("PRAGMA table_info(message_log)").all().map((c) => c.name));
   if (mlKolon.size && !mlKolon.has("tur")) { // ilk iskeletin kullanılmayan message_log'u
     const dolu = db.prepare("SELECT count(*) AS n FROM message_log").get().n > 0;
@@ -699,6 +701,13 @@ function updateTraining(id, { tarih, saat, saha } = {}) {
   return { ...t, ...yeni, bildirim_gerekli: 1, degisiklik_notu: not_, degisti: true };
 }
 const bildirimGerekliAyarla = (id, deger) => db.prepare("UPDATE trainings SET bildirim_gerekli=? WHERE id=?").run(deger ? 1 : 0, Number(id));
+// Veli WhatsApp grubuna tek mesaj açıldı (plan §13.7): bildirim gereği iner, kim/ne zaman kaydedilir.
+function grupBildirimKaydet(id, kullanici = "") {
+  if (!db.prepare("SELECT 1 FROM trainings WHERE id=?").get(Number(id))) throw new Error("Antrenman bulunamadı");
+  const not_ = JSON.stringify({ zaman: new Date().toISOString(), kullanici: String(kullanici || "") });
+  db.prepare("UPDATE trainings SET grup_bildirim=?, bildirim_gerekli=0 WHERE id=?").run(not_, Number(id));
+  return { ok: true, grup_bildirim: not_ };
+}
 const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum").run(tid, pid, durum);
 const listAttendance = (tid) => db.prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad").all(tid);
 // Son N yoklama (yeniden eskiye) — oyuncu kartı; tam liste için playerAttendance.
@@ -1014,7 +1023,7 @@ module.exports = {
   listAgeGroups, createAgeGroup, updateAgeGroup, haftayiProgramdanDoldur,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, updateGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
-  mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla,
+  mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla, grupBildirimKaydet,
   listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
   listFeeItems, updateFeeItem, listFeeTypes,
   ensureMonthlyDues, getDue, listDues, listUnpaid,

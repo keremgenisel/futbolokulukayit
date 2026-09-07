@@ -118,8 +118,9 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     await screen.findByText("Antrenman Değişikliği — Velilere Bildir");
     const dlg = screen.getByRole("dialog");
     expect(within(dlg).getByText("Veli numarası yok")).toBeInTheDocument(); // Barış'ın velisinde numara yok
-    expect(within(dlg).getByTestId("wa-onizleme")).toHaveTextContent("17:00 antrenmanı");
-    expect(within(dlg).getByTestId("wa-onizleme")).toHaveTextContent("18:30 saatine alınmıştır (Saha 2)");
+    const on = await within(dlg).findByTestId("wa-onizleme");
+    expect(on).toHaveTextContent("17:00 antrenmanı"); expect(on).toHaveTextContent("18:30 saatine alınmıştır (Saha 2)");
+    expect(within(dlg).getByTestId("wa-grup")).toHaveTextContent("U11 veli WhatsApp grubuna tek mesaj"); // toplu seçenek de var
     fireEvent.click(within(dlg).getByRole("button", { name: "Selin Kaya WhatsApp'ta aç" }));
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("mesajKaydet", expect.objectContaining({ player_id: 10, guardian_id: 50, tur: "degisiklik", training_id: 5 })));
     fireEvent.click(within(dlg).getByRole("button", { name: "Kapat" }));

@@ -37,8 +37,13 @@ export function sablonDoldur(sablon, degerler = {}) {
     .replace(/[ \t]+/g, " ").replace(/ \n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
 }
 
-/** @param {string} numara "905…" @param {string} metin */
-export const waBaglanti = (numara, metin) => `https://wa.me/${numara}?text=${encodeURIComponent(metin)}`;
+/**
+ * Bağlantı: numara varsa o kişiye; numara boşsa WhatsApp "sohbet seç" ekranı açılır (metin hazır) — veli GRUBUNA tek
+ * mesaj için (plan §13.7). @param {string} numara "905…" ya da "" @param {string} metin
+ */
+export const waBaglanti = (numara, metin) => `https://wa.me/${numara || ""}?text=${encodeURIComponent(metin)}`;
+/** Grup mesajı: aynı şablon, hitap "Veliler" (tek tek {veli} yerine). @param {Record<string, unknown>} degerler */
+export const grupDegerleri = (degerler) => ({ ...degerler, veli: "Veliler", oyuncu: "" });
 
 /**
  * Bu veliye WhatsApp açılabilir mi? @param {{ numara?: unknown, onay?: unknown }} veli

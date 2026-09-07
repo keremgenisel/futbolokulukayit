@@ -87,6 +87,28 @@ describe("WhatsApp toplu hatırlatma penceresi", () => {
   });
 });
 
+describe("WhatsApp bildirim penceresi — veli grubuna tek mesaj", () => {
+  it("Veli Grubuna Gönder: numarasız bağlantı 'Sayın Veliler' metniyle açılır, kayıt düşer, blok yeşile döner; tek tek liste kalır", async () => {
+    window.okul = { app: { whatsappAc: vi.fn(async () => ({ ok: true })) }, db: vi.fn(async (fn, ...a) => {
+      if (fn === "getSetting") return a[0] === "kulup_adi" ? "TEST KULÜBÜ" : "";
+      if (fn === "grupBildirimKaydet") return { ok: true };
+      return null;
+    }) };
+    const { antrenmanDegerleri } = await import("../../src/lib/whatsapp.js");
+    const t = { tarih: "2026-09-08", saat: "18:30", saha: "Saha 2", yas_grubu_ad: "U11", degisiklik_notu: JSON.stringify({ eskiTarih: "2026-09-07", eskiSaat: "17:00" }) };
+    const al = [{ key: "1", player_id: 1, guardian_id: 5, oyuncu_ad: "Kaan", veli_ad: "Ayşe", grup: "U11", numara: "05321112233", onay: 1, degerler: antrenmanDegerleri(t, { veli_ad: "Ayşe", ad_soyad: "Kaan" }) }];
+    render(<ToastSaglayici><WhatsAppHatirlat tur="degisiklik" baslik="Bildir" alicilar={al} kayit={{ training_id: 5 }} grup={{ ad: "U11", training_id: 5, gonderildi: false }} saltOkunur={false} onKapat={vi.fn()} /></ToastSaglayici>);
+    const blok = await screen.findByTestId("wa-grup");
+    expect(blok).toHaveTextContent("U11 veli WhatsApp grubuna tek mesaj");
+    fireEvent.click(within(blok).getByRole("button", { name: "Veli Grubuna Gönder" }));
+    await waitFor(() => expect(window.okul.app.whatsappAc).toHaveBeenCalledWith("", "Sayın Veliler, U11 grubunun 7 Eylül 2026 Pazartesi 17:00 antrenmanı 8 Eylül 2026 Salı 18:30 saatine alınmıştır (Saha 2).\nTEST KULÜBÜ"));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("grupBildirimKaydet", 5));
+    expect(await within(blok).findByText("Gruba gönderildi")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ayşe WhatsApp'ta aç" })).toBeInTheDocument(); // tek tek liste hâlâ var
+    expect(screen.getByTestId("wa-onizleme")).toHaveTextContent("Sayın Ayşe,"); // tek tek önizleme kişiye özel kalır
+  });
+});
+
 describe("Pano — WhatsApp hatırlatma girişleri", () => {
   beforeEach(() => {
     window.okul = { app: { whatsappAc: vi.fn(async () => ({ ok: true })) }, db: vi.fn(async (fn, ...a) => {

@@ -47,10 +47,10 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `electron/db.cjs` — SQLite şeması, göç (`schema_version`), tohum (aidat kalemleri, ilk admin),
   tüm sorgular, lisans durumu (`lisansDurumu`/`lisansKaydet`/`leaseKaydet`). Şema `docs/plan.md §3`.
   Anahtar `safeStorage` ile OS anahtarlığında.
-  Şema sürümü 9: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
+  Şema sürümü 10: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
   6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani · 8 fee_types (ücret tipleri
   tabloda; `players.ucret_tipi` = kod; normal/ucretsiz sabit; kod `electron/kodUret.cjs` ile addan üretilir) · 9 WhatsApp
-  (`guardians.mesaj_onayi` varsayılan 1, `message_log`, `trainings.bildirim_gerekli/degisiklik_notu`). Göç `migrate()` PRAGMA
+  (`guardians.mesaj_onayi` varsayılan 1, `message_log`, `trainings.bildirim_gerekli/degisiklik_notu`) · 10 `trainings.grup_bildirim`. Göç `migrate()` PRAGMA
   table_info ile idempotent; varsayılan kalem/tip tohumu meta bayrağıyla TEK SEFER (silinen geri gelmez).
 - **WhatsApp (plan §13, API YOK):** `src/lib/whatsapp.js` SAF (wa numarası, şablon doldurma, uygunluk), `src/components/WhatsAppHatirlat.jsx`
   toplu pencere; ana süreç `app:whatsappAc` yalnız `https://wa.me/90…` açar (`shell.openExternal`). Kayıt `db.mesajKaydet`

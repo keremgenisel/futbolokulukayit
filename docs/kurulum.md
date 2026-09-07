@@ -74,7 +74,8 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
   ya da numarası olmayan veliye düğme kapalıdır (Oyuncu kartı > Aile > Mesaj onayı). Şablonlar Ayarlar > WhatsApp Mesajları'nda.
 - **Antrenman iptali / saat değişikliği:** Yoklama'da antrenmanı seçip "Düzenle" (tarih, saat, saha; yoklama alındıysa tarih
   kilitli) ya da "İptal Et"; ardından "Velilere bildirilsin mi?" sorusuna Evet deyin, grubun velileri için WhatsApp sırayla açılır.
-  Sonra bildirmek isterseniz kartta "Velilere bildirilmedi" rozeti ve "Velilere Bildir" düğmesi kalır.
+  Sonra bildirmek isterseniz kartta "Velilere bildirilmedi" rozeti ve "Velilere Bildir" düğmesi kalır. Grubun WhatsApp veli
+  grubu varsa penceredeki "Veli Grubuna Gönder" ile tek mesaj: WhatsApp sohbet seçme ekranı metin hazır açılır, grubu seçin.
 - **Saha yoklama formu:** Yoklama'da antrenmanı seçip "Formu Yazdır" (ya da "PDF") deyin; A4 formda programda işaretli
   oyuncular dolu, kalanlar boş kutuyla gelir, antrenör sahada elle işaretler. Kâğıttakileri sonra ekranda işleyin.
 - **Kalem ve ücret tipi ekleme:** Ayarlar > Aidat Kalemleri'nde alt satıra ad (ve fiyat / indirim) yazıp "Kalem Ekle" ya da

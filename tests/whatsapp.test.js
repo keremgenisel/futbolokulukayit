@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { waNumara, sablonDoldur, waBaglanti, hatirlatmaUygunMu, aidatDegerleri, antrenmanDegerleri, VARSAYILAN_SABLONLAR, YER_TUTUCULAR } from "../src/lib/whatsapp.js";
+import { waNumara, sablonDoldur, waBaglanti, hatirlatmaUygunMu, aidatDegerleri, antrenmanDegerleri, grupDegerleri, VARSAYILAN_SABLONLAR, YER_TUTUCULAR } from "../src/lib/whatsapp.js";
 
 describe("WhatsApp saf mantık", () => {
   it("waNumara: 05xx, +90, boşluklu biçimler 905… olur; geçersiz boş", () => {
@@ -19,6 +19,11 @@ describe("WhatsApp saf mantık", () => {
   it("waBaglanti: wa.me ve URL kodlu metin (satır sonu, Türkçe harf)", () => {
     const u = waBaglanti("905321234567", "Sayın Ayşe,\nmerhaba");
     expect(u).toBe("https://wa.me/905321234567?text=Say%C4%B1n%20Ay%C5%9Fe%2C%0Amerhaba");
+  });
+  it("numarasız bağlantı sohbet seçme ekranını açar (grup); grup değerleri hitabı 'Veliler' yapar", () => {
+    expect(waBaglanti("", "Merhaba")).toBe("https://wa.me/?text=Merhaba");
+    const d = grupDegerleri(antrenmanDegerleri({ tarih: "2026-09-08", saat: "18:30", yas_grubu_ad: "U11", iptal_nedeni: "İptal" }, { veli_ad: "Ayşe", ad_soyad: "Kaan" }));
+    expect(sablonDoldur(VARSAYILAN_SABLONLAR.iptal, d)).toBe("Sayın Veliler, U11 grubunun 8 Eylül 2026 Salı 18:30 antrenmanı iptal edilmiştir.\nEyüpspor Futbol Okulu");
   });
   it("hatirlatmaUygunMu: numara yok / onay yok / uygun", () => {
     expect(hatirlatmaUygunMu({ numara: "", onay: 1 })).toEqual({ ok: false, neden: "Veli numarası yok", numara: "" });

@@ -134,7 +134,7 @@ app.on("browser-window-created", async (_e, win) => {
       check("kurtarma kodu yeniden açılışta çalışır, tek kullanımlık", sf.ok && sf.kalan === b.kodSayisi - 1 && !!db.verifyPassword("hoca", "yeni-parola-77") && !!db.kurtarmaIleSifirla("hoca", b.kod, "x-parola-1").error);
       const fotolar = db.listDocuments(o.id).filter((d) => d.tip === "foto");
       check("vesikalık tek kayıt ve oyuncu foto yolu kalıcı", fotolar.length === 1 && fotolar[0].orijinal_ad === "v2.png" && db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu && fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)));
-      check("şema sürümü 9 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "9");
+      check("şema sürümü 10 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "10");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check("kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)", kd?.durum === "kismi" && kd.odenen === 1000 && db.listUnpaid(b.yil, b.ay).some((x) => x.player_id === b.yabanci && x.kalan === kd.tutar - 1000));
       const ip = db.getReceipt(b.iptalli);

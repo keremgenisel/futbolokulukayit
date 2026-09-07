@@ -83,7 +83,8 @@ if (!app.requestSingleInstanceLock()) {
     ipcMain.handle("app:whatsappAc", async (_e, numara, metin) => {
       if (!getSession()) return { error: "Oturum gerekli" };
       const n = String(numara || "").replace(/\D/g, "");
-      if (!/^90\d{10}$/.test(n)) return { error: "Geçersiz WhatsApp numarası" };
+      if (n && !/^90\d{10}$/.test(n)) return { error: "Geçersiz WhatsApp numarası" };
+      // n boş → WhatsApp "sohbet seç" ekranı (veli grubuna tek mesaj); dolu → o kişiye
       const url = `https://wa.me/${n}?text=${encodeURIComponent(String(metin || "").slice(0, 4000))}`;
       try { await shell.openExternal(url); return { ok: true }; } catch (e) { return { error: "WhatsApp açılamadı: " + e.message }; }
     });

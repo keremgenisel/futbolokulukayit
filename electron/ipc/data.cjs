@@ -73,6 +73,7 @@ function registerDataHandlers() {
     if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(a[0]))?.username === session.username) throw new Error("Kendi hesabınızı silemezsiniz");
     if (fn === "cancelReceipt") return db.cancelReceipt(a[0], a[1], session.ad_soyad || session.username); // iptal eden = oturum
     if (fn === "mesajKaydet") return db.mesajKaydet({ ...(a[0] || {}), kullanici: session.ad_soyad || session.username }); // WhatsApp kaydını açan = oturum
+    if (fn === "grupBildirimKaydet") return db.grupBildirimKaydet(a[0], session.ad_soyad || session.username);
     return db[fn](...a);
   });
 

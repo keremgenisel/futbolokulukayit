@@ -104,7 +104,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 9 ve pasaport sütunu var", db.getMetaValue("schema_version") === "9" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 10 ve pasaport sütunu var", db.getMetaValue("schema_version") === "10" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -340,7 +340,7 @@ app.whenReady().then(async () => {
     db.setMetaValue("schema_version", "7"); db.setSetting("indirim_burslu", "33"); db.setSetting("indirim_ucretsiz", "10");
     db.close(); db.init();
     const goc = db.listFeeTypes();
-    check("göç 7→9: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 9", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "9");
+    check("göç 7→10: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 10", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "10");
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } }); db.close(); db.init();
     check("şema 8'de yeniden açılış eski ayarı tekrar yazmaz (40 kaldı)", db.listFeeTypes().find((t) => t.kod === "burslu").indirim === 40);
     // İlk iskeletin (06.09.2026) farklı sütunlu message_log'u: boşsa silinip yeniden kurulur, doluysa kenara alınır; açılış çökmez
@@ -390,6 +390,9 @@ app.whenReady().then(async () => {
     db.cancelTraining(waT.id, "Yağmur"); check("iptal bildirim gerekli yapar", db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id).bildirim_gerekli === 1);
     let iptalRed = ""; try { db.updateTraining(waT.id, { saat: "20:00" }); } catch (e) { iptalRed = e.message; }
     check("iptal edilmiş antrenman düzenlenemez", /İptal edilmiş/.test(iptalRed));
+    const gb = db.grupBildirimKaydet(waT.id, "Yönetici");
+    const gbT = db.trainingCalendar("2026-10-05", "2026-10-05").find((t) => t.id === waT.id);
+    check("veli grubuna gönderim kaydı: bildirim gereği iner, kim/ne zaman yazılır", gb.ok && gbT.bildirim_gerekli === 0 && JSON.parse(gbT.grup_bildirim).kullanici === "Yönetici");
     check("silinen varsayılan kalem ve ücret tipi yeniden açılışta geri gelmez", !db.listFeeItems().some((k) => k.kod === "top") && !db.listFeeTypes().some((t) => t.kod === "indirimli") && db.listFeeItems().some((k) => k.kod === "aidat"));
 
     db.close();

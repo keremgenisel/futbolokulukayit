@@ -115,6 +115,7 @@ function buildApp({ surum = "" } = {}) {
     if (!y.ok) return res.status(y.kod).json({ error: y.mesaj });
     if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(args?.[0]))?.username === req.user.username) return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
     if (fn === "cancelReceipt") { try { return res.json({ ok: true, sonuc: db.cancelReceipt(args?.[0], args?.[1], req.user.ad_soyad || req.user.username) }); } catch (e) { return res.status(400).json({ error: e.message }); } }
+    if (fn === "grupBildirimKaydet") { try { return res.json({ ok: true, sonuc: db.grupBildirimKaydet(args?.[0], req.user.ad_soyad || req.user.username) }); } catch (e) { return res.status(400).json({ error: e.message }); } }
     if (fn === "mesajKaydet") { try { return res.json({ ok: true, sonuc: db.mesajKaydet({ ...(args?.[0] || {}), kullanici: req.user.ad_soyad || req.user.username }) }); } catch (e) { return res.status(400).json({ error: e.message }); } }
     try { res.json({ ok: true, sonuc: db[fn](...(Array.isArray(args) ? args : [])) ?? null }); }
     catch (e) { res.status(400).json({ error: e.message }); }

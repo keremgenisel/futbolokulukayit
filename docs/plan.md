@@ -577,6 +577,15 @@ onay altyapısı ortak kullanılır.
 - Gerçek uygulamada uçtan uca doğrulandı (Mac): Pano > Borçlulara Hatırlat > WhatsApp'ta Aç → `https://wa.me/905…?text=…`
   açıldı, message_log'a oturum kullanıcısıyla yazıldı.
 
+### 13.7 Veli grubuna tek mesaj (kulüp isteği, 07.09.2026 akşam — UYGULANDI)
+- İptal/değişiklik bildiriminde tek tek yerine **toplu**: bildirim penceresinin üstünde "Toplu: U11 veli WhatsApp grubuna
+  tek mesaj" bloğu, **Veli Grubuna Gönder** → numarasız bağlantı (`https://wa.me/?text=…`) WhatsApp'ta "sohbet seç" ekranını
+  metin hazır açar; kullanıcı kulübün veli grubunu seçip Gönder'e basar. Hitap "Sayın Veliler" (aynı şablon, {veli}=Veliler).
+- Kayıt: `trainings.grup_bildirim` JSON {zaman, kullanici} (şema 10), `bildirim_gerekli` iner; kartta "Veli grubuna bildirildi".
+  Gruba üye olmayan veliler için tek tek liste pencerede kalır.
+- Aidat hatırlatması toplu DEĞİL (kişiye özel borç bilgisi; gruba yazılmaz).
+- Ön koşul (kulüp): her yaş grubunun WhatsApp'ta bir veli grubu olması.
+
 ### 13.5 Kararlar (Kerem, 07.09.2026)
 - Mevcut veliler onaylı (13.3). Bildirim **yalnız birincil veliye**; oyuncunun kendi GSM'ine gönderim YOK.
 - Şablon metinleri 13.2'deki varsayılanlarla başlar; kulüp Ayarlar'dan kendisi düzeltir.
