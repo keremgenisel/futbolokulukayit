@@ -510,12 +510,26 @@ onay altyapısı ortak kullanılır.
 - **Oyuncu kartı > Aile ve Acil Kişiler:** veli satırında WhatsApp düğmesi (serbest mesaj: şablon "genel", metin
   pencerede düzenlenir). **Ödemeler** sekmesinde borç varsa "Aidat hatırlat".
 - **Oyuncu kartı > Bilgiler:** "Son hatırlatma: 05.09.2026 · Şerif Çelik" satırı.
-- Antrenman iptali bildirimi (Yoklama > İptal Et → "Velilere bildir") aynı toplu pencereyle; şablon "iptal". Faz 2 of §13.
+- **Antrenman iptali ve saat değişikliği bildirimi (kulüp isteği, 07.09.2026):**
+  - Yoklama'da antrenman kartına **Düzenle** gelir (bugün yalnız İptal var): tarih, saat, saha değiştirilir
+    (`db.updateTraining`; yoklaması alınmış antrenmanda yalnız saat/saha, tarih kilitli). Değişiklik kaydedilince
+    "Velilere bildir" sorusu; **İptal Et** sonrasında da aynı soru.
+  - "Evet" → aynı toplu pencere, bu kez o grubun **tüm aktif oyuncularının velileri** (borç bilgisi yok). Şablon
+    "iptal" ya da "degisiklik"; önizlemede eski ve yeni saat. Satır satır "WhatsApp'ta Aç", "Bildirildi" kaydı
+    `message_log` (tur iptal|degisiklik, training_id).
+  - Bildirim yapılmamış iptal/değişiklik kartta "Velilere bildirilmedi" rozeti taşır; karttan "Velilere bildir"
+    ile sonradan açılır. Bildirilen oyuncu sayısı kartta "12/18 veli bildirildi".
+  - Antrenmanı programdan otomatik dolduranlar (Haftayı Programdan Doldur) bildirim tetiklemez; yalnız elle
+    yapılan iptal ve değişiklik sorar.
 
 ### 13.2 Mesaj şablonları (Ayarlar > Kulüp ve Makbuz > WhatsApp Mesajları)
-- `wa_sablon_aidat`, `wa_sablon_genel`, `wa_sablon_iptal` ayar anahtarları; çok satırlı metin, yer tutucular:
-  `{veli}`, `{oyuncu}`, `{ay}` (Eylül 2026), `{tutar}` (3.500 ₺), `{kalan}`, `{donem}` (1-10), `{grup}`, `{kulup}`,
-  `{tarih}`, `{saat}`. Yanında canlı önizleme (örnek oyuncuyla) ve "Varsayılana dön".
+- `wa_sablon_aidat`, `wa_sablon_genel`, `wa_sablon_iptal`, `wa_sablon_degisiklik` ayar anahtarları; çok satırlı
+  metin, yer tutucular: `{veli}`, `{oyuncu}`, `{ay}` (Eylül 2026), `{tutar}` (3.500 ₺), `{kalan}`, `{donem}` (1-10),
+  `{grup}`, `{kulup}`, `{tarih}` (7 Eylül 2026 Pazartesi), `{saat}`, `{saha}`, `{eskiTarih}`, `{eskiSaat}`,
+  `{yeniTarih}`, `{yeniSaat}`, `{neden}`. Yanında canlı önizleme (örnek oyuncuyla) ve "Varsayılana dön".
+- Varsayılan iptal metni: "Sayın {veli}, {grup} grubunun {tarih} {saat} antrenmanı iptal edilmiştir. {neden} {kulup}"
+- Varsayılan değişiklik metni: "Sayın {veli}, {grup} grubunun {eskiTarih} {eskiSaat} antrenmanı {yeniTarih} {yeniSaat}
+  saatine alınmıştır ({saha}). {kulup}"
 - Varsayılan aidat metni: "Sayın {veli}, {oyuncu} için {ay} aidatı ({kalan}) henüz ödenmemiştir. Ödeme dönemi her ayın
   {donem} günleridir. Bilgilerinize sunarız. {kulup}"
 - Mesaj tek satırlı değil; wa.me bağlantısı satır sonlarını korur (URL kodlaması).
@@ -527,7 +541,9 @@ onay altyapısı ortak kullanılır.
   WhatsApp ile yapılmasını kabul ediyorum ☐". **Kulüp kararı:** mevcut kayıtlar için varsayılan onay verilip verilmeyeceği
   (program varsayılanı: onaysız; toplu "hepsini onayla" düğmesi YOK, kayıt kayıt işaretlenir).
 - **Numara:** `whatsapp_no` doluysa o, yoksa `gsm`; `gsmNormalize` → `05XXXXXXXXX` → `90XXXXXXXXX`. Geçersizse düğme kapalı.
-- **Kayıt:** `message_log(id, player_id, guardian_id, tur aidat|genel|iptal, yil, ay, metin, tarih, kullanici)` (şema 9).
+- **Kayıt:** `message_log(id, player_id, guardian_id, tur aidat|genel|iptal|degisiklik, yil, ay, training_id, metin,
+  tarih, kullanici)` (şema 9). `trainings` tablosuna `bildirim_gerekli INTEGER DEFAULT 0` (elle iptal/değişiklikte 1,
+  tüm velilere açıldığında 0) ve `degisiklik_notu TEXT` (eski tarih/saat JSON, şablon için).
   "WhatsApp'ta Aç" tıklanınca yazılır (program gönderildiğini bilemez; pencere "Hatırlatıldı" der, "Geri al" siler).
   Aynı ay aynı veliye ikinci hatırlatmada satırda "bu ay 2. kez" uyarısı. Oyuncu kartında son 12 kayıt.
 - **Güvenlik:** renderer dış adres açamaz (mevcut kural); yeni IPC `app:whatsappAc(numara, metin)` yalnız
@@ -539,14 +555,22 @@ onay altyapısı ortak kullanılır.
 - `src/lib/whatsapp.js` — SAF: `waNumara(gsm)`, `sablonDoldur(sablon, degerler)`, `waBaglanti(numara, metin)`,
   `VARSAYILAN_SABLONLAR`, `hatirlatmaUygunMu(veli)` → { ok, neden }. Vitest.
 - `electron/db.cjs`: `mesajKaydet`, `sonMesajlar(pid)`, `listUnpaid` sonucuna `veli_onay`, `son_hatirlatma` alanları;
-  `updateGuardian` (mesaj_onayi). Şema 9 göçü PRAGMA ile.
+  `updateGuardian` (mesaj_onayi); `updateTraining(id, {tarih, saat, saha})` (eski değeri `degisiklik_notu`na yazar,
+  yoklaması olan antrenmanda tarih değişimini reddeder); `antrenmanVelileri(training_id)` (grup aktif oyuncuları +
+  birincil veli + onay + numara); `trainingCalendar` sonucuna `bildirim_gerekli`, `bildirilen`. Şema 9 göçü PRAGMA ile.
 - `src/components/WhatsAppHatirlat.jsx` — toplu pencere (Modal); `Pano.jsx`, `OyuncuKarti.jsx`, `OyuncuForm.jsx`,
   `Ayarlar.jsx` (KulupAyar altına "WhatsApp Mesajları" bölümü), `OyuncuAktar` sütunu.
-- Testler: saf whatsapp.js; roundtrip (onay, log, şema 9); jsdom (pano düğmesi kapalı/açık, toplu pencere akışı,
-  şablon önizleme); yetki testi (`app:whatsappAc` yalnız wa.me).
-- Tahmini iş: 1 gün (§13.1 iptal bildirimi hariç, o yarım gün).
+- `Yoklama.jsx`: kartta Düzenle (satır içi form: tarih, saat, saha) → kaydet → Onay "Velilere bildirilsin mi?";
+  İptal Et sonrası aynı soru; kartta "Velilere bildirilmedi" rozeti + "Velilere bildir".
+- Testler: saf whatsapp.js (şablon doldurma, eski/yeni saat); roundtrip (onay, log, updateTraining kuralları, şema 9);
+  jsdom (pano düğmesi kapalı/açık, toplu pencere akışı, şablon önizleme, antrenman düzenle → bildir sorusu → pencere
+  grubun velileriyle); yetki testi (`app:whatsappAc` yalnız wa.me).
+- Tahmini iş: 1,5 gün (aidat hatırlatma + şablonlar + onay 1 gün; antrenman düzenle + iptal/değişiklik bildirimi
+  yarım gün).
 
 ### 13.5 Kulüpten cevap bekleyen
+- Antrenman değişikliğinde bildirim **yalnız velilere** mi, sporcunun kendi GSM'i de (players.gsm) alıcı mı? Program
+  varsayılanı: yalnız birincil veli; oyuncu 16+ ise ikinci satır olarak oyuncunun numarası da açılır (seçime bağlı).
 - Onay varsayılanı (13.3). Şablon metinleri (13.2 varsayılanla başlanır). Kulübün WhatsApp'ı hangi PC'de: program
   o PC'de kurulu olmalı ya da WhatsApp Web tarayıcıda açık olmalı (bağlantı tarayıcıya düşer, oradan WhatsApp'a geçer).
 
