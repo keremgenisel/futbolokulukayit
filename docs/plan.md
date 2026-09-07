@@ -445,3 +445,52 @@ Uygulandı (12 madde, 07.09.2026):
 - **Windows'ta gerçek yazıcı testi:** kulüp bilgisayarında makbuz basımı, kağıt boyutu ve kenar boşlukları.
 - **Arayüz tercihlerini ana sürece taşıma:** kenar menü ve hatırlanan kullanıcı adı localStorage'da; ani kapanışta
   kaybolabiliyor (config.json'a taşınırsa kalıcı olur). Düşük öncelik.
+
+## 12. Saha Yoklama Formu — yazdırılabilir (PLANLANDI, 07.09.2026)
+
+**İhtiyaç:** Antrenör sahada elinde kâğıtla yoklama alır, sonra programa işler. Yoklama > antrenman seçilince
+"Yoklama Formu Yazdır" düğmesi o antrenmanın grubu için A4 form üretir.
+
+### 12.1 Davranış
+- Yoklama'da bir antrenman seçiliyken (iptal edilmemiş) yeni düğme: **Formu Yazdır** (yanında **PDF**).
+  Ekrandaki "Kalanları Geldi İşaretle" ve "İptal Et" ile aynı satırda, en solda.
+- Form o grubun aktif oyuncularını (aktif/deneme/sakat) ad soyad sırasıyla listeler; ekrandaki listeyle aynı.
+- Programda zaten işaretli olanlar kâğıda dolu gelir: Geldi → ✓, Gelmedi → ✗, İzinli → İ. Henüz işaretlenmemiş
+  oyuncularda üç kutu da boş kalır; antrenör sahada elle işaretler. (Kullanıcı isteği: "kalanlar boş".)
+- Yazdırma veritabanına yazmaz; formda ne yazdığı sonradan ekranda elle işlenir. Otomatik okuma yok.
+- Çoklu PC açılırsa istemcide de çalışır (HTML renderer'da üretilir, `cikti:yazdir` mevcut köprü).
+
+### 12.2 Form düzeni (A4 dikey, tek sayfa hedefi; 30+ oyuncuda ikinci sayfaya taşar)
+```
+ [logo] EYÜPSPOR FUTBOL OKULU — YOKLAMA FORMU
+        U11 · 07.09.2026 Pazartesi · 17:00 · Saha 2          Antrenör: ____________
+ ┌────┬──────────────────────────┬────────┬─────────┬────────┬───────────────────┐
+ │ #  │ Ad Soyad                 │ Geldi  │ Gelmedi │ İzinli │ Not               │
+ ├────┼──────────────────────────┼────────┼─────────┼────────┼───────────────────┤
+ │ 1  │ Ada Kaya                 │   ✓    │   □     │   □    │                   │  ← programda geldi
+ │ 2  │ Barış Güneş              │   □    │   □     │   □    │                   │  ← henüz işaretsiz
+ │ …  │                          │        │         │        │                   │
+ ├────┴──────────────────────────┴────────┴─────────┴────────┴───────────────────┤
+ │ Toplam: 18 oyuncu · Geldi: ___  Gelmedi: ___  İzinli: ___     İmza: __________ │
+ └───────────────────────────────────────────────────────────────────────────────┘
+ Altta 3 boş satır (sonradan katılan / deneme oyuncu elle yazılır).
+```
+- Kutu 6×6 mm, satır yüksekliği ≥ 8 mm (kalemle işaretlenebilir). Ad sütunu geniş, Not sütunu serbest.
+- Aidat durumu forma GİRMEZ (sahada veliye görünür kâğıt; borç bilgisi mahremiyet).
+- Sakat durumundaki oyuncu adının yanında küçük "(sakat)" etiketi; deneme için "(deneme)".
+
+### 12.3 Teknik
+- `src/lib/yoklamaFormuHtml.js` — SAF şablon (`raporHtml` gibi; `@page A4 portrait`, `.kutu` sınıfı, işaret
+  karakterleri CSS ile). Girdi: `{ grup, tarih, saat, saha, oyuncular: [{ad_soyad, durum, isaret}], logo }`.
+  Tarih Türkçe gün adıyla (`tarihTR` + gün adı yardımcısı `src/lib/takvim.js`'te var).
+- `Yoklama.jsx`: düğme → `oyuncular` + `yoklama` state'inden satırlar kurulur → `cikti().yazdir(html)` / `pdfKaydet(html, "yoklama-U11-2026-09-07.pdf")`.
+  Ek IPC gerekmez; veri zaten ekranda.
+- Testler: saf şablon testi (`tests/yoklama-formu-html.test.js`: işaretli ✓/✗/İ, işaretsiz üç boş kutu, sakat etiketi,
+  aidat bilgisi yok, boş ek satırlar); jsdom `tests/ui/yoklama.test.jsx`'e "Formu Yazdır → yazdir çağrılır, HTML'de
+  grup+tarih+oyuncu adları" senaryosu; duman testine ekran görüntüsü gerekmez (yazdırma penceresi).
+- Tahmini iş: yarım gün.
+
+### 12.4 Açık nokta (kulüp)
+- Formun grubun **haftalık tümü** için de istenip istenmediği (bir sayfada 7 gün × oyuncu ızgarası). Şimdilik tek
+  antrenman; haftalık ızgara istenirse aynı şablona `sutunlar: gunler` seçeneği eklenir.
+
