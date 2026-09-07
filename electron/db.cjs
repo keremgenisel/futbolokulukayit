@@ -238,6 +238,7 @@ const FEE_TYPES = [
   ["kardes", "Kardeş İndirimi", 0, 0], ["ucretsiz", "Ücretsiz", 100, 1],
 ];
 const { kodUret, KOD_GECERLI } = require("./kodUret.cjs");
+const { araNormalize } = require("./metin.cjs");
 
 function openDb(dbPath) {
   const conn = new Database(dbPath);
@@ -253,6 +254,8 @@ function init() {
   fs.mkdirSync(getUploadsDir(), { recursive: true });
   db = openDb(getDbPath());
   db.pragma("journal_mode = WAL");
+  // Türkçe duyarsız arama: SQLite LIKE yalnız ASCII'de büyük/küçük harf duyarsızdır ("i" → "İbrahim" bulunmazdı)
+  db.function("tr_ara", { deterministic: true }, (s) => araNormalize(s));
   db.exec(SCHEMA_SQL);
   migrate();
   seed();
@@ -398,7 +401,7 @@ function updatePlayer(id, p) {
 const getPlayer = (id) => db.prepare("SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.id=?").get(id) || null;
 function listPlayers({ q = "", yas_grubu_id = null, durum = null } = {}) {
   const where = []; const args = [];
-  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ? OR p.pasaport_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum) { where.push("p.durum=?"); args.push(durum); }
   const sql = `SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
@@ -644,7 +647,7 @@ const deleteAgeGroup = (id) => {
 // Oyuncu listesi + seçilen ayın aidat durumu: ortak WHERE (liste, sayfa ve sayım aynı filtreyi kullanır).
 function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false } = {}) {
   const where = []; const args = [yil, ay];
-  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ? OR p.pasaport_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`, `%${q}%`); }
+  if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum) { where.push("p.durum=?"); args.push(durum); }
   if (sadeceOdemeyen) where.push("d.durum IN ('odenmedi','kismi')");

@@ -51,7 +51,10 @@ export function Secim({ secenekler, bos, ...props }) {
   );
 }
 
-export function Modal({ baslik, ust, children, altBar, onKapat, genislik = 900 }) {
+/** Oyuncu kartı ve oyuncu formu aynı boyda açılır (kullanıcı isteği 07.09.2026). */
+export const OYUNCU_MODAL = { genislik: 1120, yukseklik: "min(880px, 92vh)" };
+
+export function Modal({ baslik, ust, children, altBar, onKapat, genislik = 900, yukseklik }) {
   useEffect(() => {
     const h = (e) => { if (e.key === "Escape") onKapat?.(); };
     window.addEventListener("keydown", h);
@@ -59,7 +62,7 @@ export function Modal({ baslik, ust, children, altBar, onKapat, genislik = 900 }
   }, [onKapat]);
   return (
     <div role="dialog" aria-modal="true" aria-label={baslik} onMouseDown={(e) => { if (e.target === e.currentTarget) onKapat?.(); }} style={{ position: "fixed", inset: 0, background: "rgba(27,21,48,.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-      <div style={{ width: genislik, maxWidth: "94vw", maxHeight: "92vh", background: "#fff", borderRadius: 16, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(27,21,48,.35)" }}>
+      <div style={{ width: genislik, maxWidth: "94vw", height: yukseklik, maxHeight: "92vh", background: "#fff", borderRadius: 16, display: "flex", flexDirection: "column", overflow: "hidden", boxShadow: "0 30px 80px rgba(27,21,48,.35)" }}>
         {ust ?? (
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 24px", background: "var(--mor)", color: "#fff" }}>
             <span className="baslik" style={{ color: "#fff", fontSize: 26, fontWeight: 700 }}>{baslik}</span>

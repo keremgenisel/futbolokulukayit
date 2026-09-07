@@ -8,6 +8,7 @@ import { SettingsSunucu } from "./SettingsSunucu.jsx";
 import { COKLU_PC_ACIK } from "../lib/ozellikler.js";
 import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupOner } from "../lib/sezon.js";
 import { ucretTipleriYenile } from "../lib/ucretTipleri.js";
+import { araEslesir } from "../lib/metin.js";
 import { Ikon } from "./Ikon.jsx";
 
 const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "sezon", ad: "Yeni Sezon", ikon: "takvim" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" }, ...(COKLU_PC_ACIK ? [{ kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }] : []), { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
@@ -384,7 +385,7 @@ function SezonAyar({ admin, saltOkunur }) {
   const [grupFiltre, setGrupFiltre] = useState("");
   const [ara, setAra] = useState("");
   // Filtre yalnız GÖRÜNÜMÜ daraltır; işaretler ve alttaki özet tüm liste üzerinden hesaplanır.
-  const gorunen = (adaylar || []).filter((o) => (!grupFiltre || String(o.yas_grubu_id) === grupFiltre) && (!ara.trim() || o.ad_soyad.toLocaleLowerCase("tr-TR").includes(ara.trim().toLocaleLowerCase("tr-TR"))));
+  const gorunen = (adaylar || []).filter((o) => (!grupFiltre || String(o.yas_grubu_id) === grupFiltre) && (!ara.trim() || araEslesir(o.ad_soyad, ara)));
   const filtreli = !!grupFiltre || !!ara.trim();
   const hepsi = (deger) => { const ids = new Set(gorunen.map((o) => String(o.id))); setSecim(Object.fromEntries(Object.entries(secim).map(([id, v]) => [id, ids.has(id) ? { ...v, yeniledi: deger } : v]))); };
   const yenileyenler = adaylar ? adaylar.filter((o) => secim[o.id]?.yeniledi) : [];

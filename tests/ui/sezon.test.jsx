@@ -58,6 +58,12 @@ describe("Ayarlar > Yeni Sezon sihirbazı", () => {
     fireEvent.change(screen.getByLabelText("Oyuncu ara"), { target: { value: "cem" } });
     expect(screen.queryByLabelText("Ada Kaya yeniledi")).toBeNull();
     expect(screen.getByLabelText("Cem Polat yeniledi")).toBeInTheDocument();
+    // Türkçe duyarsız: "baris" ve "BARIŞ" Barış Güneş'i, "gunes" soyadı bulur
+    fireEvent.change(screen.getByLabelText("Oyuncu ara"), { target: { value: "baris" } });
+    expect(screen.getByLabelText("Barış Güneş yeniledi")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Oyuncu ara"), { target: { value: "GUNES" } });
+    expect(screen.getByLabelText("Barış Güneş yeniledi")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Cem Polat yeniledi")).toBeNull();
     fireEvent.change(screen.getByLabelText("Oyuncu ara"), { target: { value: "yok böyle" } });
     expect(screen.getByText("Filtreye uyan oyuncu yok.")).toBeInTheDocument();
     expect(screen.getByTestId("sezon-ozet")).toHaveTextContent("2 oyuncu 2027-2028 sezonuna geçecek"); // özet değişmedi

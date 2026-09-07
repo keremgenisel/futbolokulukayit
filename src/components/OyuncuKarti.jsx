@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
+import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket, OYUNCU_MODAL } from "./ui.jsx";
 import { db, files, hataMetni, bugun } from "../lib/api.js";
 import { DURUMLAR, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
@@ -91,7 +91,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   );
 
   return (
-    <Modal ust={ust} onKapat={onKapat} genislik={1120}
+    <Modal ust={ust} onKapat={onKapat} genislik={OYUNCU_MODAL.genislik} yukseklik={OYUNCU_MODAL.yukseklik}
       altBar={<>
         <span style={{ flex: 1, alignSelf: "center", color: "var(--soluk)", fontSize: 13 }}>Son güncelleme {tarihTR(o.updated_at)}</span>
         {!saltOkunur && oturum?.role === "admin" && <Btn tur="danger" onClick={() => setSil({ tip: "oyuncu", id: o.id, mesaj: `${o.ad_soyad} kaydı tüm belgeleri ve makbuzlarıyla silinecek. Emin misiniz? (Ayrılan oyuncular için "Ayrıldı" durumu önerilir.)` })}>Sil</Btn>}

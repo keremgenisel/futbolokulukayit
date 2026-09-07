@@ -96,6 +96,10 @@ app.whenReady().then(async () => {
     // Yabancı uyruklu oyuncu: TC yok, pasaport no; pasaportla aranır; pasaport tekildir
     const yab = db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Ivan Petrov", dogum_tarihi: "2014-02-02", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3500, odeme_donemi: "1-10" });
     check("yabancı oyuncu TC'siz kaydedilir", yab.tc_no === null && yab.uyruk === "yabanci" && yab.pasaport_no === "U1234567");
+    const ibo = db.createPlayer({ ad_soyad: "İbrahim IŞIK", dogum_tarihi: "2015-03-03", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 100, odeme_donemi: "1-10", pasaport_no: null });
+    const bulur = (q) => db.listPlayers({ q }).some((p) => p.id === ibo.id) && db.listPlayersWithDue({ q, yil: 2026, ay: 9 }).some((p) => p.id === ibo.id) && db.playersPage({ q, yil: 2026, ay: 9 }).liste.some((p) => p.id === ibo.id);
+    check("Türkçe duyarsız arama: 'i', 'ibrahim', 'isik', 'IŞIK', 'ışık' hepsi İbrahim IŞIK'ı bulur", ["i", "ibrahim", "isik", "IŞIK", "ışık", "İbrahim ış"].every(bulur) && !bulur("ibrahimm"));
+    check("pasaport araması büyük/küçük harf duyarsız", db.listPlayers({ q: "u1234567" }).some((p) => p.id === yab.id));
     check("pasaport ile arama (liste ve pano)", db.listPlayers({ q: "U12345" }).some((p) => p.id === yab.id) && db.listPlayersWithDue({ q: "U1234567", yil: 2026, ay: 9 }).some((p) => p.id === yab.id));
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
