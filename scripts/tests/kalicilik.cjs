@@ -105,7 +105,7 @@ app.on("browser-window-created", async (_e, win) => {
       check("kurtarma kodu yeniden açılışta çalışır, tek kullanımlık", sf.ok && sf.kalan === b.kodSayisi - 1 && !!db.verifyPassword("hoca", "yeni-parola-77") && !!db.kurtarmaIleSifirla("hoca", b.kod, "x-parola-1").error);
       const fotolar = db.listDocuments(o.id).filter((d) => d.tip === "foto");
       check("vesikalık tek kayıt ve oyuncu foto yolu kalıcı", fotolar.length === 1 && fotolar[0].orijinal_ad === "v2.png" && db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu && fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)));
-      check("şema sürümü 6 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "6");
+      check("şema sürümü 7 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "7");
       // Arayüz: kullanıcı adı önceki oturumdan hatırlanıyor, giriş yeni parolayla
       check("kullanıcı adı yeniden açılışta hatırlanıyor", (await js(`document.querySelector("input").value`)) === "admin");
       await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const p = document.querySelector("input[type=password]"); set.call(p, "kalici-parola-1"); p.dispatchEvent(new Event("input", { bubbles: true })); })()`);

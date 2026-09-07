@@ -42,11 +42,12 @@ export function Raporlar() {
       }
       if (rapor === "tahsilat") {
         const l = await db("listReceiptsByDate", from, to);
+        const iptaller = await db("listCancelledReceipts", from, to);
         const toplam = l.reduce((s, m) => s + m.toplam, 0);
         const yontemOzet = ODEME_YONTEMLERI.map((y) => `${y.ad}: ${paraTR(l.filter((m) => m.odeme_yontemi === y.kod).reduce((s, m) => s + m.toplam, 0))}`).join(" · ");
-        return { baslik: "Tahsilat Raporu", alt: `${tarihTR(from)} – ${tarihTR(to)} · ${l.length} makbuz · toplam ${paraTR(toplam)} · ${yontemOzet}`,
-          sutunlar: [{ baslik: "Makbuz No", anahtar: "no", genislik: 12 }, { baslik: "Tarih", anahtar: "tarih", genislik: 12 }, { baslik: "Oyuncu", anahtar: "ad", genislik: 28 }, { baslik: "Tutar", anahtar: "tutar", genislik: 10, sag: true }, { baslik: "Yöntem", anahtar: "yontem", genislik: 14 }, { baslik: "Tahsil eden", anahtar: "eden", genislik: 18 }],
-          satirlar: l.map((m) => ({ no: m.makbuz_no, tarih: tarihTR(m.tarih), ad: m.ad_soyad, tutar: m.toplam, yontem: ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad, eden: m.tahsil_eden })) };
+        return { baslik: "Tahsilat Raporu", alt: `${tarihTR(from)} – ${tarihTR(to)} · ${l.length} makbuz · toplam ${paraTR(toplam)} · ${yontemOzet} · iptal: ${iptaller.length} makbuz (${paraTR(iptaller.reduce((s, m) => s + m.toplam, 0))})`,
+          sutunlar: [{ baslik: "Makbuz No", anahtar: "no", genislik: 12 }, { baslik: "Tarih", anahtar: "tarih", genislik: 12 }, { baslik: "Oyuncu", anahtar: "ad", genislik: 28 }, { baslik: "Tutar", anahtar: "tutar", genislik: 10, sag: true }, { baslik: "Yöntem", anahtar: "yontem", genislik: 14 }, { baslik: "Tahsil eden", anahtar: "eden", genislik: 18 }, { baslik: "Açıklama", anahtar: "not", genislik: 30 }],
+          satirlar: [...l.map((m) => ({ no: m.makbuz_no, tarih: tarihTR(m.tarih), ad: m.ad_soyad, tutar: m.toplam, yontem: ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad, eden: m.tahsil_eden, not: m.not_ || "" })), ...iptaller.map((m) => ({ no: m.makbuz_no + " (İPTAL)", tarih: tarihTR(m.tarih), ad: m.ad_soyad, tutar: 0, yontem: ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad, eden: m.tahsil_eden, not: `İptal: ${m.iptal_nedeni || ""}${m.iptal_eden ? " · " + m.iptal_eden : ""} · asıl tutar ${paraTR(m.toplam)}` }))] };
       }
       const l = await db("attendanceReport", from, to, grup ? Number(grup) : null);
       return { baslik: "Yoklama Özeti", alt: `${tarihTR(from)} – ${tarihTR(to)}${grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : ""}`,

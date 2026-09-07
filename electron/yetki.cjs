@@ -3,7 +3,7 @@
 const OKUMA = new Set([
   "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "playersPage", "listGuardians", "listEmergency",
   "listDocuments", "saglikRaporuDurumu", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
-  "listReceiptsByDate", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "playerAttendanceSon", "getSetting", "aidatAyarlari", "panoOzet",
+  "listReceiptsByDate", "listCancelledReceipts", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "playerAttendanceSon", "getSetting", "aidatAyarlari", "panoOzet",
   "attendanceSummary", "attendanceReport", "listUsers", "sezonAdayListesi", "sezonDurumu",
 ]);
 const YAZMA = new Set([

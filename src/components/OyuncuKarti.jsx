@@ -158,7 +158,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
             <h3 style={{ fontSize: 20, marginBottom: 12 }}>Makbuzlar</h3>
             {makbuzlar.length === 0 ? <Bos metin="Makbuz yok." /> : (
               <table><thead><tr><th>No</th><th>Tarih</th><th>Tutar</th><th>Yöntem</th><th></th></tr></thead><tbody>
-                {makbuzlar.map((m) => <tr key={m.id} style={{ opacity: m.iptal ? .5 : 1 }}><td>{m.makbuz_no}{m.iptal ? " (iptal)" : ""}</td><td>{tarihTR(m.tarih)}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td><Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => makbuzYazdir(m.id)}>Yazdır</Btn></td></tr>)}
+                {makbuzlar.map((m) => <tr key={m.id} style={{ opacity: m.iptal ? .5 : 1 }}><td>{m.makbuz_no}{m.iptal ? <span title={`${m.iptal_nedeni || ""}${m.iptal_eden ? " · " + m.iptal_eden : ""}`} style={{ color: "var(--kirmizi)", fontSize: 12 }}> · iptal{m.iptal_nedeni ? `: ${m.iptal_nedeni}` : ""}</span> : ""}</td><td>{tarihTR(m.tarih)}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td><Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => makbuzYazdir(m.id)}>Yazdır</Btn></td></tr>)}
               </tbody></table>
             )}
             {!tumu.makbuz && makbuzlar.length >= SON.makbuz && <TumunuGoster onClick={() => setTumu({ ...tumu, makbuz: true })} metin={`Son ${SON.makbuz} makbuz gösteriliyor`} />}

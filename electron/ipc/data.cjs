@@ -71,6 +71,7 @@ function registerDataHandlers() {
     const y = cagriYetkisi(fn, session, db.lisansSaltOkunurMu());
     if (!y.ok) throw new Error(y.mesaj);
     if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(a[0]))?.username === session.username) throw new Error("Kendi hesabınızı silemezsiniz");
+    if (fn === "cancelReceipt") return db.cancelReceipt(a[0], a[1], session.ad_soyad || session.username); // iptal eden = oturum
     return db[fn](...a);
   });
 

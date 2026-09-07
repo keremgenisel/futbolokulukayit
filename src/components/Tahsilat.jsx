@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Onay, Bos, useToast, ParaGirdi } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Modal, Bos, useToast, ParaGirdi } from "./ui.jsx";
 import { db, cikti, bugun, hataMetni } from "../lib/api.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
@@ -98,7 +98,11 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   };
 
   const yazdir = async (id) => { try { const y = await makbuzYazdir(id); if (!y.ok) toast("err", y.mesaj); } catch (e) { toast("err", hataMetni(e)); } };
-  const iptalEt = async () => { try { await db("cancelReceipt", iptal.id); toast("ok", "Makbuz iptal edildi"); setIptal(null); bugunkuYukle(); } catch (e) { toast("err", hataMetni(e)); } };
+  const [iptalNedeni, setIptalNedeni] = useState("");
+  const iptalEt = async () => {
+    if (!iptalNedeni.trim()) return toast("err", "İptal nedeni yazın");
+    try { await db("cancelReceipt", iptal.id, iptalNedeni.trim()); toast("ok", "Makbuz iptal edildi"); setIptal(null); setIptalNedeni(""); bugunkuYukle(); } catch (e) { toast("err", hataMetni(e)); }
+  };
 
   const bugunToplam = bugunku.reduce((s, m) => s + m.toplam, 0);
 
@@ -199,7 +203,14 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
           </tbody></table>
         )}
       </Kart>
-      {iptal && <Onay tehlikeli mesaj={`${iptal.makbuz_no} numaralı makbuz iptal edilecek, aidat kaydı tekrar "ödenmedi" olacak. Emin misiniz?`} onEvet={iptalEt} onHayir={() => setIptal(null)} />}
+      {iptal && (
+        <Modal baslik="Makbuz İptali" genislik={480} onKapat={() => { setIptal(null); setIptalNedeni(""); }} altBar={<><Btn tur="ghost" onClick={() => { setIptal(null); setIptalNedeni(""); }}>Vazgeç</Btn><Btn tur="danger" onClick={iptalEt}>İptal Et</Btn></>}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <p style={{ margin: 0 }}><b>{iptal.makbuz_no}</b> numaralı makbuz ({iptal.ad_soyad}, {paraTR(iptal.toplam)}) iptal edilecek; ödenen aidat tutarı geri düşülür. İptal, neden ve iptal edenle birlikte kayıtta kalır, raporda ayrı görünür.</p>
+            <Alan etiket="İptal nedeni *"><Girdi value={iptalNedeni} onChange={(e) => setIptalNedeni(e.target.value)} placeholder="Yanlış oyuncu, yanlış tutar, ödeme iade edildi…" aria-label="İptal nedeni" autoFocus onKeyDown={(e) => e.key === "Enter" && iptalEt()} /></Alan>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

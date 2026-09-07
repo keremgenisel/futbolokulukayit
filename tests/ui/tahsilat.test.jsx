@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from "vitest";
-import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-library/react";
 import { Tahsilat } from "../../src/components/Tahsilat.jsx";
 import { ToastSaglayici } from "../../src/components/ui.jsx";
 
@@ -41,5 +41,24 @@ describe("Tahsilat: tek makbuzda birden fazla aidat ayı", () => {
       player_id: 5,
       satirlar: [{ fee_item_id: 1, tutar: 3500, aciklama: `${AYLAR[ay - 1]} ${yil}`, yil, ay }, { fee_item_id: 1, tutar: 3000, aciklama: `${AYLAR[sonraki.ay - 1]} ${sonraki.yil}`, yil: sonraki.yil, ay: sonraki.ay }],
     })));
+  });
+
+  it("makbuz iptali neden ister; nedensiz iptal gönderilmez, nedenle cancelReceipt(id, neden) çağrılır", async () => {
+    window.okul = { db: vi.fn(async (fn) => {
+      if (fn === "listFeeItems") return [];
+      if (fn === "getSetting") return "";
+      if (fn === "listReceiptsByDate") return [{ id: 7, makbuz_no: "2026-0007", ad_soyad: "Kaan Yıldız", toplam: 3500, odeme_yontemi: "nakit", tahsil_eden: "Y", pdf_yolu: "" }];
+      if (fn === "cancelReceipt") return { ok: true };
+      return [];
+    }), cikti: { yazdir: vi.fn() }, files: { open: vi.fn() } };
+    render(<ToastSaglayici><Tahsilat oturum={{ ad_soyad: "Yönetici" }} saltOkunur={false} /></ToastSaglayici>);
+    await screen.findByText("2026-0007");
+    fireEvent.click(screen.getByRole("button", { name: /İptal/ }));
+    const dlg = await screen.findByRole("dialog");
+    fireEvent.click(within(dlg).getByRole("button", { name: "İptal Et" }));
+    expect(window.okul.db).not.toHaveBeenCalledWith("cancelReceipt", expect.anything(), expect.anything());
+    fireEvent.change(screen.getByLabelText("İptal nedeni"), { target: { value: "Yanlış oyuncu" } });
+    fireEvent.click(within(dlg).getByRole("button", { name: "İptal Et" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("cancelReceipt", 7, "Yanlış oyuncu"));
   });
 });

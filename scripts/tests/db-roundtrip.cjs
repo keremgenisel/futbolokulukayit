@@ -62,8 +62,13 @@ app.whenReady().then(async () => {
     const tk = db.trainingCalendar("2026-09-01", "2026-09-30");
     check("takvim özeti: antrenman, oyuncu ve işaretli sayıları", tk.length === 1 && tk[0].oyuncu === 1 && tk[0].isaretli === 1 && tk[0].geldi === 1 && tk[0].yas_grubu_ad === grp.ad);
     check("takvim özeti aralık dışını getirmez", db.trainingCalendar("2026-10-01", "2026-10-31").length === 0);
-    db.cancelReceipt(makbuz.id);
+    db.cancelReceipt(makbuz.id, "test iptali", "Tester");
     check("makbuz iptali aidatı geri açar", db.getDue(oyuncu.id, 2026, 9).durum === "odenmedi");
+    const ipt = db.getReceipt(makbuz.id);
+    check("iptal nedeni, iptal eden ve zamanı kayıtta", ipt.iptal === 1 && ipt.iptal_nedeni === "test iptali" && ipt.iptal_eden === "Tester" && !!ipt.iptal_zamani);
+    let nedensiz = false; try { db.cancelReceipt(makbuz.id, ""); } catch (e) { nedensiz = /neden/.test(e.message); }
+    check("nedensiz iptal reddedilir", nedensiz);
+    check("iptaller raporda ayrı listelenir, tahsilatta görünmez", db.listCancelledReceipts("2026-09-01", "2026-09-30").some((r) => r.id === makbuz.id) && !db.listReceiptsByDate("2026-09-01", "2026-09-30").some((r) => r.id === makbuz.id));
     check("iptal sonrası borçlu listesi", db.listUnpaid(2026, 9).length === 1);
     check("grup silme oyuncu varken engellenir", !!db.deleteAgeGroup(grp.id).error);
     const belgeId = db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/x.pdf", orijinal_ad: "x.pdf" });
@@ -93,7 +98,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 6 ve pasaport sütunu var", db.getMetaValue("schema_version") === "6" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 7 ve pasaport sütunu var", db.getMetaValue("schema_version") === "7" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -148,19 +153,19 @@ app.whenReady().then(async () => {
     const k2 = db.createReceipt({ player_id: oyuncu.id, tarih: "2027-01-10", satirlar: [{ fee_item_id: aidatKalemi.id, tutar: 2000, aciklama: "Ocak 2027", yil: 2027, ay: 1 }] });
     d1 = db.getDue(oyuncu.id, 2027, 1);
     check("kalan ödenince ödendi", d1.durum === "odendi" && d1.odenen === 3500 && !db.listUnpaid(2027, 1).some((b) => b.player_id === oyuncu.id));
-    db.cancelReceipt(k1.id);
+    db.cancelReceipt(k1.id, "test iptali", "Tester");
     d1 = db.getDue(oyuncu.id, 2027, 1);
     check("ilk makbuz iptal → yeniden kısmi (ödenen 2000)", d1.durum === "kismi" && d1.odenen === 2000);
-    db.cancelReceipt(k2.id);
+    db.cancelReceipt(k2.id, "test iptali", "Tester");
     check("ikinci de iptal → ödenmedi, ödenen 0", db.getDue(oyuncu.id, 2027, 1).durum === "odenmedi" && db.getDue(oyuncu.id, 2027, 1).odenen === 0);
-    check("iptal edilmiş makbuz ikinci kez iptalde ödeneni bozmaz", (db.cancelReceipt(k2.id), db.getDue(oyuncu.id, 2027, 1).odenen === 0));
+    check("iptal edilmiş makbuz ikinci kez iptalde ödeneni bozmaz", (db.cancelReceipt(k2.id, "test iptali", "Tester"), db.getDue(oyuncu.id, 2027, 1).odenen === 0));
 
     // Tek makbuzda iki aidat ayı: ikisi de ödendi; iptal ikisini de geri açar
     db.ensureMonthlyDues(2026, 11); db.ensureMonthlyDues(2026, 12);
     const cift = db.createReceipt({ player_id: oyuncu.id, tarih: "2026-11-05", odeme_yontemi: "nakit", tahsil_eden: "T", satirlar: [
       { fee_item_id: aidatKalemi.id, tutar: 3500, aciklama: "Kasım 2026", yil: 2026, ay: 11 }, { fee_item_id: aidatKalemi.id, tutar: 3500, aciklama: "Aralık 2026", yil: 2026, ay: 12 }] });
     check("iki aylık makbuz iki ayı da ödendi yapar", db.getDue(oyuncu.id, 2026, 11).durum === "odendi" && db.getDue(oyuncu.id, 2026, 12).durum === "odendi" && db.getReceipt(cift.id).toplam === 7000 && db.getReceipt(cift.id).satirlar.length === 2);
-    db.cancelReceipt(cift.id);
+    db.cancelReceipt(cift.id, "test iptali", "Tester");
     check("iki aylık makbuz iptali iki ayı da geri açar", db.getDue(oyuncu.id, 2026, 11).durum === "odenmedi" && db.getDue(oyuncu.id, 2026, 12).durum === "odenmedi");
 
     // Excel aktarımı: tek işlem; yeni grup açılır, veli eklenir, bu ayın aidatı açılır; hata olursa hiçbiri yazılmaz

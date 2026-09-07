@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 6; // 2: recovery_codes; 3: uyruk+pasaport_no; 4: players.sezon; 5: monthly_dues.odenen; 6: age_groups.program
+const SCHEMA_VERSION = 7; // …5: monthly_dues.odenen; 6: age_groups.program; 7: receipts.iptal_nedeni/iptal_eden/iptal_zamani
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -169,6 +169,9 @@ CREATE TABLE IF NOT EXISTS receipts (
   not_ TEXT DEFAULT '',
   pdf_yolu TEXT DEFAULT '',
   iptal INTEGER NOT NULL DEFAULT 0,
+  iptal_nedeni TEXT DEFAULT '',
+  iptal_eden TEXT DEFAULT '',
+  iptal_zamani TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -249,6 +252,10 @@ function migrate() {
   if (!kolonlar.has("sezon")) db.exec("ALTER TABLE players ADD COLUMN sezon TEXT NOT NULL DEFAULT ''");
   const grupKolon = new Set(db.prepare("PRAGMA table_info(age_groups)").all().map((c) => c.name));
   if (!grupKolon.has("program")) db.exec("ALTER TABLE age_groups ADD COLUMN program TEXT NOT NULL DEFAULT '[]'");
+  const makbuzKolon = new Set(db.prepare("PRAGMA table_info(receipts)").all().map((c) => c.name));
+  if (!makbuzKolon.has("iptal_nedeni")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_nedeni TEXT DEFAULT ''");
+  if (!makbuzKolon.has("iptal_eden")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_eden TEXT DEFAULT ''");
+  if (!makbuzKolon.has("iptal_zamani")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_zamani TEXT");
   const dueKolon = new Set(db.prepare("PRAGMA table_info(monthly_dues)").all().map((c) => c.name));
   if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
@@ -521,6 +528,7 @@ function getReceipt(id) {
 const listReceipts = (pid, limit = null) => limit
   ? db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC LIMIT ?").all(pid, Number(limit))
   : db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
+const listCancelledReceipts = (from, to) => db.prepare("SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 ORDER BY r.tarih, r.id").all(from, to);
 const listReceiptsByDate = (from, to) => db.prepare("SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 ORDER BY r.tarih, r.id").all(from, to);
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);
 
@@ -642,11 +650,15 @@ function panoOzet({ yil, ay, bugun }) {
   return { aktif, grup, odeyen, borclu, antrenmanlar, bugunTahsilat };
 }
 
-const cancelReceipt = (id) => {
+// İptal: neden zorunlu; iptal eden ve zaman kaydedilir (muhasebe izi). Aidat ödenenleri düşer.
+const cancelReceipt = (id, neden = "", kullanici = "") => {
+  const n = String(neden || "").trim();
+  if (!n) throw new Error("İptal nedeni zorunlu");
   const tx = db.transaction(() => {
     const r = db.prepare("SELECT player_id, iptal FROM receipts WHERE id=?").get(id);
-    if (!r || r.iptal) return;
-    db.prepare("UPDATE receipts SET iptal=1 WHERE id=?").run(id);
+    if (!r) throw new Error("Makbuz bulunamadı");
+    if (r.iptal) return;
+    db.prepare("UPDATE receipts SET iptal=1, iptal_nedeni=?, iptal_eden=?, iptal_zamani=datetime('now') WHERE id=?").run(n, String(kullanici || ""), id);
     // Makbuzun aidat satırları ödenenden düşülür; başka makbuzla kısmen ödenmişse 'kismi' kalır
     for (const l of db.prepare("SELECT tutar, yil, ay FROM receipt_lines WHERE receipt_id=? AND yil IS NOT NULL AND ay IS NOT NULL").all(id)) {
       db.prepare("UPDATE monthly_dues SET odenen=MAX(0, odenen-?), receipt_id=NULL WHERE player_id=? AND yil=? AND ay=?").run(Number(l.tutar || 0), r.player_id, l.yil, l.ay);
@@ -850,7 +862,7 @@ module.exports = {
   listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
   listFeeItems, updateFeeItem,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
-  createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,
+  createReceipt, getReceipt, listReceipts, listReceiptsByDate, listCancelledReceipts, setReceiptPdf,
   createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance, playerAttendanceSon,
   deleteAgeGroup, listPlayersWithDue, playersPage, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
   listUsers, setUserActive, resetUserPassword, deleteUser,
