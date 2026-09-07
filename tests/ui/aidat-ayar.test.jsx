@@ -17,26 +17,26 @@ describe("Oyuncu formu: ücret tipine göre aidat", () => {
   it("yeni kayıtta aidat taban fiyatla dolar; ücret tipi değişince indirim düşülür; ücretsizde alan kilitlenir", async () => {
     render(<ToastSaglayici><OyuncuForm gruplar={[]} onKaydedildi={vi.fn()} onKapat={vi.fn()} /></ToastSaglayici>);
     const aidat = screen.getByLabelText("Aylık aidat");
-    await waitFor(() => expect(aidat).toHaveValue(3500));
+    await waitFor(() => expect(aidat).toHaveValue("3.500"));
     expect(screen.getByText(/Taban 3\.500 ₺/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "indirimli" } });
-    expect(aidat).toHaveValue(2625);
+    expect(aidat).toHaveValue("2.625");
     expect(screen.getByText(/− %25 indirim/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "kardes" } });
-    expect(aidat).toHaveValue(2975);
+    expect(aidat).toHaveValue("2.975");
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "burslu" } });
-    expect(aidat).toHaveValue(0); expect(aidat).not.toBeDisabled();
+    expect(aidat).toHaveValue("0"); expect(aidat).not.toBeDisabled();
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "ucretsiz" } });
-    expect(aidat).toHaveValue(0); expect(aidat).toBeDisabled();
+    expect(aidat).toHaveValue("0"); expect(aidat).toBeDisabled();
     // Elle değiştirilebilir
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "normal" } });
     fireEvent.change(aidat, { target: { value: "3000" } });
-    expect(aidat).toHaveValue(3000);
+    expect(aidat).toHaveValue("3.000");
   });
   it("düzenlemede mevcut aidat korunur, ücret tipi değişmedikçe yeniden hesaplanmaz", async () => {
     render(<ToastSaglayici><OyuncuForm oyuncu={{ id: 7, ad_soyad: "Ada", dogum_tarihi: "2015-01-01", ucret_tipi: "normal", aylik_aidat: 3000 }} gruplar={[]} onKaydedildi={vi.fn()} onKapat={vi.fn()} /></ToastSaglayici>);
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlari"));
-    expect(screen.getByLabelText("Aylık aidat")).toHaveValue(3000);
+    expect(screen.getByLabelText("Aylık aidat")).toHaveValue("3.000");
   });
 });
 

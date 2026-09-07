@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Modal, Btn, Alan, Girdi, Secim, useToast } from "./ui.jsx";
+import { Modal, Btn, Alan, Girdi, ParaGirdi, Secim, useToast } from "./ui.jsx";
 import { db, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, UYRUKLAR, aidatHesapla, indirimYuzdesi, paraTR, pasaportGecerliMi, pasaportNormalize } from "../lib/aidat.js";
 
@@ -74,7 +74,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
           <Alan etiket="Kayıt Tarihi"><Girdi type="date" {...g("kayit_tarihi")} /></Alan>
           <Alan etiket="Ücret Tipi"><Secim secenekler={UCRET_TIPLERI} value={f.ucret_tipi} onChange={ucretTipiDegisti} /></Alan>
           <Alan etiket="Aylık Aidat (₺)">
-            <Girdi type="number" min="0" {...g("aylik_aidat")} disabled={f.ucret_tipi === "ucretsiz"} aria-label="Aylık aidat" />
+            <ParaGirdi value={f.aylik_aidat} onDegis={(v) => setF({ ...f, aylik_aidat: v })} disabled={f.ucret_tipi === "ucretsiz"} aria-label="Aylık aidat" />
             {ayar && <span style={{ fontSize: 12, color: "var(--soluk)" }}>{ayar.taban > 0 ? `Taban ${paraTR(ayar.taban)}${yuzde ? ` − %${yuzde} indirim` : ""}` : "Taban fiyat Ayarlar > Aidat Kalemleri'nde girilir"}</span>}
           </Alan>
           <Alan etiket="Ödeme Dönemi"><Secim secenekler={ODEME_DONEMLERI.map((d) => ({ kod: d, ad: `Her ayın ${d} arası` }))} {...g("odeme_donemi")} /></Alan>
