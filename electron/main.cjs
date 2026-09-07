@@ -62,8 +62,12 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     db.init();
-    // Bu ayın aidat kayıtlarını aç (her açılışta; INSERT OR IGNORE olduğundan tekrar güvenli).
-    try { const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1); } catch (e) { console.error("[aidat]", e.message); }
+    // Bu ayın aidat kayıtlarını aç: açılışta, sonra saatte bir ve pencere öne gelince (uygulama ay sonunda
+    // açık kalırsa yeni ayın borçları yeniden başlatma beklemeden görünsün). INSERT OR IGNORE → tekrar güvenli.
+    const aidatKontrol = () => { try { const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1); } catch (e) { console.error("[aidat]", e.message); } };
+    aidatKontrol();
+    setInterval(aidatKontrol, 60 * 60 * 1000).unref?.();
+    app.on("browser-window-focus", aidatKontrol);
     otomatikYedek();
 
     registerDataHandlers();

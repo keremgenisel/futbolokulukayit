@@ -36,8 +36,8 @@ app.whenReady().then(async () => {
     db.addGuardian(oyuncu.id, { tip: "baba", ad_soyad: "Test Baba", gsm: "05330000000", whatsapp_no: "05330000000", veli_mi: 1 });
     check("veli eklendi", db.listGuardians(oyuncu.id).length === 1);
 
-    const acilan = db.ensureMonthlyDues(2026, 9);
-    check("aylık aidat açıldı", acilan >= 1);
+    db.ensureMonthlyDues(2026, 9); // kayıt anında zaten açılmış olabilir (bu ay Eylül 2026 ise) → tekrar güvenli
+    check("aylık aidat açıldı", !!db.getDue(oyuncu.id, 2026, 9));
     check("aidat ödenmedi durumunda", db.getDue(oyuncu.id, 2026, 9).durum === "odenmedi");
 
     const aidatKalemi = db.listFeeItems().find((k) => k.kod === "aidat");
@@ -118,6 +118,16 @@ app.whenReady().then(async () => {
     const t2 = db.createTraining({ age_group_id: grp.id, tarih: "2026-09-20", saat: "10:00" }); db.setAttendance(t2.id, oyuncu.id, "gelmedi");
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
+
+    // Ay ortasında kaydolan oyuncunun bu ayki aidatı yeniden başlatma beklemeden açılır; pasif→aktif de açar
+    const simdi = new Date(); const buYil = simdi.getFullYear(), buAy = simdi.getMonth() + 1;
+    const ortada = db.createPlayer({ ad_soyad: "Ay Ortası Kayıt", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 2500, odeme_donemi: "1-10" });
+    check("yeni oyuncuya bu ayın aidatı hemen açılır", db.getDue(ortada.id, buYil, buAy)?.durum === "odenmedi" && db.getDue(ortada.id, buYil, buAy).tutar === 2500);
+    const pasifOyuncu = db.createPlayer({ ad_soyad: "Pasiften Dönen", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "pasif", aylik_aidat: 2500 });
+    check("pasif oyuncuya aidat açılmaz", db.getDue(pasifOyuncu.id, buYil, buAy) === null);
+    db.updatePlayer(pasifOyuncu.id, { durum: "aktif" });
+    check("pasif→aktif olunca bu ayın aidatı açılır", db.getDue(pasifOyuncu.id, buYil, buAy)?.durum === "odenmedi");
+    check("tekrar çağrı kayıt çoğaltmaz", db.ensureMonthlyDues(buYil, buAy, pasifOyuncu.id) === 0);
 
     // Yeni sezon geçişi: yenileyen yeni sezon + üst grup; yenilemeyen pasif + not; eski borç isteğe bağlı muaf; gruplar/aktif sezon güncellenir
     const u12 = db.createAgeGroup({ ad: "U12", sezon: "2026-2027" });

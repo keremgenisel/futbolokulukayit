@@ -309,12 +309,16 @@ const PLAYER_FIELDS = ["tc_no","uyruk","pasaport_no","sezon","ad_soyad","dogum_t
 function createPlayer(p) {
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   const r = db.prepare(`INSERT INTO players (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).run(...cols.map((c) => p[c]));
+  buAyAidatAc(Number(r.lastInsertRowid)); // ay ortasında kaydolan oyuncunun bu ayki aidatı hemen açılsın
   return getPlayer(Number(r.lastInsertRowid));
 }
+// Bu ayın aidat kaydını tek oyuncu için aç (kayıt/durum değişimi sonrası; yeniden başlatma beklenmez).
+function buAyAidatAc(pid) { const t = new Date(); return ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1, pid); }
 function updatePlayer(id, p) {
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   if (!cols.length) return getPlayer(id);
   db.prepare(`UPDATE players SET ${cols.map((c) => `${c}=?`).join(",")}, updated_at=datetime('now') WHERE id=?`).run(...cols.map((c) => p[c]), id);
+  if (p.durum !== undefined || p.ucret_tipi !== undefined || p.aylik_aidat !== undefined) buAyAidatAc(id); // pasif→aktif vb.
   return getPlayer(id);
 }
 const getPlayer = (id) => db.prepare("SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.id=?").get(id) || null;
@@ -395,8 +399,11 @@ function aidatAyarlariKaydet({ kalemler = [], indirimler = {} } = {}) {
 // Aidat ödemesi beklenen durumlar. Ücretsiz/burslu ücret tipi ve dondurma/pasif/ayrıldı durumu muaf.
 const MUAF_UCRET = new Set(["ucretsiz"]); // burslu: indirim yüzdesiyle (varsayılan %100 → 0 ₺ → muaf)
 const AIDAT_DURUM = new Set(["aktif", "deneme", "sakat"]);
-function ensureMonthlyDues(yil, ay) {
-  const players = db.prepare("SELECT id, durum, ucret_tipi, aylik_aidat FROM players").all();
+// pid verilirse yalnız o oyuncu (yeni kayıt / durum değişimi); verilmezse herkes. INSERT OR IGNORE → tekrar güvenli.
+function ensureMonthlyDues(yil, ay, pid = null) {
+  const players = pid
+    ? db.prepare("SELECT id, durum, ucret_tipi, aylik_aidat FROM players WHERE id=?").all(pid)
+    : db.prepare("SELECT id, durum, ucret_tipi, aylik_aidat FROM players").all();
   const ins = db.prepare("INSERT OR IGNORE INTO monthly_dues (player_id,yil,ay,tutar,durum) VALUES (?,?,?,?,?)");
   let n = 0;
   const tx = db.transaction(() => {
