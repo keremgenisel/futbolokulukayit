@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Modal, Btn, Alan, Girdi, ParaGirdi, Secim, useToast } from "./ui.jsx";
+import { Ikon } from "./Ikon.jsx";
 import { db, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, UYRUKLAR, aidatHesapla, indirimYuzdesi, paraTR, pasaportGecerliMi, pasaportNormalize } from "../lib/aidat.js";
 
@@ -11,6 +12,9 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
   const [f, setF] = useState(oyuncu ? { ...BOS, ...oyuncu, yas_grubu_id: oyuncu.yas_grubu_id ?? "", aylik_aidat: oyuncu.aylik_aidat ?? "" } : { ...BOS });
   const [ayar, setAyar] = useState(null); // { taban, indirimler } — Ayarlar > Aidat Kalemleri
   const [hata, setHata] = useState("");
+  const hataRef = useRef(null);
+  // Uyarı formun EN ÜSTÜNDE gösterilir ve görünür alana kaydırılır (uzun formda altta kalıp gözden kaçmasın).
+  useEffect(() => { if (hata) hataRef.current?.scrollIntoView?.({ block: "start", behavior: "smooth" }); }, [hata]);
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
   const g = (k) => ({ value: f[k] ?? "", onChange: (e) => setF({ ...f, [k]: e.target.value }) });
@@ -53,6 +57,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
     <Modal baslik={oyuncu ? "Oyuncuyu Düzenle" : "Yeni Oyuncu"} onKapat={onKapat} genislik={860}
       altBar={<><Btn tur="ghost" onClick={onKapat}>Vazgeç</Btn><Btn onClick={kaydet} disabled={bekliyor}>{oyuncu ? "Kaydet" : "Oyuncuyu Kaydet"}</Btn></>}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        {hata && <div ref={hataRef} role="alert" style={{ background: "var(--kirmizi-acik)", border: "1.5px solid var(--kirmizi)", color: "var(--kirmizi)", borderRadius: 10, padding: "10px 14px", fontWeight: 600, display: "flex", alignItems: "center", gap: 8 }}><Ikon ad="uyari" boyut={18} />{hata}</div>}
         <h3 style={{ fontSize: 20 }}>Öğrenci</h3>
         <div style={satir}>
           <Alan etiket="Uyruk"><Secim secenekler={UYRUKLAR} {...g("uyruk")} aria-label="Uyruk" /></Alan>
@@ -80,7 +85,6 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
           <Alan etiket="Ödeme Dönemi"><Secim secenekler={ODEME_DONEMLERI.map((d) => ({ kod: d, ad: `Her ayın ${d} arası` }))} {...g("odeme_donemi")} /></Alan>
           <Alan etiket="Notlar" style={{ gridColumn: "span 3" }}><Girdi {...g("notlar")} /></Alan>
         </div>
-        {hata && <div role="alert" style={{ color: "var(--kirmizi)", fontWeight: 600 }}>{hata}</div>}
       </div>
     </Modal>
   );
