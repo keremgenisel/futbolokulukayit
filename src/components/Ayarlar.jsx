@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Secim, Rozet, Onay, Modal, useToast } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, ParaGirdi, Secim, Rozet, Onay, Modal, useToast } from "./ui.jsx";
 import { db, yedek, optimize, uygulama, hataMetni } from "../lib/api.js";
 import { paraTR, tarihTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimAnahtari, indirimYuzdesi, aidatHesapla } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
@@ -114,7 +114,7 @@ function KalemSatir({ k, onKaydet, saltOkunur }) {
   return (
     <tr>
       <td>{k.kod === "aidat" ? <b>{k.ad}</b> : <Girdi value={s.ad} onChange={(e) => setS({ ...s, ad: e.target.value })} disabled={saltOkunur} style={{ height: 36, width: 240 }} />}</td>
-      <td><Girdi type="number" min="0" value={s.varsayilan_fiyat} onChange={(e) => setS({ ...s, varsayilan_fiyat: e.target.value })} disabled={saltOkunur} aria-label={`${k.ad} fiyatı`} style={{ height: 36, width: 140 }} /></td>
+      <td><ParaGirdi value={s.varsayilan_fiyat} onDegis={(v) => setS({ ...s, varsayilan_fiyat: v })} disabled={saltOkunur} aria-label={`${k.ad} fiyatı`} style={{ height: 36, width: 140 }} /></td>
       <td>{k.kod === "aidat" ? <Rozet ton="green">Aktif</Rozet> : <input type="checkbox" checked={!!s.aktif} onChange={(e) => setS({ ...s, aktif: e.target.checked })} disabled={saltOkunur} />}</td>
       <td>{degisti && !saltOkunur && <Btn kucuk onClick={() => onKaydet(s)}>Kaydet</Btn>}</td>
     </tr>

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa } from "../src/lib/aidat.js";
+import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa, sayiAyikla, sayiBicimle } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
   it("aktif + normal ücret → ödenmedi olarak açılır", () => {
@@ -103,5 +103,19 @@ describe("kimlik: TC / pasaport", () => {
     expect(kimlikKisa({ uyruk: "tc", tc_no: "12345678901" })).toBe("TC 12345678901");
     expect(kimlikKisa({ uyruk: "yabanci", pasaport_no: "U1234567" })).toBe("Pasaport U1234567");
     expect(kimlikKisa({ uyruk: "tc", tc_no: null })).toBe("Kimlik yok");
+  });
+});
+
+describe("para girişi biçimleme", () => {
+  it("rakamları ayıklar, binlik noktayla biçimler", () => {
+    expect(sayiAyikla("5.000 ₺")).toBe("5000");
+    expect(sayiAyikla("abc")).toBe("");
+    expect(sayiAyikla("007")).toBe("7");
+    expect(sayiAyikla(3500)).toBe("3500");
+    expect(sayiBicimle("5000")).toBe("5.000");
+    expect(sayiBicimle(1234567)).toBe("1.234.567");
+    expect(sayiBicimle("")).toBe("");
+    expect(sayiBicimle(null)).toBe("");
+    expect(sayiBicimle("0")).toBe("0");
   });
 });

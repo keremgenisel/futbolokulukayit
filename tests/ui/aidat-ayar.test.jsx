@@ -56,8 +56,9 @@ describe("Ayarlar > Aidat Kalemleri: fiyat ve indirimler", () => {
     render(<ToastSaglayici><Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} /></ToastSaglayici>);
     fireEvent.click(screen.getByRole("button", { name: /Aidat Kalemleri/ }));
     const fiyat = await screen.findByLabelText("Aidat fiyatı");
-    expect(fiyat).toHaveValue(3500); expect(fiyat).not.toBeDisabled();
+    expect(fiyat).toHaveValue("3.500"); expect(fiyat).not.toBeDisabled(); // binlik ayraçlı görünür
     fireEvent.change(fiyat, { target: { value: "4000" } });
+    expect(fiyat).toHaveValue("4.000");
     fireEvent.click(within(fiyat.closest("tr")).getByRole("button", { name: "Kaydet" }));
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("updateFeeItem", 1, expect.objectContaining({ varsayilan_fiyat: 4000 })));
     const ind = await screen.findByLabelText("İndirimli indirimi");

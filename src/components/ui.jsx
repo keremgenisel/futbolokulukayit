@@ -1,5 +1,6 @@
 // Arayüz ilkelleri. Tüm stil inline; kulüp renkleri ui.css'teki CSS değişkenlerinden.
 import { useEffect, useState, createContext, useContext, useCallback } from "react";
+import { sayiAyikla, sayiBicimle } from "../lib/aidat.js";
 
 export function Btn({ tur = "primary", children, ikon, style, kucuk, ...rest }) {
   const turler = {
@@ -139,5 +140,15 @@ export function Sayfalama({ sayfa, toplam, sayfaBoyu, onSayfa, birim = "kayıt" 
       <span>Sayfa <b>{sayfa}</b> / {son}</span>
       <button type="button" onClick={() => onSayfa(sayfa + 1)} disabled={sayfa >= son} style={{ ...dugme, opacity: sayfa >= son ? .4 : 1 }} aria-label="Sonraki sayfa">Sonraki ›</button>
     </nav>
+  );
+}
+
+// Para girdisi: ekranda "5.000" görünür, dışarı rakam dizisi ("5000") verir. Tam lira; ondalık yok.
+// value: sayı ya da rakam dizisi; onDegis(rakamlar: string). Girdi ile aynı stil.
+export function ParaGirdi({ value, onDegis, style, ...rest }) {
+  return (
+    <input {...rest} type="text" inputMode="numeric" value={sayiBicimle(value)}
+      onChange={(e) => onDegis(sayiAyikla(e.target.value))}
+      style={{ ...girisStili, textAlign: "right", ...style }} />
   );
 }

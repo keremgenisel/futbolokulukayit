@@ -142,3 +142,12 @@ export function kimlikKisa(o) {
   if (!k.deger) return "Kimlik yok";
   return (o.uyruk === "yabanci" ? "Pasaport " : "TC ") + k.deger;
 }
+
+// ── Para girişi: "5000" ↔ "5.000" (tam lira; binlik ayırıcı nokta) ──
+/** Metindeki rakamları bırakır ("5.000 ₺" → "5000"). @param {unknown} metin */
+export const sayiAyikla = (metin) => String(metin ?? "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+/** Rakam dizisini binlik noktayla biçimler ("5000" → "5.000"; boş → ""). @param {unknown} deger */
+export function sayiBicimle(deger) {
+  const r = sayiAyikla(deger);
+  return r ? Number(r).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) : "";
+}

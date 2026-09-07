@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Onay, Bos, useToast } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Onay, Bos, useToast, ParaGirdi } from "./ui.jsx";
 import { db, cikti, bugun, hataMetni } from "../lib/api.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
@@ -131,7 +131,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
               <div key={k.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "8px 0", borderBottom: "1px solid var(--cizgi)" }}>
                 <input type="checkbox" checked={on} onChange={() => kalemToggle(k)} disabled={!oyuncu} aria-label={k.ad} style={{ width: 20, height: 20 }} />
                 <span style={{ flex: 1, fontWeight: on ? 700 : 400 }}>{k.kod === "aidat" && donem && on ? `Aidat · ${AY_ADLARI[donem.ay - 1]} ${donem.yil}` : k.ad}</span>
-                <Girdi type="number" min="0" value={on ? secili[k.id] : ""} disabled={!on} onChange={(e) => setSecili({ ...secili, [k.id]: e.target.value })} style={{ width: 140, height: 40, textAlign: "right", fontWeight: 700 }} aria-label={`${k.ad} tutar`} />
+                <ParaGirdi value={on ? secili[k.id] : ""} disabled={!on} onDegis={(v) => setSecili({ ...secili, [k.id]: v })} style={{ width: 140, height: 40, fontWeight: 700 }} aria-label={`${k.ad} tutar`} />
               </div>
             ); })}
           </div>
