@@ -10,6 +10,7 @@ import { Raporlar } from "./components/Raporlar.jsx";
 import { Ayarlar } from "./components/Ayarlar.jsx";
 import { ToastSaglayici } from "./components/ui.jsx";
 import { Ikon } from "./components/Ikon.jsx";
+import { KenarMenu } from "./components/KenarMenu.jsx";
 import { tarihTR } from "./lib/aidat.js";
 
 // Yönlendirici yok: sekme bir string, TABS'a göre koşullu render.
@@ -61,33 +62,7 @@ export function App() {
   return (
     <ToastSaglayici>
     <div style={{ display: "flex", height: "100%" }}>
-      <aside style={{ width: 232, flexShrink: 0, background: "var(--mor)", display: "flex", flexDirection: "column", padding: "20px 14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "4px 8px 22px", borderBottom: "1px solid rgba(255,255,255,.15)", marginBottom: 16 }}>
-          <img src="./logo.png" alt="" style={{ width: 44, height: 44, objectFit: "contain" }} />
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span className="baslik" style={{ color: "#fff", fontSize: 20, fontWeight: 700, letterSpacing: ".04em", lineHeight: 1 }}>EYÜPSPOR</span>
-            <span style={{ color: "var(--sari)", fontSize: 12, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" }}>Futbol Okulu</span>
-          </div>
-        </div>
-        <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {TABS.map((t) => (
-            <button key={t.kod} type="button" onClick={() => git(t.kod)} style={{
-              textAlign: "left", padding: "11px 14px", borderRadius: 8, fontSize: 15, cursor: "pointer",
-              background: tab === t.kod ? "rgba(255,255,255,.14)" : "transparent",
-              color: tab === t.kod ? "#fff" : "#D8CCE9", fontWeight: tab === t.kod ? 600 : 400,
-              border: 0, borderLeft: `3px solid ${tab === t.kod ? "var(--sari)" : "transparent"}`,
-            }}><span style={{ display: "flex", alignItems: "center", gap: 12 }}><Ikon ad={t.kod} /><span>{t.ad}</span></span></button>
-          ))}
-        </nav>
-        <div style={{ flex: 1 }} />
-        <div style={{ borderTop: "1px solid rgba(255,255,255,.15)", padding: "12px 10px", color: "#D8CCE9", fontSize: 14 }}>
-          <div style={{ color: "#fff", fontWeight: 600 }}>{oturum.ad_soyad || oturum.username}</div>
-          <div style={{ fontSize: 12 }}>{oturum.role === "admin" ? "Yönetici" : "Kullanıcı"}</div>
-          {mod?.mode === "istemci" && <div style={{ fontSize: 11, color: "var(--sari)", marginTop: 4 }}>Sunucuya bağlı</div>}
-          {mod?.mode === "sunucu" && <div style={{ fontSize: 11, color: mod.sunucu?.calisiyor ? "var(--sari)" : "#f99", marginTop: 4 }}>Sunucu {mod.sunucu?.calisiyor ? "açık · " + mod.sunucu.port : "kapalı"}</div>}
-          <button type="button" onClick={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} style={{ background: "none", border: 0, color: "#D8CCE9", padding: 0, cursor: "pointer", fontSize: 12, marginTop: 6, display: "flex", alignItems: "center", gap: 6 }}><Ikon ad="cikis" boyut={14} />Çıkış</button>
-        </div>
-      </aside>
+      <KenarMenu sekmeler={TABS} tab={tab} onSec={git} oturum={oturum} mod={mod} onCikis={async () => { await window.okul.auth.logout(); setOturum(null); setTab("pano"); }} />
       <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <header style={{ padding: "22px 32px 16px", borderBottom: "1px solid var(--cizgi)", background: "#fff" }}>
           <h1 style={{ fontSize: 30 }}>{TABS.find((t) => t.kod === tab)?.ad}</h1>

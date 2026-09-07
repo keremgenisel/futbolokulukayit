@@ -64,6 +64,10 @@ app.whenReady().then(async () => {
     await tikla("Kaydet");
     await bekle(600);
     await shot("03-pano");
+    // Kenar menü: daralt (yalnız ikonlar) → ekran görüntüsü → genişlet
+    await js(`document.querySelector("button[aria-label='Menüyü daralt']").click()`); await bekle(400);
+    await shot("03b-menu-dar");
+    await js(`document.querySelector("button[aria-label='Menüyü genişlet']").click()`); await bekle(400);
     await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const i = document.querySelector("input[aria-label='Tesise giriş araması']"); set.call(i, "Ka"); i.dispatchEvent(new Event("input", { bubbles: true })); })()`);
     await bekle(600);
     await shot("04-pano-arama");
