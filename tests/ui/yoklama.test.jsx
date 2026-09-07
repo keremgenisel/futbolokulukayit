@@ -12,7 +12,7 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
   beforeEach(() => {
     const t = bugun().iso;
     antrenmanlar = [{ id: 5, age_group_id: 1, tarih: t, saat: "17:00", saha: "Saha 1", iptal: 0, yas_grubu_ad: "U11", oyuncu: 2, isaretli: 0, geldi: 0 }];
-    window.okul = { db: vi.fn(async (fn, ...args) => {
+    window.okul = { app: { logo: vi.fn(async () => "data:image/png;base64,LOGO") }, cikti: { yazdir: vi.fn(async () => ({ ok: true })), pdfKaydet: vi.fn(async () => ({ ok: true })) }, db: vi.fn(async (fn, ...args) => {
       if (fn === "listAgeGroups") return [{ id: 1, ad: "U11", aktif: 1 }];
       if (fn === "trainingCalendar") return antrenmanlar;
       if (fn === "listPlayersWithDue") return [{ id: 10, ad_soyad: "Ada Kaya", durum: "aktif", aidat_durum: "odendi" }, { id: 11, ad_soyad: "Barış Güneş", durum: "aktif", aidat_durum: "odenmedi" }];
@@ -55,5 +55,24 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     render(<ToastSaglayici><Yoklama saltOkunur /></ToastSaglayici>);
     await screen.findByRole("button", { name: /U11 · 17:00/ });
     expect(screen.queryByRole("button", { name: "Antrenman Ekle" })).toBeNull();
+  });
+
+  it("Formu Yazdır: seçili antrenmanın grubu, tarihi ve oyuncuları ile A4 form yazdırılır; işaretli olan dolu, kalanlar boş", async () => {
+    kur();
+    fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
+    await screen.findByText("Ada Kaya");
+    fireEvent.click(screen.getAllByRole("button", { name: "Geldi" })[0]); // Ada geldi
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("setAttendance", 5, 10, "geldi"));
+    fireEvent.click(screen.getByRole("button", { name: "Formu Yazdır" }));
+    await waitFor(() => expect(window.okul.cikti.yazdir).toHaveBeenCalledTimes(1));
+    const html = window.okul.cikti.yazdir.mock.calls[0][0];
+    expect(html).toContain("YOKLAMA FORMU"); expect(html).toContain('<span class="grup">U11</span>'); expect(html).toContain("17:00"); expect(html).toContain("Saha 1");
+    expect(html).toContain('src="data:image/png;base64,LOGO"');
+    const satir = (ad) => html.split("<tr>").find((s) => s.includes(ad));
+    expect(satir("Ada Kaya")).toMatch(/<div class="kutu dolu">/); // programda geldi → dolu
+    expect(satir("Barış Güneş")).not.toContain("kutu dolu");       // işaretsiz → üç boş kutu
+    expect(html.toLowerCase()).not.toMatch(/aidat|borç/);          // borç bilgisi forma girmez
+    fireEvent.click(screen.getByRole("button", { name: "PDF" }));
+    await waitFor(() => expect(window.okul.cikti.pdfKaydet).toHaveBeenCalledWith(expect.stringContaining("YOKLAMA FORMU"), `yoklama-U11-${bugun().iso}.pdf`, false));
   });
 });

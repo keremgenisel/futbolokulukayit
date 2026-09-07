@@ -446,7 +446,7 @@ Uygulandı (12 madde, 07.09.2026):
 - **Arayüz tercihlerini ana sürece taşıma:** kenar menü ve hatırlanan kullanıcı adı localStorage'da; ani kapanışta
   kaybolabiliyor (config.json'a taşınırsa kalıcı olur). Düşük öncelik.
 
-## 12. Saha Yoklama Formu — yazdırılabilir (PLANLANDI, 07.09.2026)
+## 12. Saha Yoklama Formu — yazdırılabilir (PLANLANDI ve UYGULANDI, 07.09.2026)
 
 **İhtiyaç:** Antrenör sahada elinde kâğıtla yoklama alır, sonra programa işler. Yoklama > antrenman seçilince
 "Yoklama Formu Yazdır" düğmesi o antrenmanın grubu için A4 form üretir.
@@ -490,7 +490,6 @@ Uygulandı (12 madde, 07.09.2026):
   grup+tarih+oyuncu adları" senaryosu; duman testine ekran görüntüsü gerekmez (yazdırma penceresi).
 - Tahmini iş: yarım gün.
 
-### 12.4 Açık nokta (kulüp)
-- Formun grubun **haftalık tümü** için de istenip istenmediği (bir sayfada 7 gün × oyuncu ızgarası). Şimdilik tek
-  antrenman; haftalık ızgara istenirse aynı şablona `sutunlar: gunler` seçeneği eklenir.
+### 12.4 Karar
+- Haftalık ızgara İSTENMİYOR (Kerem, 07.09.2026); yalnız tek antrenman formu. Mockup `design/YoklamaFormu.dc.html`.
 

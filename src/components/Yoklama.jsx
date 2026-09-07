@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast } from "./ui.jsx";
-import { db, bugun, hataMetni } from "../lib/api.js";
+import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
+import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
 import { Ikon } from "./Ikon.jsx";
 import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
 import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi } from "../lib/takvim.js";
@@ -78,6 +79,13 @@ export function Yoklama({ saltOkunur }) {
   };
   const iptalEt = async () => { try { await db("cancelTraining", iptal.id, "İptal"); toast("ok", "Antrenman iptal edildi"); setIptal(null); setAktif(null); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
 
+  // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
+  const formHtml = async () => {
+    let logo = ""; try { logo = await uygulama().logo(); } catch { /* logosuz */ }
+    return yoklamaFormuHtml({ grup: aktif.yas_grubu_ad || "", tarih: aktif.tarih, saat: aktif.saat, saha: aktif.saha, logo, oyuncular: oyuncular.map((o) => ({ ad_soyad: o.ad_soyad, durum: o.durum, isaret: yoklama[o.id] })) });
+  };
+  const formYazdir = async () => { try { await cikti().yazdir(await formHtml()); } catch (e) { toast("err", hataMetni(e)); } };
+  const formPdf = async () => { try { await cikti().pdfKaydet(await formHtml(), `yoklama-${(aktif.yas_grubu_ad || "grup").replace(/\s+/g, "")}-${aktif.tarih}.pdf`, false); } catch (e) { toast("err", hataMetni(e)); } };
   const say = (d) => oyuncular.filter((o) => yoklama[o.id] === d).length;
   const borclu = oyuncular.filter((o) => o.aidat_durum === "odenmedi").length;
   const Dugme = ({ pid, durum, etiket }) => {
@@ -139,10 +147,12 @@ export function Yoklama({ saltOkunur }) {
                 </div>
                 {borclu > 0 && <Rozet ton="red">{borclu} aidat borcu</Rozet>}{aktif.iptal ? <Rozet ton="red">İptal edildi</Rozet> : null}
               </div>
-              {!saltOkunur && !aktif.iptal && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <Btn tur="ghost" ikon={<Ikon ad="onay" />} onClick={tumuGeldi}>Kalanları Geldi İşaretle</Btn>
-                  <Btn tur="danger" ikon={<Ikon ad="kapat" />} onClick={() => setIptal(aktif)}>İptal Et</Btn>
+              {!aktif.iptal && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <Btn tur="ghost" ikon={<Ikon ad="yazdir" />} onClick={formYazdir} title="Sahada elle doldurulacak A4 yoklama formu; programda işaretli olanlar dolu gelir">Formu Yazdır</Btn>
+                  <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={formPdf} title="Yoklama formunu PDF olarak kaydet">PDF</Btn>
+                  {!saltOkunur && <Btn tur="ghost" ikon={<Ikon ad="onay" />} onClick={tumuGeldi}>Kalanları Geldi İşaretle</Btn>}
+                  {!saltOkunur && <Btn tur="danger" ikon={<Ikon ad="kapat" />} onClick={() => setIptal(aktif)}>İptal Et</Btn>}
                 </div>
               )}
             </div>
