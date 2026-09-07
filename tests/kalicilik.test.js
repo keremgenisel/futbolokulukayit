@@ -19,7 +19,7 @@ describe("Veri kalıcılığı (Electron altında, dist/ gerekli)", () => {
       const dizin = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-kalicilik-"));
       const y = kos(dizin, "yaz", env);
       expect(y.stdout).toContain("YAZ TAMAM");
-      const o = kos(dizin, "oku");
+      const o = kos(dizin, "oku", env); // senaryo bilgisi oku adımına da geçer (SIGKILL sonrası bilgi satırları)
       if (o.status !== 0) console.error(o.stdout, o.stderr);
       expect(o.status).toBe(0);
       expect(o.stdout).toContain("TUM KONTROLLER GECTI");
