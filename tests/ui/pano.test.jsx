@@ -10,7 +10,7 @@ describe("Pano — tesise giriş kontrolü", () => {
   beforeEach(() => {
     window.okul = { db: vi.fn(async (fn, arg) => {
       if (fn === "panoOzet") return { aktif: 3, grup: 2, odeyen: 1, borclu: 1, antrenmanlar: [], bugunTahsilat: 0 };
-      if (fn === "listUnpaid") return [{ id: 5, player_id: 2, ad_soyad: "Kaan Yıldız", yas_grubu_ad: "U11", odeme_donemi: "1-10", yil: 2026, ay: 9, tutar: 3500 }];
+      if (fn === "listUnpaid") return [{ id: 5, player_id: 2, ad_soyad: "Kaan Yıldız", yas_grubu_ad: "U11", odeme_donemi: "1-10", yil: 2026, ay: 9, tutar: 3500, veli_tel: "05321112233", veli_ad: "Ayşe Yıldız" }];
       if (fn === "listPlayersWithDue" && arg?.q) return [
         { id: 1, ad_soyad: "Kerem Yılmaz", durum: "aktif", yas_grubu_ad: "U12", aidat_durum: "odendi" },
         { id: 2, ad_soyad: "Kaan Yıldız", durum: "aktif", yas_grubu_ad: "U11", aidat_durum: "odenmedi" },
@@ -61,5 +61,15 @@ describe("Pano — tesise giriş kontrolü", () => {
     expect(screen.getByText("5 gün kaldı")).toBeInTheDocument();
     fireEvent.click(screen.getByText("Kaan Yıldız"));
     expect(onOyuncu).toHaveBeenCalledWith(2);
+  });
+
+  it("borçlu listesinde veli telefonu görünür ve tıklayınca kopyalanır", async () => {
+    const yaz = vi.fn(async () => {});
+    Object.assign(navigator, { clipboard: { writeText: yaz } });
+    render(<ToastSaglayici><Pano onOyuncu={() => {}} onSekme={() => {}} onMakbuzKes={() => {}} /></ToastSaglayici>);
+    const tel = await screen.findByRole("button", { name: "05321112233 kopyala" });
+    fireEvent.click(tel);
+    await waitFor(() => expect(yaz).toHaveBeenCalledWith("05321112233"));
+    expect(await screen.findByText("Ayşe Yıldız 05321112233 kopyalandı")).toBeInTheDocument();
   });
 });

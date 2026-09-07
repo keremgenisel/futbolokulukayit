@@ -35,6 +35,7 @@ app.whenReady().then(async () => {
 
     db.addGuardian(oyuncu.id, { tip: "baba", ad_soyad: "Test Baba", gsm: "05330000000", whatsapp_no: "05330000000", veli_mi: 1 });
     check("veli eklendi", db.listGuardians(oyuncu.id).length === 1);
+    check("veli telefonu listelerde geliyor", db.listPlayersWithDue({ yil: 2026, ay: 9 }).find((p) => p.id === oyuncu.id).veli_tel === db.listGuardians(oyuncu.id)[0].gsm);
 
     db.ensureMonthlyDues(2026, 9); // kayıt anında zaten açılmış olabilir (bu ay Eylül 2026 ise) → tekrar güvenli
     check("aylık aidat açıldı", !!db.getDue(oyuncu.id, 2026, 9));
@@ -70,6 +71,7 @@ app.whenReady().then(async () => {
     check("nedensiz iptal reddedilir", nedensiz);
     check("iptaller raporda ayrı listelenir, tahsilatta görünmez", db.listCancelledReceipts("2026-09-01", "2026-09-30").some((r) => r.id === makbuz.id) && !db.listReceiptsByDate("2026-09-01", "2026-09-30").some((r) => r.id === makbuz.id));
     check("iptal sonrası borçlu listesi", db.listUnpaid(2026, 9).length === 1);
+    check("borçlu listesinde veli telefonu", !!db.listUnpaid(2026, 9)[0].veli_tel);
     check("grup silme oyuncu varken engellenir", !!db.deleteAgeGroup(grp.id).error);
     const belgeId = db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/x.pdf", orijinal_ad: "x.pdf" });
     check("belge okunuyor", db.getDocument(belgeId).tip === "saglik");

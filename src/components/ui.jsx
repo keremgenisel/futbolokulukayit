@@ -152,3 +152,11 @@ export function ParaGirdi({ value, onDegis, style, ...rest }) {
       style={{ ...girisStili, textAlign: "right", ...style }} />
   );
 }
+
+// Telefon numarası: tıklayınca panoya kopyalar (arama yapılacak cihaza yazmak için). Boşsa "—".
+export function Telefon({ no, etiket }) {
+  const toast = useToast();
+  if (!no) return <span style={{ color: "var(--soluk)" }}>—</span>;
+  const kopyala = async (e) => { e.stopPropagation(); try { await navigator.clipboard.writeText(no); toast("ok", `${etiket ? etiket + " " : ""}${no} kopyalandı`); } catch { toast("err", "Kopyalanamadı"); } };
+  return <button type="button" onClick={kopyala} title="Kopyalamak için tıklayın" aria-label={`${no} kopyala`} style={{ background: "none", border: 0, padding: 0, cursor: "pointer", color: "var(--mor-koyu)", fontWeight: 600, fontFamily: "inherit", fontSize: "inherit", textDecoration: "underline dotted" }}>{no}</button>;
+}

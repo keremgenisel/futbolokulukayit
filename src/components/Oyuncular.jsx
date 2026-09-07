@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket, Sayfalama } from "./ui.jsx";
+import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket, Sayfalama, Telefon } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
@@ -78,13 +78,14 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       <Kart>
         {liste.length === 0 ? <Bos metin="Kayıt bulunamadı." /> : (
           <table>
-            <thead><tr><th style={{ width: "30%" }}>Oyuncu</th><th>Doğum tarihi</th><th>Grup</th><th>Durum</th><th>Ücret tipi</th><th>{AY_ADLARI[ay - 1]} aidatı</th><th style={{ width: 40 }}></th></tr></thead>
+            <thead><tr><th style={{ width: "30%" }}>Oyuncu</th><th>Doğum tarihi</th><th>Grup</th><th>Veli</th><th>Durum</th><th>Ücret tipi</th><th>{AY_ADLARI[ay - 1]} aidatı</th><th style={{ width: 40 }}></th></tr></thead>
             <tbody>
               {liste.map((o) => (
                 <tr key={o.id} onClick={() => setAcik(o.id)} style={{ cursor: "pointer" }}>
                   <td><div style={{ display: "flex", alignItems: "center", gap: 12 }}><Avatar ad={o.ad_soyad} /><div><div style={{ fontWeight: 700 }}>{o.ad_soyad}</div><div style={{ fontSize: 12, color: "var(--soluk)" }}>{kimlikKisa(o)}</div></div></div></td>
                   <td>{tarihTR(o.dogum_tarihi)}</td>
                   <td>{o.yas_grubu_ad ? <Rozet ton="purple">{o.yas_grubu_ad}</Rozet> : <span style={{ color: "var(--soluk)" }}>—</span>}</td>
+                  <td style={{ fontSize: 13 }}>{o.veli_ad ? <div>{o.veli_ad}</div> : null}<Telefon no={o.veli_tel} etiket={o.veli_ad} /></td>
                   <td><Rozet ton={durumTonu(o.durum)}>{durumAd(o.durum)}</Rozet></td>
                   <td><Rozet ton={o.ucret_tipi === "normal" ? "gray" : o.ucret_tipi === "ucretsiz" || o.ucret_tipi === "burslu" ? "purple" : "yellow"}>{ucretAd(o.ucret_tipi)}</Rozet></td>
                   <td><Rozet ton={aidatTonu(o.aidat_durum)}>{aidatEtiket(o.aidat_durum)}</Rozet></td>

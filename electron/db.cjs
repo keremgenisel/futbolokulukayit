@@ -478,7 +478,7 @@ const listDues = (pid, limit = null) => limit
   ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
   : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
 const listUnpaid = (yil, ay) => db.prepare(
-  "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad"
+  "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad"
 ).all(yil, ay);
 
 // ── receipts ──
@@ -573,7 +573,7 @@ function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sade
     ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
   return { govde, args };
 }
-const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen";
+const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
 function listPlayersWithDue(opts = {}) {
   const { govde, args } = playersWhere(opts);
   return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
