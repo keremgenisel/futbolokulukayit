@@ -3,7 +3,7 @@
 //      sonra pencere KAPATILIR (window-all-closed → db.close → quit) — kullanıcı akışının aynısı.
 //   2. koşum ("oku"): uygulama yeniden açılır, DB'den ve arayüzden veriler okunur.
 // Kullanım: electron scripts/tests/kalicilik.cjs <userDataDizini> yaz|oku
-const { app, BrowserWindow } = require("electron");
+const { app } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const [dizin, adim] = process.argv.slice(2);
@@ -69,8 +69,9 @@ app.on("browser-window-created", async (_e, win) => {
       check("makbuz ve aidat kalıcı", db.listReceipts(o.id)[0]?.makbuz_no === b.makbuz && db.listDues(o.id)[0]?.durum === "odendi");
       check("yoklama kalıcı", db.playerAttendance(o.id, "2026-01-01", "2026-12-31")[0]?.durum === "izinli");
       check("lisans makine kimliği kalıcı", !!db.lisansDurumu().makineId && db.getMetaValue("kurulumTarihi") !== null);
-      // Arayüz: giriş ekranı yeni parolayla açılıyor ve oyuncu listede
-      await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const [u, p] = document.querySelectorAll("input"); set.call(u, "admin"); u.dispatchEvent(new Event("input", { bubbles: true })); set.call(p, "kalici-parola-1"); p.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+      // Arayüz: kullanıcı adı önceki oturumdan hatırlanıyor, giriş yeni parolayla
+      check("kullanıcı adı yeniden açılışta hatırlanıyor", (await js(`document.querySelector("input").value`)) === "admin");
+      await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const p = document.querySelector("input[type=password]"); set.call(p, "kalici-parola-1"); p.dispatchEvent(new Event("input", { bubbles: true })); })()`);
       await tikla("Giriş Yap"); await bekle(600);
       check("yeniden açılışta parola değişimi istenmiyor", !(await js(`!!document.querySelector("[role=dialog]")`)));
       await tikla("Oyuncular"); await bekle(600);
