@@ -15,7 +15,7 @@
    Program her açılışta günde bir kez otomatik yedek alır. Her yedek tek bir zip dosyasıdır
    (`eyupspor-yedek-tarih.zip`): veritabanı, vesikalıklar, belgeler ve makbuz PDF'leri içindedir.
    Geri yüklemek için aynı ekrandan zip dosyasını seçin.
-6. **Ayarlar > Resim Optimizasyonu**: eski yüklenmiş büyük fotoğrafları küçültür (yedekler küçülür).
+6. **Ayarlar > Resim ve Belge Optimizasyonu**: eski yüklenmiş büyük fotoğrafları küçültür (yedekler küçülür).
    Yeni yüklenen JPG/PNG dosyaları zaten yükleme anında optimize edilir; PDF'lere dokunulmaz.
 6. **Ayarlar > Aidat Kalemleri**: forma, eşofman gibi kalemlerin fiyatlarını girin.
 7. **Yaş Grupları**: U9, U10, U11 … gruplarını oluşturun.

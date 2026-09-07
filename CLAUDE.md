@@ -49,7 +49,7 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   Anahtar `safeStorage` ile OS anahtarlığında.
 - `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması. JPG/PNG
   yükleme anında `electron/imageOptimize.cjs` ile nazikçe küçültülür (≤2000px, JPEG %82; yalnız küçülürse).
-  `electron/ipc/optimize.cjs` — Ayarlar > Resim Optimizasyonu (analiz/uygula, eski dosyalar için).
+  `electron/ipc/optimize.cjs` — Ayarlar > Resim ve Belge Optimizasyonu (analiz/uygula, eski dosyalar için).
 - `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
 - `electron/ipc/yedek.cjs` — elle ve günlük otomatik yedek (data.db + uploads → TEK zip `eyupspor-yedek-<damga>.zip`,
   fflate, 30 gün saklama) ve

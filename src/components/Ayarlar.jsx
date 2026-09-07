@@ -7,7 +7,7 @@ import { SettingsLisans } from "./SettingsLisans.jsx";
 import { SettingsSunucu } from "./SettingsSunucu.jsx";
 import { Ikon } from "./Ikon.jsx";
 
-const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim Optimizasyonu", ikon: "dosya" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }, { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
+const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" }, { kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }, { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
 
 export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum }) {
   const [bolum, setBolum] = useState(baslangicBolum || "kulup");
