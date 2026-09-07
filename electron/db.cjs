@@ -283,7 +283,7 @@ function aidatAyarlari() {
   const taban = db.prepare("SELECT varsayilan_fiyat FROM fee_items WHERE kod='aidat'").get()?.varsayilan_fiyat ?? 0;
   const indirimler = {};
   for (const r of db.prepare("SELECT key, value FROM settings WHERE key LIKE 'indirim_%'").all()) indirimler[r.key.slice(8)] = Number(r.value);
-  return { taban: Number(taban) || 0, indirimler };
+  return { taban: Number(taban) || 0, indirimler, sezon: getSetting("aktif_sezon") || "" };
 }
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value ?? null;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);

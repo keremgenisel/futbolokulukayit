@@ -2,7 +2,9 @@ import { useState, useEffect, useRef } from "react";
 import { Modal, Btn, Alan, Girdi, ParaGirdi, Secim, useToast } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, UYRUKLAR, aidatHesapla, indirimYuzdesi, paraTR, pasaportGecerliMi, pasaportNormalize } from "../lib/aidat.js";
+import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, UYRUKLAR, aidatHesapla, indirimYuzdesi, paraTR, pasaportGecerliMi, pasaportNormalize, tcGecerliMi, gsmNormalize, gsmGecerliMi, yasGrubuOner } from "../lib/aidat.js";
+import { guncelSezon } from "../lib/sezon.js";
+import { bugun } from "../lib/api.js";
 
 const BOS = { tc_no: "", uyruk: "tc", pasaport_no: "", ad_soyad: "", dogum_tarihi: "", dogum_yeri: "", okul: "", gsm: "", adres: "", kan_grubu: "", yas_grubu_id: "", durum: "aktif", ucret_tipi: "normal", aylik_aidat: "", odeme_donemi: "1-10", kayit_tarihi: new Date().toISOString().slice(0, 10), notlar: "" };
 const KAN = ["A Rh+", "A Rh-", "B Rh+", "B Rh-", "AB Rh+", "AB Rh-", "0 Rh+", "0 Rh-"].map((k) => ({ kod: k, ad: k }));
@@ -31,15 +33,19 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
     setF((o) => ({ ...o, ucret_tipi: tip, aylik_aidat: ayar ? String(aidatHesapla(ayar.taban, tip, ayar.indirimler)) : o.aylik_aidat }));
   };
   const yuzde = ayar ? indirimYuzdesi(f.ucret_tipi, ayar.indirimler[f.ucret_tipi]) : 0;
+  const sezon = ayar?.sezon || guncelSezon(bugun().iso, 9);
+  const oneri = f.dogum_tarihi ? yasGrubuOner(f.dogum_tarihi, sezon, gruplar) : null;
 
   const kaydet = async () => {
     if (!f.ad_soyad.trim()) return setHata("Ad soyad zorunlu");
     const yabanci = f.uyruk === "yabanci";
     if (!yabanci && f.tc_no && !/^\d{11}$/.test(f.tc_no)) return setHata("TC kimlik no 11 haneli olmalı");
+    if (!yabanci && f.tc_no && !tcGecerliMi(f.tc_no)) return setHata("TC kimlik no geçersiz (sağlama tutmuyor), rakamları kontrol edin");
+    if (f.gsm && !gsmGecerliMi(f.gsm)) return setHata("GSM 05 ile başlayan 11 hane olmalı (ör. 0532 123 45 67)");
     if (yabanci && !pasaportGecerliMi(pasaportNormalize(f.pasaport_no))) return setHata("Yabancı uyruklu oyuncu için pasaport no zorunlu (5-15 harf/rakam)");
     if (!f.dogum_tarihi) return setHata("Doğum tarihi zorunlu");
     setHata(""); setBekliyor(true);
-    const veri = { ...f, tc_no: yabanci ? null : f.tc_no || null, pasaport_no: yabanci ? pasaportNormalize(f.pasaport_no) : null, yas_grubu_id: f.yas_grubu_id ? Number(f.yas_grubu_id) : null, aylik_aidat: Number(f.aylik_aidat) || 0 };
+    const veri = { ...f, gsm: f.gsm ? gsmNormalize(f.gsm) : "", tc_no: yabanci ? null : f.tc_no || null, pasaport_no: yabanci ? pasaportNormalize(f.pasaport_no) : null, yas_grubu_id: f.yas_grubu_id ? Number(f.yas_grubu_id) : null, aylik_aidat: Number(f.aylik_aidat) || 0 };
     delete veri.id; delete veri.yas_grubu_ad; delete veri.created_at; delete veri.updated_at; delete veri.foto_yolu;
     delete veri.aidat_durum; delete veri.aidat_tutar;
     try {
@@ -74,7 +80,10 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
         </div>
         <h3 style={{ fontSize: 20 }}>Kayıt ve Ücret</h3>
         <div style={satir}>
-          <Alan etiket="Yaş Grubu"><Secim secenekler={gruplar.filter((x) => x.aktif)} bos="Seçin" {...g("yas_grubu_id")} /></Alan>
+          <Alan etiket="Yaş Grubu">
+            <Secim secenekler={gruplar.filter((x) => x.aktif)} bos="Seçin" {...g("yas_grubu_id")} aria-label="Yaş grubu" />
+            {oneri && <span style={{ fontSize: 12, color: "var(--soluk)" }}>{f.dogum_tarihi.slice(0, 4)} doğumlu → <b>{oneri.ad}</b> olabilir ({sezon} sezonu){oneri.id && String(oneri.id) !== String(f.yas_grubu_id) && <> · <button type="button" onClick={() => setF({ ...f, yas_grubu_id: String(oneri.id) })} style={{ background: "none", border: 0, padding: 0, color: "var(--mor)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>{oneri.ad} seç</button></>}</span>}
+          </Alan>
           <Alan etiket="Durum"><Secim secenekler={DURUMLAR} {...g("durum")} /></Alan>
           <Alan etiket="Kayıt Tarihi"><Girdi type="date" {...g("kayit_tarihi")} /></Alan>
           <Alan etiket="Ücret Tipi"><Secim secenekler={UCRET_TIPLERI} value={f.ucret_tipi} onChange={ucretTipiDegisti} /></Alan>

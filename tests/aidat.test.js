@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa, sayiAyikla, sayiBicimle, aidatDurumHesapla, aidatKalan } from "../src/lib/aidat.js";
+import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa, sayiAyikla, sayiBicimle, aidatDurumHesapla, aidatKalan, tcGecerliMi, gsmNormalize, gsmGecerliMi, yasGrubuOner } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
   it("aktif + normal ücret → ödenmedi olarak açılır", () => {
@@ -137,5 +137,31 @@ describe("kısmi ödeme", () => {
   });
   it("kısmi ödemeyle tesise girilemez", () => {
     expect(tesiseGirebilir({ durum: "aktif" }, { durum: "kismi" })).toBe(false);
+  });
+});
+
+describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
+  it("TC sağlama algoritması", () => {
+    expect(tcGecerliMi("10000000146")).toBe(true);  // bilinen geçerli test numarası
+    expect(tcGecerliMi("12345678901")).toBe(false); // sağlama tutmaz
+    expect(tcGecerliMi("01234567890")).toBe(false); // 0 ile başlayamaz
+    expect(tcGecerliMi("1234567890")).toBe(false);  // 10 hane
+    expect(tcGecerliMi("")).toBe(false);
+  });
+  it("GSM normalize ve doğrulama", () => {
+    expect(gsmNormalize("+90 532 123 45 67")).toBe("05321234567");
+    expect(gsmNormalize("532-123-4567")).toBe("05321234567");
+    expect(gsmGecerliMi("0532 123 45 67")).toBe(true);
+    expect(gsmGecerliMi("0212 123 45 67")).toBe(false);
+    expect(gsmGecerliMi("532")).toBe(false);
+  });
+  it("yaş grubu önerisi: sezon bitiş yılı − doğum yılı", () => {
+    const g = [{ id: 1, ad: "U11", aktif: 1 }, { id: 2, ad: "U 12", aktif: 1 }, { id: 3, ad: "U13", aktif: 0 }];
+    expect(yasGrubuOner("2016-05-05", "2026-2027", g)).toEqual({ ad: "U11", id: 1 });
+    expect(yasGrubuOner("2015-01-01", "2026-2027", g)).toEqual({ ad: "U12", id: 2 });
+    expect(yasGrubuOner("2014-01-01", "2026-2027", g)).toEqual({ ad: "U13", id: null }); // pasif grup önerilmez
+    expect(yasGrubuOner("2000-01-01", "2026-2027", g)).toBeNull(); // 27 → aralık dışı
+    expect(yasGrubuOner("", "2026-2027", g)).toBeNull();
+    expect(yasGrubuOner("2016-01-01", "", g)).toBeNull();
   });
 });

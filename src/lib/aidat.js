@@ -168,3 +168,38 @@ export function sayiBicimle(deger) {
   const r = sayiAyikla(deger);
   return r ? Number(r).toLocaleString("tr-TR", { maximumFractionDigits: 0 }) : "";
 }
+
+// ── Kimlik/iletişim doğrulama ──
+/** TC kimlik no: 11 hane, ilk hane 0 değil, 10. ve 11. hane sağlama. @param {unknown} tc */
+export function tcGecerliMi(tc) {
+  const t = String(tc ?? "").trim();
+  if (!/^[1-9]\d{10}$/.test(t)) return false;
+  const d = t.split("").map(Number);
+  const tek = d[0] + d[2] + d[4] + d[6] + d[8], cift = d[1] + d[3] + d[5] + d[7];
+  if (d[9] !== ((tek * 7 - cift) % 10 + 10) % 10) return false;
+  return d[10] === d.slice(0, 10).reduce((a, b) => a + b, 0) % 10;
+}
+/** GSM'i 05xxxxxxxxx biçimine indirger (boşluk, +90, 90 önekleri temizlenir). @param {unknown} v */
+export function gsmNormalize(v) {
+  let r = String(v ?? "").replace(/\D/g, "");
+  if (r.startsWith("90") && r.length === 12) r = r.slice(2);
+  if (r.length === 10 && r.startsWith("5")) r = "0" + r;
+  return r;
+}
+/** 05 ile başlayan 11 hane. @param {unknown} v */
+export const gsmGecerliMi = (v) => /^05\d{9}$/.test(gsmNormalize(v));
+
+/**
+ * Doğum yılından yaş grubu önerisi (yalnız ipucu; grup elle seçilir). Kural: U(N), N = sezon bitiş yılı − doğum yılı.
+ * @param {string} dogumIso @param {string} sezon "2026-2027" @param {{id:number, ad:string, aktif?:number}[]} gruplar
+ * @returns {{ ad: string, id: number|null } | null}
+ */
+export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
+  const yil = Number(String(dogumIso || "").slice(0, 4)); const bitis = Number(String(sezon || "").slice(5, 9));
+  if (!yil || !bitis || bitis <= yil) return null;
+  const n = bitis - yil;
+  if (n < 5 || n > 20) return null;
+  const ad = `U${n}`;
+  const g = gruplar.find((x) => x.aktif !== 0 && String(x.ad).toLocaleUpperCase("tr-TR").replace(/\s+/g, "") === ad);
+  return { ad, id: g ? g.id : null };
+}
