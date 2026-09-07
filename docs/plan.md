@@ -317,7 +317,7 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 
 ### 8.3 Kulüpten cevabı beklenen sorular (bkz. §6) ve etkisi
 - Aidat tutarı yaş grubuna göre değişiyorsa → her oyuncuda ayrı girilir, ek geliştirme gerekmez.
-- İndirim yüzde ise → şu an sabit tutar giriliyor; yüzde istenirse Ücret Tipi'ne oran alanı eklenir (küçük iş).
+- ~~İndirim yüzde ise → şu an sabit tutar giriliyor~~ — YAPILDI 07.09.2026: Ayarlar > Aidat Kalemleri'nde aidat taban fiyatı ve ücret tipi başına indirim yüzdesi (burslu varsayılan %100, indirimli/kardeş 0); oyuncu formunda ücret tipi seçilince aidat otomatik hesaplanır, elle değiştirilebilir.
 - Mevcut Excel oyuncu listesi varsa → `scripts/excel-aktar.cjs` yazılır (yarım gün).
 - Yazıcı fiş yazıcıysa → makbuz şablonuna 80 mm düzen eklenir (yarım gün).
 

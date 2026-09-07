@@ -1,13 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR } from "../src/lib/aidat.js";
+import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
   it("aktif + normal ücret → ödenmedi olarak açılır", () => {
     expect(aidatBaslangicDurumu({ durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3500 })).toBe("odenmedi");
   });
-  it("burslu ve ücretsiz → muaf", () => {
-    expect(aidatBaslangicDurumu({ durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 3500 })).toBe("muaf");
+  it("ücretsiz her zaman muaf; burslu 0 ₺ ise muaf, kısmi bursta ödeme bekler", () => {
     expect(aidatBaslangicDurumu({ durum: "deneme", ucret_tipi: "ucretsiz", aylik_aidat: 0 })).toBe("muaf");
+    expect(aidatBaslangicDurumu({ durum: "aktif", ucret_tipi: "ucretsiz", aylik_aidat: 3500 })).toBe("muaf");
+    expect(aidatBaslangicDurumu({ durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 0 })).toBe("muaf");
+    expect(aidatBaslangicDurumu({ durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 1750 })).toBe("odenmedi");
   });
   it("indirimli ve kardeş indirimi ödeme bekler", () => {
     expect(aidatBaslangicDurumu({ durum: "aktif", ucret_tipi: "indirimli", aylik_aidat: 2500 })).toBe("odenmedi");
@@ -56,5 +58,31 @@ describe("biçimleme", () => {
     expect(paraTR(4850.5)).toBe("4.850,5 ₺");
     expect(tarihTR("2015-11-02")).toBe("02.11.2015");
     expect(tarihTR("")).toBe("");
+  });
+});
+
+describe("aidatHesapla / indirimYuzdesi", () => {
+  it("varsayılanlar: normal tam, burslu ve ücretsiz 0, indirimli/kardeş tam", () => {
+    expect(aidatHesapla(3500, "normal")).toBe(3500);
+    expect(aidatHesapla(3500, "burslu")).toBe(0);
+    expect(aidatHesapla(3500, "ucretsiz")).toBe(0);
+    expect(aidatHesapla(3500, "indirimli")).toBe(3500);
+    expect(aidatHesapla(3500, "kardes")).toBe(3500);
+  });
+  it("ayarlardaki yüzdeler uygulanır, tam liraya yuvarlanır", () => {
+    const ind = { indirimli: 25, kardes: "15", burslu: 50 };
+    expect(aidatHesapla(3500, "indirimli", ind)).toBe(2625);
+    expect(aidatHesapla(3500, "kardes", ind)).toBe(2975);
+    expect(aidatHesapla(3500, "burslu", ind)).toBe(1750);
+    expect(aidatHesapla(3333, "indirimli", { indirimli: 33 })).toBe(2233);
+  });
+  it("sabit tipler ayarla değişmez; yüzde 0-100 arasına sıkışır; bozuk değer varsayılana döner", () => {
+    expect(aidatHesapla(3500, "normal", { normal: 50 })).toBe(3500);
+    expect(aidatHesapla(3500, "ucretsiz", { ucretsiz: 0 })).toBe(0);
+    expect(indirimYuzdesi("indirimli", 150)).toBe(100);
+    expect(indirimYuzdesi("indirimli", -5)).toBe(0);
+    expect(indirimYuzdesi("kardes", "abc")).toBe(0);
+    expect(indirimYuzdesi("burslu", "")).toBe(100);
+    expect(aidatHesapla(-10, "normal")).toBe(0);
   });
 });

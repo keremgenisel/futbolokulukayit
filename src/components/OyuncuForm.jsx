@@ -1,18 +1,32 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal, Btn, Alan, Girdi, Secim, useToast } from "./ui.jsx";
 import { db, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI } from "../lib/aidat.js";
+import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, aidatHesapla, indirimYuzdesi, paraTR } from "../lib/aidat.js";
 
 const BOS = { tc_no: "", ad_soyad: "", dogum_tarihi: "", dogum_yeri: "", okul: "", gsm: "", adres: "", kan_grubu: "", yas_grubu_id: "", durum: "aktif", ucret_tipi: "normal", aylik_aidat: "", odeme_donemi: "1-10", kayit_tarihi: new Date().toISOString().slice(0, 10), notlar: "" };
 const KAN = ["A Rh+", "A Rh-", "B Rh+", "B Rh-", "AB Rh+", "AB Rh-", "0 Rh+", "0 Rh-"].map((k) => ({ kod: k, ad: k }));
 
 // Oyuncu ekleme / düzenleme formu (kayıt formundaki Öğrenci alanları + kayıt ve ücret).
-export function OyuncuForm({ oyuncu, gruplar, varsayilanAidat, onKaydedildi, onKapat }) {
-  const [f, setF] = useState(oyuncu ? { ...BOS, ...oyuncu, yas_grubu_id: oyuncu.yas_grubu_id ?? "", aylik_aidat: oyuncu.aylik_aidat ?? "" } : { ...BOS, aylik_aidat: varsayilanAidat ?? "" });
+export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
+  const [f, setF] = useState(oyuncu ? { ...BOS, ...oyuncu, yas_grubu_id: oyuncu.yas_grubu_id ?? "", aylik_aidat: oyuncu.aylik_aidat ?? "" } : { ...BOS });
+  const [ayar, setAyar] = useState(null); // { taban, indirimler } — Ayarlar > Aidat Kalemleri
   const [hata, setHata] = useState("");
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
   const g = (k) => ({ value: f[k] ?? "", onChange: (e) => setF({ ...f, [k]: e.target.value }) });
+  // Taban aidat + indirimler yüklenir; yeni kayıtta aidat ücret tipine göre otomatik dolar.
+  useEffect(() => {
+    db("aidatAyarlari").then((a) => {
+      setAyar(a);
+      if (!oyuncu) setF((o) => ({ ...o, aylik_aidat: String(aidatHesapla(a.taban, o.ucret_tipi, a.indirimler)) }));
+    }).catch(() => {});
+  }, [oyuncu]);
+  // Ücret tipi değişince aidat yeniden hesaplanır (düzenlemede de; tutar sonra elle değiştirilebilir).
+  const ucretTipiDegisti = (e) => {
+    const tip = e.target.value;
+    setF((o) => ({ ...o, ucret_tipi: tip, aylik_aidat: ayar ? String(aidatHesapla(ayar.taban, tip, ayar.indirimler)) : o.aylik_aidat }));
+  };
+  const yuzde = ayar ? indirimYuzdesi(f.ucret_tipi, ayar.indirimler[f.ucret_tipi]) : 0;
 
   const kaydet = async () => {
     if (!f.ad_soyad.trim()) return setHata("Ad soyad zorunlu");
@@ -53,8 +67,11 @@ export function OyuncuForm({ oyuncu, gruplar, varsayilanAidat, onKaydedildi, onK
           <Alan etiket="Yaş Grubu"><Secim secenekler={gruplar.filter((x) => x.aktif)} bos="Seçin" {...g("yas_grubu_id")} /></Alan>
           <Alan etiket="Durum"><Secim secenekler={DURUMLAR} {...g("durum")} /></Alan>
           <Alan etiket="Kayıt Tarihi"><Girdi type="date" {...g("kayit_tarihi")} /></Alan>
-          <Alan etiket="Ücret Tipi"><Secim secenekler={UCRET_TIPLERI} {...g("ucret_tipi")} /></Alan>
-          <Alan etiket="Aylık Aidat (₺)"><Girdi type="number" min="0" {...g("aylik_aidat")} disabled={["ucretsiz", "burslu"].includes(f.ucret_tipi)} /></Alan>
+          <Alan etiket="Ücret Tipi"><Secim secenekler={UCRET_TIPLERI} value={f.ucret_tipi} onChange={ucretTipiDegisti} /></Alan>
+          <Alan etiket="Aylık Aidat (₺)">
+            <Girdi type="number" min="0" {...g("aylik_aidat")} disabled={f.ucret_tipi === "ucretsiz"} aria-label="Aylık aidat" />
+            {ayar && <span style={{ fontSize: 12, color: "var(--soluk)" }}>{ayar.taban > 0 ? `Taban ${paraTR(ayar.taban)}${yuzde ? ` − %${yuzde} indirim` : ""}` : "Taban fiyat Ayarlar > Aidat Kalemleri'nde girilir"}</span>}
+          </Alan>
           <Alan etiket="Ödeme Dönemi"><Secim secenekler={ODEME_DONEMLERI.map((d) => ({ kod: d, ad: `Her ayın ${d} arası` }))} {...g("odeme_donemi")} /></Alan>
           <Alan etiket="Notlar" style={{ gridColumn: "span 3" }}><Girdi {...g("notlar")} /></Alan>
         </div>

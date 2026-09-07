@@ -247,6 +247,13 @@ const checkpoint = () => { try { db?.pragma("wal_checkpoint(TRUNCATE)"); } catch
 // ── meta / settings ──
 const getMetaValue = (k) => db.prepare("SELECT value FROM meta WHERE key=?").get(k)?.value ?? null;
 const setMetaValue = (k, v) => db.prepare("INSERT INTO meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
+// Ayarlar > Aidat Kalemleri: taban aidat + ücret tipi indirimleri (tek çağrıda, oyuncu formu için).
+function aidatAyarlari() {
+  const taban = db.prepare("SELECT varsayilan_fiyat FROM fee_items WHERE kod='aidat'").get()?.varsayilan_fiyat ?? 0;
+  const indirimler = {};
+  for (const r of db.prepare("SELECT key, value FROM settings WHERE key LIKE 'indirim_%'").all()) indirimler[r.key.slice(8)] = Number(r.value);
+  return { taban: Number(taban) || 0, indirimler };
+}
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value ?? null;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
 
@@ -347,7 +354,7 @@ const updateFeeItem = (id, { ad, varsayilan_fiyat, aktif }) =>
 
 // ── monthly dues ──
 // Aidat ödemesi beklenen durumlar. Ücretsiz/burslu ücret tipi ve dondurma/pasif/ayrıldı durumu muaf.
-const MUAF_UCRET = new Set(["ucretsiz", "burslu"]);
+const MUAF_UCRET = new Set(["ucretsiz"]); // burslu: indirim yüzdesiyle (varsayılan %100 → 0 ₺ → muaf)
 const AIDAT_DURUM = new Set(["aktif", "deneme", "sakat"]);
 function ensureMonthlyDues(yil, ay) {
   const players = db.prepare("SELECT id, durum, ucret_tipi, aylik_aidat FROM players").all();
@@ -601,7 +608,7 @@ function yedekBilgisi(dbPath) {
 
 module.exports = {
   init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi,
-  getMetaValue, setMetaValue, getSetting, setSetting,
+  getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari,
   getUserByUsername, createUser, verifyPassword, changePassword,
   listAgeGroups, createAgeGroup, updateAgeGroup,
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,

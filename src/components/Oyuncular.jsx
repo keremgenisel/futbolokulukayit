@@ -84,7 +84,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
           </table>
         )}
       </Kart>
-      {yeni && <OyuncuForm gruplar={gruplar} varsayilanAidat={null} onKapat={() => setYeni(false)} onKaydedildi={(k) => { setYeni(false); yukle(); setAcik(k.id); }} />}
+      {yeni && <OyuncuForm gruplar={gruplar} onKapat={() => setYeni(false)} onKaydedildi={(k) => { setYeni(false); yukle(); setAcik(k.id); }} />}
       {acik && <OyuncuKarti oyuncuId={acik} oturum={oturum} gruplar={gruplar} saltOkunur={saltOkunur} onKapat={() => { setAcik(null); yukle(); }} onMakbuzKes={onMakbuzKes} />}
     </div>
   );

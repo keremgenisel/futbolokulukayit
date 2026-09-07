@@ -68,6 +68,15 @@ app.whenReady().then(async () => {
     check("grup silme oyuncu varken engellenir", !!db.deleteAgeGroup(grp.id).error);
     const belgeId = db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/x.pdf", orijinal_ad: "x.pdf" });
     check("belge okunuyor", db.getDocument(belgeId).tip === "saglik");
+    // Aidat ayarları: taban fiyat + indirim yüzdeleri tek çağrıda; kısmi burslu muaf değil, 0 ₺ burslu muaf
+    db.updateFeeItem(db.listFeeItems().find((k) => k.kod === "aidat").id, { varsayilan_fiyat: 4000 });
+    db.setSetting("indirim_burslu", "50"); db.setSetting("indirim_kardes", "15");
+    const aa = db.aidatAyarlari();
+    check("aidat ayarları okunuyor", aa.taban === 4000 && aa.indirimler.burslu === 50 && aa.indirimler.kardes === 15);
+    const bursluKismi = db.createPlayer({ ad_soyad: "Burslu Kısmi", dogum_tarihi: "2014-01-01", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 2000, odeme_donemi: "1-10" });
+    const bursluTam = db.createPlayer({ ad_soyad: "Burslu Tam", dogum_tarihi: "2014-01-01", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 0, odeme_donemi: "1-10" });
+    db.ensureMonthlyDues(2026, 11);
+    check("kısmi burslu aidat bekler, 0 ₺ burslu muaf", db.getDue(bursluKismi.id, 2026, 11).durum === "odenmedi" && db.getDue(bursluTam.id, 2026, 11).durum === "muaf");
     // Vesikalık tekil: ikinci yükleme eskisinin yerine geçer; diğer tipler birikir
     db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/y.pdf", orijinal_ad: "y.pdf" });
     check("sağlık raporuna birden fazla dosya yüklenebilir", db.listDocuments(oyuncu.id).filter((b) => b.tip === "saglik").length === 2);
@@ -87,15 +96,16 @@ app.whenReady().then(async () => {
     // Yedek al → değişiklik yap → geri yükle → değişiklik geri alınmış olmalı
     const { yedekAl, geriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
     const yedekKok = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-yedek-"));
+    const yedekOncesi = db.listPlayers().length;
     const y = yedekAl(yedekKok);
     check("yedek alındı", y.ok && fs.existsSync(path.join(y.yol, "data.db")));
-    check("yedek doğrulanıyor", db.yedekBilgisi(path.join(y.yol, "data.db")).oyuncu === 1);
+    check("yedek doğrulanıyor", db.yedekBilgisi(path.join(y.yol, "data.db")).oyuncu === yedekOncesi);
     db.createPlayer({ ad_soyad: "Sonradan Eklenen", dogum_tarihi: "2016-01-01" });
-    check("geri yükleme öncesi 2 oyuncu", db.listPlayers().length === 2);
+    check("geri yükleme öncesi bir oyuncu fazla", db.listPlayers().length === yedekOncesi + 1);
     const g = geriYukleCekirdek(y.yol);
     check("geri yükleme başarılı", !!g.ok);
     db.init();
-    check("geri yükleme sonrası 1 oyuncu (eski veri)", db.listPlayers().length === 1);
+    check("geri yükleme sonrası eski oyuncu sayısı", db.listPlayers().length === yedekOncesi);
     check("eski veri kenara alındı", fs.existsSync(g.kenarDb));
     check("geçersiz klasör reddedilir", !!geriYukleCekirdek(yedekKok).error);
     db.init(); // geçersiz denemeden sonra DB yeniden açılır
