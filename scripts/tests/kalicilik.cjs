@@ -55,6 +55,13 @@ app.on("browser-window-created", async (_e, win) => {
       await setInput("input[aria-label='Burslu adı']", "Tam Burslu");
       await js(`[...document.querySelectorAll("button")].find((x) => x.getAttribute("aria-label") === "Yağmurluk sil")?.click()`); await bekle(200);
       await tikla("Kaydet"); await bekle(800);
+      // WhatsApp şablonu arayüzden (Ayarlar > WhatsApp Mesajları, tek Kaydet)
+      await tikla("WhatsApp Mesajları"); await bekle(400);
+      if (await js(`!!document.querySelector("[role=dialog]")`)) { await js(`[...document.querySelectorAll("[role=dialog] button")].find((b) => b.textContent.trim() === "Evet")?.click()`); await bekle(400); }
+      await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value").set; const t = document.querySelector("textarea[aria-label='Aidat hatırlatma']"); set.call(t, "Kalıcı şablon {veli} {kalan}"); t.dispatchEvent(new Event("input", { bubbles: true })); })()`); await bekle(200);
+      await tikla("Kaydet"); await bekle(600);
+      check("WhatsApp şablonu arayüzden kaydedildi", db.getSetting("wa_sablon_aidat") === "Kalıcı şablon {veli} {kalan}");
+      await tikla("Aidat Kalemleri"); await bekle(400);
       check("arayüzden kalem/tip ekleme-silme kaydedildi", db.listFeeItems().some((k) => k.kod === "turnuva_katilimi") && !db.listFeeItems().some((k) => k.kod === "yagmurluk") && db.listFeeTypes().some((t) => t.kod === "uc_kardes" && t.indirim === 40) && db.listFeeTypes().find((t) => t.kod === "burslu").ad === "Tam Burslu");
       // DB'den doğrudan makbuz + yoklama (arayüz yoluyla zaten duman testinde doğrulanıyor)
       const o = db.listPlayers()[0];
@@ -71,6 +78,8 @@ app.on("browser-window-created", async (_e, win) => {
       const tr2 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-08", saat: "17:00", saha: "Saha 1" });
       db.updateTraining(tr2.id, { saat: "18:30" });
       db.mesajKaydet({ player_id: o.id, guardian_id: waVeliId, tur: "degisiklik", training_id: tr2.id, metin: "Saat değişti" });
+      const tr3 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-09", saat: "17:00", saha: "Saha 1" });
+      db.cancelTraining(tr3.id, "Yağmur"); db.grupBildirimKaydet(tr3.id, "Test Yönetici");
       // Son eklenen özellikler (07.09.2026): aidat taban fiyatı + indirim, yedek sıklığı, yabancı oyuncu,
       // ikinci kullanıcı + kurtarma kodları, belge kaydı (dosya + tekil vesikalık), kenar menü tercihi
       db.updateFeeItem(aidat.id, { varsayilan_fiyat: 4321 });
@@ -143,6 +152,8 @@ app.on("browser-window-created", async (_e, win) => {
       const waM = db.sonMesajlar(o.id);
       const waT = db.trainingCalendar("2026-09-08", "2026-09-08").find((x) => x.saat === "18:30");
       check("WhatsApp: veli onayı, hatırlatma ve bildirim kayıtları, antrenman değişikliği kalıcı", waV?.mesaj_onayi === 0 && waM.length === 2 && waM.some((m) => m.tur === "aidat" && m.kullanici === "admin") && !!waT && waT.bildirim_gerekli === 1 && waT.bildirilen === 1 && JSON.parse(waT.degisiklik_notu).eskiSaat === "17:00");
+      const gT = db.trainingCalendar("2026-09-09", "2026-09-09").find((x) => x.iptal === 1);
+      check("veli grubuna bildirim kaydı ve WhatsApp şablonu kalıcı", !!gT && gT.bildirim_gerekli === 0 && JSON.parse(gT.grup_bildirim).kullanici === "Test Yönetici" && db.getSetting("wa_sablon_aidat") === "Kalıcı şablon {veli} {kalan}");
       check("haftalık program ve doldurulan antrenmanlar kalıcı", JSON.parse(db.listAgeGroups().find((g) => g.id === o.yas_grubu_id).program)[0]?.saat === "18:00" && b.doldurulan === 1 && db.listTrainings("2027-04-05", "2027-04-11").some((tr) => tr.saat === "18:00" && tr.saha === "Saha 3"));
       const akt = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan Kalıcı");
       check("Excel'den aktarılan oyuncu, yeni grubu ve velisi kalıcı", !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009");
