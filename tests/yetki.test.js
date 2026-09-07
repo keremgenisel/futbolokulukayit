@@ -19,10 +19,16 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     expect(cagriYetkisi("createUser", admin, true).kod).toBe(403);
   });
   it("beyaz liste dışı fonksiyon (ör. close, init, verifyPassword) 403", () => {
-    for (const f of ["close", "init", "verifyPassword", "getMetaValue", "lisansKaydet", "changePassword"]) expect(cagriYetkisi(f, admin, false).kod).toBe(403);
+    for (const f of ["close", "init", "verifyPassword", "getMetaValue", "lisansKaydet", "changePassword", "kurtarmaIleSifirla", "kurtarmaKodlariUret"]) expect(cagriYetkisi(f, admin, false).kod).toBe(403);
   });
   it("kümeler kesişmez", () => {
     for (const f of YAZMA) expect(OKUMA.has(f) || ADMIN.has(f)).toBe(false);
     for (const f of ADMIN) expect(OKUMA.has(f)).toBe(false);
+  });
+
+  it("deleteUser yalnız yönetici", () => {
+    expect(cagriYetkisi("deleteUser", admin, false).ok).toBe(true);
+    expect(cagriYetkisi("deleteUser", { username: "u", role: "kullanici" }, false).kod).toBe(403);
+    expect(cagriYetkisi("deleteUser", admin, true).kod).toBe(403);
   });
 });

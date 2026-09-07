@@ -27,6 +27,8 @@ export function App() {
   const [acilacakOyuncu, setAcilacakOyuncu] = useState(null); // Oyuncular'da açılacak kart
   const [sekmeKey, setSekmeKey] = useState(0); // aynı sekmeye tekrar geçişte ekranı tazelemek için
   const [mod, setMod] = useState(null); // { mode, serverUrl, sunucu }
+  const [kurtarmaHatirlat, setKurtarmaHatirlat] = useState(false); // ilk parola değişiminden sonra
+  const [ayarBolum, setAyarBolum] = useState(null); // Ayarlar'a belirli bölümle gitmek için
   const modYenile = useCallback(() => { window.okul?.mod?.oku().then(setMod).catch(() => {}); }, []);
 
   const lisansYenile = useCallback(() => { window.okul?.lisans.durum().then((r) => { if (r?.ok) setLisans(r.durum); }).catch(() => {}); }, []);
@@ -85,10 +87,20 @@ export function App() {
           {tab === "tahsilat" && <Tahsilat key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onOyuncu={oyuncuAc} secilenOyuncuId={tahsilatOyuncu} onSecildi={() => setTahsilatOyuncu(null)} />}
           {tab === "yoklama" && <Yoklama key={sekmeKey} saltOkunur={saltOkunur} />}
           {tab === "raporlar" && <Raporlar key={sekmeKey} />}
-          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} />}
+          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} baslangicBolum={ayarBolum} />}
         </section>
       </main>
-      {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => setOturum({ ...oturum, must_change_password: false })} />}
+      {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => { setOturum({ ...oturum, must_change_password: false }); setKurtarmaHatirlat(true); }} />}
+      {kurtarmaHatirlat && (
+        <div role="status" style={{ position: "fixed", right: 24, bottom: 24, zIndex: 50, background: "#fff", border: "1.5px solid var(--sari)", borderRadius: 12, padding: "14px 16px", maxWidth: 420, boxShadow: "0 8px 30px rgba(0,0,0,.12)", display: "flex", flexDirection: "column", gap: 8 }}>
+          <b>Kurtarma kodlarınızı üretin</b>
+          <span style={{ fontSize: 14 }}>Parolanızı unutursanız bu kodlarla sıfırlarsınız. Ayarlar &gt; Kullanıcılar &gt; Hesabım.</span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={() => { setKurtarmaHatirlat(false); setTab("ayarlar"); setAyarBolum("kullanici"); }} style={{ background: "var(--mor)", color: "#fff", border: 0, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontWeight: 600 }}>Şimdi üret</button>
+            <button type="button" onClick={() => setKurtarmaHatirlat(false)} style={{ background: "none", border: "1px solid var(--cizgi)", borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}>Sonra</button>
+          </div>
+        </div>
+      )}
     </div>
     </ToastSaglayici>
   );

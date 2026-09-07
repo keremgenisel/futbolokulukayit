@@ -74,6 +74,8 @@ async function parolaDegistir(newPassword) {
   if (r.token) config.tokenYaz(r.token);
   return r;
 }
+const kurtarmaUret = (userId) => istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId } });
+const kurtarmaSifirla = (username, kod, yeniParola) => istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username, kod, yeniParola }, auth: false });
 const dbCall = async (fn, args) => (await istek("/api/db", { method: "POST", body: { fn, args } })).sonuc;
 
 async function dosyaIndir(yol) {
@@ -87,4 +89,4 @@ async function dosyaIndir(yol) {
 
 function kopar() { config.tokenYaz(null); config.yaz({ mode: "yerel", serverUrl: "", serverCertFp: "", serverCertPem: "" }); }
 
-module.exports = { istek, baglan, login, oturum, parolaDegistir, dbCall, dosyaIndir, kopar, IstemciHata };
+module.exports = { istek, baglan, login, oturum, parolaDegistir, kurtarmaUret, kurtarmaSifirla, dbCall, dosyaIndir, kopar, IstemciHata };

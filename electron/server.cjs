@@ -19,6 +19,8 @@ let srv = null;
 let bilgi = null; // { port, fp, adresler }
 const loginDenemeleri = new Map();
 const LOGIN_MAX = 8, LOGIN_PENCERE = 15 * 60 * 1000;
+const kurtarmaDenemeleri = new Map(); // kullanıcı adı başına 5 / 15 dk
+const KURTARMA_MAX = 5, KURTARMA_PENCERE = 15 * 60 * 1000;
 
 const yerelIpler = () => {
   const out = [];
@@ -82,10 +84,35 @@ function buildApp({ surum = "" } = {}) {
     res.json({ ok: true, token: signToken(u) });
   });
 
+  app.post("/api/auth/kurtarmaUret", requireAuth, (req, res) => {
+    if (db.lisansSaltOkunurMu()) return res.status(403).json({ error: "Lisans salt okunur modda" });
+    const hedef = db.listUsers().find((u) => u.id === Number(req.body?.userId));
+    if (!hedef) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
+    if (req.user.role !== "admin" && hedef.username !== req.user.username) return res.status(403).json({ error: "Yalnız kendi hesabınız için kod üretebilirsiniz" });
+    const r = db.kurtarmaKodlariUret(hedef.id);
+    if (r.error) return res.status(400).json({ error: r.error });
+    res.json({ ok: true, kodlar: r.kodlar });
+  });
+  app.post("/api/auth/kurtarmaSifirla", (req, res) => {
+    const { username, kod, yeniParola } = req.body || {};
+    const ad = String(username || "").trim();
+    if (String(yeniParola || "").length < 6) return res.status(400).json({ error: "Parola en az 6 karakter olmalı" });
+    const now = Date.now();
+    if (!rateAllow(kurtarmaDenemeleri, ad, now, KURTARMA_MAX, KURTARMA_PENCERE)) {
+      res.set("Retry-After", String(Math.ceil(rateRetryAfter(kurtarmaDenemeleri, ad, now) / 1000)));
+      return res.status(429).json({ error: "Çok fazla deneme, 15 dakika sonra tekrar deneyin" });
+    }
+    const r = db.kurtarmaIleSifirla(ad, String(kod || ""), String(yeniParola));
+    if (r.error) { rateHit(kurtarmaDenemeleri, ad, now, KURTARMA_PENCERE); return res.status(401).json({ error: r.error }); }
+    rateReset(kurtarmaDenemeleri, ad);
+    res.json({ ok: true, kalan: r.kalan });
+  });
+
   app.post("/api/db", requireAuth, (req, res) => {
     const { fn, args } = req.body || {};
     const y = cagriYetkisi(String(fn || ""), req.user, db.lisansSaltOkunurMu());
     if (!y.ok) return res.status(y.kod).json({ error: y.mesaj });
+    if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(args?.[0]))?.username === req.user.username) return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
     try { res.json({ ok: true, sonuc: db[fn](...(Array.isArray(args) ? args : [])) ?? null }); }
     catch (e) { res.status(400).json({ error: e.message }); }
   });

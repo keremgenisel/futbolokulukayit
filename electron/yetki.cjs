@@ -13,7 +13,7 @@ const YAZMA = new Set([
   "updateFeeItem", "ensureMonthlyDues", "createReceipt", "cancelReceipt",
   "createTraining", "cancelTraining", "setAttendance", "setSetting",
 ]);
-const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser"]);
+const ADMIN = new Set(["setUserActive", "resetUserPassword", "createUser", "deleteUser"]);
 
 // Dönüş: { ok: true } | { ok: false, kod: 401|403, mesaj }
 function cagriYetkisi(fn, session, saltOkunur) {

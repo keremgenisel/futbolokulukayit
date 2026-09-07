@@ -76,7 +76,10 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - Her hata düzeltmesi, onu yakalayacak bir testle birlikte gelir.
 - Aidat ve makbuz mantığı önce `src/lib/aidat.js` / `electron/db.cjs`'de saf fonksiyon, sonra arayüz.
 - Renderer doğrudan `fs`/`sqlite` görmez; her şey `window.okul.db` üzerinden beyaz listeli.
-- İlk admin `admin`/`admin`, `must_change_password=1` — ilk girişte parola değişimi zorunlu.
+- İlk admin `admin`/`admin`, `must_change_password=1` — ilk girişte parola değişimi zorunlu. Tohum yalnız
+  hiç kullanıcı yokken çalışır (yeni yönetici ilk admin'i silebilir; son aktif yönetici silinemez).
+  Parola kurtarma: `recovery_codes` (bcrypt, tek kullanımlık), `auth:kurtarmaUret` / `auth:kurtarmaSifirla`
+  IPC'si ve `/api/auth/kurtarma*` uçları; yanlış deneme kullanıcı başına 5/15 dk.
 - Türkçe arayüz, Türkçe yorum. Tarih `dd.mm.yyyy`, para `3.500 ₺` (`src/lib/aidat.js`). Büyük harf
   için `toLocaleUpperCase("tr-TR")` (i → İ).
 - Salt okunur lisans modu `electron/ipc/data.cjs` beyaz listesinde uygulanır (YAZMA seti reddedilir);

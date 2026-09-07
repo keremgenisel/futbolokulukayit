@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2; // 2: recovery_codes (parola kurtarma kodları)
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -61,6 +61,15 @@ CREATE TABLE IF NOT EXISTS users (
   is_active INTEGER NOT NULL DEFAULT 1,
   must_change_password INTEGER NOT NULL DEFAULT 0,
   token_version INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+-- Parola kurtarma kodları: tek kullanımlık, bcrypt ile saklanır; kullanıcı başına yeni set eskisini siler.
+CREATE TABLE IF NOT EXISTS recovery_codes (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  code_hash TEXT NOT NULL,
+  used_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -235,8 +244,9 @@ function migrate() {
 function seed() {
   const ins = db.prepare("INSERT OR IGNORE INTO fee_items (kod, ad, sira) VALUES (?, ?, ?)");
   FEE_ITEMS.forEach(([kod, ad], i) => ins.run(kod, ad, i));
-  if (!getUserByUsername("admin")) {
-    // İlk kurulum: admin/admin, ilk girişte parola değişimi zorunlu.
+  // İlk kurulum: hiç kullanıcı yoksa admin/admin, ilk girişte parola değişimi zorunlu.
+  // (Yalnız "admin yoksa" değil: yeni yönetici ilk admin'i sildiğinde açılışta geri gelmemeli.)
+  if (db.prepare("SELECT count(*) AS n FROM users").get().n === 0) {
     createUser({ username: "admin", password: "admin", ad_soyad: "Yönetici", role: "admin", must_change_password: 1 });
   }
 }
@@ -495,9 +505,59 @@ const attendanceReport = (from, to, age_group_id = null) => db.prepare(`
   WHERE (? IS NULL OR p.yas_grubu_id=?) AND p.durum IN ('aktif','deneme','sakat')
   GROUP BY p.id ORDER BY g.sira, p.ad_soyad`).all(from, to, age_group_id, age_group_id);
 
-const listUsers = () => db.prepare("SELECT id, username, ad_soyad, role, is_active, must_change_password FROM users ORDER BY username").all();
+const listUsers = () => db.prepare(`SELECT id, username, ad_soyad, role, is_active, must_change_password,
+    (SELECT count(*) FROM recovery_codes r WHERE r.user_id=u.id AND r.used_at IS NULL) AS kurtarma_kodu
+  FROM users u ORDER BY username`).all();
 const setUserActive = (id, aktif) => db.prepare("UPDATE users SET is_active=? WHERE id=?").run(aktif ? 1 : 0, id);
 const resetUserPassword = (id, yeni) => db.prepare("UPDATE users SET password_hash=?, must_change_password=1, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(yeni, 10), id);
+// Kullanıcı silme: en az bir aktif yönetici kalmalı (ilk admin dahil herkes silinebilir).
+function deleteUser(id) {
+  const u = db.prepare("SELECT * FROM users WHERE id=?").get(id);
+  if (!u) return { error: "Kullanıcı bulunamadı" };
+  if (u.role === "admin" && u.is_active) {
+    const digerAdmin = db.prepare("SELECT count(*) AS n FROM users WHERE role='admin' AND is_active=1 AND id<>?").get(id).n;
+    if (digerAdmin === 0) return { error: "Son aktif yönetici silinemez. Önce başka bir yönetici ekleyin." };
+  }
+  db.prepare("DELETE FROM users WHERE id=?").run(id);
+  return { ok: true };
+}
+
+// ── Parola kurtarma kodları ──
+// 8 adet XXXX-XXXX kod (karışan harfler yok), yalnız üretim anında düz metin döner; DB'de bcrypt.
+const KOD_ALFABE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+const KURTARMA_KOD_ADET = 8;
+function kurtarmaKoduNormalize(kod) { return String(kod || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+function kurtarmaKodlariUret(userId) {
+  const u = db.prepare("SELECT id FROM users WHERE id=?").get(userId);
+  if (!u) return { error: "Kullanıcı bulunamadı" };
+  const kodlar = [];
+  for (let i = 0; i < KURTARMA_KOD_ADET; i++) {
+    const b = crypto.randomBytes(8); let k = "";
+    for (let j = 0; j < 8; j++) k += KOD_ALFABE[b[j] % KOD_ALFABE.length];
+    kodlar.push(k.slice(0, 4) + "-" + k.slice(4));
+  }
+  db.transaction(() => {
+    db.prepare("DELETE FROM recovery_codes WHERE user_id=?").run(userId);
+    const ins = db.prepare("INSERT INTO recovery_codes (user_id, code_hash) VALUES (?,?)");
+    for (const k of kodlar) ins.run(userId, bcrypt.hashSync(kurtarmaKoduNormalize(k), 8));
+  })();
+  return { ok: true, kodlar };
+}
+const kurtarmaKoduSayisi = (userId) => db.prepare("SELECT count(*) AS n FROM recovery_codes WHERE user_id=? AND used_at IS NULL").get(userId).n;
+// Kod doğruysa parolayı değiştirir, kodu kullanılmış işaretler, eski oturum jetonlarını düşürür.
+function kurtarmaIleSifirla(username, kod, yeniParola) {
+  const u = getUserByUsername(String(username || ""));
+  const n = kurtarmaKoduNormalize(kod);
+  if (!u || !u.is_active || n.length !== 8) return { error: "Kullanıcı adı veya kurtarma kodu hatalı" };
+  const adaylar = db.prepare("SELECT id, code_hash FROM recovery_codes WHERE user_id=? AND used_at IS NULL").all(u.id);
+  const eslesen = adaylar.find((r) => bcrypt.compareSync(n, r.code_hash));
+  if (!eslesen) return { error: "Kullanıcı adı veya kurtarma kodu hatalı" };
+  db.transaction(() => {
+    db.prepare("UPDATE recovery_codes SET used_at=datetime('now') WHERE id=?").run(eslesen.id);
+    db.prepare("UPDATE users SET password_hash=?, must_change_password=0, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(yeniParola, 10), u.id);
+  })();
+  return { ok: true, kalan: kurtarmaKoduSayisi(u.id) };
+}
 
 // ── Lisans (GenCRM modeli; docs/plan.md §7) ──
 const lisansM = require("./lisans.cjs");
@@ -619,6 +679,7 @@ module.exports = {
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,
   createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance,
   deleteAgeGroup, listPlayersWithDue, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
-  listUsers, setUserActive, resetUserPassword,
+  listUsers, setUserActive, resetUserPassword, deleteUser,
+  kurtarmaKodlariUret, kurtarmaKoduSayisi, kurtarmaIleSifirla, kurtarmaKoduNormalize,
   lisansDurumu, lisansKaydet, leaseKaydet, lisansAktiflestir, lisansYenile, lisansSaltOkunurMu,
 };

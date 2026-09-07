@@ -7,6 +7,8 @@ contextBridge.exposeInMainWorld("okul", {
     logout: () => ipcRenderer.invoke("auth:logout"),
     changePassword: (username, newPassword) => ipcRenderer.invoke("auth:changePassword", username, newPassword),
     session: () => ipcRenderer.invoke("auth:session"),
+    kurtarmaUret: (userId) => ipcRenderer.invoke("auth:kurtarmaUret", userId),
+    kurtarmaSifirla: (username, kod, yeniParola) => ipcRenderer.invoke("auth:kurtarmaSifirla", username, kod, yeniParola),
   },
   // Tek genel kanal: ipc/data.cjs beyaz listeye göre yönlendirir, salt okunurda yazmayı reddeder.
   db: (fn, ...args) => ipcRenderer.invoke("db:call", fn, args),

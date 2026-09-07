@@ -69,6 +69,31 @@ app.whenReady().then(async () => {
     check("yol geçişi reddedilir", (await istek("/api/files/dataUrl?yol=../../etc/passwd", { token: tok })).status === 400);
     check("lisans durumu okunur", (await istek("/api/lisans/durum", { token: tok })).body.durum.mod === "deneme");
 
+    // Kurtarma kodları: üretim oturum ister; kullanıcı başkası için üretemez; sıfırlama oturumsuz, 5 yanlışta 429
+    check("kurtarma üretimi oturumsuz 401", (await istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId: 1 } })).status === 401);
+    const kullanici = await istek("/api/db", { method: "POST", body: { fn: "createUser", args: [{ username: "veli", password: "veli-parola-1", role: "kullanici" }] }, token: tok });
+    const veliTok = (await istek("/api/auth/login", { method: "POST", body: { username: "veli", password: "veli-parola-1" } })).body.token;
+    check("kullanıcı başkası için kod üretemez", (await istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId: 1 }, token: veliTok })).status === 403);
+    const kendi = await istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId: kullanici.body.sonuc.id }, token: veliTok });
+    check("kullanıcı kendisi için kod üretir", kendi.status === 200 && kendi.body.kodlar.length === 8);
+    const yonetici = await istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId: kullanici.body.sonuc.id }, token: tok });
+    check("yönetici başkası için kod üretir (eskiler geçersiz)", yonetici.status === 200 && yonetici.body.kodlar.length === 8);
+    check("eski kodla sıfırlama 401", (await istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username: "veli", kod: kendi.body.kodlar[0], yeniParola: "yeni-parola-1" } })).status === 401);
+    check("kısa parola 400", (await istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username: "veli", kod: yonetici.body.kodlar[0], yeniParola: "123" } })).status === 400);
+    const sfr = await istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username: "veli", kod: yonetici.body.kodlar[0], yeniParola: "yeni-parola-1" } });
+    check("doğru kod parolayı sıfırlar, eski jeton düşer", sfr.status === 200 && sfr.body.kalan === 7 && (await istek("/api/auth/me", { token: veliTok })).status === 401
+      && (await istek("/api/auth/login", { method: "POST", body: { username: "veli", password: "yeni-parola-1" } })).status === 200);
+    let sonKod = 0;
+    for (let i = 0; i < 6; i++) sonKod = (await istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username: "veli", kod: "ZZZZ-ZZZZ", yeniParola: "yeni-parola-2" } })).status;
+    check("5 yanlış kurtarma denemesinden sonra 429", sonKod === 429);
+    // Kullanıcı silme: kendi hesabı 400, son yönetici hata, yeni yönetici ilk admin'i siler
+    check("kendi hesabını silme 400", (await istek("/api/db", { method: "POST", body: { fn: "deleteUser", args: [1] }, token: tok })).status === 400);
+    check("kullanıcı rolü silemez 403", (await istek("/api/db", { method: "POST", body: { fn: "deleteUser", args: [kullanici.body.sonuc.id] }, token: (await istek("/api/auth/login", { method: "POST", body: { username: "veli", password: "yeni-parola-1" } })).body.token })).status === 403);
+    await istek("/api/db", { method: "POST", body: { fn: "createUser", args: [{ username: "yonetici2", password: "test-sifre-y2", role: "admin" }] }, token: tok });
+    const y2Tok = (await istek("/api/auth/login", { method: "POST", body: { username: "yonetici2", password: "test-sifre-y2" } })).body.token;
+    const silme = await istek("/api/db", { method: "POST", body: { fn: "deleteUser", args: [1] }, token: y2Tok });
+    check("yeni yönetici ilk admin'i siler, admin jetonu düşer", silme.status === 200 && silme.body.sonuc.ok === true && (await istek("/api/auth/me", { token: tok })).status === 401);
+
     // Login brute-force: 8 yanlış → 429
     let son = 0;
     for (let i = 0; i < 10; i++) son = (await istek("/api/auth/login", { method: "POST", body: { username: "admin", password: "kotu" + i } })).status;

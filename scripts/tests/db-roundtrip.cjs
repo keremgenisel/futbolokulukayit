@@ -86,6 +86,28 @@ app.whenReady().then(async () => {
     check("vesikalık tek dosya kalır, yenisi eskisinin yerine geçer", f1.silinen.length === 0 && f2.silinen[0] === "oyuncu-1/f1.jpg" && fotolar.length === 1 && fotolar[0].dosya_yolu === "oyuncu-1/f2.jpg" && !db.getDocument(f1.id));
     check("oyuncu foto yolu yeni vesikalığa döner", db.getPlayer(oyuncu.id).foto_yolu === "oyuncu-1/f2.jpg");
 
+    // Kullanıcı silme: son aktif yönetici silinemez; yeni yönetici ilk admin'i silebilir; açılışta admin geri gelmez
+    const ilkAdmin = db.getUserByUsername("admin");
+    check("son yönetici silinemez", !!db.deleteUser(ilkAdmin.id).error);
+    const yeniYonetici = db.createUser({ username: "hoca", password: "hoca-parola-1", ad_soyad: "Hoca", role: "admin" });
+    check("ikinci yönetici varken ilk admin silinir", db.deleteUser(ilkAdmin.id).ok === true && db.getUserByUsername("admin") === null);
+    db.close(); db.init();
+    check("yeniden açılışta admin/admin geri gelmez", db.getUserByUsername("admin") === null && db.listUsers().length === 1);
+    check("olmayan kullanıcı silme hatası", !!db.deleteUser(9999).error);
+    // Kurtarma kodları: 8 kod, tek kullanımlık, yanlış kod reddedilir, yeni set eskisini geçersiz kılar
+    const kk = db.kurtarmaKodlariUret(yeniYonetici.id);
+    check("8 kurtarma kodu üretilir (XXXX-XXXX)", kk.ok && kk.kodlar.length === 8 && kk.kodlar.every((k) => /^[A-Z2-9]{4}-[A-Z2-9]{4}$/.test(k)) && new Set(kk.kodlar).size === 8);
+    check("kod sayısı listede görünür", db.listUsers().find((u) => u.username === "hoca").kurtarma_kodu === 8);
+    check("yanlış kod reddedilir", !!db.kurtarmaIleSifirla("hoca", "AAAA-AAAA", "yeni-parola-9").error && !!db.verifyPassword("hoca", "hoca-parola-1"));
+    check("olmayan kullanıcı reddedilir", !!db.kurtarmaIleSifirla("yok", kk.kodlar[0], "yeni-parola-9").error);
+    const sf = db.kurtarmaIleSifirla("hoca", kk.kodlar[0].toLowerCase().replace("-", " "), "yeni-parola-9");
+    check("doğru kod (küçük harf/boşluklu da) parolayı sıfırlar", sf.ok && sf.kalan === 7 && !!db.verifyPassword("hoca", "yeni-parola-9") && !db.verifyPassword("hoca", "hoca-parola-1"));
+    check("aynı kod ikinci kez kullanılamaz", !!db.kurtarmaIleSifirla("hoca", kk.kodlar[0], "baska-parola-1").error);
+    check("parola sıfırlama jeton sürümünü artırır (eski oturumlar düşer)", db.getUserByUsername("hoca").token_version === yeniYonetici.token_version + 1 || db.getUserByUsername("hoca").token_version >= 2);
+    const kk2 = db.kurtarmaKodlariUret(yeniYonetici.id);
+    check("yeni set eskisini geçersiz kılar", kk2.ok && !!db.kurtarmaIleSifirla("hoca", kk.kodlar[1], "x-parola-1").error && db.kurtarmaKoduSayisi(yeniYonetici.id) === 8);
+    check("kod üretimi olmayan kullanıcıda hata", !!db.kurtarmaKodlariUret(9999).error);
+
     // Lisans: temiz kurulum → deneme; geçersiz anahtar reddedilir; salt okunur değil
     const ld = db.lisansDurumu();
     check("lisans temiz kurulumda deneme", ld.mod === "deneme" && ld.kalanGun === 30 && !!ld.makineId);

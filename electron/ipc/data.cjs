@@ -7,6 +7,11 @@ const config = require("../config.cjs");
 const istemci = require("../istemci.cjs");
 const server = require("../server.cjs");
 const { cagriYetkisi } = require("../yetki.cjs");
+const { rateAllow, rateHit, rateReset } = require("../rateLimit.cjs");
+
+// Kurtarma kodu denemeleri: kullanıcı adı başına 5 / 15 dk (kod 32^8 uzayında; brute-force'u yavaşlatır).
+const kurtarmaDenemeleri = new Map();
+const KURTARMA_MAX = 5, KURTARMA_PENCERE = 15 * 60 * 1000;
 
 let session = null; // { username, ad_soyad, role, must_change_password }
 const getSession = () => session;
@@ -36,11 +41,36 @@ function registerDataHandlers() {
     return { ok: true };
   });
 
+  // Kurtarma kodları: yönetici herkes için, kullanıcı yalnız kendisi için üretir.
+  ipcMain.handle("auth:kurtarmaUret", async (_e, userId) => {
+    if (!session) return { ok: false, error: "Oturum gerekli" };
+    if (config.istemciMi()) { try { return await istemci.kurtarmaUret(userId); } catch (e) { return { ok: false, error: e.message }; } }
+    if (db.lisansSaltOkunurMu()) return { ok: false, error: "Lisans salt okunur modda" };
+    const hedef = db.listUsers().find((u) => u.id === Number(userId));
+    if (!hedef) return { ok: false, error: "Kullanıcı bulunamadı" };
+    if (session.role !== "admin" && hedef.username !== session.username) return { ok: false, error: "Yalnız kendi hesabınız için kod üretebilirsiniz" };
+    const r = db.kurtarmaKodlariUret(hedef.id);
+    return r.error ? { ok: false, error: r.error } : { ok: true, kodlar: r.kodlar };
+  });
+  // Parola unutuldu: oturumsuz; kullanıcı adı + tek kullanımlık kod + yeni parola.
+  ipcMain.handle("auth:kurtarmaSifirla", async (_e, username, kod, yeniParola) => {
+    const ad = String(username || "").trim();
+    if (String(yeniParola || "").length < 6) return { ok: false, error: "Parola en az 6 karakter olmalı" };
+    if (config.istemciMi()) { try { return await istemci.kurtarmaSifirla(ad, String(kod || ""), String(yeniParola)); } catch (e) { return { ok: false, error: e.message }; } }
+    const now = Date.now();
+    if (!rateAllow(kurtarmaDenemeleri, ad, now, KURTARMA_MAX, KURTARMA_PENCERE)) return { ok: false, error: "Çok fazla deneme, 15 dakika sonra tekrar deneyin" };
+    const r = db.kurtarmaIleSifirla(ad, String(kod || ""), String(yeniParola));
+    if (r.error) { rateHit(kurtarmaDenemeleri, ad, now, KURTARMA_PENCERE); return { ok: false, error: r.error }; }
+    rateReset(kurtarmaDenemeleri, ad);
+    return { ok: true, kalan: r.kalan };
+  });
+
   ipcMain.handle("db:call", async (_e, fn, args) => {
     const a = Array.isArray(args) ? args : [];
     if (config.istemciMi()) { if (!session) throw new Error("Oturum gerekli"); return istemci.dbCall(fn, a); }
     const y = cagriYetkisi(fn, session, db.lisansSaltOkunurMu());
     if (!y.ok) throw new Error(y.mesaj);
+    if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(a[0]))?.username === session.username) throw new Error("Kendi hesabınızı silemezsiniz");
     return db[fn](...a);
   });
 

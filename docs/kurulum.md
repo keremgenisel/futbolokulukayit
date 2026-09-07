@@ -4,6 +4,11 @@
 1. `Eyüpspor Futbol Okulu Setup x.y.z.exe` dosyasını çalıştırın, "Kur" deyin.
 2. Masaüstündeki simgeyle açın. İlk giriş: kullanıcı adı **admin**, parola **admin**.
 3. Program sizden hemen yeni bir parola isteyecek. En az 6 karakter girin.
+4. Ardından çıkan uyarıda **Şimdi üret** deyin: 8 adet kurtarma kodu gösterilir. Yazdırıp güvenli bir
+   yerde saklayın; parolanızı unutursanız bu kodlardan biriyle yeni parola belirlersiniz. Kodlar bir kez
+   gösterilir, her kod bir kez kullanılır (Ayarlar > Kullanıcılar > Hesabım'dan yenilenebilir).
+5. İsterseniz kendi adınıza bir yönetici hesabı açıp (Ayarlar > Kullanıcılar) hazır gelen **admin**
+   hesabını silebilirsiniz. Program en az bir aktif yönetici kalmasını şart koşar.
 4. **Ayarlar > Lisans**: satıcıdan aldığınız `EYUPSPOR.` ile başlayan anahtarı yapıştırıp kaydedin.
    Anahtar girilmezse program 30 gün deneme olarak çalışır, sonra salt okunur olur.
 5. **Ayarlar > Yedekleme**: bir klasör seçin (harici disk veya OneDrive/Google Drive klasörü önerilir).
@@ -43,5 +48,7 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
 - **"Sunucuya ulaşılamadı"**: Sunucu bilgisayarda program açık mı, aynı ağda mısınız, Tailscale bağlı mı?
 - **"Sunucu kimliği doğrulanamadı"**: Sunucu yeniden kurulduysa normaldir; Ayarlar > Sunucu'dan
   yeniden bağlanıp yeni parmak izini onaylayın. Değilse yöneticiye haber verin.
-- **Parola unutuldu**: Yönetici Ayarlar > Kullanıcılar'dan "Parola sıfırla" ile geçici parola üretir.
-  Yönetici parolası unutulduysa satıcıya başvurun.
+- **Parola unutuldu**: Giriş ekranında **Parolamı unuttum** → kullanıcı adı + kurtarma kodlarından biri +
+  yeni parola. Kurtarma kodu yoksa bir yönetici Ayarlar > Kullanıcılar'dan "Parola sıfırla" ile geçici
+  parola üretir. Hiçbir yöneticinin ne parolası ne kurtarma kodu varsa satıcıya başvurun.
+  Yanlış kod denemeleri kullanıcı başına 15 dakikada 5 ile sınırlıdır.
