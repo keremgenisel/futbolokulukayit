@@ -423,9 +423,19 @@ listesi ve tesise giriş kontrolü kirlenir.
 
 ## 11. 07.09.2026 öğleden sonra eklenenler ve Faz 3'e kalanlar
 
-Uygulandı: aidat kayıtları uygulama açıkken de üretilir (saatte bir + pencere öne gelince; yeni kayıt ve
-pasif→aktif'te hemen), Excel'den oyuncu aktarımı (Oyuncular > İçe Aktar), ilk kurulum sihirbazı, tek makbuzda
-birden fazla aidat ayı, kısmi ödeme (`monthly_dues.odenen`, durum `kismi`, kalan borç; şema 5).
+Uygulandı (12 madde, 07.09.2026):
+1. Aidat kayıtları uygulama açıkken de üretilir (saatte bir + pencere öne gelince; yeni kayıt ve pasif→aktif'te hemen).
+2. Excel'den oyuncu aktarımı (Oyuncular > İçe Aktar: şablon, önizleme, tek işlemde aktar).
+3. İlk kurulum sihirbazı (ilk parola sonrası, oyuncu yokken).
+5. Tek makbuzda birden fazla aidat ayı (ay bazlı tutar, makbuzda ayrı satırlar).
+6. Kısmi ödeme (`monthly_dues.odenen`, durum `kismi`, kalan borç; şema 5).
+7. Her yerden oyuncu arama (Ctrl/Cmd+K; kart aç / makbuz kes).
+8. Haftalık antrenman programı (yaş grubu başına gün/saat/saha; Yoklama > Haftayı Programdan Doldur; şema 6).
+9. Sağlık raporu geçerlilik uyarıları (panoda sayaç + liste; oyuncu kartında rozet).
+10. Makbuz iptalinde zorunlu neden + iptal eden + zaman (şema 7); tahsilat raporunda iptaller ayrı.
+11. Veli telefonu pano borçlu listesi ve oyuncu listesinde (tıkla-kopyala).
+12. TC sağlama algoritması ve GSM biçim doğrulama.
+13. Doğum yılından yaş grubu ipucu (yalnız öneri; grup elle seçilir).
 
 ### 11.1 Faz 3'e kalanlar (öneri listesinden)
 - **Otomatik güncelleme + lisans sunucusu yayını** (Kerem): GitHub deposu push, `aktivasyon-sunucu/deploy.sh`,

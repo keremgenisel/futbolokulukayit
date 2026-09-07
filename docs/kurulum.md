@@ -59,6 +59,16 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
 
 **Yedek** yalnızca sunucu bilgisayarında alınır.
 
+## 2b. Günlük kullanımı kolaylaştıranlar
+
+- **Ctrl+K** (Mac'te Cmd+K): her ekrandan oyuncu arama; Enter kartı açar, "Makbuz" tahsilata götürür.
+- **Tek makbuzda birden fazla ay:** Tahsilat'ta aidat dönemi kutucuklarından birden fazla ay seçin.
+- **Kısmi ödeme:** velinin verdiği tutarı yazın; ay "Kısmi" olur, kalan borç listelerde görünür, sonraki makbuzla tamamlanır.
+- **Haftalık program:** Yaş Grupları > Düzenle'de gün/saat/saha girin; Yoklama'da "Haftayı Programdan Doldur"
+  o haftanın antrenmanlarını tek tıkla açar (var olanlar atlanır).
+- **Sağlık raporu:** panoda süresi dolan/dolacak raporlar listelenir; oyuncu kartında belge rozeti gösterir.
+- **Makbuz iptali** neden ister; iptal eden ve zaman kayda geçer, tahsilat raporunda ayrı görünür.
+
 ## 3b. Sezon sonu
 
 Sezon bitince (varsayılan Eylül'de) panoda "sezon bitti" uyarısı çıkar. **Ayarlar > Yeni Sezon**'da

@@ -47,6 +47,8 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `electron/db.cjs` — SQLite şeması, göç (`schema_version`), tohum (aidat kalemleri, ilk admin),
   tüm sorgular, lisans durumu (`lisansDurumu`/`lisansKaydet`/`leaseKaydet`). Şema `docs/plan.md §3`.
   Anahtar `safeStorage` ile OS anahtarlığında.
+  Şema sürümü 7: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
+  6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani. Göç `migrate()` PRAGMA table_info ile idempotent.
 - `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması. JPG/PNG
   yükleme anında `electron/imageOptimize.cjs` ile nazikçe küçültülür (≤2000px, JPEG %82; yalnız küçülürse).
   `electron/ipc/optimize.cjs` — Ayarlar > Resim ve Belge Optimizasyonu (analiz/uygula, eski dosyalar için).
@@ -75,6 +77,8 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi); Ayarlar > Yeni Sezon
   sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup, diğerleri pasif+not). Bkz. `docs/plan.md §10`.
+- `src/lib/belge.js` (sağlık raporu geçerliliği), `src/lib/program.js` (haftalık program), `src/lib/takvim.js` (takvim
+  şeridi), `electron/oyuncuAktar.cjs` (Excel satır çözümleme) — hepsi SAF, vitest ile test edilir.
 - `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.
 - `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`, `Sayfalama`). Sayfalama: Oyuncular DB'de
   (`db.playersPage`, 50/sayfa; dışa aktarım tam liste), Raporlar önizleme 100 satır (Excel/PDF tam), oyuncu kartı son
