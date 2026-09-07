@@ -125,3 +125,19 @@ export function Sekmeler({ liste, aktif, onSec }) {
 export const durumTonu = (d) => ({ aktif: "green", deneme: "yellow", sakat: "red", pasif: "gray", ayrildi: "gray", dondurma: "gray" }[d] || "gray");
 export const aidatTonu = (d) => ({ odendi: "green", odenmedi: "red", muaf: "gray" }[d] || "gray");
 export const aidatEtiket = (d) => ({ odendi: "Ödendi", odenmedi: "Ödenmedi", muaf: "Muaf" }[d] || "Kayıt yok");
+
+// Ortak sayfalama çubuğu: "1–50 / 312" + önceki/sonraki. Tek sayfaysa hiç çizilmez.
+export function Sayfalama({ sayfa, toplam, sayfaBoyu, onSayfa, birim = "kayıt" }) {
+  const son = Math.max(1, Math.ceil((toplam || 0) / sayfaBoyu));
+  if (son <= 1) return null;
+  const bas = (sayfa - 1) * sayfaBoyu + 1, bit = Math.min(toplam, sayfa * sayfaBoyu);
+  const dugme = { height: 32, padding: "0 10px", borderRadius: 8, border: "1px solid var(--cizgi)", background: "#fff", cursor: "pointer", fontWeight: 600, fontSize: 13, color: "var(--mor-koyu)" };
+  return (
+    <nav aria-label="Sayfalama" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 10, padding: "10px 16px", borderTop: "1px solid var(--cizgi)", fontSize: 13, color: "var(--soluk)" }}>
+      <span>{bas}–{bit} / {toplam} {birim}</span>
+      <button type="button" onClick={() => onSayfa(sayfa - 1)} disabled={sayfa <= 1} style={{ ...dugme, opacity: sayfa <= 1 ? .4 : 1 }} aria-label="Önceki sayfa">‹ Önceki</button>
+      <span>Sayfa <b>{sayfa}</b> / {son}</span>
+      <button type="button" onClick={() => onSayfa(sayfa + 1)} disabled={sayfa >= son} style={{ ...dugme, opacity: sayfa >= son ? .4 : 1 }} aria-label="Sonraki sayfa">Sonraki ›</button>
+    </nav>
+  );
+}

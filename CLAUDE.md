@@ -70,7 +70,9 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.
-- `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`). Tüm stil inline; renkler
+- `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`, `Sayfalama`). Sayfalama: Oyuncular DB'de
+  (`db.playersPage`, 50/sayfa; dışa aktarım tam liste), Raporlar önizleme 100 satır (Excel/PDF tam), oyuncu kartı son
+  12 dönem / 12 makbuz / 40 yoklama + "Tümünü göster". Tüm stil inline; renkler
   `src/ui.css` CSS değişkenlerinden (mor `#5B2D8E`, sarı `#F5D000`, kırmızı `#E0101F`).
 - `design/*.dc.html` — ekran tasarımları (Claude Design tuvali). Yeni ekran yaparken buna uy.
 

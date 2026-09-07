@@ -1,9 +1,9 @@
 // db:call ve /api/db için ORTAK beyaz liste ve yetki kararı (saf, test edilebilir).
 // Okuma her oturuma açık; yazma lisans salt-okunurken reddedilir; admin işlemleri yalnız yönetici.
 const OKUMA = new Set([
-  "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "listGuardians", "listEmergency",
+  "listAgeGroups", "getPlayer", "listPlayers", "listPlayersWithDue", "playersPage", "listGuardians", "listEmergency",
   "listDocuments", "listFeeItems", "getDue", "listDues", "listUnpaid", "getReceipt", "listReceipts",
-  "listReceiptsByDate", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "getSetting", "aidatAyarlari", "panoOzet",
+  "listReceiptsByDate", "listTrainings", "trainingCalendar", "listAttendance", "playerAttendance", "playerAttendanceSon", "getSetting", "aidatAyarlari", "panoOzet",
   "attendanceSummary", "attendanceReport", "listUsers",
 ]);
 const YAZMA = new Set([

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket } from "./ui.jsx";
+import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket, Sayfalama } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
@@ -9,6 +9,9 @@ import { Ikon } from "./Ikon.jsx";
 
 export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onAcildi }) {
   const [liste, setListe] = useState([]);
+  const [sayfa, setSayfa] = useState(1);
+  const [toplam, setToplam] = useState(0);
+  const SAYFA_BOYU = 50;
   const [gruplar, setGruplar] = useState([]);
   const [q, setQ] = useState("");
   const [grup, setGrup] = useState("");
@@ -19,11 +22,15 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const toast = useToast();
   const { yil, ay } = bugun();
 
+  const filtre = () => ({ q, yas_grubu_id: grup ? Number(grup) : null, durum: durum || null, yil, ay, sadeceOdemeyen: odemeyen });
   const yukle = useCallback(async () => {
     try {
-      setListe(await db("listPlayersWithDue", { q, yas_grubu_id: grup ? Number(grup) : null, durum: durum || null, yil, ay, sadeceOdemeyen: odemeyen }));
+      const r = await db("playersPage", { ...filtre(), sayfa, sayfaBoyu: SAYFA_BOYU });
+      setListe(r.liste); setToplam(r.toplam); if (r.sayfa !== sayfa) setSayfa(r.sayfa); // sayfa taşarsa sunucu son sayfaya çeker
     } catch (e) { toast("err", hataMetni(e)); }
-  }, [q, grup, durum, odemeyen, yil, ay, toast]);
+  }, [q, grup, durum, odemeyen, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Filtre değişince ilk sayfaya dön.
+  useEffect(() => { setSayfa(1); }, [q, grup, durum, odemeyen]);
 
   useEffect(() => { db("listAgeGroups").then(setGruplar).catch(() => {}); }, []);
   useEffect(() => { const t = setTimeout(yukle, 150); return () => clearTimeout(t); }, [yukle]);
@@ -32,20 +39,21 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const ucretAd = (k) => UCRET_TIPLERI.find((u) => u.kod === k)?.ad || k;
   const durumAd = (k) => DURUMLAR.find((d) => d.kod === k)?.ad || k;
 
-  const raporVerisi = () => ({
+  // Dışa aktarım her zaman TAM listeyi alır (ekrandaki sayfa değil).
+  const raporVerisi = async () => ({
     sayfa: "Oyuncular",
     sutunlar: [
       { baslik: "Ad Soyad", anahtar: "ad_soyad", genislik: 28 }, { baslik: "TC / Pasaport", anahtar: "tc", genislik: 16 }, { baslik: "Doğum", anahtar: "dogum", genislik: 12 },
       { baslik: "Grup", anahtar: "grup", genislik: 8 }, { baslik: "Durum", anahtar: "durumAd", genislik: 10 }, { baslik: "Ücret tipi", anahtar: "ucret", genislik: 16 },
       { baslik: "Aidat", anahtar: "aidat", genislik: 10, sag: true }, { baslik: `${AY_ADLARI[ay - 1]} aidatı`, anahtar: "aidatDurum", genislik: 14 }, { baslik: "GSM", anahtar: "gsm", genislik: 16 },
     ],
-    satirlar: liste.map((o) => ({ ad_soyad: o.ad_soyad, tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "", dogum: tarihTR(o.dogum_tarihi), grup: o.yas_grubu_ad || "", durumAd: durumAd(o.durum), ucret: ucretAd(o.ucret_tipi), aidat: o.aylik_aidat, aidatDurum: aidatEtiket(o.aidat_durum), gsm: o.gsm || "" })),
+    satirlar: (await db("listPlayersWithDue", filtre())).map((o) => ({ ad_soyad: o.ad_soyad, tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "", dogum: tarihTR(o.dogum_tarihi), grup: o.yas_grubu_ad || "", durumAd: durumAd(o.durum), ucret: ucretAd(o.ucret_tipi), aidat: o.aylik_aidat, aidatDurum: aidatEtiket(o.aidat_durum), gsm: o.gsm || "" })),
   });
-  const excel = async () => { try { await cikti().excelKaydet(raporVerisi(), "oyuncular.xlsx"); } catch (e) { toast("err", hataMetni(e)); } };
+  const excel = async () => { try { await cikti().excelKaydet(await raporVerisi(), "oyuncular.xlsx"); } catch (e) { toast("err", hataMetni(e)); } };
   const pdf = async () => {
     try {
-      const v = raporVerisi(); const logo = await uygulama().logo();
-      await cikti().pdfKaydet(raporHtml({ baslik: "Oyuncu Listesi", altBaslik: `${liste.length} oyuncu · ${tarihTR(bugun().iso)}`, sutunlar: v.sutunlar, satirlar: v.satirlar, logo, yatay: true }), "oyuncular.pdf", true);
+      const v = await raporVerisi(); const logo = await uygulama().logo();
+      await cikti().pdfKaydet(raporHtml({ baslik: "Oyuncu Listesi", altBaslik: `${v.satirlar.length} oyuncu · ${tarihTR(bugun().iso)}`, sutunlar: v.sutunlar, satirlar: v.satirlar, logo, yatay: true }), "oyuncular.pdf", true);
     } catch (e) { toast("err", hataMetni(e)); }
   };
 
@@ -62,7 +70,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         <Secim secenekler={DURUMLAR} bos="Tüm durumlar" value={durum} onChange={(e) => setDurum(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Durum" />
         <Btn kucuk tur={odemeyen ? "danger" : "ghost"} onClick={() => setOdemeyen(!odemeyen)} style={{ height: 40 }}>{odemeyen ? "✕ " : ""}Bu ay ödemeyenler</Btn>
         <div style={{ flex: 1 }} />
-        <span style={{ color: "var(--soluk)", fontSize: 14 }}>{liste.length} oyuncu</span>
+        <span style={{ color: "var(--soluk)", fontSize: 14 }}>{toplam} oyuncu</span>
       </Kart>
       <Kart>
         {liste.length === 0 ? <Bos metin="Kayıt bulunamadı." /> : (
@@ -83,6 +91,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
             </tbody>
           </table>
         )}
+        <Sayfalama sayfa={sayfa} toplam={toplam} sayfaBoyu={SAYFA_BOYU} onSayfa={setSayfa} birim="oyuncu" />
       </Kart>
       {yeni && <OyuncuForm gruplar={gruplar} onKapat={() => setYeni(false)} onKaydedildi={(k) => { setYeni(false); yukle(); setAcik(k.id); }} />}
       {acik && <OyuncuKarti oyuncuId={acik} oturum={oturum} gruplar={gruplar} saltOkunur={saltOkunur} onKapat={() => { setAcik(null); yukle(); }} onMakbuzKes={onMakbuzKes} />}

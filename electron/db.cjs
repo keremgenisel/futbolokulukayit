@@ -388,7 +388,10 @@ function ensureMonthlyDues(yil, ay) {
   return n;
 }
 const getDue = (pid, yil, ay) => db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay) || null;
-const listDues = (pid) => db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
+// limit verilirse yalnız son N dönem (oyuncu kartı); verilmezse tümü.
+const listDues = (pid, limit = null) => limit
+  ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
+  : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
 const listUnpaid = (yil, ay) => db.prepare(
   "SELECT d.*, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum='odenmedi' ORDER BY p.ad_soyad"
 ).all(yil, ay);
@@ -426,7 +429,9 @@ function getReceipt(id) {
   r.satirlar = db.prepare("SELECT l.*, f.ad AS kalem_ad, f.kod AS kalem_kod FROM receipt_lines l LEFT JOIN fee_items f ON f.id=l.fee_item_id WHERE l.receipt_id=? ORDER BY l.id").all(id);
   return r;
 }
-const listReceipts = (pid) => db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
+const listReceipts = (pid, limit = null) => limit
+  ? db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC LIMIT ?").all(pid, Number(limit))
+  : db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
 const listReceiptsByDate = (from, to) => db.prepare("SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 ORDER BY r.tarih, r.id").all(from, to);
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);
 
@@ -445,6 +450,8 @@ const listTrainings = (from, to) => db.prepare("SELECT t.*, g.ad AS yas_grubu_ad
 const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=? WHERE id=?").run(neden, id);
 const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum").run(tid, pid, durum);
 const listAttendance = (tid) => db.prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad").all(tid);
+// Son N yoklama (yeniden eskiye) — oyuncu kartı; tam liste için playerAttendance.
+const playerAttendanceSon = (pid, n = 40) => db.prepare("SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? ORDER BY t.tarih DESC, t.saat DESC LIMIT ?").all(pid, Number(n));
 const playerAttendance = (pid, from, to) => db.prepare("SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? ORDER BY t.tarih").all(pid, from, to);
 
 
@@ -457,17 +464,32 @@ const deleteAgeGroup = (id) => {
 };
 
 // Oyuncu listesi + verilen ayın aidat durumu (liste ekranı ve tesise giriş kontrolü).
-function listPlayersWithDue({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false } = {}) {
+// Oyuncu listesi + seçilen ayın aidat durumu: ortak WHERE (liste, sayfa ve sayım aynı filtreyi kullanır).
+function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false } = {}) {
   const where = []; const args = [yil, ay];
   if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ? OR p.pasaport_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`, `%${q}%`); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum) { where.push("p.durum=?"); args.push(durum); }
   if (sadeceOdemeyen) where.push("d.durum='odenmedi'");
-  const sql = `SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar
-    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
+  const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
-    ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
-  return db.prepare(sql).all(...args);
+    ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
+  return { govde, args };
+}
+const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar";
+function listPlayersWithDue(opts = {}) {
+  const { govde, args } = playersWhere(opts);
+  return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
+}
+// Sayfalı liste: { liste, toplam, sayfa, sayfaBoyu } — Oyuncular ekranı (sayfa 1'den başlar).
+function playersPage({ sayfa = 1, sayfaBoyu = 50, ...opts } = {}) {
+  const boy = Math.min(500, Math.max(1, Number(sayfaBoyu) || 50));
+  const { govde, args } = playersWhere(opts);
+  const toplam = db.prepare(`SELECT count(*) AS n ${govde}`).get(...args).n;
+  const sonSayfa = Math.max(1, Math.ceil(toplam / boy));
+  const sf = Math.min(sonSayfa, Math.max(1, Number(sayfa) || 1));
+  const liste = db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad LIMIT ? OFFSET ?`).all(...args, boy, (sf - 1) * boy);
+  return { liste, toplam, sayfa: sf, sayfaBoyu: boy };
 }
 
 // Pano özeti.
@@ -683,8 +705,8 @@ module.exports = {
   listFeeItems, updateFeeItem,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,
-  createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance,
-  deleteAgeGroup, listPlayersWithDue, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
+  createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance, playerAttendanceSon,
+  deleteAgeGroup, listPlayersWithDue, playersPage, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
   listUsers, setUserActive, resetUserPassword, deleteUser,
   kurtarmaKodlariUret, kurtarmaKoduSayisi, kurtarmaIleSifirla, kurtarmaKoduNormalize,
   lisansDurumu, lisansKaydet, leaseKaydet, lisansAktiflestir, lisansYenile, lisansSaltOkunurMu,

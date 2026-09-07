@@ -95,6 +95,20 @@ app.whenReady().then(async () => {
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
     check("şema sürümü 3 ve pasaport sütunu var", db.getMetaValue("schema_version") === "3" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
+    // Sayfalama: playersPage toplam/sayfa/offset; listDues ve listReceipts limit; playerAttendanceSon yeniden eskiye
+    for (let i = 0; i < 7; i++) db.createPlayer({ ad_soyad: `Sayfa Oyuncu ${String(i).padStart(2, "0")}`, dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "aktif" });
+    const tumu = db.listPlayersWithDue({ yil: 2026, ay: 9 });
+    const s1 = db.playersPage({ yil: 2026, ay: 9, sayfa: 1, sayfaBoyu: 4 });
+    const s2 = db.playersPage({ yil: 2026, ay: 9, sayfa: 2, sayfaBoyu: 4 });
+    check("sayfa 1 ve 2 birleşince tam liste (aynı sıra)", s1.toplam === tumu.length && [...s1.liste, ...s2.liste].slice(0, tumu.length).map((p) => p.id).join() === tumu.slice(0, 8).map((p) => p.id).join() && s1.liste.length === 4);
+    check("taşan sayfa son sayfaya çekilir; filtre toplamı düşürür", db.playersPage({ yil: 2026, ay: 9, sayfa: 99, sayfaBoyu: 4 }).sayfa === Math.ceil(tumu.length / 4) && db.playersPage({ yil: 2026, ay: 9, q: "Sayfa Oyuncu", sayfaBoyu: 3 }).toplam === 7);
+    for (let ay = 1; ay <= 12; ay++) db.ensureMonthlyDues(2025, ay);
+    check("listDues limit son N dönem (yeniden eskiye)", db.listDues(oyuncu.id, 3).length === 3 && db.listDues(oyuncu.id, 3)[0].yil >= db.listDues(oyuncu.id, 3)[2].yil && db.listDues(oyuncu.id).length > 3);
+    check("listReceipts limit", db.listReceipts(oyuncu.id, 1).length === 1);
+    const t2 = db.createTraining({ age_group_id: grp.id, tarih: "2026-09-20", saat: "10:00" }); db.setAttendance(t2.id, oyuncu.id, "gelmedi");
+    const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
+    check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
+
     // Kullanıcı silme: son aktif yönetici silinemez; yeni yönetici ilk admin'i silebilir; açılışta admin geri gelmez
     const ilkAdmin = db.getUserByUsername("admin");
     check("son yönetici silinemez", !!db.deleteUser(ilkAdmin.id).error);

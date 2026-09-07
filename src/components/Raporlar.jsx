@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Alan, Girdi, Secim, useToast, aidatEtiket } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Secim, Sayfalama, useToast, aidatEtiket } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, ayAraligi, hataMetni } from "../lib/api.js";
 import { AY_ADLARI, ODEME_YONTEMLERI, UCRET_TIPLERI, DURUMLAR, tarihTR, paraTR } from "../lib/aidat.js";
 import { raporHtml } from "../lib/raporHtml.js";
@@ -20,6 +20,8 @@ export function Raporlar() {
   const [grup, setGrup] = useState("");
   const [gruplar, setGruplar] = useState([]);
   const [veri, setVeri] = useState(null);
+  const [sayfa, setSayfa] = useState(1);
+  const ONIZLEME_BOYU = 100; // önizleme sayfası; Excel/PDF tam liste
   const toast = useToast();
   useEffect(() => { db("listAgeGroups").then(setGruplar).catch(() => {}); }, []);
 
@@ -53,7 +55,8 @@ export function Raporlar() {
     } catch (e) { toast("err", hataMetni(e)); return null; }
   };
 
-  const onizle = async () => setVeri(await hazirla());
+  const onizle = async () => { setSayfa(1); setVeri(await hazirla()); };
+  const gorunen = veri ? veri.satirlar.slice((sayfa - 1) * ONIZLEME_BOYU, sayfa * ONIZLEME_BOYU) : [];
   const excel = async () => { const v = veri || await hazirla(); if (!v) return; try { await cikti().excelKaydet({ sayfa: v.baslik, sutunlar: v.sutunlar, satirlar: v.satirlar }, `${rapor}.xlsx`); } catch (e) { toast("err", hataMetni(e)); } };
   const pdf = async () => { const v = veri || await hazirla(); if (!v) return; try { const logo = await uygulama().logo(); await cikti().pdfKaydet(raporHtml({ baslik: v.baslik, altBaslik: v.alt, sutunlar: v.sutunlar, satirlar: v.satirlar, logo, yatay: !!v.yatay }), `${rapor}.pdf`, !!v.yatay); } catch (e) { toast("err", hataMetni(e)); } };
 
@@ -80,8 +83,9 @@ export function Raporlar() {
             <div style={{ padding: "16px 16px 8px" }}><h3 style={{ fontSize: 22 }}>{veri.baslik}</h3><div style={{ color: "var(--soluk)", fontSize: 13 }}>{veri.alt}</div></div>
             <div style={{ overflow: "auto", maxHeight: "calc(100vh - 260px)" }}>
               <table><thead><tr>{veri.sutunlar.map((c) => <th key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>{c.baslik}</th>)}</tr></thead>
-                <tbody>{veri.satirlar.map((s, i) => <tr key={i}>{veri.sutunlar.map((c) => <td key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>{typeof s[c.anahtar] === "number" && c.anahtar === "tutar" || c.anahtar === "aidat" ? paraTR(s[c.anahtar]) : s[c.anahtar]}</td>)}</tr>)}</tbody></table>
+                <tbody>{gorunen.map((s, i) => <tr key={(sayfa - 1) * ONIZLEME_BOYU + i}>{veri.sutunlar.map((c) => <td key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>{typeof s[c.anahtar] === "number" && c.anahtar === "tutar" || c.anahtar === "aidat" ? paraTR(s[c.anahtar]) : s[c.anahtar]}</td>)}</tr>)}</tbody></table>
             </div>
+            <Sayfalama sayfa={sayfa} toplam={veri.satirlar.length} sayfaBoyu={ONIZLEME_BOYU} onSayfa={setSayfa} birim="satır" />
           </>
         )}
       </Kart>

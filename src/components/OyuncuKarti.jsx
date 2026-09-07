@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
-import { db, files, bugun, hataMetni } from "../lib/api.js";
+import { db, files, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
@@ -28,21 +28,25 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   const [aidatlar, setAidatlar] = useState([]);
   const [makbuzlar, setMakbuzlar] = useState([]);
   const [yoklama, setYoklama] = useState([]);
+  const [yoklamaOzet, setYoklamaOzet] = useState({}); // durum → sayı (tüm geçmiş, iptal hariç)
+  const [tumu, setTumu] = useState({ aidat: false, makbuz: false, yoklama: false }); // "Tümünü göster"
+  const SON = { aidat: 12, makbuz: 12, yoklama: 40 };
   const [sil, setSil] = useState(null); // { tip, id, mesaj }
   const toast = useToast();
-  const { yil, ay } = bugun();
 
   const yukle = useCallback(async () => {
     try {
       const p = await db("getPlayer", oyuncuId); setO(p);
       if (p?.foto_yolu) files().dataUrl(p.foto_yolu).then(setFoto).catch(() => {}); else setFoto(null);
       setVeliler(await db("listGuardians", oyuncuId)); setAcil(await db("listEmergency", oyuncuId));
-      setBelgeler(await db("listDocuments", oyuncuId)); setAidatlar(await db("listDues", oyuncuId));
-      setMakbuzlar(await db("listReceipts", oyuncuId));
-      const from = `${yil - 1}-${String(ay).padStart(2, "0")}-01`;
-      setYoklama(await db("playerAttendance", oyuncuId, from, "2999-12-31"));
+      setBelgeler(await db("listDocuments", oyuncuId));
+      setAidatlar(await db("listDues", oyuncuId, tumu.aidat ? null : SON.aidat));
+      setMakbuzlar(await db("listReceipts", oyuncuId, tumu.makbuz ? null : SON.makbuz));
+      setYoklama(tumu.yoklama ? [...(await db("playerAttendance", oyuncuId, "1900-01-01", "2999-12-31"))].reverse() : await db("playerAttendanceSon", oyuncuId, SON.yoklama));
+      const oz = {}; for (const r of await db("attendanceSummary", oyuncuId, "1900-01-01", "2999-12-31")) oz[r.durum] = r.n;
+      setYoklamaOzet(oz);
     } catch (e) { toast("err", hataMetni(e)); }
-  }, [oyuncuId, yil, ay, toast]);
+  }, [oyuncuId, tumu, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { yukle(); }, [yukle]);
 
   const durumDegistir = async (d) => { try { await db("updatePlayer", o.id, { durum: d }); toast("ok", "Durum güncellendi"); yukle(); } catch (e) { toast("err", hataMetni(e)); } };
@@ -147,6 +151,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
                 {aidatlar.map((a) => <tr key={a.id}><td>{AY_ADLARI[a.ay - 1]} {a.yil}</td><td>{paraTR(a.tutar)}</td><td><Rozet ton={aidatTonu(a.durum)}>{aidatEtiket(a.durum)}</Rozet></td></tr>)}
               </tbody></table>
             )}
+            {!tumu.aidat && aidatlar.length >= SON.aidat && <TumunuGoster onClick={() => setTumu({ ...tumu, aidat: true })} metin={`Son ${SON.aidat} dönem gösteriliyor`} />}
           </div>
           <div>
             <h3 style={{ fontSize: 20, marginBottom: 12 }}>Makbuzlar</h3>
@@ -155,6 +160,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
                 {makbuzlar.map((m) => <tr key={m.id} style={{ opacity: m.iptal ? .5 : 1 }}><td>{m.makbuz_no}{m.iptal ? " (iptal)" : ""}</td><td>{tarihTR(m.tarih)}</td><td>{paraTR(m.toplam)}</td><td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td><td><Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => makbuzYazdir(m.id)}>Yazdır</Btn></td></tr>)}
               </tbody></table>
             )}
+            {!tumu.makbuz && makbuzlar.length >= SON.makbuz && <TumunuGoster onClick={() => setTumu({ ...tumu, makbuz: true })} metin={`Son ${SON.makbuz} makbuz gösteriliyor`} />}
           </div>
         </div>
       )}
@@ -162,13 +168,14 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       {sekme === "yoklama" && (
         <div>
           <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>
-            {["geldi", "gelmedi", "izinli"].map((d) => <div key={d}><div style={{ fontSize: 12, color: "var(--soluk)", textTransform: "uppercase", fontWeight: 600 }}>{d}</div><div className="baslik" style={{ fontSize: 32 }}>{yoklama.filter((y) => y.durum === d).length}</div></div>)}
+            {["geldi", "gelmedi", "izinli"].map((d) => <div key={d}><div style={{ fontSize: 12, color: "var(--soluk)", textTransform: "uppercase", fontWeight: 600 }}>{d}</div><div className="baslik" style={{ fontSize: 32 }}>{yoklamaOzet[d] || 0}</div></div>)}
           </div>
           {yoklama.length === 0 ? <Bos metin="Yoklama kaydı yok." /> : (
             <table><thead><tr><th>Tarih</th><th>Saat</th><th>Durum</th></tr></thead><tbody>
-              {[...yoklama].reverse().slice(0, 40).map((y, i) => <tr key={i}><td>{tarihTR(y.tarih)}</td><td>{y.saat}</td><td><Rozet ton={y.durum === "geldi" ? "green" : y.durum === "gelmedi" ? "red" : "yellow"}>{y.durum}</Rozet></td></tr>)}
+              {yoklama.map((y, i) => <tr key={i}><td>{tarihTR(y.tarih)}</td><td>{y.saat}</td><td><Rozet ton={y.durum === "geldi" ? "green" : y.durum === "gelmedi" ? "red" : "yellow"}>{y.durum}</Rozet></td></tr>)}
             </tbody></table>
           )}
+          {!tumu.yoklama && yoklama.length >= SON.yoklama && <TumunuGoster onClick={() => setTumu({ ...tumu, yoklama: true })} metin={`Son ${SON.yoklama} yoklama gösteriliyor`} />}
         </div>
       )}
 
@@ -239,6 +246,15 @@ function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil }) {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function TumunuGoster({ onClick, metin }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", fontSize: 13, color: "var(--soluk)" }}>
+      <span>{metin}</span>
+      <button type="button" onClick={onClick} style={{ background: "none", border: 0, color: "var(--mor)", cursor: "pointer", fontSize: 13, textDecoration: "underline", padding: 0 }}>Tümünü göster</button>
     </div>
   );
 }

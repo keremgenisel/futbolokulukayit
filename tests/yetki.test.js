@@ -7,6 +7,7 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
   it("oturumsuz her çağrı 401", () => { expect(cagriYetkisi("listAgeGroups", null, false).kod).toBe(401); });
   it("okuma herkese açık, salt okunurda bile", () => {
     expect(cagriYetkisi("listPlayers", kullanici, true).ok).toBe(true);
+    for (const f of ["playersPage", "playerAttendanceSon"]) expect(cagriYetkisi(f, kullanici, true).ok).toBe(true);
   });
   it("yazma lisans salt okunurken 403, normalde serbest", () => {
     expect(cagriYetkisi("createPlayer", kullanici, false).ok).toBe(true);
