@@ -9,6 +9,7 @@ const path = require("path");
 const { zipSync, unzipSync } = require("fflate"); // saf JS zip; native bağımlılık yok
 const db = require("../db.cjs");
 const config = require("../config.cjs");
+const { sikliktNormalize, yedekGerekliMi, SIKLIKLAR } = require("../yedekSiklik.cjs");
 
 function kopyalaKlasor(kaynak, hedef) {
   if (!fs.existsSync(kaynak)) return;
@@ -75,13 +76,12 @@ function yedekHazirla(yol) {
   } catch (e) { return { error: "Yedek açılamadı: " + e.message }; }
 }
 
-// Günde bir otomatik yedek (açılışta çağrılır). Hata uygulamayı durdurmaz.
+// Otomatik yedek (açılışta çağrılır): sıklık ayarına göre (her açılış / günlük / haftalık / kapalı). Hata uygulamayı durdurmaz.
 function otomatikYedek() {
   try {
     const klasor = db.getSetting("yedek_klasoru");
     if (!klasor || !fs.existsSync(klasor)) return;
-    const son = db.getSetting("son_yedek") || "";
-    if (son.slice(0, 10) === new Date().toISOString().slice(0, 10)) return;
+    if (!yedekGerekliMi(db.getSetting("yedek_sikligi"), db.getSetting("son_yedek") || null, new Date())) return;
     yedekAl(klasor);
     // 30'dan eski yedekleri sil (zip ve eski biçim klasörler birlikte)
     const eski = fs.readdirSync(klasor).filter((a) => a.startsWith("eyupspor-yedek-") && !a.endsWith(".tmp")).sort();
@@ -165,7 +165,14 @@ function registerYedekHandlers(getSession) {
     setTimeout(() => { app.relaunch(); app.exit(0); }, 400);
     return { ok: true };
   });
-  ipcMain.handle("yedek:durum", () => config.istemciMi() ? { klasor: null, son: null, istemci: true } : ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek") }));
+  ipcMain.handle("yedek:durum", () => config.istemciMi() ? { klasor: null, son: null, istemci: true } : ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek"), siklik: sikliktNormalize(db.getSetting("yedek_sikligi")), sikliklar: SIKLIKLAR }));
+  ipcMain.handle("yedek:siklik", (_e, siklik) => {
+    yetki();
+    if (config.istemciMi()) return istemciHata();
+    if (!SIKLIKLAR.some((x) => x.kod === siklik)) return { error: "Geçersiz sıklık" };
+    db.setSetting("yedek_sikligi", siklik);
+    return { ok: true, siklik };
+  });
 }
 
 module.exports = { registerYedekHandlers, otomatikYedek, yedekAl, geriYukleCekirdek, yedekHazirla };

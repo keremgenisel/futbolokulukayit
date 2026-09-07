@@ -12,7 +12,8 @@
 4. **Ayarlar > Lisans**: satıcıdan aldığınız `EYUPSPOR.` ile başlayan anahtarı yapıştırıp kaydedin.
    Anahtar girilmezse program 30 gün deneme olarak çalışır, sonra salt okunur olur.
 5. **Ayarlar > Yedekleme**: bir klasör seçin (harici disk veya OneDrive/Google Drive klasörü önerilir).
-   Program her açılışta günde bir kez otomatik yedek alır. Her yedek tek bir zip dosyasıdır
+   Program açılışta otomatik yedek alır; sıklığı aynı ekrandan seçersiniz: her açılışta, günde bir
+   (varsayılan), haftada bir ya da kapalı (yalnız "Şimdi Yedek Al"). Her yedek tek bir zip dosyasıdır
    (`eyupspor-yedek-tarih.zip`): veritabanı, vesikalıklar, belgeler ve makbuz PDF'leri içindedir.
    Geri yüklemek için aynı ekrandan zip dosyasını seçin.
 6. **Ayarlar > Resim ve Belge Optimizasyonu**: eski yüklenmiş büyük fotoğrafları küçültür (yedekler küçülür).

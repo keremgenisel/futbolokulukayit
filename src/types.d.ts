@@ -57,7 +57,8 @@ declare global {
       yedek: {
         klasorSec(): Promise<{ ok?: boolean; iptal?: boolean; klasor?: string }>;
         al(): Promise<{ ok?: boolean; error?: string; yol?: string }>;
-        durum(): Promise<{ klasor: string | null; son: string | null; istemci?: boolean }>;
+        durum(): Promise<{ klasor: string | null; son: string | null; istemci?: boolean; siklik?: string; sikliklar?: { kod: string; ad: string }[] }>;
+        siklik(siklik: string): Promise<{ ok?: boolean; error?: string; siklik?: string }>;
         geriYukleSec(): Promise<{ ok?: boolean; iptal?: boolean; error?: string; klasor?: string; oyuncu?: number; makbuz?: number; sonMakbuz?: string | null }>;
         geriYukle(klasor: string): Promise<{ ok?: boolean; error?: string }>;
       };

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Rozet, Onay, Modal, useToast } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Secim, Rozet, Onay, Modal, useToast } from "./ui.jsx";
 import { db, yedek, optimize, uygulama, hataMetni } from "../lib/api.js";
 import { paraTR, tarihTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimAnahtari, indirimYuzdesi, aidatHesapla } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
@@ -272,15 +272,21 @@ function YedekAyar({ admin }) {
   const yukle = () => yedek().durum().then(setD).catch(() => {});
   useEffect(() => { yukle(); }, []);
   const sec = async () => { try { const r = await yedek().klasorSec(); if (!r.iptal) { toast("ok", "Yedek klasörü ayarlandı"); yukle(); } } catch (e) { toast("err", hataMetni(e)); } };
+  const siklikDegistir = async (e) => { const k = e.target.value; try { const r = await yedek().siklik(k); if (r.error) toast("err", r.error); else { toast("ok", "Yedekleme sıklığı kaydedildi"); yukle(); } } catch (err) { toast("err", hataMetni(err)); } };
   const al = async () => { setBekliyor(true); try { const r = await yedek().al(); if (r.error) toast("err", r.error); else toast("ok", "Yedek alındı: " + r.yol); yukle(); } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); } };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 640 }}>
       <h3 style={{ fontSize: 22 }}>Yedekleme</h3>
-      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir zip dosyasına (<code>eyupspor-yedek-tarih.zip</code>) yazılır. Uygulama her açılışta günde bir kez otomatik yedek alır, 30 günden eski yedekleri siler. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.</p>
+      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir zip dosyasına (<code>eyupspor-yedek-tarih.zip</code>) yazılır. Otomatik yedek uygulama açılışında, aşağıda seçtiğiniz sıklıkla alınır; en eski yedekler silinir, son 30 yedek saklanır. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 15 }}>
         <div><span style={{ color: "var(--soluk)" }}>Yedek klasörü:</span> <b>{d.klasor || "Seçilmedi"}</b></div>
         <div><span style={{ color: "var(--soluk)" }}>Son yedek:</span> <b>{d.son ? `${tarihTR(d.son)} ${d.son.slice(11, 16)}` : "Henüz alınmadı"}</b></div>
       </div>
+      {!d.istemci && d.sikliklar && (
+        <Alan etiket="Otomatik yedekleme sıklığı" style={{ width: 320 }}>
+          <Secim secenekler={d.sikliklar} value={d.siklik} onChange={siklikDegistir} aria-label="Otomatik yedekleme sıklığı" />
+        </Alan>
+      )}
       <div style={{ display: "flex", gap: 10 }}><Btn tur="ghost" onClick={sec}>Klasör Seç</Btn><Btn ikon={<Ikon ad="yedek" />} onClick={al} disabled={!d.klasor || bekliyor}>Şimdi Yedek Al</Btn></div>
       {admin && !d.istemci && (
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>

@@ -28,6 +28,7 @@ contextBridge.exposeInMainWorld("okul", {
     klasorSec: () => ipcRenderer.invoke("yedek:klasorSec"),
     al: () => ipcRenderer.invoke("yedek:al"),
     durum: () => ipcRenderer.invoke("yedek:durum"),
+    siklik: (siklik) => ipcRenderer.invoke("yedek:siklik", siklik),
     geriYukleSec: () => ipcRenderer.invoke("yedek:geriYukleSec"),
     geriYukle: (klasor) => ipcRenderer.invoke("yedek:geriYukle", klasor),
   },
