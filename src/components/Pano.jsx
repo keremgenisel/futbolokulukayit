@@ -4,7 +4,9 @@ import { Ikon } from "./Ikon.jsx";
 import { db, bugun, hataMetni } from "../lib/api.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
 import { sezonSonuMu, guncelSezon } from "../lib/sezon.js";
-import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
+import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../lib/belge.js";
+
+const SAGLIK_KISA = 8; // panoda önce en acil 8 uyarı; "Tümünü göster" ile tam liste
 
 function Stat({ etiket, deger, renk, not }) {
   return <Kart style={{ padding: "18px 20px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}><span style={{ fontSize: 13, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>{etiket}</span><span className="baslik" style={{ fontSize: 40, color: renk, lineHeight: 1 }}>{deger}</span><span style={{ fontSize: 13, color: "var(--soluk)" }}>{not}</span></Kart>;
@@ -13,6 +15,7 @@ function Stat({ etiket, deger, renk, not }) {
 export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
   const [sezon, setSezon] = useState(null);
   const [saglik, setSaglik] = useState(null); // sağlık raporu uyarıları
+  const [saglikTumu, setSaglikTumu] = useState(false);
   const [ozet, setOzet] = useState(null);
   const [borclular, setBorclular] = useState([]);
   const [q, setQ] = useState("");
@@ -24,7 +27,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
     db("panoOzet", { yil, ay, bugun: iso }).then(setOzet).catch((e) => toast("err", hataMetni(e)));
     db("listUnpaid", yil, ay).then(setBorclular).catch(() => {});
     db("sezonDurumu").then((d) => d && setSezon(d)).catch(() => {});
-    db("saglikRaporuDurumu", iso).then((d) => d && Array.isArray(d.uyarilar) && setSaglik(d)).catch(() => {});
+    db("saglikRaporuDurumu", iso).then((d) => d && Array.isArray(d.uyarilar) && setSaglik({ ...d, uyarilar: uyariSirala(d.uyarilar) })).catch(() => {});
   }, [yil, ay, iso, toast]);
   const sezonUyari = sezon && sezon.aktifSezon && sezonSonuMu(sezon.aktifSezon, iso, sezon.baslangicAyi);
 
@@ -51,13 +54,17 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
       </div>
       {saglik && saglik.uyarilar.length > 0 && (
         <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Sağlık Raporu Uyarıları</h3><span style={{ color: "var(--soluk)", fontSize: 13 }}>Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş</span></div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Sağlık Raporu Uyarıları <span style={{ color: "var(--soluk)", fontSize: 15, fontWeight: 500 }}>({saglik.uyarilar.length})</span></h3><span style={{ color: "var(--soluk)", fontSize: 13 }}>Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş · en acil önce</span></div>
           <table><thead><tr><th>Oyuncu</th><th>Grup</th><th>Geçerlilik</th><th>Durum</th></tr></thead><tbody>
-            {saglik.uyarilar.slice(0, 8).map((u) => { const d = u.durum === "yok" ? { durum: "yok", kalanGun: null } : belgeGecerlilik(u.gecerlilik, iso); return (
+            {(saglikTumu ? saglik.uyarilar : saglik.uyarilar.slice(0, SAGLIK_KISA)).map((u) => { const d = u.durum === "yok" ? { durum: "yok", kalanGun: null } : belgeGecerlilik(u.gecerlilik, iso); return (
               <tr key={u.player_id} onClick={() => onOyuncu(u.player_id)} style={{ cursor: "pointer" }}><td style={{ fontWeight: 600 }}>{u.ad_soyad}</td><td>{u.yas_grubu_ad || "—"}</td><td>{u.gecerlilik ? tarihTR(u.gecerlilik) : "—"}</td><td><Rozet ton={u.durum === "dolacak" ? "yellow" : "red"}>{u.durum === "yok" ? "Rapor yok" : belgeEtiketi(d)}</Rozet></td></tr>
             ); })}
           </tbody></table>
-          {saglik.uyarilar.length > 8 && <div style={{ fontSize: 13, color: "var(--soluk)" }}>+{saglik.uyarilar.length - 8} oyuncu daha · Oyuncular listesinden kartlarına bakın</div>}
+          {saglik.uyarilar.length > SAGLIK_KISA && (
+            <button type="button" onClick={() => setSaglikTumu(!saglikTumu)} style={{ alignSelf: "flex-start", background: "none", border: 0, padding: 0, color: "var(--mor)", cursor: "pointer", fontSize: 14, fontWeight: 600, textDecoration: "underline" }}>
+              {saglikTumu ? "Daha az göster" : `Tümünü göster (+${saglik.uyarilar.length - SAGLIK_KISA} oyuncu daha)`}
+            </button>
+          )}
         </Kart>
       )}
       {sezonUyari && (

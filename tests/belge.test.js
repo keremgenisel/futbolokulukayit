@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { belgeGecerlilik, belgeEtiketi } from "../src/lib/belge.js";
+import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../src/lib/belge.js";
 
 describe("sağlık raporu geçerliliği", () => {
   it("yok / geçerli / dolacak (≤30 gün) / doldu", () => {
@@ -15,5 +15,16 @@ describe("sağlık raporu geçerliliği", () => {
     expect(belgeEtiketi({ durum: "dolacak", kalanGun: 0 })).toBe("Bugün doluyor");
     expect(belgeEtiketi({ durum: "gecerli", kalanGun: 100 })).toBe("Geçerli");
     expect(belgeEtiketi({ durum: "yok", kalanGun: null })).toBe("Tarih girilmemiş");
+  });
+
+  it("uyariSirala: doldu (en eski önce) → dolacak (en yakın önce) → tarihsiz → rapor yok (ada göre)", () => {
+    const l = [
+      { ad_soyad: "Zeynep", durum: "yok" }, { ad_soyad: "Ali", durum: "dolacak", gecerlilik: "2026-09-20" },
+      { ad_soyad: "Bora", durum: "doldu", gecerlilik: "2026-08-01" }, { ad_soyad: "Ceren", durum: "yok" },
+      { ad_soyad: "Deniz", durum: "doldu", gecerlilik: "2025-01-01" }, { ad_soyad: "Ece", durum: "dolacak", gecerlilik: "2026-09-10" },
+      { ad_soyad: "Fatma", durum: "tarihsiz" },
+    ];
+    expect(uyariSirala(l).map((u) => u.ad_soyad)).toEqual(["Deniz", "Bora", "Ece", "Ali", "Fatma", "Ceren", "Zeynep"]);
+    expect(l[0].ad_soyad).toBe("Zeynep"); // girdi değişmez
   });
 });

@@ -63,6 +63,28 @@ describe("Pano — tesise giriş kontrolü", () => {
     expect(onOyuncu).toHaveBeenCalledWith(2);
   });
 
+  it("sağlık uyarıları en acil önce sıralı; 8'den fazlaysa 'Tümünü göster' tam listeyi açar", async () => {
+    const uyarilar = Array.from({ length: 11 }, (_, i) => ({ player_id: 100 + i, ad_soyad: `Oyuncu ${String(i).padStart(2, "0")}`, yas_grubu_ad: "U11", gecerlilik: null, durum: "yok" }));
+    uyarilar.push({ player_id: 200, ad_soyad: "Acil Dolmuş", yas_grubu_ad: "U12", gecerlilik: "2020-01-01", durum: "doldu" });
+    window.okul.db.mockImplementation(async (fn) => {
+      if (fn === "panoOzet") return { aktif: 12, grup: 2, odeyen: 1, borclu: 0, antrenmanlar: [], bugunTahsilat: 0 };
+      if (fn === "saglikRaporuDurumu") return { toplam: 12, doldu: 1, dolacak: 0, yok: 11, uyarilar };
+      return [];
+    });
+    render(<ToastSaglayici><Pano onOyuncu={() => {}} onSekme={() => {}} onMakbuzKes={() => {}} /></ToastSaglayici>);
+    await screen.findByText("Sağlık Raporu Uyarıları");
+    expect(screen.getByText("(12)")).toBeInTheDocument();
+    const satirlar = () => screen.getAllByRole("row").filter((r) => /Oyuncu \d\d|Acil Dolmuş/.test(r.textContent));
+    expect(satirlar()).toHaveLength(8);
+    expect(satirlar()[0]).toHaveTextContent("Acil Dolmuş"); // "yok" olanlar listede önce gelse de dolmuş rapor başa alınır
+    expect(screen.queryByText("Oyuncu 10")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Tümünü göster (+4 oyuncu daha)" }));
+    expect(satirlar()).toHaveLength(12);
+    expect(screen.getByText("Oyuncu 10")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Daha az göster" }));
+    expect(satirlar()).toHaveLength(8);
+  });
+
   it("borçlu listesinde veli telefonu görünür ve tıklayınca kopyalanır", async () => {
     const yaz = vi.fn(async () => {});
     Object.assign(navigator, { clipboard: { writeText: yaz } });

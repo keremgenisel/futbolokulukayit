@@ -23,3 +23,14 @@ export function belgeEtiketi(d) {
   if (d.durum === "gecerli") return "Geçerli";
   return "Tarih girilmemiş";
 }
+
+/** Uyarı listesi aciliyet sırası: süresi dolan (en eski önce) → dolacak (en yakın önce) → rapor yok / tarihsiz (ada göre). */
+/** @type {Record<string, number>} */
+const ACILIYET = { doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3 };
+/** @param {{ durum: string, gecerlilik?: string|null, ad_soyad?: string }[]} uyarilar */
+export function uyariSirala(uyarilar) {
+  return [...uyarilar].sort((a, b) => (ACILIYET[a.durum] ?? 9) - (ACILIYET[b.durum] ?? 9)
+    || String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || ""))
+    || String(a.ad_soyad || "").localeCompare(String(b.ad_soyad || ""), "tr"));
+}
+
