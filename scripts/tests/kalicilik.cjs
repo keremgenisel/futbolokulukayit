@@ -80,6 +80,12 @@ app.on("browser-window-created", async (_e, win) => {
       db.mesajKaydet({ player_id: o.id, guardian_id: waVeliId, tur: "degisiklik", training_id: tr2.id, metin: "Saat değişti" });
       const tr3 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-09", saat: "17:00", saha: "Saha 1" });
       db.cancelTraining(tr3.id, "Yağmur"); db.grupBildirimKaydet(tr3.id, "Test Yönetici");
+      // Olay ayrımı (şema 11): değişiklik bildirildi → iptal → yeni olay; ayrıca grup geri alma
+      const tr4 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-10", saat: "17:00", saha: "Saha 1" });
+      db.updateTraining(tr4.id, { saat: "18:00" }); db.mesajKaydet({ player_id: o.id, guardian_id: waVeliId, tur: "degisiklik", training_id: tr4.id, metin: "d" }); db.grupBildirimKaydet(tr4.id, "Y");
+      db.cancelTraining(tr4.id, "İptal");
+      const tr5 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-11", saat: "17:00", saha: "Saha 1" });
+      db.cancelTraining(tr5.id, "İptal"); db.grupBildirimKaydet(tr5.id, "Y"); db.grupBildirimSil(tr5.id);
       // Son eklenen özellikler (07.09.2026): aidat taban fiyatı + indirim, yedek sıklığı, yabancı oyuncu,
       // ikinci kullanıcı + kurtarma kodları, belge kaydı (dosya + tekil vesikalık), kenar menü tercihi
       db.updateFeeItem(aidat.id, { varsayilan_fiyat: 4321 });
@@ -151,9 +157,12 @@ app.on("browser-window-created", async (_e, win) => {
       const waV = db.listGuardians(o.id)[0];
       const waM = db.sonMesajlar(o.id);
       const waT = db.trainingCalendar("2026-09-08", "2026-09-08").find((x) => x.saat === "18:30");
-      check("WhatsApp: veli onayı, hatırlatma ve bildirim kayıtları, antrenman değişikliği kalıcı", waV?.mesaj_onayi === 0 && waM.length === 2 && waM.some((m) => m.tur === "aidat" && m.kullanici === "admin") && !!waT && waT.bildirim_gerekli === 1 && waT.bildirilen === 1 && JSON.parse(waT.degisiklik_notu).eskiSaat === "17:00");
+      check("WhatsApp: veli onayı, hatırlatma ve bildirim kayıtları, antrenman değişikliği kalıcı", waV?.mesaj_onayi === 0 && waM.length >= 2 && waM.some((m) => m.tur === "aidat" && m.kullanici === "admin") && waM.some((m) => m.tur === "degisiklik" && m.metin === "Saat değişti") && !!waT && waT.bildirim_gerekli === 1 && waT.bildirilen === 1 && JSON.parse(waT.degisiklik_notu).eskiSaat === "17:00");
       const gT = db.trainingCalendar("2026-09-09", "2026-09-09").find((x) => x.iptal === 1);
       check("veli grubuna bildirim kaydı ve WhatsApp şablonu kalıcı", !!gT && gT.bildirim_gerekli === 0 && JSON.parse(gT.grup_bildirim).kullanici === "Test Yönetici" && db.getSetting("wa_sablon_aidat") === "Kalıcı şablon {veli} {kalan}");
+      const t4 = db.trainingCalendar("2026-09-10", "2026-09-10")[0], t5 = db.trainingCalendar("2026-09-11", "2026-09-11")[0];
+      check("olay ayrımı kalıcı: değişiklik sonrası iptal yeni olay (bildirilen 0, grup boş, gerekli 1); eski değişiklik kaydı geçmişte", t4 && t4.iptal === 1 && t4.bildirilen === 0 && t4.grup_bildirim === "" && t4.bildirim_gerekli === 1 && !!t4.bildirim_olay && db.sonMesajlar(o.id).some((m) => m.training_id === t4.id && m.tur === "degisiklik"));
+      check("grup bildirimi geri alma kalıcı (kayıt boş, bildirim gerekli)", t5 && t5.grup_bildirim === "" && t5.bildirim_gerekli === 1);
       check("haftalık program ve doldurulan antrenmanlar kalıcı", JSON.parse(db.listAgeGroups().find((g) => g.id === o.yas_grubu_id).program)[0]?.saat === "18:00" && b.doldurulan === 1 && db.listTrainings("2027-04-05", "2027-04-11").some((tr) => tr.saat === "18:00" && tr.saha === "Saha 3"));
       const akt = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan Kalıcı");
       check("Excel'den aktarılan oyuncu, yeni grubu ve velisi kalıcı", !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009");
