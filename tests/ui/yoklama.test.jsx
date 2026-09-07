@@ -147,4 +147,21 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     expect(await screen.findByRole("button", { name: "Velilere Bildir" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Düzenle" })).toBeNull(); // iptal edilmiş antrenman düzenlenmez
   });
+
+  it("veli grubuna bildirilmiş antrenmanın başlığında 'Geri al' vardır (iptal ve değişiklik); tıklayınca kayıt silinir ve 'Velilere Bildir' geri gelir", async () => {
+    Object.assign(antrenmanlar[0], { iptal: 1, bildirim_gerekli: 0, grup_bildirim: JSON.stringify({ zaman: "2026-09-07T10:00:00Z", kullanici: "Y" }) });
+    const eskiDb = window.okul.db.getMockImplementation();
+    window.okul.db.mockImplementation(async (fn, ...args) => {
+      if (fn === "grupBildirimSil") { Object.assign(antrenmanlar[0], { grup_bildirim: "", bildirim_gerekli: 1 }); return {}; }
+      return eskiDb(fn, ...args);
+    });
+    kur();
+    fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
+    await screen.findByText("Ada Kaya");
+    expect(screen.getAllByText("Veli grubuna bildirildi").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByRole("button", { name: "Grup bildirimini geri al" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("grupBildirimSil", 5));
+    expect(await screen.findByRole("button", { name: "Velilere Bildir" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Grup bildirimini geri al" })).toBeNull();
+  });
 });

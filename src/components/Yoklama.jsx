@@ -117,6 +117,8 @@ export function Yoklama({ saltOkunur }) {
     } catch { /* yalnız bayrak */ }
     takvimYukle();
   };
+  // Veli grubuna gönderim geri al (kart başlığından; pencere kapalıyken de): bildirim gereği yeniden açılır
+  const grupGeriAl = async () => { try { await db("grupBildirimSil", aktif.id); toast("ok", "Grup bildirimi geri alındı"); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
   const bildirimGerekmiyor = async () => { try { await db("bildirimGerekliAyarla", aktif.id, 0); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
 
   // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
@@ -189,6 +191,7 @@ export function Yoklama({ saltOkunur }) {
                   {[["Toplam", oyuncular.length, ""], ["Geldi", say("geldi"), "var(--yesil)"], ["Gelmedi", say("gelmedi"), "var(--kirmizi)"], ["İzinli", say("izinli"), ""], ["İşaretlenmedi", oyuncular.length - say("geldi") - say("gelmedi") - say("izinli"), ""]].map(([e, n, c]) => <span key={e}><span style={{ color: "var(--soluk)" }}>{e} </span><b style={{ color: c || "inherit" }}>{n}</b></span>)}
                 </div>
                 {borclu > 0 && <Rozet ton="red">{borclu} aidat borcu</Rozet>}{aktif.iptal ? <Rozet ton="red">İptal edildi</Rozet> : null}
+                {aktif.grup_bildirim ? <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}><Rozet ton="green">Veli grubuna bildirildi</Rozet>{!saltOkunur && <button type="button" onClick={grupGeriAl} aria-label="Grup bildirimini geri al" style={{ background: "none", border: 0, color: "var(--soluk)", cursor: "pointer", fontSize: 12.5, textDecoration: "underline" }}>Geri al</button>}</span> : null}
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {aktif.bildirim_gerekli ? <Btn tur="yesil" ikon={<Ikon ad="whatsapp" />} onClick={() => bildirimAc(aktif, aktif.iptal ? "iptal" : "degisiklik")} title="Grubun velilerine WhatsApp ile iptal/değişiklik bildir">Velilere Bildir</Btn> : null}
