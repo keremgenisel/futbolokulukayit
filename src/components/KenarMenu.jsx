@@ -7,7 +7,7 @@ const MENU_DAR = "menuDar";
 function menuDarOku() { try { return localStorage.getItem(MENU_DAR) === "1"; } catch { return false; } }
 function menuDarYaz(dar) { try { localStorage.setItem(MENU_DAR, dar ? "1" : "0"); } catch { /* özel pencere vb. */ } }
 
-export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis }) {
+export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra }) {
   const [dar, setDar] = useState(menuDarOku);
   const degistir = () => setDar((v) => { menuDarYaz(!v); return !v; });
   const genislik = dar ? 68 : 232;
@@ -29,6 +29,11 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis }) {
           </div>
         )}
       </div>
+      {onAra && (
+        <button type="button" onClick={onAra} aria-label="Oyuncu ara (Ctrl+K)" title="Her yerden oyuncu ara (Ctrl+K)" style={{ display: "flex", alignItems: "center", justifyContent: dar ? "center" : "flex-start", gap: 10, height: 40, marginBottom: 10, padding: dar ? 0 : "0 12px", borderRadius: 8, border: "1px solid rgba(255,255,255,.25)", background: "rgba(255,255,255,.12)", color: "#fff", cursor: "pointer", fontSize: 14 }}>
+          <Ikon ad="ara" boyut={18} />{!dar && <><span style={{ flex: 1, textAlign: "left", color: "#D8CCE9" }}>Oyuncu ara…</span><span style={{ fontSize: 11, border: "1px solid rgba(255,255,255,.3)", borderRadius: 6, padding: "1px 6px", color: "#D8CCE9" }}>Ctrl K</span></>}
+        </button>
+      )}
       <nav style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {sekmeler.map((t) => (
           <button key={t.kod} type="button" onClick={() => onSec(t.kod)} title={dar ? t.ad : undefined} aria-label={t.ad} style={{

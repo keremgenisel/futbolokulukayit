@@ -29,4 +29,15 @@ describe("Kenar menü daralt/genişlet", () => {
     expect(screen.getByText("Oyuncular")).toBeInTheDocument();
     expect(localStorage.getItem("menuDar")).toBe("0");
   });
+
+  it("arama düğmesi menünün üstünde; dar modda yalnız ikon; tıklayınca onAra", () => {
+    const onAra = vi.fn();
+    render(<KenarMenu sekmeler={TABS} tab="pano" onSec={vi.fn()} oturum={oturum} onCikis={vi.fn()} onAra={onAra} />);
+    const ara = screen.getByRole("button", { name: "Oyuncu ara (Ctrl+K)" });
+    expect(ara).toHaveTextContent("Oyuncu ara…");
+    expect(ara.compareDocumentPosition(screen.getByRole("button", { name: "Pano" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // Pano'nun üstünde
+    fireEvent.click(ara); expect(onAra).toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Menüyü daralt" }));
+    expect(screen.getByRole("button", { name: "Oyuncu ara (Ctrl+K)" })).not.toHaveTextContent("Oyuncu ara…");
+  });
 });
