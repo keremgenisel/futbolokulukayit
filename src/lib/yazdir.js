@@ -4,8 +4,8 @@ import { db, cikti, files, uygulama } from "./api.js";
 import { makbuzHtml } from "./makbuzHtml.js";
 
 export async function makbuzHtmlUret(receiptId) {
-  const [m, kalemler, logo, altYazi, kulup] = await Promise.all([db("getReceipt", receiptId), db("listFeeItems"), uygulama().logo(), db("getSetting", "makbuz_alt_yazi"), db("getSetting", "kulup_adi")]);
-  return makbuzHtml({ makbuz: m, kalemler, logo, altYazi: altYazi || "", kulupAdi: kulup || "EYÜPSPOR FUTBOL OKULU" });
+  const [m, kalemler, logo, kulup] = await Promise.all([db("getReceipt", receiptId), db("listFeeItems"), uygulama().logo(), db("getSetting", "kulup_adi")]);
+  return makbuzHtml({ makbuz: m, kalemler, logo, kulupAdi: kulup || "EYÜPSPOR FUTBOL OKULU" });
 }
 
 const HATA_TR = (h) => {

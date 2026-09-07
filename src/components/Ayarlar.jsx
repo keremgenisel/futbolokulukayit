@@ -31,7 +31,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti }) {
 }
 
 function KulupAyar({ saltOkunur }) {
-  const [a, setA] = useState({ kulup_adi: "", makbuz_alt_yazi: "", tahsil_eden: "" });
+  const [a, setA] = useState({ kulup_adi: "", tahsil_eden: "" });
   const toast = useToast();
   useEffect(() => { (async () => { const o = {}; for (const k of Object.keys(a)) o[k] = (await db("getSetting", k)) || ""; setA(o); })().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const kaydet = async () => { try { for (const [k, v] of Object.entries(a)) await db("setSetting", k, v); toast("ok", "Kaydedildi"); } catch (e) { toast("err", hataMetni(e)); } };
@@ -39,7 +39,6 @@ function KulupAyar({ saltOkunur }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 560 }}>
       <h3 style={{ fontSize: 22 }}>Kulüp ve Makbuz</h3>
       <Alan etiket="Makbuzda görünen kulüp adı"><Girdi value={a.kulup_adi} onChange={(e) => setA({ ...a, kulup_adi: e.target.value })} placeholder="EYÜPSPOR FUTBOL OKULU" /></Alan>
-      <Alan etiket="Makbuz alt yazısı"><Girdi value={a.makbuz_alt_yazi} onChange={(e) => setA({ ...a, makbuz_alt_yazi: e.target.value })} placeholder="#BirSemtinRüyası #SemtiMukaddes #HayaleAşıkOl" /></Alan>
       <Alan etiket="Varsayılan tahsil eden (kullanıcı adı boşsa)"><Girdi value={a.tahsil_eden} onChange={(e) => setA({ ...a, tahsil_eden: e.target.value })} /></Alan>
       {!saltOkunur && <div><Btn onClick={kaydet}>Kaydet</Btn></div>}
     </div>

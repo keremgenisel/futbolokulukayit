@@ -26,6 +26,11 @@ describe("makbuzHtml", () => {
     const h = makbuzHtml({ makbuz, kalemler: [...kalemler, { id: 4, kod: "eldiven_bere", ad: "Eldiven & Bere" }], logo: "" });
     expect(h).toContain("ELDİVEN &amp; BERE");
   });
+  it("makbuzda alt yazı (hashtag satırı) yok; eski ayar geçilse bile basılmaz", () => {
+    const h = makbuzHtml({ makbuz, kalemler, logo: "", altYazi: "#BirSemtinRüyası" });
+    expect(h).not.toContain("BirSemtinRüyası");
+    expect(h).not.toContain('class="hash"');
+  });
   it("HTML enjeksiyonunu kaçırır", () => {
     const h = makbuzHtml({ makbuz: { ...makbuz, ad_soyad: "<script>x</script>" }, kalemler, logo: "" });
     expect(h).not.toContain("<script>x");

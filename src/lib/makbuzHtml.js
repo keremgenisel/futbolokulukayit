@@ -7,9 +7,9 @@ import { paraTR, tarihTR, AY_ADLARI, ODEME_YONTEMLERI } from "./aidat.js";
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] || c);
 
 /**
- * @param {{ makbuz: any, kalemler: any[], logo: string, kulupAdi?: string, altYazi?: string }} p
+ * @param {{ makbuz: any, kalemler: any[], logo: string, kulupAdi?: string }} p
  */
-export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBOL OKULU", altYazi = "" }) {
+export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBOL OKULU" }) {
   /** @type {any[]} */
   const satirlar_ = makbuz.satirlar || [];
   const satirMap = new Map(satirlar_.map((l) => [l.fee_item_id, l]));
@@ -41,7 +41,6 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBO
         <div class="cizgiimza"><div class="line"></div><div class="l1">TAHSİL EDEN</div><div class="l2">${esc(makbuz.tahsil_eden || "")}</div></div>
       </div>
     </div>
-    ${altYazi ? `<div class="hash">${esc(altYazi)}</div>` : ""}
   </div>`;
 
   return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Makbuz ${esc(makbuz.makbuz_no)}</title>
@@ -77,7 +76,6 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBO
   .line { width: 44mm; height: 12mm; border-bottom: 1px solid #1B1530; }
   .l1 { font-size: 9pt; font-weight: 700; letter-spacing: .04em; }
   .l2 { font-size: 10pt; }
-  .hash { text-align: center; font-size: 8.5pt; color: #5B2D8E; font-weight: 600; }
   .kes { display: flex; align-items: center; gap: 3mm; color: #6B6480; font-size: 8pt; }
   .kes div { flex: 1; border-top: 1px dashed #CFC7DC; }
 </style></head><body><div class="sayfa">${blok()}<div class="kes"><div></div><span>kesme çizgisi</span><div></div></div>${blok()}</div></body></html>`;
