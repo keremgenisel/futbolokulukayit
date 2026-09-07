@@ -86,6 +86,7 @@ app.on("browser-window-created", async (_e, win) => {
       db.cancelTraining(tr4.id, "İptal");
       const tr5 = db.createTraining({ age_group_id: o.yas_grubu_id, tarih: "2026-09-11", saat: "17:00", saha: "Saha 1" });
       db.cancelTraining(tr5.id, "İptal"); db.grupBildirimKaydet(tr5.id, "Y"); db.grupBildirimSil(tr5.id);
+
       // Son eklenen özellikler (07.09.2026): aidat taban fiyatı + indirim, yedek sıklığı, yabancı oyuncu,
       // ikinci kullanıcı + kurtarma kodları, belge kaydı (dosya + tekil vesikalık), kenar menü tercihi
       db.updateFeeItem(aidat.id, { varsayilan_fiyat: 4321 });
@@ -111,7 +112,11 @@ app.on("browser-window-created", async (_e, win) => {
       aktarUygula([{ ad_soyad: "Aktarılan Kalıcı", dogum_tarihi: "2016-04-04", uyruk: "tc", tc_no: null, pasaport_no: null, durum: "aktif", ucret_tipi: "normal", odeme_donemi: "1-10", aylik_aidat: 0, yeni_grup: "U15", veli: { ad_soyad: "Aktarılan Veli", gsm: "05320000009" } }]);
       db.setSetting("kurulum_tamam", "1"); db.setSetting("aktif_sezon", "2026-2027");
       await js(`document.querySelector("button[aria-label='Menüyü daralt']").click()`); await bekle(300);
-      fs.writeFileSync(path.join(dizin, "beklenen.json"), JSON.stringify({ oyuncu: o.ad_soyad, makbuz: m.makbuz_no, yabanci: yab.id, kod: kk.kodlar[0], kodSayisi: kk.kodlar.length, kismi: kismi.id, iptalli: iptalli.id, yil: y2, ay: a2, doldurulan: hd.eklenen, yabanciDueTutar: yabanciDue?.tutar ?? null }));
+      // Taşıma paketi (plan §14): tüm kayıtlardan sonra oluşturulur; yeniden açılışta parolayla açılıp sayıları beklenenle karşılaştırılır
+      const tp = require("../../electron/ipc/yedek.cjs").tasimaPaketiOlustur(path.join(dizin, "kalici-tasima.eyupspor"), "kalici-parola-1");
+      check("taşıma paketi oluşturuldu", tp.ok && fs.existsSync(path.join(dizin, "kalici-tasima.eyupspor")));
+      const tpOyuncu = db.listPlayers({ durum: null }).length, tpMakbuz = db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts").get().n;
+      fs.writeFileSync(path.join(dizin, "beklenen.json"), JSON.stringify({ tpOyuncu, tpMakbuz, oyuncu: o.ad_soyad, makbuz: m.makbuz_no, yabanci: yab.id, kod: kk.kodlar[0], kodSayisi: kk.kodlar.length, kismi: kismi.id, iptalli: iptalli.id, yil: y2, ay: a2, doldurulan: hd.eklenen, yabanciDueTutar: yabanciDue?.tutar ?? null }));
       console.log("YAZ TAMAM");
       if (process.env.KABA_KAPANIS) { process.kill(process.pid, "SIGKILL"); } // elektrik kesintisi / görev yöneticisi
       win.close(); // gerçek kapanış yolu: window-all-closed → server.durdur → db.close → app.quit
@@ -163,6 +168,9 @@ app.on("browser-window-created", async (_e, win) => {
       const t4 = db.trainingCalendar("2026-09-10", "2026-09-10")[0], t5 = db.trainingCalendar("2026-09-11", "2026-09-11")[0];
       check("olay ayrımı kalıcı: değişiklik sonrası iptal yeni olay (bildirilen 0, grup boş, gerekli 1); eski değişiklik kaydı geçmişte", t4 && t4.iptal === 1 && t4.bildirilen === 0 && t4.grup_bildirim === "" && t4.bildirim_gerekli === 1 && !!t4.bildirim_olay && db.sonMesajlar(o.id).some((m) => m.training_id === t4.id && m.tur === "degisiklik"));
       check("grup bildirimi geri alma kalıcı (kayıt boş, bildirim gerekli)", t5 && t5.grup_bildirim === "" && t5.bildirim_gerekli === 1);
+      const tpa = require("../../electron/ipc/yedek.cjs").tasimaPaketiAc(path.join(dizin, "kalici-tasima.eyupspor"), "kalici-parola-1");
+      check("yeniden açılışta taşıma paketi parolayla açılıyor; oyuncu/makbuz sayısı paket anındaki veriyle aynı", tpa.ok && tpa.oyuncu === b.tpOyuncu && tpa.makbuz === b.tpMakbuz && tpa.oyuncu === db.listPlayers({ durum: null }).length);
+      if (tpa.ok) fs.rmSync(tpa.klasor, { recursive: true, force: true });
       check("haftalık program ve doldurulan antrenmanlar kalıcı", JSON.parse(db.listAgeGroups().find((g) => g.id === o.yas_grubu_id).program)[0]?.saat === "18:00" && b.doldurulan === 1 && db.listTrainings("2027-04-05", "2027-04-11").some((tr) => tr.saat === "18:00" && tr.saha === "Saha 3"));
       const akt = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan Kalıcı");
       check("Excel'den aktarılan oyuncu, yeni grubu ve velisi kalıcı", !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009");
