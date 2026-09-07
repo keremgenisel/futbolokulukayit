@@ -49,7 +49,13 @@ app.on("browser-window-created", async (_e, win) => {
       await tikla("Aidat Kalemleri"); await bekle(500);
       await setInput("input[aria-label='Forma fiyatı']", "9000"); await setInput("input[aria-label='Mont fiyatı']", "8000");
       await setInput("input[aria-label='İndirimli indirimi']", "25");
-      await tikla("Kaydet"); await bekle(600);
+      // Arayüzden yeni kalem + yeni ücret tipi + tip adı düzenleme + Yağmurluk silme (07.09.2026 akşam akışı), tek Kaydet
+      await setInput("input[aria-label='Yeni kalem adı']", "Turnuva Katılımı"); await setInput("input[aria-label='Yeni kalem fiyatı']", "750"); await tikla("Kalem Ekle");
+      await setInput("input[aria-label='Yeni ücret tipi adı']", "Üç Kardeş"); await setInput("input[aria-label='Yeni ücret tipi indirimi']", "40"); await tikla("Ücret Tipi Ekle");
+      await setInput("input[aria-label='Burslu adı']", "Tam Burslu");
+      await js(`[...document.querySelectorAll("button")].find((x) => x.getAttribute("aria-label") === "Yağmurluk sil")?.click()`); await bekle(200);
+      await tikla("Kaydet"); await bekle(800);
+      check("arayüzden kalem/tip ekleme-silme kaydedildi", db.listFeeItems().some((k) => k.kod === "turnuva_katilimi") && !db.listFeeItems().some((k) => k.kod === "yagmurluk") && db.listFeeTypes().some((t) => t.kod === "uc_kardes" && t.indirim === 40) && db.listFeeTypes().find((t) => t.kod === "burslu").ad === "Tam Burslu");
       // DB'den doğrudan makbuz + yoklama (arayüz yoluyla zaten duman testinde doğrulanıyor)
       const o = db.listPlayers()[0];
       const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1);
@@ -104,6 +110,9 @@ app.on("browser-window-created", async (_e, win) => {
       // 07.09.2026 özellikleri
       const aa = db.aidatAyarlari();
       check("aidat taban fiyatı ve indirim yüzdesi kalıcı", aa.taban === 4321 && aa.indirimler.kardes === 15);
+      const uk = db.listFeeTypes().find((t) => t.kod === "uc_kardes"), tk = db.listFeeItems().find((k) => k.kod === "turnuva_katilimi");
+      check("arayüzden eklenen kalem/tip, düzenlenen tip adı ve silinen kalem kalıcı", tk?.varsayilan_fiyat === 750 && uk?.indirim === 40 && uk.ad === "Üç Kardeş" && db.listFeeTypes().find((t) => t.kod === "burslu").ad === "Tam Burslu" && !db.listFeeItems().some((k) => k.kod === "yagmurluk") && db.listFeeTypes().length === 7);
+      check("eski indirim ayarı yeniden açılışta tabloyu ezmedi (göç bir kez)", db.getSetting("indirim_kardes") === null || db.aidatAyarlari().indirimler.kardes === 15);
       check("eklenen kalem ve ücret tipi kalıcı", db.listFeeItems().some((k) => k.kod === "kamp_ucreti" && k.varsayilan_fiyat === 2500) && aa.ucretTipleri.some((t) => t.kod === "sampiyon_bursu" && t.indirim === 50));
       const kal = db.listFeeItems();
       check("arayüzden tek Kaydet ile girilen iki fiyat ve indirim kalıcı", kal.find((k) => k.kod === "forma").varsayilan_fiyat === 9000 && kal.find((k) => k.kod === "mont").varsayilan_fiyat === 8000 && aa.indirimler.indirimli === 25);

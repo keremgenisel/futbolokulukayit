@@ -343,6 +343,10 @@ app.whenReady().then(async () => {
     check("göç 7→8: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 8", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "8");
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } }); db.close(); db.init();
     check("şema 8'de yeniden açılış eski ayarı tekrar yazmaz (40 kaldı)", db.listFeeTypes().find((t) => t.kod === "burslu").indirim === 40);
+    // Silinen varsayılan kalem/tip yeniden açılışta geri gelmemeli (tohum tek seferlik)
+    db.aidatAyarlariKaydet({ kalemler: [{ id: db.listFeeItems().find((k) => k.kod === "top").id, sil: true }], ucretTipleri: [{ kod: "indirimli", sil: true }] });
+    db.close(); db.init();
+    check("silinen varsayılan kalem ve ücret tipi yeniden açılışta geri gelmez", !db.listFeeItems().some((k) => k.kod === "top") && !db.listFeeTypes().some((t) => t.kod === "indirimli") && db.listFeeItems().some((k) => k.kod === "aidat"));
 
     db.close();
     // Anahtar varsa dosya şifreli olmalı: anahtarsız açılış sqlite_master okuyamamalı

@@ -279,8 +279,12 @@ function migrate() {
   if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
   // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
-  const insTip = db.prepare("INSERT OR IGNORE INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,?)");
-  FEE_TYPES.forEach(([kod, ad, ind, sabit], i) => insTip.run(kod, ad, ind, i, sabit));
+  // Varsayılan tipler YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
+  if (!getMetaValue("tohum_fee_types")) {
+    const insTip = db.prepare("INSERT OR IGNORE INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,?)");
+    FEE_TYPES.forEach(([kod, ad, ind, sabit], i) => insTip.run(kod, ad, ind, i, sabit));
+    setMetaValue("tohum_fee_types", "1");
+  }
   if (cur < 8) {
     for (const r of db.prepare("SELECT key, value FROM settings WHERE key LIKE 'indirim_%'").all()) {
       const y = Math.min(100, Math.max(0, Math.round(Number(r.value) || 0)));
@@ -291,8 +295,12 @@ function migrate() {
 }
 
 function seed() {
-  const ins = db.prepare("INSERT OR IGNORE INTO fee_items (kod, ad, sira) VALUES (?, ?, ?)");
-  FEE_ITEMS.forEach(([kod, ad], i) => ins.run(kod, ad, i));
+  // Varsayılan kalemler yalnız bir kez (meta bayrağı): kullanıcının sildiği kalem yeniden açılışta geri gelmemeli.
+  if (!getMetaValue("tohum_fee_items")) {
+    const ins = db.prepare("INSERT OR IGNORE INTO fee_items (kod, ad, sira) VALUES (?, ?, ?)");
+    FEE_ITEMS.forEach(([kod, ad], i) => ins.run(kod, ad, i));
+    setMetaValue("tohum_fee_items", "1");
+  }
   // İlk kurulum: hiç kullanıcı yoksa admin/admin, ilk girişte parola değişimi zorunlu.
   // (Yalnız "admin yoksa" değil: yeni yönetici ilk admin'i sildiğinde açılışta geri gelmemeli.)
   if (db.prepare("SELECT count(*) AS n FROM users").get().n === 0) {
