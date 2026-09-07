@@ -75,6 +75,10 @@ app.whenReady().then(async () => {
     await bekle(600);
     await shot("04-pano-arama");
     await tikla("Oyuncular"); await bekle(500); await shot("05-oyuncular");
+    // Boş formda Kaydet: zorunlu alan uyarısı formun üstünde görünmeli
+    await tikla("Yeni Oyuncu"); await bekle(400); await tikla("Oyuncuyu Kaydet"); await bekle(300); await shot("05b-yeni-oyuncu-uyari");
+    if (!(await js(`!!document.querySelector("[role=dialog] [role=alert]")`))) throw new Error("Zorunlu alan uyarısı görünmedi");
+    await js(`document.querySelector("[role=dialog] button[aria-label=Kapat]")?.click()`); await bekle(300);
     await js(`[...document.querySelectorAll("tbody tr")].find((tr) => tr.textContent.includes("Kaan Yıldız")).click()`); await bekle(600); await shot("06-oyuncu-karti");
     await tikla("Belgeler"); await bekle(300); await shot("07-belgeler");
     await tikla("Ödemeler"); await bekle(300); await shot("08-odemeler");
