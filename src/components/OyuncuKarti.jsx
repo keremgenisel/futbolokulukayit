@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
 import { db, files, hataMetni, bugun } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
+import { DURUMLAR, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
+import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -19,6 +20,7 @@ function Bilgi({ etiket, deger, genis }) {
 }
 
 export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, onMakbuzKes }) {
+  const { ad: ucretAd } = useUcretTipleri();
   const [o, setO] = useState(null);
   const [sekme, setSekme] = useState("bilgi");
   const [duzenle, setDuzenle] = useState(false);
@@ -111,7 +113,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           <div style={{ height: 1, background: "var(--cizgi)" }} />
           <h3 style={{ fontSize: 20 }}>Kayıt ve Ücret</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 18 }}>
-            <Bilgi etiket="Yaş Grubu" deger={o.yas_grubu_ad} /><Bilgi etiket="Ücret Tipi" deger={UCRET_TIPLERI.find((u) => u.kod === o.ucret_tipi)?.ad} /><Bilgi etiket="Aylık Aidat" deger={paraTR(o.aylik_aidat)} /><Bilgi etiket="Ödeme Dönemi" deger={`Her ayın ${o.odeme_donemi} arası`} />
+            <Bilgi etiket="Yaş Grubu" deger={o.yas_grubu_ad} /><Bilgi etiket="Ücret Tipi" deger={ucretAd(o.ucret_tipi)} /><Bilgi etiket="Aylık Aidat" deger={paraTR(o.aylik_aidat)} /><Bilgi etiket="Ödeme Dönemi" deger={`Her ayın ${o.odeme_donemi} arası`} />
             <Bilgi etiket="Veli" deger={veliAd} /><Bilgi etiket="Veli WhatsApp" deger={veliler.find((v) => v.veli_mi)?.whatsapp_no} /><Bilgi etiket="Kayıt Tarihi" deger={tarihTR(o.kayit_tarihi)} /><Bilgi etiket="Notlar" deger={o.notlar} />
           </div>
         </div>

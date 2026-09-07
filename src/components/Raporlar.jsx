@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Sayfalama, useToast, aidatEtiket } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, ayAraligi, hataMetni } from "../lib/api.js";
-import { AY_ADLARI, ODEME_YONTEMLERI, UCRET_TIPLERI, DURUMLAR, tarihTR, paraTR } from "../lib/aidat.js";
+import { AY_ADLARI, ODEME_YONTEMLERI, DURUMLAR, tarihTR, paraTR } from "../lib/aidat.js";
+import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
 import { Ikon } from "./Ikon.jsx";
 
@@ -14,6 +15,7 @@ const RAPORLAR = [
 
 export function Raporlar() {
   const { yil, ay } = bugun();
+  const { ad: ucretAd } = useUcretTipleri();
   const [rapor, setRapor] = useState("oyuncu");
   const [ayS, setAyS] = useState(ay); const [yilS, setYilS] = useState(yil);
   const [from, setFrom] = useState(ayAraligi(yil, ay).from); const [to, setTo] = useState(ayAraligi(yil, ay).to);
@@ -31,7 +33,7 @@ export function Raporlar() {
         const l = await db("listPlayersWithDue", { yil: yilS, ay: ayS, yas_grubu_id: grup ? Number(grup) : null });
         return { baslik: "Oyuncu Listesi", alt: `${AY_ADLARI[ayS - 1]} ${yilS}${grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : ""}`, yatay: true,
           sutunlar: [{ baslik: "Ad Soyad", anahtar: "ad", genislik: 28 }, { baslik: "TC / Pasaport", anahtar: "tc", genislik: 16 }, { baslik: "Doğum", anahtar: "dogum", genislik: 12 }, { baslik: "Grup", anahtar: "grup", genislik: 8 }, { baslik: "Durum", anahtar: "durum", genislik: 10 }, { baslik: "Ücret tipi", anahtar: "ucret", genislik: 16 }, { baslik: "Aidat", anahtar: "aidat", genislik: 10, sag: true }, { baslik: "Aidat durumu", anahtar: "ad_durum", genislik: 14 }, { baslik: "GSM", anahtar: "gsm", genislik: 16 }],
-          satirlar: l.map((o) => ({ ad: o.ad_soyad, tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "", dogum: tarihTR(o.dogum_tarihi), grup: o.yas_grubu_ad || "", durum: DURUMLAR.find((d) => d.kod === o.durum)?.ad, ucret: UCRET_TIPLERI.find((u) => u.kod === o.ucret_tipi)?.ad, aidat: o.aylik_aidat, ad_durum: aidatEtiket(o.aidat_durum), gsm: o.gsm || "" })) };
+          satirlar: l.map((o) => ({ ad: o.ad_soyad, tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "", dogum: tarihTR(o.dogum_tarihi), grup: o.yas_grubu_ad || "", durum: DURUMLAR.find((d) => d.kod === o.durum)?.ad, ucret: ucretAd(o.ucret_tipi), aidat: o.aylik_aidat, ad_durum: aidatEtiket(o.aidat_durum), gsm: o.gsm || "" })) };
       }
       if (rapor === "borclu") {
         const l = await db("listUnpaid", yilS, ayS);

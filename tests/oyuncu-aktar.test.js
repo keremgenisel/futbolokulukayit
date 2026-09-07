@@ -52,4 +52,10 @@ describe("Excel oyuncu aktarımı — satır çözümleme", () => {
     expect(r.uyarilar.map((u) => u.satir).sort()).toEqual([5, 6, 9, 9, 9]);
     expect(r.kayitlar[3]).toMatchObject({ durum: "aktif", ucret_tipi: "normal", odeme_donemi: "1-10" });
   });
+  it("Ayarlar'dan eklenen ücret tipi adı ya da koduyla tanınır; tanınmayan Normal olur ve uyarı verir", () => {
+    const tipler = [{ kod: "sampiyon_bursu", ad: "Şampiyon Bursu" }, { kod: "kardes", ad: "Kardeş İndirimi" }];
+    const r = satirlariCoz([["Ad Soyad", "Doğum Tarihi", "Ücret Tipi"], ["A", "01.01.2015", "Şampiyon Bursu"], ["B", "01.01.2015", "sampiyon_bursu"], ["C", "01.01.2015", "Bilinmeyen"]], { gruplar: [], ucretTipleri: tipler });
+    expect(r.kayitlar.map((k) => k.ucret_tipi)).toEqual(["sampiyon_bursu", "sampiyon_bursu", "normal"]);
+    expect(r.uyarilar.some((u) => /"bilinmeyen" tanınmadı/.test(u.mesaj))).toBe(true);
+  });
 });

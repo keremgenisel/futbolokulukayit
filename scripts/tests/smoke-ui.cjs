@@ -93,6 +93,10 @@ app.whenReady().then(async () => {
     await js(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Şimdi değil")?.click()`); await bekle(400);
     await tikla("Ayarlar"); await bekle(400); await tikla("Aidat Kalemleri"); await bekle(500);
     await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; for (const [sel, v] of [["input[aria-label='Forma fiyatı']", "9000"], ["input[aria-label='Mont fiyatı']", "8000"]]) { const i = document.querySelector(sel); set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); } })()`); await bekle(300); await shot("13b-aidat-kalemleri");
+    // Kalem / ücret tipi ekleme satırları ve ücret tipi tablosu (07.09.2026)
+    await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const i = document.querySelector("input[aria-label='Yeni ücret tipi adı']"); set.call(i, "Şampiyon Bursu"); i.dispatchEvent(new Event("input", { bubbles: true })); const j = document.querySelector("input[aria-label='Yeni ücret tipi indirimi']"); set.call(j, "50"); j.dispatchEvent(new Event("input", { bubbles: true })); })()`);
+    await tikla("Ücret Tipi Ekle"); await bekle(200);
+    await js(`[...document.querySelectorAll("h3")].find((h) => /Ücret Tipleri/.test(h.textContent))?.scrollIntoView({ block: "start" })`); await bekle(300); await shot("13c-ucret-tipleri");
     await tikla("Vazgeç"); await bekle(200); // kaydedilmemiş değişiklik uyarısı sonraki bölüm geçişini engellemesin
     await tikla("Kullanıcılar"); await bekle(500); await shot("13c-kullanicilar");
     await tikla("Lisans"); await bekle(400); await shot("14-lisans");

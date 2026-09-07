@@ -128,13 +128,14 @@ users              kullanıcı adı, parola hash, ad
 age_groups         ad (U11), sezon, sıra, aktif mi
 players            tc_no, uyruk (tc|yabanci), pasaport_no, ad_soyad, dogum_tarihi, dogum_yeri, okul, gsm, adres,
                    kan_grubu, foto, yas_grubu_id, durum, kayit_tarihi,
-                   ucret_tipi (normal/burslu/indirimli/kardes/ucretsiz),
+                   ucret_tipi (fee_types.kod; tohum normal/burslu/indirimli/kardes/ucretsiz),
                    aylik_aidat_tutari, odeme_donemi (1-10 / 11-20 / 21-31)
 guardians          player_id, tip (anne/baba/veli), ad_soyad, gsm, whatsapp_no, veli_mi
 emergency_contacts player_id, ad_soyad, yakinlik, telefon
 documents          player_id, tip (saglik/foto/sporcu_kimlik/veli_kimlik/kayit_formu/makbuz),
                    dosya_yolu, yuklenme_tarihi, gecerlilik_tarihi
-fee_items          ad (Aidat, Forma, …), varsayilan_fiyat, aktif
+fee_items          kod, ad (Aidat, Forma, …), varsayilan_fiyat, aktif — Ayarlar'dan eklenir/silinir (makbuzda geçen silinemez)
+fee_types          kod, ad, indirim %, sira, aktif, sabit — ücret tipleri; Ayarlar'dan eklenir/silinir (oyuncusu olan silinemez)
 monthly_dues       player_id, yil, ay, tutar, durum (odendi/odenmedi/muaf)
 receipts           player_id, tarih, toplam, odeme_yontemi, tahsil_eden, pdf_yolu, makbuz_no
 receipt_lines      receipt_id, fee_item_id, tutar, aciklama (aidat ise hangi ay)

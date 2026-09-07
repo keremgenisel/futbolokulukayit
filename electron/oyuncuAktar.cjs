@@ -60,7 +60,10 @@ const gsmCoz = (v) => { let r = rakamlar(v); if (r.startsWith("90") && r.length 
  * @param {{ gruplar: {id:number, ad:string}[], mevcutTc?: Set<string>, mevcutPasaport?: Set<string> }} ctx
  * @returns {{ kayitlar: object[], hatalar: {satir:number, mesaj:string}[], uyarilar: {satir:number, mesaj:string}[], yeniGruplar: string[], eslesme: object }}
  */
-function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasaport = new Set() } = {}) {
+function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasaport = new Set(), ucretTipleri = [] } = {}) {
+  // Ücret tipi: varsayılan sözlük + veritabanındaki tipler (ad ve kod ile; Ayarlar'dan eklenenler de tanınır)
+  const ucretSozluk = { ...UCRET };
+  for (const t of ucretTipleri) { ucretSozluk[norm(t.kod)] = t.kod; ucretSozluk[norm(t.ad)] = t.kod; }
   const hatalar = [], uyarilar = [], kayitlar = [], yeniGruplar = new Set();
   if (!satirlar.length) return { kayitlar, hatalar: [{ satir: 0, mesaj: "Dosya boş" }], uyarilar, yeniGruplar: [], eslesme: {} };
   const es = basliklariEsle(satirlar[0]);
@@ -97,7 +100,7 @@ function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasa
       else { k.yeni_grup = grupHam.toLocaleUpperCase("tr-TR").replace(/\s+/g, ""); yeniGruplar.add(k.yeni_grup); }
     }
     const durumHam = norm(al(row, "durum")); if (durumHam) { if (DURUM[durumHam]) k.durum = DURUM[durumHam]; else uyarilar.push({ satir: no, mesaj: `${ad}: durum "${durumHam}" tanınmadı, Aktif yazıldı` }); }
-    const ucretHam = norm(al(row, "ucret_tipi")); if (ucretHam) { if (UCRET[ucretHam]) k.ucret_tipi = UCRET[ucretHam]; else uyarilar.push({ satir: no, mesaj: `${ad}: ücret tipi "${ucretHam}" tanınmadı, Normal yazıldı` }); }
+    const ucretHam = norm(al(row, "ucret_tipi")); if (ucretHam) { if (ucretSozluk[ucretHam]) k.ucret_tipi = ucretSozluk[ucretHam]; else uyarilar.push({ satir: no, mesaj: `${ad}: ücret tipi "${ucretHam}" tanınmadı, Normal yazıldı` }); }
     const aidatHam = al(row, "aylik_aidat"); if (aidatHam !== undefined && aidatHam !== null && String(aidatHam).trim() !== "") { const n = Number(rakamlar(aidatHam)); k.aylik_aidat = Number.isFinite(n) ? n : 0; }
     const donemHam = String(al(row, "odeme_donemi") ?? "").trim().replace(/\s/g, ""); if (donemHam) { if (DONEM.has(donemHam)) k.odeme_donemi = donemHam; else uyarilar.push({ satir: no, mesaj: `${ad}: ödeme dönemi "${donemHam}" tanınmadı (1-10, 11-20, 21-31), 1-10 yazıldı` }); }
     const kayit = tarihCoz(al(row, "kayit_tarihi")); if (kayit) k.kayit_tarihi = kayit;

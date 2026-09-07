@@ -1,7 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket, Sayfalama, Telefon } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
+import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
+import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { OyuncuAktar } from "./OyuncuAktar.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
@@ -38,7 +39,8 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   useEffect(() => { const t = setTimeout(yukle, 150); return () => clearTimeout(t); }, [yukle]);
   useEffect(() => { if (acilacakOyuncu === "yeni") { setYeni(true); onAcildi?.(); } else if (acilacakOyuncu === "aktar") { setAktarAcik(true); onAcildi?.(); } else if (acilacakOyuncu) { setAcik(acilacakOyuncu); onAcildi?.(); } }, [acilacakOyuncu, onAcildi]);
 
-  const ucretAd = (k) => UCRET_TIPLERI.find((u) => u.kod === k)?.ad || k;
+  const { tipler: ucretTipleri, ad: ucretAd } = useUcretTipleri();
+  const ucretTonu = (k) => (k === "normal" ? "gray" : (ucretTipleri.find((u) => u.kod === k)?.indirim ?? (k === "ucretsiz" || k === "burslu" ? 100 : 0)) >= 100 ? "purple" : "yellow");
   const durumAd = (k) => DURUMLAR.find((d) => d.kod === k)?.ad || k;
 
   // Dışa aktarım her zaman TAM listeyi alır (ekrandaki sayfa değil).
@@ -87,7 +89,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
                   <td>{o.yas_grubu_ad ? <Rozet ton="purple">{o.yas_grubu_ad}</Rozet> : <span style={{ color: "var(--soluk)" }}>—</span>}</td>
                   <td style={{ fontSize: 13 }}>{o.veli_ad ? <div>{o.veli_ad}</div> : null}<Telefon no={o.veli_tel} etiket={o.veli_ad} /></td>
                   <td><Rozet ton={durumTonu(o.durum)}>{durumAd(o.durum)}</Rozet></td>
-                  <td><Rozet ton={o.ucret_tipi === "normal" ? "gray" : o.ucret_tipi === "ucretsiz" || o.ucret_tipi === "burslu" ? "purple" : "yellow"}>{ucretAd(o.ucret_tipi)}</Rozet></td>
+                  <td><Rozet ton={ucretTonu(o.ucret_tipi)}>{ucretAd(o.ucret_tipi)}</Rozet></td>
                   <td><Rozet ton={aidatTonu(o.aidat_durum)}>{aidatEtiket(o.aidat_durum)}</Rozet></td>
                   <td style={{ color: "var(--soluk)" }}><Ikon ad="sag" /></td>
                 </tr>

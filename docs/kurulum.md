@@ -68,6 +68,9 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
   o haftanın antrenmanlarını tek tıkla açar (var olanlar atlanır).
 - **Sağlık raporu:** panoda süresi dolan/dolacak raporlar listelenir; oyuncu kartında belge rozeti gösterir.
 - **Makbuz iptali** neden ister; iptal eden ve zaman kayda geçer, tahsilat raporunda ayrı görünür.
+- **Kalem ve ücret tipi ekleme:** Ayarlar > Aidat Kalemleri'nde alt satıra ad (ve fiyat / indirim) yazıp "Kalem Ekle" ya da
+  "Ücret Tipi Ekle" deyin; adlar düzenlenebilir, "Sil" ile işaretlenir, hepsi tek Kaydet ile yazılır. Makbuzda kullanılmış
+  kalem ve oyuncusu olan ücret tipi silinmez, pasife alınır. Normal ve Ücretsiz sabittir.
 
 ## 3b. Sezon sonu
 

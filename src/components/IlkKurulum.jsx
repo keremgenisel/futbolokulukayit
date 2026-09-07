@@ -16,6 +16,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
   const [adim, setAdim] = useState(0);
   const [kulup, setKulup] = useState({ kulup_adi: "", tahsil_eden: oturum?.ad_soyad || "" });
   const [taban, setTaban] = useState("");
+  const [tipler, setTipler] = useState(UCRET_TIPLERI);
   const [ind, setInd] = useState(Object.fromEntries(UCRET_TIPLERI.map((t) => [t.kod, String(VARSAYILAN_INDIRIM[t.kod] ?? 0)])));
   const [gruplar, setGruplar] = useState(new Set(["U9", "U10", "U11", "U12", "U13"]));
   const [ekGrup, setEkGrup] = useState("");
@@ -27,6 +28,8 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
   const toast = useToast();
 
   useEffect(() => { yedek().durum().then(setYedekDurum).catch(() => {}); }, []);
+  // Ücret tipleri veritabanından (varsayılanlar tohumlu; daha önce eklenmiş tip varsa o da görünsün)
+  useEffect(() => { db("listFeeTypes").then((l) => { if (Array.isArray(l) && l.length) { setTipler(l); setInd(Object.fromEntries(l.map((t) => [t.kod, String(t.indirim ?? 0)]))); } }).catch(() => {}); }, []);
   // Zaten grup varsa (Excel'den geldi vb.) hazır listeyi dolu göstermeyelim
   useEffect(() => { db("listAgeGroups").then((g) => { if (g.length) setGruplar(new Set()); }).catch(() => {}); }, []);
 
@@ -34,7 +37,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
   const kaydetAidat = async () => {
     const aidat = (await db("listFeeItems")).find((k) => k.kod === "aidat");
     const kalemler = aidat && Number(taban) > 0 ? [{ id: aidat.id, varsayilan_fiyat: Number(taban) }] : [];
-    const indirimler = Object.fromEntries(UCRET_TIPLERI.filter((t) => !SABIT_INDIRIM.has(t.kod)).map((t) => [t.kod, Math.min(100, Math.max(0, Number(ind[t.kod]) || 0))]));
+    const indirimler = Object.fromEntries(tipler.filter((t) => !SABIT_INDIRIM.has(t.kod) && !t.sabit).map((t) => [t.kod, Math.min(100, Math.max(0, Number(ind[t.kod]) || 0))]));
     await db("aidatAyarlariKaydet", { kalemler, indirimler });
   };
   const kaydetGruplar = async () => {
@@ -94,7 +97,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
             <Alan etiket="Aylık aidat taban fiyatı (₺)" style={{ width: 220 }}><ParaGirdi value={taban} onDegis={setTaban} aria-label="Aidat taban fiyatı" autoFocus /></Alan>
             <div style={{ fontSize: 13, color: "var(--soluk)" }}>Ücret tipine göre indirim yüzdesi. Yeni oyuncu kaydında aidat otomatik hesaplanır, elle değiştirilebilir.</div>
             <table><thead><tr><th>Ücret tipi</th><th>İndirim (%)</th><th>Aylık aidat</th></tr></thead><tbody>
-              {UCRET_TIPLERI.map((t) => { const sabit = SABIT_INDIRIM.has(t.kod); const h = aidatHesapla(Number(taban) || 0, t.kod, { [t.kod]: ind[t.kod] }); return (
+              {tipler.map((t) => { const sabit = SABIT_INDIRIM.has(t.kod) || !!t.sabit; const h = aidatHesapla(Number(taban) || 0, t.kod, { [t.kod]: ind[t.kod] }); return (
                 <tr key={t.kod}><td><b>{t.ad}</b></td><td>{sabit ? <span style={{ color: "var(--soluk)" }}>%{ind[t.kod]}</span> : <Girdi type="number" min="0" max="100" value={ind[t.kod]} onChange={(e) => setInd({ ...ind, [t.kod]: e.target.value })} aria-label={`${t.ad} indirimi`} style={{ width: 100, height: 36 }} />}</td><td>{h === 0 ? <Rozet ton="gray">Muaf</Rozet> : <b>{paraTR(h)}</b>}</td></tr>
               ); })}
             </tbody></table>

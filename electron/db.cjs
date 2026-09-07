@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 7; // …5: monthly_dues.odenen; 6: age_groups.program; 7: receipts.iptal_nedeni/iptal_eden/iptal_zamani
+const SCHEMA_VERSION = 8; // …5: monthly_dues.odenen; 6: age_groups.program; 7: receipts.iptal_*; 8: fee_types (ücret tipleri tabloya)
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -146,6 +146,15 @@ CREATE TABLE IF NOT EXISTS fee_items (
   aktif INTEGER NOT NULL DEFAULT 1
 );
 
+CREATE TABLE IF NOT EXISTS fee_types (           -- ücret tipleri (Ayarlar > Aidat Kalemleri; players.ucret_tipi = kod)
+  kod TEXT PRIMARY KEY,
+  ad TEXT NOT NULL,
+  indirim INTEGER NOT NULL DEFAULT 0,             -- aidat taban fiyatından düşülen yüzde (0-100)
+  sira INTEGER NOT NULL DEFAULT 0,
+  aktif INTEGER NOT NULL DEFAULT 1,
+  sabit INTEGER NOT NULL DEFAULT 0                -- 1: normal/ucretsiz — indirimi ve varlığı değiştirilemez
+);
+
 CREATE TABLE IF NOT EXISTS monthly_dues (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
@@ -223,6 +232,13 @@ const FEE_ITEMS = [
   ["corap", "Çorap"], ["eldiven_bere", "Eldiven & Bere"],
 ];
 
+// Varsayılan ücret tipleri: [kod, ad, indirim %, sabit]. Kalanlar Ayarlar'dan eklenir/silinir.
+const FEE_TYPES = [
+  ["normal", "Normal", 0, 1], ["burslu", "Burslu", 100, 0], ["indirimli", "İndirimli", 0, 0],
+  ["kardes", "Kardeş İndirimi", 0, 0], ["ucretsiz", "Ücretsiz", 100, 1],
+];
+const { kodUret, KOD_GECERLI } = require("./kodUret.cjs");
+
 function openDb(dbPath) {
   const conn = new Database(dbPath);
   const key = getDbKey();
@@ -259,6 +275,15 @@ function migrate() {
   const dueKolon = new Set(db.prepare("PRAGMA table_info(monthly_dues)").all().map((c) => c.name));
   if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
+  // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
+  const insTip = db.prepare("INSERT OR IGNORE INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,?)");
+  FEE_TYPES.forEach(([kod, ad, ind, sabit], i) => insTip.run(kod, ad, ind, i, sabit));
+  if (cur < 8) {
+    for (const r of db.prepare("SELECT key, value FROM settings WHERE key LIKE 'indirim_%'").all()) {
+      const y = Math.min(100, Math.max(0, Math.round(Number(r.value) || 0)));
+      db.prepare("UPDATE fee_types SET indirim=? WHERE kod=? AND sabit=0").run(y, r.key.slice(8));
+    }
+  }
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }
 
@@ -281,10 +306,11 @@ const setMetaValue = (k, v) => db.prepare("INSERT INTO meta (key,value) VALUES (
 // Ayarlar > Aidat Kalemleri: taban aidat + ücret tipi indirimleri (tek çağrıda, oyuncu formu için).
 function aidatAyarlari() {
   const taban = db.prepare("SELECT varsayilan_fiyat FROM fee_items WHERE kod='aidat'").get()?.varsayilan_fiyat ?? 0;
-  const indirimler = {};
-  for (const r of db.prepare("SELECT key, value FROM settings WHERE key LIKE 'indirim_%'").all()) indirimler[r.key.slice(8)] = Number(r.value);
-  return { taban: Number(taban) || 0, indirimler, sezon: getSetting("aktif_sezon") || "" };
+  const ucretTipleri = listFeeTypes();
+  const indirimler = Object.fromEntries(ucretTipleri.map((t) => [t.kod, t.indirim]));
+  return { taban: Number(taban) || 0, indirimler, ucretTipleri, sezon: getSetting("aktif_sezon") || "" };
 }
+const listFeeTypes = () => db.prepare("SELECT kod, ad, indirim, sira, aktif, sabit FROM fee_types ORDER BY sira, kod").all();
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value ?? null;
 const setSetting = (k, v) => db.prepare("INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
 
@@ -348,7 +374,12 @@ function haftayiProgramdanDoldur(haftaBasiIso) {
 
 // ── players ──
 const PLAYER_FIELDS = ["tc_no","uyruk","pasaport_no","sezon","ad_soyad","dogum_tarihi","dogum_yeri","okul","gsm","adres","kan_grubu","foto_yolu","yas_grubu_id","durum","ucret_tipi","aylik_aidat","odeme_donemi","kayit_tarihi","notlar"];
+function ucretTipiDogrula(kod) {
+  if (kod === undefined) return;
+  if (!db.prepare("SELECT 1 FROM fee_types WHERE kod=?").get(String(kod))) throw new Error("Tanımsız ücret tipi: " + kod);
+}
 function createPlayer(p) {
+  ucretTipiDogrula(p.ucret_tipi);
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   const r = db.prepare(`INSERT INTO players (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).run(...cols.map((c) => p[c]));
   buAyAidatAc(Number(r.lastInsertRowid)); // ay ortasında kaydolan oyuncunun bu ayki aidatı hemen açılsın
@@ -357,6 +388,7 @@ function createPlayer(p) {
 // Bu ayın aidat kaydını tek oyuncu için aç (kayıt/durum değişimi sonrası; yeniden başlatma beklenmez).
 function buAyAidatAc(pid) { const t = new Date(); return ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1, pid); }
 function updatePlayer(id, p) {
+  ucretTipiDogrula(p.ucret_tipi);
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   if (!cols.length) return getPlayer(id);
   db.prepare(`UPDATE players SET ${cols.map((c) => `${c}=?`).join(",")}, updated_at=datetime('now') WHERE id=?`).run(...cols.map((c) => p[c]), id);
@@ -428,26 +460,74 @@ function saglikRaporuDurumu(bugun, esikGun = 30) {
 const listFeeItems = () => db.prepare("SELECT * FROM fee_items ORDER BY sira, id").all();
 const updateFeeItem = (id, { ad, varsayilan_fiyat, aktif }) =>
   db.prepare("UPDATE fee_items SET ad=COALESCE(?,ad), varsayilan_fiyat=COALESCE(?,varsayilan_fiyat), aktif=COALESCE(?,aktif) WHERE id=?").run(ad, varsayilan_fiyat, aktif, id);
-// Ayarlar > Aidat Kalemleri: değişen kalemler + indirim yüzdeleri TEK işlemde (biri hata verirse hiçbiri yazılmaz).
-function aidatAyarlariKaydet({ kalemler = [], indirimler = {} } = {}) {
+// Ayarlar > Aidat Kalemleri: kalemler (güncelle / yeni / sil) + ücret tipleri (güncelle / yeni / sil) + indirim
+// yüzdeleri TEK işlemde (biri hata verirse hiçbiri yazılmaz).
+//   kalemler:     [{ id, ad?, varsayilan_fiyat?, aktif? } | { yeni: true, ad, varsayilan_fiyat? } | { id, sil: true }]
+//   ucretTipleri: [{ kod, ad?, indirim?, aktif? } | { yeni: true, ad, indirim? } | { kod, sil: true }]
+//   indirimler:   { kod: yüzde }  (ilk kurulum sihirbazı; ucretTipleri ile aynı işi yapar)
+// "aidat" kalemi ve sabit tipler (normal, ucretsiz) silinemez; makbuzda geçen kalem ve oyuncusu olan tip silinemez → pasife alınır.
+function yuzdeDogrula(yuzde) {
+  const y = Number(yuzde);
+  if (!Number.isFinite(y) || y < 0 || y > 100) throw new Error("İndirim yüzdesi 0-100 arası olmalı");
+  return Math.round(y);
+}
+function aidatAyarlariKaydet({ kalemler = [], indirimler = {}, ucretTipleri = [] } = {}) {
   const tx = db.transaction(() => {
+    let kalemSayisi = 0, tipSayisi = 0;
     for (const k of kalemler) {
+      kalemSayisi++;
+      if (k.yeni) {
+        const ad = String(k.ad || "").trim(); if (!ad) throw new Error("Kalem adı boş olamaz");
+        const kod = kodUret(ad, db.prepare("SELECT kod FROM fee_items").all().map((x) => x.kod), "kalem");
+        const sira = (db.prepare("SELECT MAX(sira) AS m FROM fee_items").get().m ?? 0) + 1;
+        db.prepare("INSERT INTO fee_items (kod, ad, varsayilan_fiyat, sira, aktif) VALUES (?,?,?,?,1)").run(kod, ad, Math.max(0, Number(k.varsayilan_fiyat) || 0), sira);
+        continue;
+      }
+      const mevcut = db.prepare("SELECT * FROM fee_items WHERE id=?").get(Number(k.id));
+      if (!mevcut) throw new Error("Kalem bulunamadı: " + k.id);
+      if (k.sil) {
+        if (mevcut.kod === "aidat") throw new Error("Aidat kalemi silinemez");
+        const n = db.prepare("SELECT count(*) AS n FROM receipt_lines WHERE fee_item_id=?").get(mevcut.id).n;
+        if (n > 0) throw new Error(`"${mevcut.ad}" ${n} makbuz satırında kullanılmış; silmek yerine pasife alın`);
+        db.prepare("DELETE FROM fee_items WHERE id=?").run(mevcut.id);
+        continue;
+      }
       const ad = k.ad === undefined ? null : String(k.ad).trim();
       if (ad !== null && !ad) throw new Error("Kalem adı boş olamaz");
       const fiyat = k.varsayilan_fiyat === undefined ? null : Math.max(0, Number(k.varsayilan_fiyat) || 0);
       const aktif = k.aktif === undefined ? null : (k.aktif ? 1 : 0);
-      const r = updateFeeItem(Number(k.id), { ad, varsayilan_fiyat: fiyat, aktif });
-      if (r.changes === 0) throw new Error("Kalem bulunamadı: " + k.id);
+      if (mevcut.kod === "aidat" && aktif === 0) throw new Error("Aidat kalemi pasife alınamaz");
+      updateFeeItem(mevcut.id, { ad, varsayilan_fiyat: fiyat, aktif });
     }
-    for (const [kod, yuzde] of Object.entries(indirimler)) {
-      if (!/^[a-z_]+$/.test(kod)) throw new Error("Geçersiz ücret tipi: " + kod);
-      const y = Number(yuzde);
-      if (!Number.isFinite(y) || y < 0 || y > 100) throw new Error("İndirim yüzdesi 0-100 arası olmalı");
-      setSetting("indirim_" + kod, String(Math.round(y)));
+    const tipListesi = [...ucretTipleri, ...Object.entries(indirimler).map(([kod, indirim]) => ({ kod, indirim }))];
+    for (const t of tipListesi) {
+      tipSayisi++;
+      if (t.yeni) {
+        const ad = String(t.ad || "").trim(); if (!ad) throw new Error("Ücret tipi adı boş olamaz");
+        const kod = kodUret(ad, listFeeTypes().map((x) => x.kod), "tip");
+        const sira = (db.prepare("SELECT MAX(sira) AS m FROM fee_types").get().m ?? 0) + 1;
+        db.prepare("INSERT INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,0)").run(kod, ad, yuzdeDogrula(t.indirim ?? 0), sira);
+        continue;
+      }
+      if (!KOD_GECERLI.test(String(t.kod || ""))) throw new Error("Geçersiz ücret tipi: " + t.kod);
+      const mevcut = db.prepare("SELECT * FROM fee_types WHERE kod=?").get(t.kod);
+      if (!mevcut) throw new Error("Ücret tipi bulunamadı: " + t.kod);
+      if (t.sil) {
+        if (mevcut.sabit) throw new Error(`"${mevcut.ad}" sabit ücret tipidir, silinemez`);
+        const n = db.prepare("SELECT count(*) AS n FROM players WHERE ucret_tipi=?").get(mevcut.kod).n;
+        if (n > 0) throw new Error(`"${mevcut.ad}" ${n} oyuncuda seçili; önce oyuncuları başka tipe alın ya da tipi pasife alın`);
+        db.prepare("DELETE FROM fee_types WHERE kod=?").run(mevcut.kod);
+        continue;
+      }
+      const ad = t.ad === undefined ? null : String(t.ad).trim();
+      if (ad !== null && !ad) throw new Error("Ücret tipi adı boş olamaz");
+      const indirim = t.indirim === undefined || mevcut.sabit ? null : yuzdeDogrula(t.indirim);
+      const aktif = t.aktif === undefined || mevcut.sabit ? null : (t.aktif ? 1 : 0);
+      db.prepare("UPDATE fee_types SET ad=COALESCE(?,ad), indirim=COALESCE(?,indirim), aktif=COALESCE(?,aktif) WHERE kod=?").run(ad, indirim, aktif, mevcut.kod);
     }
+    return { ok: true, kalem: kalemSayisi, indirim: tipSayisi };
   });
-  tx();
-  return { ok: true, kalem: kalemler.length, indirim: Object.keys(indirimler).length };
+  return tx();
 }
 
 // ── monthly dues ──
@@ -860,7 +940,7 @@ module.exports = {
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
   listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu,
-  listFeeItems, updateFeeItem,
+  listFeeItems, updateFeeItem, listFeeTypes,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, listCancelledReceipts, setReceiptPdf,
   createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance, playerAttendanceSon,

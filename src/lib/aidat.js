@@ -10,6 +10,7 @@ export const DURUMLAR = [
   { kod: "aktif", ad: "Aktif" }, { kod: "deneme", ad: "Deneme" }, { kod: "pasif", ad: "Pasif" },
   { kod: "ayrildi", ad: "Ayrıldı" }, { kod: "sakat", ad: "Sakat" }, { kod: "dondurma", ad: "Dondurma" },
 ];
+/** Varsayılan ücret tipleri (tohum). Asıl liste veritabanında `fee_types`; arayüz `useUcretTipleri()` ile alır. */
 export const UCRET_TIPLERI = [
   { kod: "normal", ad: "Normal" }, { kod: "burslu", ad: "Burslu" }, { kod: "indirimli", ad: "İndirimli" },
   { kod: "kardes", ad: "Kardeş İndirimi" }, { kod: "ucretsiz", ad: "Ücretsiz" },

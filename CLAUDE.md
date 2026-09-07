@@ -47,8 +47,9 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `electron/db.cjs` — SQLite şeması, göç (`schema_version`), tohum (aidat kalemleri, ilk admin),
   tüm sorgular, lisans durumu (`lisansDurumu`/`lisansKaydet`/`leaseKaydet`). Şema `docs/plan.md §3`.
   Anahtar `safeStorage` ile OS anahtarlığında.
-  Şema sürümü 7: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
-  6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani. Göç `migrate()` PRAGMA table_info ile idempotent.
+  Şema sürümü 8: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
+  6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani · 8 fee_types (ücret tipleri
+  tabloda; `players.ucret_tipi` = kod; normal/ucretsiz sabit; kod `electron/kodUret.cjs` ile addan üretilir). Göç `migrate()` PRAGMA table_info ile idempotent.
 - `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması. JPG/PNG
   yükleme anında `electron/imageOptimize.cjs` ile nazikçe küçültülür (≤2000px, JPEG %82; yalnız küçülürse).
   `electron/ipc/optimize.cjs` — Ayarlar > Resim ve Belge Optimizasyonu (analiz/uygula, eski dosyalar için).

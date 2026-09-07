@@ -77,9 +77,9 @@ app.whenReady().then(async () => {
     check("belge okunuyor", db.getDocument(belgeId).tip === "saglik");
     // Aidat ayarları: taban fiyat + indirim yüzdeleri tek çağrıda; kısmi burslu muaf değil, 0 ₺ burslu muaf
     db.updateFeeItem(db.listFeeItems().find((k) => k.kod === "aidat").id, { varsayilan_fiyat: 4000 });
-    db.setSetting("indirim_burslu", "50"); db.setSetting("indirim_kardes", "15");
+    db.aidatAyarlariKaydet({ indirimler: { burslu: 50, kardes: 15 } });
     const aa = db.aidatAyarlari();
-    check("aidat ayarları okunuyor", aa.taban === 4000 && aa.indirimler.burslu === 50 && aa.indirimler.kardes === 15);
+    check("aidat ayarları okunuyor (ücret tipleri tabloda)", aa.taban === 4000 && aa.indirimler.burslu === 50 && aa.indirimler.kardes === 15 && aa.ucretTipleri.length === 5 && aa.ucretTipleri.find((t) => t.kod === "normal").sabit === 1);
     const bursluKismi = db.createPlayer({ ad_soyad: "Burslu Kısmi", dogum_tarihi: "2014-01-01", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 2000, odeme_donemi: "1-10" });
     const bursluTam = db.createPlayer({ ad_soyad: "Burslu Tam", dogum_tarihi: "2014-01-01", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "burslu", aylik_aidat: 0, odeme_donemi: "1-10" });
     db.ensureMonthlyDues(2026, 11);
@@ -100,7 +100,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 7 ve pasaport sütunu var", db.getMetaValue("schema_version") === "7" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 8 ve pasaport sütunu var", db.getMetaValue("schema_version") === "8" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -111,6 +111,29 @@ app.whenReady().then(async () => {
     check("hatalı satır tüm işlemi geri alır (forma 9000 kaldı, kardeş indirimi yazılmadı)", geriAlindi && db.listFeeItems().find((k) => k.id === forma.id).varsayilan_fiyat === 9000 && db.aidatAyarlari().indirimler.kardes === 15); // önceki adımda 15 yazılmıştı; 10 uygulanmamalı
     let yuzdeRed = false; try { db.aidatAyarlariKaydet({ indirimler: { indirimli: 150 } }); } catch (e) { yuzdeRed = /0-100/.test(e.message); }
     check("yüzde 0-100 dışı reddedilir", yuzdeRed && db.aidatAyarlari().indirimler.indirimli === 25);
+    // Kalem ve ücret tipi ekle / düzenle / sil (07.09.2026)
+    const ek = db.aidatAyarlariKaydet({ kalemler: [{ yeni: true, ad: "Kamp Ücreti", varsayilan_fiyat: 2500 }], ucretTipleri: [{ yeni: true, ad: "Şampiyon Bursu", indirim: 50 }, { kod: "burslu", ad: "Tam Burslu" }] });
+    const kamp = db.listFeeItems().find((k) => k.ad === "Kamp Ücreti"), samp = db.listFeeTypes().find((t) => t.ad === "Şampiyon Bursu");
+    check("yeni kalem ve ücret tipi kod üretilerek eklendi, tip adı düzenlendi", ek.ok && kamp?.kod === "kamp_ucreti" && kamp.varsayilan_fiyat === 2500 && samp?.kod === "sampiyon_bursu" && samp.indirim === 50 && db.listFeeTypes().find((t) => t.kod === "burslu").ad === "Tam Burslu");
+    const sampOyuncu = db.createPlayer({ ad_soyad: "Bursu Oyuncu", dogum_tarihi: "2015-05-05", durum: "aktif", ucret_tipi: "sampiyon_bursu", aylik_aidat: 2000, odeme_donemi: "1-10" });
+    let tipRed = ""; try { db.aidatAyarlariKaydet({ ucretTipleri: [{ kod: "sampiyon_bursu", sil: true }] }); } catch (e) { tipRed = e.message; }
+    check("oyuncusu olan ücret tipi silinemez (mesaj oyuncu sayısını söyler)", /1 oyuncuda/.test(tipRed) && db.listFeeTypes().some((t) => t.kod === "sampiyon_bursu"));
+    let sabitRed = ""; try { db.aidatAyarlariKaydet({ ucretTipleri: [{ kod: "normal", sil: true }] }); } catch (e) { sabitRed = e.message; }
+    let sabitInd = db.aidatAyarlariKaydet({ ucretTipleri: [{ kod: "ucretsiz", indirim: 10 }] }) && db.listFeeTypes().find((t) => t.kod === "ucretsiz").indirim;
+    check("sabit tip silinemez, indirimi değişmez", /sabit/.test(sabitRed) && sabitInd === 100);
+    let tanimsiz = ""; try { db.updatePlayer(sampOyuncu.id, { ucret_tipi: "yok_boyle_tip" }); } catch (e) { tanimsiz = e.message; }
+    check("oyuncuya tanımsız ücret tipi yazılamaz", /Tanımsız ücret tipi/.test(tanimsiz));
+    db.updatePlayer(sampOyuncu.id, { ucret_tipi: "normal" });
+    const kampMakbuz = db.createReceipt({ player_id: sampOyuncu.id, tarih: "2026-09-07", odeme_yontemi: "nakit", tahsil_eden: "T", satirlar: [{ fee_item_id: kamp.id, tutar: 2500, aciklama: "Kamp" }] });
+    let kalemRed = ""; try { db.aidatAyarlariKaydet({ kalemler: [{ id: kamp.id, sil: true }] }); } catch (e) { kalemRed = e.message; }
+    let aidatRed = ""; try { db.aidatAyarlariKaydet({ kalemler: [{ id: aidatKalemi.id, sil: true }] }); } catch (e) { aidatRed = e.message; }
+    check("makbuzda geçen kalem ve Aidat kalemi silinemez", kampMakbuz.id > 0 && /1 makbuz satırında/.test(kalemRed) && /Aidat kalemi silinemez/.test(aidatRed) && db.listFeeItems().some((k) => k.id === kamp.id));
+    const sil = db.aidatAyarlariKaydet({ ucretTipleri: [{ kod: "sampiyon_bursu", sil: true }], kalemler: [{ yeni: true, ad: "Geçici" }] });
+    const gecici = db.listFeeItems().find((k) => k.ad === "Geçici");
+    db.aidatAyarlariKaydet({ kalemler: [{ id: gecici.id, sil: true }] });
+    check("oyuncusu kalmayan tip ve makbuzda geçmeyen kalem silinir", sil.ok && !db.listFeeTypes().some((t) => t.kod === "sampiyon_bursu") && !db.listFeeItems().some((k) => k.ad === "Geçici"));
+    let geriAl2 = false; try { db.aidatAyarlariKaydet({ kalemler: [{ yeni: true, ad: "Yarım Kalan" }], ucretTipleri: [{ kod: "normal", sil: true }] }); } catch { geriAl2 = !db.listFeeItems().some((k) => k.ad === "Yarım Kalan"); }
+    check("hatalı silme tüm işlemi geri alır (yeni kalem yazılmadı)", geriAl2);
 
     // Sayfalama: playersPage toplam/sayfa/offset; listDues ve listReceipts limit; playerAttendanceSon yeniden eskiye
     for (let i = 0; i < 7; i++) db.createPlayer({ ad_soyad: `Sayfa Oyuncu ${String(i).padStart(2, "0")}`, dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "aktif" });
@@ -308,6 +331,14 @@ app.whenReady().then(async () => {
     check("geçersiz klasör reddedilir", !!geriYukleCekirdek(yedekKok).error);
     db.init(); // geçersiz denemeden sonra DB yeniden açılır
     fs.rmSync(yedekKok, { recursive: true, force: true });
+
+    // Göç 7 → 8: eski sürümden kalan `indirim_<kod>` ayarları ücret tipi tablosuna bir kez taşınır; sonraki açılışta ezilmez
+    db.setMetaValue("schema_version", "7"); db.setSetting("indirim_burslu", "33"); db.setSetting("indirim_ucretsiz", "10");
+    db.close(); db.init();
+    const goc = db.listFeeTypes();
+    check("göç 7→8: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 8", goc.find((t) => t.kod === "burslu").indirim === 33 && goc.find((t) => t.kod === "ucretsiz").indirim === 100 && db.getMetaValue("schema_version") === "8");
+    db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } }); db.close(); db.init();
+    check("şema 8'de yeniden açılış eski ayarı tekrar yazmaz (40 kaldı)", db.listFeeTypes().find((t) => t.kod === "burslu").indirim === 40);
 
     db.close();
     // Anahtar varsa dosya şifreli olmalı: anahtarsız açılış sqlite_master okuyamamalı

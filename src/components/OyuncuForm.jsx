@@ -86,7 +86,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
           </Alan>
           <Alan etiket="Durum"><Secim secenekler={DURUMLAR} {...g("durum")} /></Alan>
           <Alan etiket="Kayıt Tarihi"><Girdi type="date" {...g("kayit_tarihi")} /></Alan>
-          <Alan etiket="Ücret Tipi"><Secim secenekler={UCRET_TIPLERI} value={f.ucret_tipi} onChange={ucretTipiDegisti} /></Alan>
+          <Alan etiket="Ücret Tipi"><Secim secenekler={(ayar?.ucretTipleri?.length ? ayar.ucretTipleri : UCRET_TIPLERI).filter((t) => t.aktif !== 0 || t.kod === f.ucret_tipi)} value={f.ucret_tipi} onChange={ucretTipiDegisti} /></Alan>
           <Alan etiket="Aylık Aidat (₺)">
             <ParaGirdi value={f.aylik_aidat} onDegis={(v) => setF({ ...f, aylik_aidat: v })} disabled={f.ucret_tipi === "ucretsiz"} aria-label="Aylık aidat" />
             {ayar && <span style={{ fontSize: 12, color: "var(--soluk)" }}>{ayar.taban > 0 ? `Taban ${paraTR(ayar.taban)}${yuzde ? ` − %${yuzde} indirim` : ""}` : "Taban fiyat Ayarlar > Aidat Kalemleri'nde girilir"}</span>}

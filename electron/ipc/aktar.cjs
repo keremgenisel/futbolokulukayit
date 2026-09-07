@@ -75,7 +75,7 @@ function registerAktarHandlers(getSession) {
     try {
       const satirlar = await excelOku(r.filePaths[0]);
       const oyuncular = db.listPlayers();
-      const sonuc = satirlariCoz(satirlar, { gruplar: db.listAgeGroups(), mevcutTc: new Set(oyuncular.map((o) => o.tc_no).filter(Boolean)), mevcutPasaport: new Set(oyuncular.map((o) => o.pasaport_no).filter(Boolean)) });
+      const sonuc = satirlariCoz(satirlar, { gruplar: db.listAgeGroups(), ucretTipleri: db.listFeeTypes(), mevcutTc: new Set(oyuncular.map((o) => o.tc_no).filter(Boolean)), mevcutPasaport: new Set(oyuncular.map((o) => o.pasaport_no).filter(Boolean)) });
       return { ok: true, dosya: r.filePaths[0], ...sonuc };
     } catch (err) { return { error: "Excel okunamadı: " + err.message }; }
   });
