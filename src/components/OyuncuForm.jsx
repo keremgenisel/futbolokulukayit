@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import { Modal, Btn, Alan, Girdi, Secim, useToast } from "./ui.jsx";
 import { db, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, aidatHesapla, indirimYuzdesi, paraTR } from "../lib/aidat.js";
+import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, UYRUKLAR, aidatHesapla, indirimYuzdesi, paraTR, pasaportGecerliMi, pasaportNormalize } from "../lib/aidat.js";
 
-const BOS = { tc_no: "", ad_soyad: "", dogum_tarihi: "", dogum_yeri: "", okul: "", gsm: "", adres: "", kan_grubu: "", yas_grubu_id: "", durum: "aktif", ucret_tipi: "normal", aylik_aidat: "", odeme_donemi: "1-10", kayit_tarihi: new Date().toISOString().slice(0, 10), notlar: "" };
+const BOS = { tc_no: "", uyruk: "tc", pasaport_no: "", ad_soyad: "", dogum_tarihi: "", dogum_yeri: "", okul: "", gsm: "", adres: "", kan_grubu: "", yas_grubu_id: "", durum: "aktif", ucret_tipi: "normal", aylik_aidat: "", odeme_donemi: "1-10", kayit_tarihi: new Date().toISOString().slice(0, 10), notlar: "" };
 const KAN = ["A Rh+", "A Rh-", "B Rh+", "B Rh-", "AB Rh+", "AB Rh-", "0 Rh+", "0 Rh-"].map((k) => ({ kod: k, ad: k }));
 
 // Oyuncu ekleme / düzenleme formu (kayıt formundaki Öğrenci alanları + kayıt ve ücret).
@@ -30,10 +30,12 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
 
   const kaydet = async () => {
     if (!f.ad_soyad.trim()) return setHata("Ad soyad zorunlu");
-    if (f.tc_no && !/^\d{11}$/.test(f.tc_no)) return setHata("TC kimlik no 11 haneli olmalı");
+    const yabanci = f.uyruk === "yabanci";
+    if (!yabanci && f.tc_no && !/^\d{11}$/.test(f.tc_no)) return setHata("TC kimlik no 11 haneli olmalı");
+    if (yabanci && !pasaportGecerliMi(pasaportNormalize(f.pasaport_no))) return setHata("Yabancı uyruklu oyuncu için pasaport no zorunlu (5-15 harf/rakam)");
     if (!f.dogum_tarihi) return setHata("Doğum tarihi zorunlu");
     setHata(""); setBekliyor(true);
-    const veri = { ...f, tc_no: f.tc_no || null, yas_grubu_id: f.yas_grubu_id ? Number(f.yas_grubu_id) : null, aylik_aidat: Number(f.aylik_aidat) || 0 };
+    const veri = { ...f, tc_no: yabanci ? null : f.tc_no || null, pasaport_no: yabanci ? pasaportNormalize(f.pasaport_no) : null, yas_grubu_id: f.yas_grubu_id ? Number(f.yas_grubu_id) : null, aylik_aidat: Number(f.aylik_aidat) || 0 };
     delete veri.id; delete veri.yas_grubu_ad; delete veri.created_at; delete veri.updated_at; delete veri.foto_yolu;
     delete veri.aidat_durum; delete veri.aidat_tutar;
     try {
@@ -42,7 +44,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
       onKaydedildi(kayit);
     } catch (e) {
       const m = hataMetni(e);
-      setHata(m.includes("UNIQUE") ? "Bu TC kimlik numarasıyla kayıtlı oyuncu var" : m);
+      setHata(m.includes("UNIQUE") ? (yabanci ? "Bu pasaport numarasıyla kayıtlı oyuncu var" : "Bu TC kimlik numarasıyla kayıtlı oyuncu var") : m);
     } finally { setBekliyor(false); }
   };
 
@@ -53,7 +55,10 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <h3 style={{ fontSize: 20 }}>Öğrenci</h3>
         <div style={satir}>
-          <Alan etiket="TC Kimlik No"><Girdi {...g("tc_no")} maxLength={11} inputMode="numeric" /></Alan>
+          <Alan etiket="Uyruk"><Secim secenekler={UYRUKLAR} {...g("uyruk")} aria-label="Uyruk" /></Alan>
+          {f.uyruk === "yabanci"
+            ? <Alan etiket="Pasaport No *"><Girdi {...g("pasaport_no")} maxLength={15} style={{ textTransform: "uppercase" }} aria-label="Pasaport No" /></Alan>
+            : <Alan etiket="TC Kimlik No"><Girdi {...g("tc_no")} maxLength={11} inputMode="numeric" aria-label="TC Kimlik No" /></Alan>}
           <Alan etiket="Adı Soyadı *"><Girdi {...g("ad_soyad")} autoFocus /></Alan>
           <Alan etiket="Doğum Tarihi *"><Girdi type="date" {...g("dogum_tarihi")} /></Alan>
           <Alan etiket="Doğum Yeri"><Girdi {...g("dogum_yeri")} /></Alan>

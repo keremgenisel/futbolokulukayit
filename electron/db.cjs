@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 2; // 2: recovery_codes (parola kurtarma kodları)
+const SCHEMA_VERSION = 3; // 2: recovery_codes; 3: players.uyruk + pasaport_no (yabancı uyruklu oyuncu)
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -84,6 +84,8 @@ CREATE TABLE IF NOT EXISTS age_groups (
 CREATE TABLE IF NOT EXISTS players (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   tc_no TEXT UNIQUE,
+  uyruk TEXT NOT NULL DEFAULT 'tc',               -- tc | yabanci (yabancıda TC yerine pasaport no)
+  pasaport_no TEXT,
   ad_soyad TEXT NOT NULL,
   dogum_tarihi TEXT,
   dogum_yeri TEXT DEFAULT '',
@@ -237,7 +239,11 @@ function init() {
 
 function migrate() {
   const cur = Number(getMetaValue("schema_version") || 0);
-  // İleride: if (cur < 2) { ...ALTER TABLE...; }
+  // 3: yabancı uyruklu oyuncular için pasaport no (eski DB'lerde sütun yoksa ekle; CREATE TABLE yenilerde zaten içerir)
+  const kolonlar = new Set(db.prepare("PRAGMA table_info(players)").all().map((c) => c.name));
+  if (!kolonlar.has("uyruk")) db.exec("ALTER TABLE players ADD COLUMN uyruk TEXT NOT NULL DEFAULT 'tc'");
+  if (!kolonlar.has("pasaport_no")) db.exec("ALTER TABLE players ADD COLUMN pasaport_no TEXT");
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }
 
@@ -297,7 +303,7 @@ const updateAgeGroup = (id, { ad, sezon, sira, aktif }) =>
   db.prepare("UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif) WHERE id=?").run(ad, sezon, sira, aktif, id);
 
 // ── players ──
-const PLAYER_FIELDS = ["tc_no","ad_soyad","dogum_tarihi","dogum_yeri","okul","gsm","adres","kan_grubu","foto_yolu","yas_grubu_id","durum","ucret_tipi","aylik_aidat","odeme_donemi","kayit_tarihi","notlar"];
+const PLAYER_FIELDS = ["tc_no","uyruk","pasaport_no","ad_soyad","dogum_tarihi","dogum_yeri","okul","gsm","adres","kan_grubu","foto_yolu","yas_grubu_id","durum","ucret_tipi","aylik_aidat","odeme_donemi","kayit_tarihi","notlar"];
 function createPlayer(p) {
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   const r = db.prepare(`INSERT INTO players (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).run(...cols.map((c) => p[c]));
@@ -312,7 +318,7 @@ function updatePlayer(id, p) {
 const getPlayer = (id) => db.prepare("SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.id=?").get(id) || null;
 function listPlayers({ q = "", yas_grubu_id = null, durum = null } = {}) {
   const where = []; const args = [];
-  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`); }
+  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ? OR p.pasaport_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`, `%${q}%`); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum) { where.push("p.durum=?"); args.push(durum); }
   const sql = `SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
@@ -453,7 +459,7 @@ const deleteAgeGroup = (id) => {
 // Oyuncu listesi + verilen ayın aidat durumu (liste ekranı ve tesise giriş kontrolü).
 function listPlayersWithDue({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false } = {}) {
   const where = []; const args = [yil, ay];
-  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`); }
+  if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ? OR p.pasaport_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`, `%${q}%`); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum) { where.push("p.durum=?"); args.push(durum); }
   if (sadeceOdemeyen) where.push("d.durum='odenmedi'");

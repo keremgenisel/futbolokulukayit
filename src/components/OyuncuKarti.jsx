@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
 import { db, files, bugun, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI } from "../lib/aidat.js";
+import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -99,7 +99,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
           <h3 style={{ fontSize: 20 }}>Öğrenci</h3>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 18 }}>
-            <Bilgi etiket="TC Kimlik No" deger={o.tc_no} /><Bilgi etiket="Adı Soyadı" deger={o.ad_soyad} /><Bilgi etiket="Doğum Tarihi" deger={tarihTR(o.dogum_tarihi)} />
+            <Bilgi etiket={kimlikBilgisi(o).etiket} deger={kimlikBilgisi(o).deger} /><Bilgi etiket="Adı Soyadı" deger={o.ad_soyad} /><Bilgi etiket="Doğum Tarihi" deger={tarihTR(o.dogum_tarihi)} />
             <Bilgi etiket="Doğum Yeri" deger={o.dogum_yeri} /><Bilgi etiket="Okulu" deger={o.okul} /><Bilgi etiket="Kan Grubu" deger={o.kan_grubu} />
             <Bilgi etiket="GSM" deger={o.gsm} /><Bilgi etiket="Ev Adresi" deger={o.adres} genis />
           </div>

@@ -86,6 +86,15 @@ app.whenReady().then(async () => {
     check("vesikalık tek dosya kalır, yenisi eskisinin yerine geçer", f1.silinen.length === 0 && f2.silinen[0] === "oyuncu-1/f1.jpg" && fotolar.length === 1 && fotolar[0].dosya_yolu === "oyuncu-1/f2.jpg" && !db.getDocument(f1.id));
     check("oyuncu foto yolu yeni vesikalığa döner", db.getPlayer(oyuncu.id).foto_yolu === "oyuncu-1/f2.jpg");
 
+    // Yabancı uyruklu oyuncu: TC yok, pasaport no; pasaportla aranır; pasaport tekildir
+    const yab = db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Ivan Petrov", dogum_tarihi: "2014-02-02", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3500, odeme_donemi: "1-10" });
+    check("yabancı oyuncu TC'siz kaydedilir", yab.tc_no === null && yab.uyruk === "yabanci" && yab.pasaport_no === "U1234567");
+    check("pasaport ile arama (liste ve pano)", db.listPlayers({ q: "U12345" }).some((p) => p.id === yab.id) && db.listPlayersWithDue({ q: "U1234567", yil: 2026, ay: 9 }).some((p) => p.id === yab.id));
+    let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
+    check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
+    check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
+    check("şema sürümü 3 ve pasaport sütunu var", db.getMetaValue("schema_version") === "3" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+
     // Kullanıcı silme: son aktif yönetici silinemez; yeni yönetici ilk admin'i silebilir; açılışta admin geri gelmez
     const ilkAdmin = db.getUserByUsername("admin");
     check("son yönetici silinemez", !!db.deleteUser(ilkAdmin.id).error);

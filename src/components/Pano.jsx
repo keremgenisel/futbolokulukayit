@@ -42,8 +42,8 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur }) {
         <Stat etiket="Bugün antrenman" deger={ozet?.antrenmanlar?.length ?? "—"} renk="#9A7D00" not={(ozet?.antrenmanlar || []).map((t) => t.yas_grubu_ad).join(" · ") || "Antrenman yok"} />
       </div>
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Tesise Giriş Kontrolü</h3><span style={{ fontSize: 13, color: "var(--soluk)" }}>Ad, soyad veya TC ile ara</span></div>
-        <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 16, top: 15, color: "var(--soluk)" }}><Ikon ad="ara" boyut={22} /></span><Girdi value={q} onChange={(e) => setQ(e.target.value)} placeholder="Oyuncu adı veya TC yazın" style={{ height: 52, fontSize: 17, paddingLeft: 48 }} aria-label="Tesise giriş araması" /></div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Tesise Giriş Kontrolü</h3><span style={{ fontSize: 13, color: "var(--soluk)" }}>Ad, soyad, TC veya pasaport ile ara</span></div>
+        <div style={{ position: "relative" }}><span style={{ position: "absolute", left: 16, top: 15, color: "var(--soluk)" }}><Ikon ad="ara" boyut={22} /></span><Girdi value={q} onChange={(e) => setQ(e.target.value)} placeholder="Oyuncu adı, TC veya pasaport no yazın" style={{ height: 52, fontSize: 17, paddingLeft: 48 }} aria-label="Tesise giriş araması" /></div>
         {sonuc.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {sonuc.map((o) => {

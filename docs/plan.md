@@ -23,7 +23,7 @@ Kaynak belgeler: `docs/formlar/` (kayıt formu, prensipler sayfası, tahsilat ma
 **Öğrenci**
 | Alan | Not |
 |------|-----|
-| TC Kimlik No | Zorunlu, benzersiz |
+| TC Kimlik No | Benzersiz; yabancı uyruklu oyuncuda TC yerine pasaport no (07.09.2026) |
 | Adı Soyadı | Zorunlu |
 | Doğum Tarihi | Zorunlu |
 | Doğum Yeri | |
@@ -126,7 +126,7 @@ Karar: "Online ödeme" yalnızca **ödemenin nasıl yapıldığını** gösteren
 ```
 users              kullanıcı adı, parola hash, ad
 age_groups         ad (U11), sezon, sıra, aktif mi
-players            tc_no, ad_soyad, dogum_tarihi, dogum_yeri, okul, gsm, adres,
+players            tc_no, uyruk (tc|yabanci), pasaport_no, ad_soyad, dogum_tarihi, dogum_yeri, okul, gsm, adres,
                    kan_grubu, foto, yas_grubu_id, durum, kayit_tarihi,
                    ucret_tipi (normal/burslu/indirimli/kardes/ucretsiz),
                    aylik_aidat_tutari, odeme_donemi (1-10 / 11-20 / 21-31)

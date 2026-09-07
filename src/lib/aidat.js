@@ -120,3 +120,25 @@ export function tarihTR(iso) {
 }
 
 export const AY_ADLARI = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+
+// ── Kimlik: TC vatandaşı → TC kimlik no; yabancı uyruklu → pasaport no ──
+export const UYRUKLAR = [{ kod: "tc", ad: "T.C. vatandaşı" }, { kod: "yabanci", ad: "Yabancı uyruklu" }];
+/** Pasaport no: 5-15 harf/rakam, büyük harfe çevrilmiş. @param {string} p */
+export function pasaportGecerliMi(p) { return /^[A-Z0-9]{5,15}$/.test(String(p || "").toLocaleUpperCase("tr-TR")); }
+/** @param {string} p */
+export const pasaportNormalize = (p) => String(p || "").trim().toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
+/**
+ * Listelerde/kartta gösterilecek kimlik satırı.
+ * @param {{ uyruk?: string, tc_no?: string|null, pasaport_no?: string|null }} o
+ * @returns {{ etiket: string, deger: string }}
+ */
+export function kimlikBilgisi(o) {
+  if (o.uyruk === "yabanci") return { etiket: "Pasaport No", deger: o.pasaport_no || "" };
+  return { etiket: "TC Kimlik No", deger: o.tc_no || "" };
+}
+/** "TC 12345678901" | "Pasaport U1234567" | "Kimlik yok" @param {{ uyruk?: string, tc_no?: string|null, pasaport_no?: string|null }} o */
+export function kimlikKisa(o) {
+  const k = kimlikBilgisi(o);
+  if (!k.deger) return "Kimlik yok";
+  return (o.uyruk === "yabanci" ? "Pasaport " : "TC ") + k.deger;
+}

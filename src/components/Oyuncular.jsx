@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI } from "../lib/aidat.js";
+import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
 import { raporHtml } from "../lib/raporHtml.js";
@@ -35,11 +35,11 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const raporVerisi = () => ({
     sayfa: "Oyuncular",
     sutunlar: [
-      { baslik: "Ad Soyad", anahtar: "ad_soyad", genislik: 28 }, { baslik: "TC No", anahtar: "tc", genislik: 14 }, { baslik: "Doğum", anahtar: "dogum", genislik: 12 },
+      { baslik: "Ad Soyad", anahtar: "ad_soyad", genislik: 28 }, { baslik: "TC / Pasaport", anahtar: "tc", genislik: 16 }, { baslik: "Doğum", anahtar: "dogum", genislik: 12 },
       { baslik: "Grup", anahtar: "grup", genislik: 8 }, { baslik: "Durum", anahtar: "durumAd", genislik: 10 }, { baslik: "Ücret tipi", anahtar: "ucret", genislik: 16 },
       { baslik: "Aidat", anahtar: "aidat", genislik: 10, sag: true }, { baslik: `${AY_ADLARI[ay - 1]} aidatı`, anahtar: "aidatDurum", genislik: 14 }, { baslik: "GSM", anahtar: "gsm", genislik: 16 },
     ],
-    satirlar: liste.map((o) => ({ ad_soyad: o.ad_soyad, tc: o.tc_no || "", dogum: tarihTR(o.dogum_tarihi), grup: o.yas_grubu_ad || "", durumAd: durumAd(o.durum), ucret: ucretAd(o.ucret_tipi), aidat: o.aylik_aidat, aidatDurum: aidatEtiket(o.aidat_durum), gsm: o.gsm || "" })),
+    satirlar: liste.map((o) => ({ ad_soyad: o.ad_soyad, tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "", dogum: tarihTR(o.dogum_tarihi), grup: o.yas_grubu_ad || "", durumAd: durumAd(o.durum), ucret: ucretAd(o.ucret_tipi), aidat: o.aylik_aidat, aidatDurum: aidatEtiket(o.aidat_durum), gsm: o.gsm || "" })),
   });
   const excel = async () => { try { await cikti().excelKaydet(raporVerisi(), "oyuncular.xlsx"); } catch (e) { toast("err", hataMetni(e)); } };
   const pdf = async () => {
@@ -57,7 +57,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         {!saltOkunur && <Btn ikon={<Ikon ad="arti" />} onClick={() => setYeni(true)}>Yeni Oyuncu</Btn>}
       </div>
       <Kart style={{ padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ position: "relative", width: 300 }}><span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}><Ikon ad="ara" /></span><Girdi placeholder="Ad, soyad veya TC ara" value={q} onChange={(e) => setQ(e.target.value)} style={{ height: 40, paddingLeft: 40 }} aria-label="Ara" /></div>
+        <div style={{ position: "relative", width: 300 }}><span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}><Ikon ad="ara" /></span><Girdi placeholder="Ad, soyad, TC veya pasaport ara" value={q} onChange={(e) => setQ(e.target.value)} style={{ height: 40, paddingLeft: 40 }} aria-label="Ara" /></div>
         <Secim secenekler={gruplar} bos="Tüm gruplar" value={grup} onChange={(e) => setGrup(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Yaş grubu" />
         <Secim secenekler={DURUMLAR} bos="Tüm durumlar" value={durum} onChange={(e) => setDurum(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Durum" />
         <Btn kucuk tur={odemeyen ? "danger" : "ghost"} onClick={() => setOdemeyen(!odemeyen)} style={{ height: 40 }}>{odemeyen ? "✕ " : ""}Bu ay ödemeyenler</Btn>
@@ -71,7 +71,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
             <tbody>
               {liste.map((o) => (
                 <tr key={o.id} onClick={() => setAcik(o.id)} style={{ cursor: "pointer" }}>
-                  <td><div style={{ display: "flex", alignItems: "center", gap: 12 }}><Avatar ad={o.ad_soyad} /><div><div style={{ fontWeight: 700 }}>{o.ad_soyad}</div><div style={{ fontSize: 12, color: "var(--soluk)" }}>{o.tc_no ? "TC " + o.tc_no : "TC yok"}</div></div></div></td>
+                  <td><div style={{ display: "flex", alignItems: "center", gap: 12 }}><Avatar ad={o.ad_soyad} /><div><div style={{ fontWeight: 700 }}>{o.ad_soyad}</div><div style={{ fontSize: 12, color: "var(--soluk)" }}>{kimlikKisa(o)}</div></div></div></td>
                   <td>{tarihTR(o.dogum_tarihi)}</td>
                   <td>{o.yas_grubu_ad ? <Rozet ton="purple">{o.yas_grubu_ad}</Rozet> : <span style={{ color: "var(--soluk)" }}>—</span>}</td>
                   <td><Rozet ton={durumTonu(o.durum)}>{durumAd(o.durum)}</Rozet></td>

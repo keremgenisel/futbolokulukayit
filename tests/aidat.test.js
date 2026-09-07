@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi } from "../src/lib/aidat.js";
+import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
   it("aktif + normal ücret → ödenmedi olarak açılır", () => {
@@ -84,5 +84,24 @@ describe("aidatHesapla / indirimYuzdesi", () => {
     expect(indirimYuzdesi("kardes", "abc")).toBe(0);
     expect(indirimYuzdesi("burslu", "")).toBe(100);
     expect(aidatHesapla(-10, "normal")).toBe(0);
+  });
+});
+
+describe("kimlik: TC / pasaport", () => {
+  it("pasaport doğrulama ve normalize (büyük harf, boşluksuz)", () => {
+    expect(pasaportGecerliMi("u1234567")).toBe(true);
+    expect(pasaportGecerliMi("AB12")).toBe(false);
+    expect(pasaportGecerliMi("")).toBe(false);
+    expect(pasaportGecerliMi("A-1234567")).toBe(false);
+    expect(pasaportNormalize(" u 1234567 ")).toBe("U1234567");
+    expect(pasaportNormalize("ıi123456")).toBe("Iİ123456");
+  });
+  it("kimlik etiketi uyruğa göre TC ya da pasaport", () => {
+    expect(kimlikBilgisi({ uyruk: "tc", tc_no: "12345678901" })).toEqual({ etiket: "TC Kimlik No", deger: "12345678901" });
+    expect(kimlikBilgisi({ uyruk: "yabanci", tc_no: null, pasaport_no: "U1234567" })).toEqual({ etiket: "Pasaport No", deger: "U1234567" });
+    expect(kimlikBilgisi({ tc_no: "1" }).etiket).toBe("TC Kimlik No"); // uyruk eski kayıtta yoksa TC
+    expect(kimlikKisa({ uyruk: "tc", tc_no: "12345678901" })).toBe("TC 12345678901");
+    expect(kimlikKisa({ uyruk: "yabanci", pasaport_no: "U1234567" })).toBe("Pasaport U1234567");
+    expect(kimlikKisa({ uyruk: "tc", tc_no: null })).toBe("Kimlik yok");
   });
 });
