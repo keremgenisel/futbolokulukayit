@@ -70,8 +70,19 @@ app.on("browser-window-created", async (_e, win) => {
       db.belgeEkle(o.id, { tip: "foto", dosya_yolu: `oyuncu-${o.id}/1-foto-v1.png`, orijinal_ad: "v1.png" });
       fs.writeFileSync(path.join(db.getUploadsDir(), "oyuncu-" + o.id, "2-foto-v2.png"), "yeni");
       db.belgeEkle(o.id, { tip: "foto", dosya_yolu: `oyuncu-${o.id}/2-foto-v2.png`, orijinal_ad: "v2.png" });
+      // 07.09.2026 öğleden sonra: kısmi ödeme, iptal nedeni, haftalık program + doldurma, Excel aktarımı, kurulum/sezon ayarları
+      const t2 = new Date(); const y2 = t2.getFullYear(), a2 = t2.getMonth() + 1;
+      const yabanciDue = db.getDue(yab.id, y2, a2);
+      const kismi = db.createReceipt({ player_id: yab.id, tarih: t2.toISOString().slice(0, 10), odeme_yontemi: "nakit", tahsil_eden: "T", satirlar: [{ fee_item_id: aidat.id, tutar: 1000, aciklama: "kısmi", yil: y2, ay: a2 }] });
+      const iptalli = db.createReceipt({ player_id: o.id, tarih: t2.toISOString().slice(0, 10), odeme_yontemi: "havale", tahsil_eden: "T", satirlar: [{ fee_item_id: aidat.id, tutar: 50, aciklama: "iptal edilecek", yil: null, ay: null }] });
+      db.cancelReceipt(iptalli.id, "Yanlış oyuncu", "Test Yönetici");
+      db.updateAgeGroup(o.yas_grubu_id, { program: [{ gun: 2, saat: "18:00", saha: "Saha 3" }] });
+      const hd = db.haftayiProgramdanDoldur("2027-04-05");
+      const { aktarUygula } = require("../../electron/ipc/aktar.cjs");
+      aktarUygula([{ ad_soyad: "Aktarılan Kalıcı", dogum_tarihi: "2016-04-04", uyruk: "tc", tc_no: null, pasaport_no: null, durum: "aktif", ucret_tipi: "normal", odeme_donemi: "1-10", aylik_aidat: 0, yeni_grup: "U15", veli: { ad_soyad: "Aktarılan Veli", gsm: "05320000009" } }]);
+      db.setSetting("kurulum_tamam", "1"); db.setSetting("aktif_sezon", "2026-2027");
       await js(`document.querySelector("button[aria-label='Menüyü daralt']").click()`); await bekle(300);
-      fs.writeFileSync(path.join(dizin, "beklenen.json"), JSON.stringify({ oyuncu: o.ad_soyad, makbuz: m.makbuz_no, yabanci: yab.id, kod: kk.kodlar[0], kodSayisi: kk.kodlar.length }));
+      fs.writeFileSync(path.join(dizin, "beklenen.json"), JSON.stringify({ oyuncu: o.ad_soyad, makbuz: m.makbuz_no, yabanci: yab.id, kod: kk.kodlar[0], kodSayisi: kk.kodlar.length, kismi: kismi.id, iptalli: iptalli.id, yil: y2, ay: a2, doldurulan: hd.eklenen, yabanciDueTutar: yabanciDue?.tutar ?? null }));
       console.log("YAZ TAMAM");
       if (process.env.KABA_KAPANIS) { process.kill(process.pid, "SIGKILL"); } // elektrik kesintisi / görev yöneticisi
       win.close(); // gerçek kapanış yolu: window-all-closed → server.durdur → db.close → app.quit
@@ -87,7 +98,7 @@ app.on("browser-window-created", async (_e, win) => {
       const o = db.listPlayers().find((p) => p.ad_soyad === b.oyuncu);
       check("oyuncu kalıcı (grup dahil)", !!o && !!o.yas_grubu_id);
       check("ayar kalıcı", db.getSetting("kulup_adi") === "TEST KULÜBÜ");
-      check("makbuz ve aidat kalıcı", db.listReceipts(o.id)[0]?.makbuz_no === b.makbuz && db.listDues(o.id)[0]?.durum === "odendi");
+      check("makbuz ve aidat kalıcı", db.listReceipts(o.id).some((r) => r.makbuz_no === b.makbuz && !r.iptal) && db.listDues(o.id).find((d) => d.yil === b.yil && d.ay === b.ay)?.durum === "odendi");
       check("yoklama kalıcı", db.playerAttendance(o.id, "2026-01-01", "2026-12-31")[0]?.durum === "izinli");
       check("lisans makine kimliği kalıcı", !!db.lisansDurumu().makineId && db.getMetaValue("kurulumTarihi") !== null);
       // 07.09.2026 özellikleri
@@ -106,6 +117,14 @@ app.on("browser-window-created", async (_e, win) => {
       const fotolar = db.listDocuments(o.id).filter((d) => d.tip === "foto");
       check("vesikalık tek kayıt ve oyuncu foto yolu kalıcı", fotolar.length === 1 && fotolar[0].orijinal_ad === "v2.png" && db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu && fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)));
       check("şema sürümü 7 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "7");
+      const kd = db.getDue(b.yabanci, b.yil, b.ay);
+      check("kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)", kd?.durum === "kismi" && kd.odenen === 1000 && db.listUnpaid(b.yil, b.ay).some((x) => x.player_id === b.yabanci && x.kalan === kd.tutar - 1000));
+      const ip = db.getReceipt(b.iptalli);
+      check("makbuz iptal nedeni ve iptal eden kalıcı", ip?.iptal === 1 && ip.iptal_nedeni === "Yanlış oyuncu" && ip.iptal_eden === "Test Yönetici" && !!ip.iptal_zamani);
+      check("haftalık program ve doldurulan antrenmanlar kalıcı", JSON.parse(db.listAgeGroups().find((g) => g.id === o.yas_grubu_id).program)[0]?.saat === "18:00" && b.doldurulan === 1 && db.listTrainings("2027-04-05", "2027-04-11").some((tr) => tr.saat === "18:00" && tr.saha === "Saha 3"));
+      const akt = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan Kalıcı");
+      check("Excel'den aktarılan oyuncu, yeni grubu ve velisi kalıcı", !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009");
+      check("kurulum ve sezon ayarları kalıcı", db.getSetting("kurulum_tamam") === "1" && db.sezonDurumu().aktifSezon === "2026-2027");
       // Arayüz: kullanıcı adı önceki oturumdan hatırlanıyor, giriş yeni parolayla
       check("kullanıcı adı yeniden açılışta hatırlanıyor", (await js(`document.querySelector("input").value`)) === "admin");
       await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const p = document.querySelector("input[type=password]"); set.call(p, "kalici-parola-1"); p.dispatchEvent(new Event("input", { bubbles: true })); })()`);
