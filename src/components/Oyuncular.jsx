@@ -3,6 +3,7 @@ import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidat
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
+import { OyuncuAktar } from "./OyuncuAktar.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
 import { raporHtml } from "../lib/raporHtml.js";
 import { Ikon } from "./Ikon.jsx";
@@ -18,6 +19,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [durum, setDurum] = useState("aktif"); // varsayılan: aktif oyuncular (geçen sezonun pasifleri gizli, filtreyle görülür)
   const [odemeyen, setOdemeyen] = useState(false);
   const [yeni, setYeni] = useState(false);
+  const [aktarAcik, setAktarAcik] = useState(false);
   const [acik, setAcik] = useState(null);
   const toast = useToast();
   const { yil, ay } = bugun();
@@ -60,6 +62,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        {oturum?.role === "admin" && !saltOkunur && <Btn tur="ghost" ikon={<Ikon ad="yukle" />} onClick={() => setAktarAcik(true)}>İçe Aktar</Btn>}
         <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={excel}>Excel</Btn>
         <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={pdf}>PDF</Btn>
         {!saltOkunur && <Btn ikon={<Ikon ad="arti" />} onClick={() => setYeni(true)}>Yeni Oyuncu</Btn>}
@@ -93,6 +96,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         )}
         <Sayfalama sayfa={sayfa} toplam={toplam} sayfaBoyu={SAYFA_BOYU} onSayfa={setSayfa} birim="oyuncu" />
       </Kart>
+      {aktarAcik && <OyuncuAktar onKapat={() => setAktarAcik(false)} onAktarildi={yukle} />}
       {yeni && <OyuncuForm gruplar={gruplar} onKapat={() => setYeni(false)} onKaydedildi={(k) => { setYeni(false); yukle(); setAcik(k.id); }} />}
       {acik && <OyuncuKarti oyuncuId={acik} oturum={oturum} gruplar={gruplar} saltOkunur={saltOkunur} onKapat={() => { setAcik(null); yukle(); }} onMakbuzKes={onMakbuzKes} />}
     </div>

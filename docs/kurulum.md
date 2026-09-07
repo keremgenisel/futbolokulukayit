@@ -21,6 +21,13 @@
 6. **Ayarlar > Aidat Kalemleri**: forma, eşofman gibi kalemlerin fiyatlarını girin.
 7. **Yaş Grupları**: U9, U10, U11 … gruplarını oluşturun.
 
+## 1b. Mevcut oyuncu listesini Excel'den aktarma
+
+Kulübün elinde bir liste varsa tek tek girmeyin: **Oyuncular > İçe Aktar > Şablon İndir** ile şablonu
+alın, sütunları doldurun (Ad Soyad ve Doğum Tarihi zorunlu; TC, Yaş Grubu, Aidat, Veli vb. isteğe
+bağlı), sonra **Excel Dosyası Seç**. Önizlemede hatalı satırlar ve uyarılar görünür; "… Oyuncuyu Aktar"
+ile geçerli satırlar tek seferde eklenir. Tanınmayan yaş grubu adları otomatik açılır, kayıtlı TC'ler atlanır.
+
 ## 2. Günlük kullanım
 - **Yeni oyuncu**: Oyuncular > Yeni Oyuncu. Kayıt formundaki bilgileri girin, sonra oyuncu kartından
   aile bilgileri, acil kişiler ve belgeleri (sağlık raporu, fotoğraf, kimlik fotokopileri) ekleyin.

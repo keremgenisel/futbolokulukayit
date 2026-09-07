@@ -15,6 +15,7 @@ export const files = () => okul().files;
 export const cikti = () => okul().cikti;
 export const yedek = () => okul().yedek;
 export const optimize = () => okul().optimize;
+export const aktar = () => okul().aktar;
 export const lisans = () => okul().lisans;
 export const uygulama = () => okul().app;
 

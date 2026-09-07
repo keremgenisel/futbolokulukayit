@@ -62,6 +62,11 @@ declare global {
         geriYukleSec(): Promise<{ ok?: boolean; iptal?: boolean; error?: string; klasor?: string; oyuncu?: number; makbuz?: number; sonMakbuz?: string | null }>;
         geriYukle(klasor: string): Promise<{ ok?: boolean; error?: string }>;
       };
+      aktar: {
+        sablon(): Promise<{ ok?: boolean; iptal?: boolean; error?: string; yol?: string }>;
+        onizle(): Promise<{ ok?: boolean; iptal?: boolean; error?: string; dosya?: string; kayitlar?: any[]; hatalar?: { satir: number; mesaj: string }[]; uyarilar?: { satir: number; mesaj: string }[]; yeniGruplar?: string[] }>;
+        uygula(kayitlar: any[]): Promise<{ ok?: boolean; error?: string; eklenen?: number; yeniGrup?: number }>;
+      };
       optimize: {
         analiz(): Promise<{ ok?: boolean; error?: string; resim?: { adet: number; bayt: number; gruplar: Record<string, { adet: number; bayt: number }> }; diger?: { adet: number; bayt: number } }>;
         uygula(): Promise<{ ok?: boolean; error?: string; adet?: number; kucultulen?: number; once?: number; sonra?: number; tasarruf?: number }>;

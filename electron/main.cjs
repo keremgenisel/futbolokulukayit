@@ -7,6 +7,7 @@ const { registerFileHandlers } = require("./ipc/files.cjs");
 const { registerCiktiHandlers } = require("./ipc/cikti.cjs");
 const { registerYedekHandlers, otomatikYedek } = require("./ipc/yedek.cjs");
 const { registerOptimizeHandlers } = require("./ipc/optimize.cjs");
+const { registerAktarHandlers } = require("./ipc/aktar.cjs");
 const config = require("./config.cjs");
 const server = require("./server.cjs");
 
@@ -75,6 +76,7 @@ if (!app.requestSingleInstanceLock()) {
     registerCiktiHandlers(getSession);
     registerYedekHandlers(getSession);
     registerOptimizeHandlers(getSession);
+    registerAktarHandlers(getSession);
 
     ipcMain.handle("app:version", () => app.getVersion());
     let logoCache = null;

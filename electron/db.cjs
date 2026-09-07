@@ -770,7 +770,11 @@ function yedekBilgisi(dbPath) {
   } finally { try { conn?.close(); } catch {} }
 }
 
+// Dış modüller için işlem sarmalayıcı (aktarım gibi çok adımlı yazımlar tek işlemde olsun).
+const islem = (fn) => db.transaction(fn);
+
 module.exports = {
+  islem,
   init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi,
   getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
   sezonAdayListesi, sezonDurumu, yeniSezonaGec, SEZON_DURUMLARI,

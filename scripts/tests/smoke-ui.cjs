@@ -23,10 +23,11 @@ app.whenReady().then(async () => {
     const { registerCiktiHandlers } = require("../../electron/ipc/cikti.cjs");
     const { registerYedekHandlers } = require("../../electron/ipc/yedek.cjs");
     const { registerOptimizeHandlers } = require("../../electron/ipc/optimize.cjs");
+    const { registerAktarHandlers } = require("../../electron/ipc/aktar.cjs");
     const { ipcMain } = require("electron");
     db.init();
     const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1);
-    registerDataHandlers(); registerFileHandlers(getSession); registerCiktiHandlers(getSession); registerYedekHandlers(getSession); registerOptimizeHandlers(getSession);
+    registerDataHandlers(); registerFileHandlers(getSession); registerCiktiHandlers(getSession); registerYedekHandlers(getSession); registerOptimizeHandlers(getSession); registerAktarHandlers(getSession);
     ipcMain.handle("app:version", () => "smoke");
     ipcMain.handle("app:logo", () => "");
 

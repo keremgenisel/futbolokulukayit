@@ -119,6 +119,20 @@ app.whenReady().then(async () => {
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
 
+    // Excel aktarımı: tek işlem; yeni grup açılır, veli eklenir, bu ayın aidatı açılır; hata olursa hiçbiri yazılmaz
+    const { aktarUygula } = require("../../electron/ipc/aktar.cjs");
+    const { satirlariCoz } = require("../../electron/oyuncuAktar.cjs");
+    const coz = satirlariCoz([["Ad Soyad", "TC Kimlik No", "Doğum Tarihi", "Yaş Grubu", "Aylık Aidat", "Veli Adı", "Veli Telefonu"],
+      ["Aktarılan Bir", "55555555551", "01.01.2016", "U11", "3000", "Veli Bir", "0532 000 00 01"],
+      ["Aktarılan İki", "", "02.02.2016", "U14", "2500", "", ""]], { gruplar: db.listAgeGroups() });
+    const oncekiOyuncu = db.listPlayers().length;
+    const ak2 = aktarUygula(coz.kayitlar);
+    const a1 = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan Bir"), a2 = db.listPlayers().find((p) => p.ad_soyad === "Aktarılan İki");
+    check("aktarım: 2 oyuncu, 1 yeni grup (U14), veli ve bu ayın aidatı", ak2.eklenen === 2 && ak2.yeniGrup === 1 && db.listPlayers().length === oncekiOyuncu + 2
+      && a1.yas_grubu_ad === "U11" && a2.yas_grubu_ad === "U14" && db.listGuardians(a1.id)[0]?.gsm === "05320000001" && !!db.getDue(a1.id, new Date().getFullYear(), new Date().getMonth() + 1));
+    let aktarHata = false; try { aktarUygula([{ ad_soyad: "Sorunsuz", dogum_tarihi: "2016-01-01" }, { ad_soyad: "Kopya", dogum_tarihi: "2016-01-01", tc_no: "55555555551" }]); } catch (e) { aktarHata = /UNIQUE/.test(e.message); }
+    check("aktarımda hata olursa hiçbir kayıt yazılmaz", aktarHata && !db.listPlayers().some((p) => p.ad_soyad === "Sorunsuz"));
+
     // Ay ortasında kaydolan oyuncunun bu ayki aidatı yeniden başlatma beklemeden açılır; pasif→aktif de açar
     const simdi = new Date(); const buYil = simdi.getFullYear(), buAy = simdi.getMonth() + 1;
     const ortada = db.createPlayer({ ad_soyad: "Ay Ortası Kayıt", dogum_tarihi: "2015-01-01", yas_grubu_id: grp.id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 2500, odeme_donemi: "1-10" });
