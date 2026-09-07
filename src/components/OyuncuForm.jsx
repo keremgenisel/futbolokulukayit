@@ -82,7 +82,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
         <div style={satir}>
           <Alan etiket="Yaş Grubu">
             <Secim secenekler={gruplar.filter((x) => x.aktif)} bos="Seçin" {...g("yas_grubu_id")} aria-label="Yaş grubu" />
-            {oneri && <span style={{ fontSize: 12, color: "var(--soluk)" }}>{f.dogum_tarihi.slice(0, 4)} doğumlu → <b>{oneri.ad}</b> olabilir ({sezon} sezonu){oneri.id && String(oneri.id) !== String(f.yas_grubu_id) && <> · <button type="button" onClick={() => setF({ ...f, yas_grubu_id: String(oneri.id) })} style={{ background: "none", border: 0, padding: 0, color: "var(--mor)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>{oneri.ad} seç</button></>}</span>}
+            {oneri && <span style={{ fontSize: 12, color: "var(--soluk)" }}>{f.dogum_tarihi.slice(0, 4)} doğumlu → <b>{oneri.ad}</b> olabilir ({sezon} sezonu){oneri.adaylar.filter((a) => String(a.id) !== String(f.yas_grubu_id)).map((a) => <span key={a.id}> · <button type="button" onClick={() => setF({ ...f, yas_grubu_id: String(a.id) })} style={{ background: "none", border: 0, padding: 0, color: "var(--mor)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>{a.ad} seç</button></span>)}</span>}
           </Alan>
           <Alan etiket="Durum"><Secim secenekler={DURUMLAR} {...g("durum")} /></Alan>
           <Alan etiket="Kayıt Tarihi"><Girdi type="date" {...g("kayit_tarihi")} /></Alan>

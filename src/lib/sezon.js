@@ -48,7 +48,12 @@ export function ustGrupAdi(ad) {
 export function ustGrupOner(gruplar, mevcutId) {
   const mevcut = gruplar.find((g) => g.id === mevcutId);
   if (!mevcut) return mevcutId;
-  const hedefAd = ustGrupAdi(mevcut.ad).toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
-  const hedef = hedefAd && gruplar.find((g) => g.aktif !== 0 && g.ad.toLocaleUpperCase("tr-TR").replace(/\s+/g, "") === hedefAd);
-  return hedef ? hedef.id : mevcutId;
+  const norm = (/** @type {string} */ ad) => String(ad).toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
+  const bul = (/** @type {string} */ ad) => ad && gruplar.find((g) => g.aktif !== 0 && norm(g.ad) === norm(ad));
+  const hedef = bul(ustGrupAdi(mevcut.ad));
+  if (hedef) return hedef.id;
+  // "U11 A" → "U12 A" yoksa alt gruplar birleşmiş olabilir: sonek atılıp "U12" denenir.
+  const m = /^(\D*U\s*\d{1,2})(.+)$/i.exec(String(mevcut.ad).trim());
+  const govde = m ? bul(ustGrupAdi(m[1])) : null;
+  return govde ? govde.id : mevcutId;
 }

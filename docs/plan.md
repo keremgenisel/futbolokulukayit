@@ -320,6 +320,8 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - ~~İndirim yüzde ise → şu an sabit tutar giriliyor~~ — YAPILDI 07.09.2026: Ayarlar > Aidat Kalemleri'nde aidat taban fiyatı ve ücret tipi başına indirim yüzdesi (burslu varsayılan %100, indirimli/kardeş 0); oyuncu formunda ücret tipi seçilince aidat otomatik hesaplanır, elle değiştirilebilir.
 - ~~Mevcut Excel oyuncu listesi varsa → `scripts/excel-aktar.cjs` yazılır~~ — YAPILDI 07.09.2026 (Oyuncular > İçe Aktar).
 - Yazıcı fiş yazıcıysa → makbuz şablonuna 80 mm düzen eklenir (yarım gün).
+- Bir yaşta çok oyuncu (iki U11) → KARAR 07.09.2026: alt grup alanı YOK; "U11 A" / "U11 B" iki ayrı yaş grubu açılır
+  (rehber §3c). Doğum yılı ipucu alt grupları aday gösterir; sezon sihirbazı "U12 A" yoksa "U12"ye düşer.
 
 ### 8.4 Faz 3 adayları (kulüp isterse)
 - WhatsApp bildirimleri (tek tıkla gönder → otomasyon), bkz. §1.6.

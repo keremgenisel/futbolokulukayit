@@ -77,6 +77,24 @@ Geç" deyin. Yenilemeyenler silinmez, "Pasif" olur: aidat borcu açılmaz, liste
 kartından durumu Aktif yapmanız yeter. Oyuncular listesi varsayılan olarak yalnız aktif oyuncuları
 gösterir; pasifleri görmek için durum filtresini değiştirin.
 
+## 3c. Bir yaş grubunda çok oyuncu varsa (örnek: iki U11 grubu)
+
+Bir yaş grubuna sığmayacak kadar oyuncu olduğunda o yaşı iki ayrı grup olarak açın. Programda ek bir
+"alt grup" alanı yoktur, ayrı grup açmak yeterlidir.
+
+1. Ayarlar > Yaş Grupları'ndan "U11 A" ve "U11 B" adında iki grup açın. Sıra numaralarını ardışık verin ki
+   listelerde yan yana dursunlar.
+2. Her grubun haftalık programını kendi gün, saat ve sahasıyla girin. İki grup aynı saatte çalışıyorsa sahayı
+   farklı yazın.
+3. Oyuncuları Oyuncular sayfasından açıp yaş grubunu A ya da B olarak seçin; doğum yılı ipucu "U11 A seç /
+   U11 B seç" bağlantılarını gösterir. Sezon ortasında bölüyorsanız B'ye geçecek oyuncuları tek tek düzenleyin.
+4. Yoklama, raporlar ve pano iki grubu ayrı gösterir. U11 toplamı gerekiyorsa Excel çıktısında iki satırı
+   toplayın.
+5. Yeni sezona geçerken sihirbaz "U11 A" için "U12 A" önerir; "U12 A" yoksa "U12"yi önerir. Geçişten önce
+   Yaş Grupları'nda gelecek sezonun gruplarını açın.
+
+Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antrenman ve yoklama kayıtları da silinir.
+
 ## 4. Sorun giderme
 - **"Lisans salt okunur modda"**: Ayarlar > Lisans'tan geçerli anahtar girin.
 - **"Sunucuya ulaşılamadı"**: Sunucu bilgisayarda program açık mı, aynı ağda mısınız, Tailscale bağlı mı?

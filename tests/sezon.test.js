@@ -32,4 +32,11 @@ describe("sezon mantığı", () => {
     expect(ustGrupOner(g, 4)).toBe(4);
     expect(ustGrupOner(g, null)).toBe(null);
   });
+  it("üst grup önerisi: alt gruplu ad (U11 A) → U12 A; yoksa U12; o da yoksa mevcut kalır", () => {
+    const g = [{ id: 1, ad: "U11 A", aktif: 1 }, { id: 2, ad: "U11 B", aktif: 1 }, { id: 3, ad: "U12 A", aktif: 1 }, { id: 4, ad: "U12", aktif: 1 }, { id: 5, ad: "U13 B", aktif: 1 }, { id: 6, ad: "U12 B", aktif: 0 }];
+    expect(ustGrupOner(g, 1)).toBe(3); // U12 A var
+    expect(ustGrupOner(g, 2)).toBe(4); // U12 B pasif → gövde U12
+    expect(ustGrupOner(g, 3)).toBe(3); // U13 A yok, U13 yok → kal
+    expect(ustGrupOner(g, 5)).toBe(5);
+  });
 });

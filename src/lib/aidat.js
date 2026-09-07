@@ -191,8 +191,10 @@ export const gsmGecerliMi = (v) => /^05\d{9}$/.test(gsmNormalize(v));
 
 /**
  * Doğum yılından yaş grubu önerisi (yalnız ipucu; grup elle seçilir). Kural: U(N), N = sezon bitiş yılı − doğum yılı.
+ * Tam ad ("U11") yoksa aynı yaşın alt grupları ("U11 A", "U11 B") aday olur; tek adaysa id dolu, birden fazlaysa
+ * id boş ve `adaylar` listesi arayüzde seçenek olarak gösterilir.
  * @param {string} dogumIso @param {string} sezon "2026-2027" @param {{id:number, ad:string, aktif?:number}[]} gruplar
- * @returns {{ ad: string, id: number|null } | null}
+ * @returns {{ ad: string, id: number|null, adaylar: {id:number, ad:string}[] } | null}
  */
 export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
   const yil = Number(String(dogumIso || "").slice(0, 4)); const bitis = Number(String(sezon || "").slice(5, 9));
@@ -200,6 +202,10 @@ export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
   const n = bitis - yil;
   if (n < 5 || n > 20) return null;
   const ad = `U${n}`;
-  const g = gruplar.find((x) => x.aktif !== 0 && String(x.ad).toLocaleUpperCase("tr-TR").replace(/\s+/g, "") === ad);
-  return { ad, id: g ? g.id : null };
+  const norm = (/** @type {{ad:string}} */ x) => String(x.ad).toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
+  const aktif = gruplar.filter((x) => x.aktif !== 0);
+  const tam = aktif.find((x) => norm(x) === ad);
+  const altOnek = new RegExp(`^${ad}(?!\\d)`); // "U11A" evet, "U110" hayır
+  const adaylar = (tam ? [tam] : aktif.filter((x) => altOnek.test(norm(x)))).map((x) => ({ id: x.id, ad: x.ad }));
+  return { ad, id: adaylar.length === 1 ? adaylar[0].id : null, adaylar };
 }
