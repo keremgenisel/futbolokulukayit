@@ -25,7 +25,7 @@ const YOLLAR = {
   sunucu: '<rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/><path d="M7 7h.01M7 17h.01"/>',
   yedek: '<path d="M12 3v11M8 10l4 4 4-4"/><path d="M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4"/>',
   cikis: '<path d="M10 17l5-5-5-5M15 12H3"/><path d="M13 3h6v18h-6"/>',
-  whatsapp: '<path d="M4 20l1.3-3.9A8 8 0 1 1 8.3 19.2z"/><path d="M9.5 9.5c.2 1.6 1.8 3.4 3.5 3.8l1.2-1.2 2 .9c-.2 1.5-1.2 2.2-2.4 2-3-.5-6-3.5-6.5-6.5-.2-1.2.5-2.2 2-2.4l.9 2z"/>',
+  whatsapp: '<path d="M12 3.5a8.5 8.5 0 0 0-7.3 12.9L3.5 20.5l4.2-1.2A8.5 8.5 0 1 0 12 3.5z"/><g transform="translate(12 12) scale(.72) translate(-11.8 -12)"><path d="M9.5 9.5c.2 1.6 1.8 3.4 3.5 3.8l1.2-1.2 2 .9c-.2 1.5-1.2 2.2-2.4 2-3-.5-6-3.5-6.5-6.5-.2-1.2.5-2.2 2-2.4l.9 2z"/></g>', // balon (12,12) merkezli; ahize merkeze göre küçültülmüş, çizgiye değmez
   geri: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/>',
 };
 
