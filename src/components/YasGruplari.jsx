@@ -53,7 +53,7 @@ export function YasGruplari({ saltOkunur }) {
                   <td><Girdi value={duzenle.sezon} onChange={(e) => setDuzenle({ ...duzenle, sezon: e.target.value })} style={{ height: 36 }} /></td>
                   <td>{sayi(g.id)}</td>
                   <td><label style={{ display: "flex", gap: 6, alignItems: "center" }}><input type="checkbox" checked={!!duzenle.aktif} onChange={(e) => setDuzenle({ ...duzenle, aktif: e.target.checked })} /> Aktif</label></td>
-                  <td style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><Btn kucuk tur="ghost" onClick={() => setDuzenle(null)}>Vazgeç</Btn><Btn kucuk onClick={kaydet}>Kaydet</Btn></td>
+                  <td><div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}><Btn kucuk tur="ghost" onClick={() => setDuzenle(null)}>Vazgeç</Btn><Btn kucuk onClick={kaydet}>Kaydet</Btn></div></td>
                 </tr>
               ) : (
                 <tr key={g.id}>
@@ -62,9 +62,9 @@ export function YasGruplari({ saltOkunur }) {
                   <td>{g.sezon || "—"}</td>
                   <td><b>{sayi(g.id)}</b></td>
                   <td>{g.aktif ? <Rozet ton="green">Aktif</Rozet> : <Rozet ton="gray">Pasif</Rozet>}</td>
-                  <td style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                  <td><div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                     {!saltOkunur && <><Btn kucuk tur="ghost" onClick={() => setDuzenle({ ...g })}>Düzenle</Btn><Btn kucuk tur="danger" onClick={() => setSil(g)}>Sil</Btn></>}
-                  </td>
+                  </div></td>
                 </tr>
               ))}
             </tbody>

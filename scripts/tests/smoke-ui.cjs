@@ -36,6 +36,7 @@ app.whenReady().then(async () => {
     const o1 = db.createPlayer({ tc_no: "10000000001", ad_soyad: "Kerem Yılmaz", dogum_tarihi: "2014-03-14", yas_grubu_id: u12.id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3500, odeme_donemi: "1-10" });
     const o2 = db.createPlayer({ tc_no: "10000000002", ad_soyad: "Kaan Yıldız", dogum_tarihi: "2015-11-02", yas_grubu_id: u11.id, durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3500, odeme_donemi: "1-10" });
     db.createPlayer({ tc_no: "10000000003", ad_soyad: "Ela Demir", dogum_tarihi: "2017-06-21", yas_grubu_id: u11.id, durum: "deneme", ucret_tipi: "kardes", aylik_aidat: 3000, odeme_donemi: "11-20" });
+    db.createUser({ username: "hoca", password: "hoca-sifre-1", ad_soyad: "Ahmet Hoca", role: "kullanici" });
     db.createPlayer({ tc_no: "10000000004", ad_soyad: "Yusuf Kara", dogum_tarihi: "2013-05-17", yas_grubu_id: u12.id, durum: "sakat", ucret_tipi: "burslu", aylik_aidat: 0, odeme_donemi: "1-10" });
     db.addGuardian(o2.id, { tip: "baba", ad_soyad: "Murat Yıldız", gsm: "0533 000 00 12", whatsapp_no: "0533 000 00 12", veli_mi: 1 });
     db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1);
