@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Kart, Btn, Girdi, Avatar, Rozet, useToast } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun, hataMetni } from "../lib/api.js";
-import { AY_ADLARI, gecikmeGunu, tesiseGirebilir } from "../lib/aidat.js";
+import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR } from "../lib/aidat.js";
 import { sezonSonuMu, guncelSezon } from "../lib/sezon.js";
 
 function Stat({ etiket, deger, renk, not }) {
@@ -84,7 +84,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>{AY_ADLARI[ay - 1]} Aidatı Ödemeyenler</h3><a href="#" onClick={(e) => { e.preventDefault(); onSekme("oyuncular", "borclu"); }} style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}>Tümü ({borclular.length})</a></div>
           {borclular.length === 0 ? <div style={{ color: "var(--soluk)" }}>Borçlu oyuncu yok.</div> : (
             <table><thead><tr><th>Oyuncu</th><th>Grup</th><th>Ödeme dönemi</th><th>Gecikme</th><th></th></tr></thead><tbody>
-              {borclular.slice(0, 8).map((b) => { const g = gecikmeGunu(b.odeme_donemi, b.yil, b.ay, new Date()); return <tr key={b.id} onClick={() => onOyuncu(b.player_id)} style={{ cursor: "pointer" }}><td style={{ fontWeight: 600 }}>{b.ad_soyad}</td><td>{b.yas_grubu_ad || "—"}</td><td>{b.odeme_donemi}</td><td style={{ color: g > 0 ? "var(--kirmizi)" : "var(--soluk)" }}>{g > 0 ? `${g} gün` : "—"}</td><td>{!saltOkunur && <Btn kucuk tur="sari" onClick={(e) => { e.stopPropagation(); onMakbuzKes(b.player_id); }}>Makbuz</Btn>}</td></tr>; })}
+              {borclular.slice(0, 8).map((b) => { const g = gecikmeGunu(b.odeme_donemi, b.yil, b.ay, new Date()); return <tr key={b.id} onClick={() => onOyuncu(b.player_id)} style={{ cursor: "pointer" }}><td style={{ fontWeight: 600 }}>{b.ad_soyad}</td><td>{b.yas_grubu_ad || "—"}</td><td>{b.odeme_donemi}</td><td style={{ color: g > 0 ? "var(--kirmizi)" : "var(--soluk)" }}>{g > 0 ? `${g} gün` : "—"}{b.durum === "kismi" && <span style={{ display: "block", fontSize: 12 }}>kalan {paraTR(b.kalan)}</span>}</td><td>{!saltOkunur && <Btn kucuk tur="sari" onClick={(e) => { e.stopPropagation(); onMakbuzKes(b.player_id); }}>Makbuz</Btn>}</td></tr>; })}
             </tbody></table>
           )}
         </Kart>

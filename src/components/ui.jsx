@@ -124,8 +124,8 @@ export function Sekmeler({ liste, aktif, onSec }) {
 }
 
 export const durumTonu = (d) => ({ aktif: "green", deneme: "yellow", sakat: "red", pasif: "gray", ayrildi: "gray", dondurma: "gray" }[d] || "gray");
-export const aidatTonu = (d) => ({ odendi: "green", odenmedi: "red", muaf: "gray" }[d] || "gray");
-export const aidatEtiket = (d) => ({ odendi: "Ödendi", odenmedi: "Ödenmedi", muaf: "Muaf" }[d] || "Kayıt yok");
+export const aidatTonu = (d) => ({ odendi: "green", odenmedi: "red", kismi: "yellow", muaf: "gray" }[d] || "gray");
+export const aidatEtiket = (d) => ({ odendi: "Ödendi", odenmedi: "Ödenmedi", kismi: "Kısmi", muaf: "Muaf" }[d] || "Kayıt yok");
 
 // Ortak sayfalama çubuğu: "1–50 / 312" + önceki/sonraki. Tek sayfaysa hiç çizilmez.
 export function Sayfalama({ sayfa, toplam, sayfaBoyu, onSayfa, birim = "kayıt" }) {

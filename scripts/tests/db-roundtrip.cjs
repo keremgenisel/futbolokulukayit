@@ -93,7 +93,7 @@ app.whenReady().then(async () => {
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
     check("aynı pasaport ikinci kez reddedilir", pasaportTekil);
     check("iki TC'siz oyuncu sorun çıkarmaz (NULL tekillikte sayılmaz)", !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id);
-    check("şema sürümü 4 ve pasaport sütunu var", db.getMetaValue("schema_version") === "4" && db.getPlayer(yab.id).pasaport_no === "U1234567");
+    check("şema sürümü 5 ve pasaport sütunu var", db.getMetaValue("schema_version") === "5" && db.getPlayer(yab.id).pasaport_no === "U1234567");
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
     const forma = db.listFeeItems().find((k) => k.kod === "forma"), mont = db.listFeeItems().find((k) => k.kod === "mont");
@@ -118,6 +118,22 @@ app.whenReady().then(async () => {
     const t2 = db.createTraining({ age_group_id: grp.id, tarih: "2026-09-20", saat: "10:00" }); db.setAttendance(t2.id, oyuncu.id, "gelmedi");
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
+
+    // Kısmi ödeme: 1500 → kismi (kalan 2000), +2000 → odendi; ilk makbuz iptal → yeniden kismi; borçlu listesinde kalan
+    db.ensureMonthlyDues(2027, 1);
+    const k1 = db.createReceipt({ player_id: oyuncu.id, tarih: "2027-01-03", satirlar: [{ fee_item_id: aidatKalemi.id, tutar: 1500, aciklama: "Ocak 2027", yil: 2027, ay: 1 }] });
+    let d1 = db.getDue(oyuncu.id, 2027, 1);
+    check("kısmi ödeme: durum kismi, ödenen 1500, borçlu listesinde kalan 2000", d1.durum === "kismi" && d1.odenen === 1500 && d1.tutar === 3500 && db.listUnpaid(2027, 1).find((b) => b.player_id === oyuncu.id)?.kalan === 2000);
+    check("pano borçlu sayısı kısmiyi sayar", db.panoOzet({ yil: 2027, ay: 1, bugun: "2027-01-05" }).borclu >= 1 && db.listPlayersWithDue({ yil: 2027, ay: 1, sadeceOdemeyen: true }).some((p) => p.id === oyuncu.id));
+    const k2 = db.createReceipt({ player_id: oyuncu.id, tarih: "2027-01-10", satirlar: [{ fee_item_id: aidatKalemi.id, tutar: 2000, aciklama: "Ocak 2027", yil: 2027, ay: 1 }] });
+    d1 = db.getDue(oyuncu.id, 2027, 1);
+    check("kalan ödenince ödendi", d1.durum === "odendi" && d1.odenen === 3500 && !db.listUnpaid(2027, 1).some((b) => b.player_id === oyuncu.id));
+    db.cancelReceipt(k1.id);
+    d1 = db.getDue(oyuncu.id, 2027, 1);
+    check("ilk makbuz iptal → yeniden kısmi (ödenen 2000)", d1.durum === "kismi" && d1.odenen === 2000);
+    db.cancelReceipt(k2.id);
+    check("ikinci de iptal → ödenmedi, ödenen 0", db.getDue(oyuncu.id, 2027, 1).durum === "odenmedi" && db.getDue(oyuncu.id, 2027, 1).odenen === 0);
+    check("iptal edilmiş makbuz ikinci kez iptalde ödeneni bozmaz", (db.cancelReceipt(k2.id), db.getDue(oyuncu.id, 2027, 1).odenen === 0));
 
     // Tek makbuzda iki aidat ayı: ikisi de ödendi; iptal ikisini de geri açar
     db.ensureMonthlyDues(2026, 11); db.ensureMonthlyDues(2026, 12);

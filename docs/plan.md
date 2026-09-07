@@ -420,3 +420,17 @@ listesi ve tesise giriş kontrolü kirlenir.
   sezonundan eskiyse "sezon bitti" uyarısı + "Yeni Sezona Geç" düğmesi (Ayarlar > Yeni Sezon'a götürür).
 - Oyuncular listesi varsayılan filtre **Aktif** oldu; pasifler "Tüm durumlar"/"Pasif" ile görülür.
 - Saf mantık `src/lib/sezon.js` (güncel sezon, sonraki sezon, sezon sonu, üst grup önerisi); şema 4.
+
+## 11. 07.09.2026 öğleden sonra eklenenler ve Faz 3'e kalanlar
+
+Uygulandı: aidat kayıtları uygulama açıkken de üretilir (saatte bir + pencere öne gelince; yeni kayıt ve
+pasif→aktif'te hemen), Excel'den oyuncu aktarımı (Oyuncular > İçe Aktar), ilk kurulum sihirbazı, tek makbuzda
+birden fazla aidat ayı, kısmi ödeme (`monthly_dues.odenen`, durum `kismi`, kalan borç; şema 5).
+
+### 11.1 Faz 3'e kalanlar (öneri listesinden)
+- **Otomatik güncelleme + lisans sunucusu yayını** (Kerem): GitHub deposu push, `aktivasyon-sunucu/deploy.sh`,
+  `AKTIVASYON_URL`, tag `v1.0.0` (bkz. §8.1).
+- **İki yeni rapor:** yönteme göre aylık tahsilat özeti (nakit/havale ayrımı); yoklama yüzdesi düşük oyuncular.
+- **Windows'ta gerçek yazıcı testi:** kulüp bilgisayarında makbuz basımı, kağıt boyutu ve kenar boşlukları.
+- **Arayüz tercihlerini ana sürece taşıma:** kenar menü ve hatırlanan kullanıcı adı localStorage'da; ani kapanışta
+  kaybolabiliyor (config.json'a taşınırsa kalıcı olur). Düşük öncelik.

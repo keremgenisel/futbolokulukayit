@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Alan, Girdi, Secim, Avatar, Sekmeler, Onay, Bos, useToast, aidatTonu, aidatEtiket } from "./ui.jsx";
 import { db, files, hataMetni } from "../lib/api.js";
-import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi } from "../lib/aidat.js";
+import { DURUMLAR, UCRET_TIPLERI, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -147,8 +147,8 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           <div>
             <h3 style={{ fontSize: 20, marginBottom: 12 }}>Aylık Aidat</h3>
             {aidatlar.length === 0 ? <Bos metin="Aidat kaydı yok." /> : (
-              <table><thead><tr><th>Dönem</th><th>Tutar</th><th>Durum</th></tr></thead><tbody>
-                {aidatlar.map((a) => <tr key={a.id}><td>{AY_ADLARI[a.ay - 1]} {a.yil}</td><td>{paraTR(a.tutar)}</td><td><Rozet ton={aidatTonu(a.durum)}>{aidatEtiket(a.durum)}</Rozet></td></tr>)}
+              <table><thead><tr><th>Dönem</th><th>Tutar</th><th>Ödenen</th><th>Durum</th></tr></thead><tbody>
+                {aidatlar.map((a) => <tr key={a.id}><td>{AY_ADLARI[a.ay - 1]} {a.yil}</td><td>{paraTR(a.tutar)}</td><td>{a.durum === "muaf" ? "—" : paraTR(a.odenen || 0)}</td><td><Rozet ton={aidatTonu(a.durum)}>{aidatEtiket(a.durum)}</Rozet>{a.durum === "kismi" && <span style={{ fontSize: 12, color: "var(--kirmizi)", marginLeft: 6 }}>kalan {paraTR(aidatKalan(a))}</span>}</td></tr>)}
               </tbody></table>
             )}
             {!tumu.aidat && aidatlar.length >= SON.aidat && <TumunuGoster onClick={() => setTumu({ ...tumu, aidat: true })} metin={`Son ${SON.aidat} dönem gösteriliyor`} />}

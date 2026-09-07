@@ -47,7 +47,7 @@ function getDbKey() {
 const isEncrypted = () => !!getDbKey();
 
 // ── Şema ──
-const SCHEMA_VERSION = 4; // 2: recovery_codes; 3: uyruk+pasaport_no; 4: players.sezon (yeni sezon geçişi)
+const SCHEMA_VERSION = 5; // 2: recovery_codes; 3: uyruk+pasaport_no; 4: players.sezon; 5: monthly_dues.odenen (kısmi ödeme)
 const SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
@@ -150,9 +150,10 @@ CREATE TABLE IF NOT EXISTS monthly_dues (
   player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
   yil INTEGER NOT NULL,
   ay INTEGER NOT NULL,
-  tutar REAL NOT NULL DEFAULT 0,
-  durum TEXT NOT NULL DEFAULT 'odenmedi',         -- odenmedi|odendi|muaf
-  receipt_id INTEGER REFERENCES receipts(id) ON DELETE SET NULL,
+  tutar REAL NOT NULL DEFAULT 0,                  -- beklenen aylık aidat
+  odenen REAL NOT NULL DEFAULT 0,                 -- makbuzlarla tahsil edilen toplam (kısmi ödeme)
+  durum TEXT NOT NULL DEFAULT 'odenmedi',         -- odenmedi|kismi|odendi|muaf
+  receipt_id INTEGER REFERENCES receipts(id) ON DELETE SET NULL,  -- son makbuz
   UNIQUE(player_id, yil, ay)
 );
 
@@ -245,6 +246,8 @@ function migrate() {
   if (!kolonlar.has("uyruk")) db.exec("ALTER TABLE players ADD COLUMN uyruk TEXT NOT NULL DEFAULT 'tc'");
   if (!kolonlar.has("pasaport_no")) db.exec("ALTER TABLE players ADD COLUMN pasaport_no TEXT");
   if (!kolonlar.has("sezon")) db.exec("ALTER TABLE players ADD COLUMN sezon TEXT NOT NULL DEFAULT ''");
+  const dueKolon = new Set(db.prepare("PRAGMA table_info(monthly_dues)").all().map((c) => c.name));
+  if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }
@@ -423,7 +426,7 @@ const listDues = (pid, limit = null) => limit
   ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
   : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
 const listUnpaid = (yil, ay) => db.prepare(
-  "SELECT d.*, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum='odenmedi' ORDER BY p.ad_soyad"
+  "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad"
 ).all(yil, ay);
 
 // ── receipts ──
@@ -431,6 +434,14 @@ function nextReceiptNo(yil) {
   const last = db.prepare("SELECT makbuz_no FROM receipts WHERE makbuz_no LIKE ? ORDER BY makbuz_no DESC LIMIT 1").get(`${yil}-%`);
   const n = last ? Number(last.makbuz_no.split("-")[1]) + 1 : 1;
   return `${yil}-${String(n).padStart(4, "0")}`;
+}
+// Ödenen tutara göre durumu yeniden hesapla (muaf değişmez).
+function aidatDurumGuncelle(pid, yil, ay) {
+  const d = db.prepare("SELECT tutar, odenen, durum FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay);
+  if (!d) return;
+  if (d.durum === "muaf" && d.odenen <= 0) return; // muaf kayıt ödeme almadıysa muaf kalır; ödeme geldiyse ödendi olur
+  const durum = d.odenen <= 0 ? "odenmedi" : d.odenen >= d.tutar ? "odendi" : "kismi";
+  db.prepare("UPDATE monthly_dues SET durum=? WHERE player_id=? AND yil=? AND ay=?").run(durum, pid, yil, ay);
 }
 function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden = "", not_ = "", satirlar = [] }) {
   const yil = Number(String(tarih).slice(0, 4));
@@ -445,8 +456,11 @@ function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden 
     for (const l of satirlar) {
       insLine.run(rid, l.fee_item_id || null, l.aciklama || "", Number(l.tutar || 0), l.yil || null, l.ay || null);
       if (l.fee_item_id === aidatId && l.yil && l.ay) {
-        db.prepare("INSERT INTO monthly_dues (player_id,yil,ay,tutar,durum,receipt_id) VALUES (?,?,?,?,'odendi',?) ON CONFLICT(player_id,yil,ay) DO UPDATE SET durum='odendi', receipt_id=excluded.receipt_id, tutar=excluded.tutar")
-          .run(player_id, l.yil, l.ay, Number(l.tutar || 0), rid);
+        // Kısmi ödeme: ödenen birikir; beklenen tutara ulaşınca 'odendi', eksikse 'kismi'. Kayıt yoksa (ileri ay) tutar = ödenen.
+        const tut = Number(l.tutar || 0);
+        db.prepare("INSERT INTO monthly_dues (player_id,yil,ay,tutar,odenen,durum,receipt_id) VALUES (?,?,?,?,?,'odendi',?) ON CONFLICT(player_id,yil,ay) DO UPDATE SET odenen=odenen+excluded.odenen, receipt_id=excluded.receipt_id")
+          .run(player_id, l.yil, l.ay, tut, tut, rid);
+        aidatDurumGuncelle(player_id, l.yil, l.ay);
       }
     }
     return { id: rid, makbuz_no };
@@ -500,13 +514,13 @@ function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sade
   if (q) { where.push("(p.ad_soyad LIKE ? OR p.tc_no LIKE ? OR p.pasaport_no LIKE ?)"); args.push(`%${q}%`, `%${q}%`, `%${q}%`); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum) { where.push("p.durum=?"); args.push(durum); }
-  if (sadeceOdemeyen) where.push("d.durum='odenmedi'");
+  if (sadeceOdemeyen) where.push("d.durum IN ('odenmedi','kismi')");
   const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
     ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
   return { govde, args };
 }
-const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar";
+const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen";
 function listPlayersWithDue(opts = {}) {
   const { govde, args } = playersWhere(opts);
   return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
@@ -526,8 +540,8 @@ function playersPage({ sayfa = 1, sayfaBoyu = 50, ...opts } = {}) {
 const SEZON_DURUMLARI = ["aktif", "deneme", "sakat"];
 // Sihirbaz listesi: sezonda aktif sayılan oyuncular + geçmiş ödenmemiş aidat sayısı/tutarı.
 const sezonAdayListesi = () => db.prepare(`SELECT p.id, p.ad_soyad, p.durum, p.yas_grubu_id, p.sezon, p.aylik_aidat, p.ucret_tipi, g.ad AS yas_grubu_ad,
-    (SELECT count(*) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum='odenmedi') AS borc_adet,
-    (SELECT COALESCE(sum(tutar),0) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum='odenmedi') AS borc_tutar
+    (SELECT count(*) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum IN ('odenmedi','kismi')) AS borc_adet,
+    (SELECT COALESCE(sum(MAX(0, tutar-odenen)),0) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum IN ('odenmedi','kismi')) AS borc_tutar
   FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`).all();
 function sezonDurumu() {
   return {
@@ -557,7 +571,7 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
         const notlar = p.notlar ? `${p.notlar}\n${notEk}` : notEk;
         db.prepare("UPDATE players SET durum='pasif', notlar=?, updated_at=datetime('now') WHERE id=?").run(notlar, p.id);
         pasif++;
-        if (eskiBorcSil) borcSilinen += db.prepare("UPDATE monthly_dues SET durum='muaf' WHERE player_id=? AND durum='odenmedi'").run(p.id).changes;
+        if (eskiBorcSil) borcSilinen += db.prepare("UPDATE monthly_dues SET durum='muaf' WHERE player_id=? AND durum IN ('odenmedi','kismi')").run(p.id).changes;
       }
     }
     db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1").run(sezon);
@@ -573,7 +587,7 @@ function panoOzet({ yil, ay, bugun }) {
   const aktif = db.prepare("SELECT count(*) AS n FROM players WHERE durum IN ('aktif','deneme','sakat')").get().n;
   const grup = db.prepare("SELECT count(*) AS n FROM age_groups WHERE aktif=1").get().n;
   const odeyen = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum='odendi'").get(yil, ay).n;
-  const borclu = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum='odenmedi'").get(yil, ay).n;
+  const borclu = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum IN ('odenmedi','kismi')").get(yil, ay).n;
   const antrenmanlar = db.prepare(`SELECT t.*, g.ad AS yas_grubu_ad,
       (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
       (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
@@ -585,8 +599,14 @@ function panoOzet({ yil, ay, bugun }) {
 
 const cancelReceipt = (id) => {
   const tx = db.transaction(() => {
+    const r = db.prepare("SELECT player_id, iptal FROM receipts WHERE id=?").get(id);
+    if (!r || r.iptal) return;
     db.prepare("UPDATE receipts SET iptal=1 WHERE id=?").run(id);
-    db.prepare("UPDATE monthly_dues SET durum='odenmedi', receipt_id=NULL WHERE receipt_id=?").run(id);
+    // Makbuzun aidat satırları ödenenden düşülür; başka makbuzla kısmen ödenmişse 'kismi' kalır
+    for (const l of db.prepare("SELECT tutar, yil, ay FROM receipt_lines WHERE receipt_id=? AND yil IS NOT NULL AND ay IS NOT NULL").all(id)) {
+      db.prepare("UPDATE monthly_dues SET odenen=MAX(0, odenen-?), receipt_id=NULL WHERE player_id=? AND yil=? AND ay=?").run(Number(l.tutar || 0), r.player_id, l.yil, l.ay);
+      aidatDurumGuncelle(r.player_id, l.yil, l.ay);
+    }
   });
   tx();
   return { ok: true };

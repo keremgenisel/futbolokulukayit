@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa, sayiAyikla, sayiBicimle } from "../src/lib/aidat.js";
+import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa, sayiAyikla, sayiBicimle, aidatDurumHesapla, aidatKalan } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
   it("aktif + normal ücret → ödenmedi olarak açılır", () => {
@@ -117,5 +117,25 @@ describe("para girişi biçimleme", () => {
     expect(sayiBicimle("")).toBe("");
     expect(sayiBicimle(null)).toBe("");
     expect(sayiBicimle("0")).toBe("0");
+  });
+});
+
+describe("kısmi ödeme", () => {
+  it("durum ödenen tutara göre: 0 ödenmedi, eksik kısmi, tam ödendi, muaf değişmez", () => {
+    expect(aidatDurumHesapla(3500, 0)).toBe("odenmedi");
+    expect(aidatDurumHesapla(3500, 1500)).toBe("kismi");
+    expect(aidatDurumHesapla(3500, 3500)).toBe("odendi");
+    expect(aidatDurumHesapla(3500, 4000)).toBe("odendi");
+    expect(aidatDurumHesapla(0, 0, "muaf")).toBe("muaf");
+  });
+  it("kalan borç", () => {
+    expect(aidatKalan({ tutar: 3500, odenen: 1500, durum: "kismi" })).toBe(2000);
+    expect(aidatKalan({ tutar: 3500, odenen: 0, durum: "odenmedi" })).toBe(3500);
+    expect(aidatKalan({ tutar: 3500, odenen: 3500, durum: "odendi" })).toBe(0);
+    expect(aidatKalan({ tutar: 0, odenen: 0, durum: "muaf" })).toBe(0);
+    expect(aidatKalan(null)).toBe(0);
+  });
+  it("kısmi ödemeyle tesise girilemez", () => {
+    expect(tesiseGirebilir({ durum: "aktif" }, { durum: "kismi" })).toBe(false);
   });
 });

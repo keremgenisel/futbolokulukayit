@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Onay, Bos, useToast, ParaGirdi } from "./ui.jsx";
 import { db, cikti, bugun, hataMetni } from "../lib/api.js";
-import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI } from "../lib/aidat.js";
+import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 
@@ -42,10 +42,10 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     try {
       const p = await db("getPlayer", id); setOyuncu(p); setQ(""); setSonuc([]);
       const d = await db("listDues", id); setAidatlar(d);
-      const ilkBorc = [...d].reverse().find((x) => x.durum === "odenmedi"); // en eski borç önce
+      const ilkBorc = [...d].reverse().find((x) => x.durum === "odenmedi" || x.durum === "kismi"); // en eski borç önce
       const secim = ilkBorc ? { yil: ilkBorc.yil, ay: ilkBorc.ay } : { yil, ay };
       const muaf = p.ucret_tipi === "ucretsiz" || !(p.aylik_aidat > 0);
-      setAidatAylar(muaf ? {} : { [ayAnahtar(secim.yil, secim.ay)]: String(ilkBorc?.tutar || p.aylik_aidat) });
+      setAidatAylar(muaf ? {} : { [ayAnahtar(secim.yil, secim.ay)]: String(ilkBorc ? aidatKalan(ilkBorc) : p.aylik_aidat) });
       setSecili({});
     } catch (e) { toast("err", hataMetni(e)); }
   }, [yil, ay, toast]);
@@ -53,10 +53,10 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   useEffect(() => { if (secilenOyuncuId && kalemler.length) { oyuncuSec(secilenOyuncuId); onSecildi?.(); } }, [secilenOyuncuId, kalemler, oyuncuSec, onSecildi]);
 
   const donemSecenekleri = (() => {
-    const borclar = aidatlar.filter((a) => a.durum === "odenmedi").map((a) => ({ yil: a.yil, ay: a.ay, borc: true }));
+    const borclar = aidatlar.filter((a) => a.durum === "odenmedi" || a.durum === "kismi").map((a) => ({ yil: a.yil, ay: a.ay, borc: true, kismi: a.durum === "kismi", kalan: aidatKalan(a) })).sort((a, b) => (a.yil - b.yil) || (a.ay - b.ay));
     const gelecek = [];
     let y = yil, m = ay;
-    for (let i = 0; i < 3; i++) { if (!aidatlar.some((a) => a.yil === y && a.ay === m && a.durum !== "odenmedi") && !borclar.some((b) => b.yil === y && b.ay === m)) gelecek.push({ yil: y, ay: m }); m++; if (m > 12) { m = 1; y++; } }
+    for (let i = 0; i < 3; i++) { if (!aidatlar.some((a) => a.yil === y && a.ay === m && a.durum !== "odenmedi" && a.durum !== "kismi") && !borclar.some((b) => b.yil === y && b.ay === m)) gelecek.push({ yil: y, ay: m }); m++; if (m > 12) { m = 1; y++; } }
     return [...borclar, ...gelecek];
   })();
 
@@ -67,7 +67,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const ayToggle = (d) => {
     const k = ayAnahtar(d.yil, d.ay); const n = { ...aidatAylar };
     if (n[k] !== undefined) delete n[k];
-    else n[k] = String(aidatlar.find((a) => a.yil === d.yil && a.ay === d.ay && a.durum === "odenmedi")?.tutar || oyuncu?.aylik_aidat || "");
+    else { const a = aidatlar.find((x) => x.yil === d.yil && x.ay === d.ay && (x.durum === "odenmedi" || x.durum === "kismi")); n[k] = String(a ? aidatKalan(a) : oyuncu?.aylik_aidat || ""); }
     setAidatAylar(n);
   };
   const kalemToggle = (k) => {
@@ -131,7 +131,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
               <div style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>Aidat dönemi <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>· birden fazla ay seçilebilir, tek makbuz kesilir</span></div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {donemSecenekleri.map((d) => { const aktif = aidatAylar[ayAnahtar(d.yil, d.ay)] !== undefined; return (
-                  <button key={`${d.yil}-${d.ay}`} type="button" onClick={() => ayToggle(d)} aria-pressed={aktif} aria-label={`${AY_ADLARI[d.ay - 1]} ${d.yil}`} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, border: `1px solid ${aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--cizgi)"}`, background: aktif ? (d.borc ? "var(--kirmizi-acik)" : "var(--mor-acik)") : "#fff", color: aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--soluk)" }}>{d.borc ? <Ikon ad="uyari" boyut={16} /> : null}{AY_ADLARI[d.ay - 1]} {d.yil}{d.borc ? " · ödenmedi" : ""}</button>
+                  <button key={`${d.yil}-${d.ay}`} type="button" onClick={() => ayToggle(d)} aria-pressed={aktif} aria-label={`${AY_ADLARI[d.ay - 1]} ${d.yil}`} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, border: `1px solid ${aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--cizgi)"}`, background: aktif ? (d.borc ? "var(--kirmizi-acik)" : "var(--mor-acik)") : "#fff", color: aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--soluk)" }}>{d.borc ? <Ikon ad="uyari" boyut={16} /> : null}{AY_ADLARI[d.ay - 1]} {d.yil}{d.borc ? (d.kismi ? ` · kalan ${paraTR(d.kalan)}` : " · ödenmedi") : ""}</button>
                 ); })}
               </div>
             </div>

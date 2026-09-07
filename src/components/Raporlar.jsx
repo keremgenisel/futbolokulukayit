@@ -36,8 +36,8 @@ export function Raporlar() {
       if (rapor === "borclu") {
         const l = await db("listUnpaid", yilS, ayS);
         const satirlar = [];
-        for (const b of l) { const v = await db("listGuardians", b.player_id); const veli = v.find((x) => x.veli_mi) || v[0]; satirlar.push({ ad: b.ad_soyad, grup: b.yas_grubu_ad || "", tutar: b.tutar, donem: b.odeme_donemi, veli: veli?.ad_soyad || "", tel: veli?.whatsapp_no || veli?.gsm || "" }); }
-        return { baslik: "Borçlu Listesi", alt: `${AY_ADLARI[ayS - 1]} ${yilS} · ${l.length} oyuncu · toplam ${paraTR(l.reduce((s, b) => s + b.tutar, 0))}`,
+        for (const b of l) { const v = await db("listGuardians", b.player_id); const veli = v.find((x) => x.veli_mi) || v[0]; satirlar.push({ ad: b.ad_soyad, grup: b.yas_grubu_ad || "", tutar: b.kalan ?? b.tutar, donem: b.odeme_donemi, veli: veli?.ad_soyad || "", tel: veli?.whatsapp_no || veli?.gsm || "" }); }
+        return { baslik: "Borçlu Listesi", alt: `${AY_ADLARI[ayS - 1]} ${yilS} · ${l.length} oyuncu · toplam ${paraTR(l.reduce((s, b) => s + (b.kalan ?? b.tutar), 0))}`,
           sutunlar: [{ baslik: "Ad Soyad", anahtar: "ad", genislik: 28 }, { baslik: "Grup", anahtar: "grup", genislik: 8 }, { baslik: "Tutar", anahtar: "tutar", genislik: 10, sag: true }, { baslik: "Ödeme dönemi", anahtar: "donem", genislik: 14 }, { baslik: "Veli", anahtar: "veli", genislik: 24 }, { baslik: "Telefon", anahtar: "tel", genislik: 16 }], satirlar };
       }
       if (rapor === "tahsilat") {

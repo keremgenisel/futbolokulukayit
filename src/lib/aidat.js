@@ -64,6 +64,23 @@ export function aidatBaslangicDurumu(oyuncu) {
 }
 
 /**
+ * Aidat kaydının durumu ödenen tutara göre: 0 → ödenmedi, eksik → kısmi, tam/fazla → ödendi. Muaf değişmez.
+ * @param {number} tutar beklenen aylık aidat @param {number} odenen toplam tahsil edilen @param {string} [mevcut]
+ * @returns {"odenmedi"|"kismi"|"odendi"|"muaf"}
+ */
+export function aidatDurumHesapla(tutar, odenen, mevcut = "odenmedi") {
+  if (mevcut === "muaf") return "muaf";
+  const t = Number(tutar) || 0, o = Number(odenen) || 0;
+  if (o <= 0) return "odenmedi";
+  return o >= t ? "odendi" : "kismi";
+}
+/** Kalan borç (negatif olmaz). @param {{tutar:number, odenen?:number, durum?:string}} d */
+export function aidatKalan(d) {
+  if (!d || d.durum === "muaf" || d.durum === "odendi") return 0;
+  return Math.max(0, (Number(d.tutar) || 0) - (Number(d.odenen) || 0));
+}
+
+/**
  * Tesise girebilir mi? Bu ayın aidat kaydı ödendi/muaf ise evet.
  * @param {{durum: string}} oyuncu
  * @param {{durum: string}|null} buAyAidat

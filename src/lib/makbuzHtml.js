@@ -15,9 +15,11 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBO
   const satirMap = new Map(satirlar_.filter((l) => l.kalem_kod !== "aidat").map((l) => [l.fee_item_id, l]));
   // Aidat: birden fazla ay tek makbuzda olabilir → her ay ayrı satır (eskiden yeniye)
   const aidatSatirlari = satirlar_.filter((l) => l.kalem_kod === "aidat").sort((a, b) => (a.yil - b.yil) || (a.ay - b.ay));
+  /** @param {any} l */
   const ayAdi = (l) => (l.yil && l.ay ? `${AY_ADLARI[l.ay - 1]} ${l.yil}` : "");
   const donem = aidatSatirlari.map(ayAdi).filter(Boolean).join(", ");
   const yontem = ODEME_YONTEMLERI.find((y) => y.kod === makbuz.odeme_yontemi)?.ad || makbuz.odeme_yontemi;
+  /** @param {string} ad @param {any} l */
   const satir = (ad, l) => `<div class="r"><span class="k">${esc(ad)}</span><span class="v${l ? " b" : ""}">${l ? esc(paraTR(l.tutar)) : ""}</span></div>`;
   const satirlar = kalemler.map((k) => {
     if (k.kod === "aidat") {
