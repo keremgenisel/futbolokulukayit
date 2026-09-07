@@ -59,6 +59,9 @@ app.whenReady().then(async () => {
     const ozet = db.panoOzet({ yil: 2026, ay: 9, bugun: "2026-09-06" });
     check("pano özeti", ozet.aktif === 1 && ozet.odeyen === 1 && ozet.antrenmanlar.length === 1 && ozet.antrenmanlar[0].geldi === 1);
     check("yoklama raporu", db.attendanceReport("2026-09-01", "2026-09-30")[0].geldi === 1);
+    const tk = db.trainingCalendar("2026-09-01", "2026-09-30");
+    check("takvim özeti: antrenman, oyuncu ve işaretli sayıları", tk.length === 1 && tk[0].oyuncu === 1 && tk[0].isaretli === 1 && tk[0].geldi === 1 && tk[0].yas_grubu_ad === grp.ad);
+    check("takvim özeti aralık dışını getirmez", db.trainingCalendar("2026-10-01", "2026-10-31").length === 0);
     db.cancelReceipt(makbuz.id);
     check("makbuz iptali aidatı geri açar", db.getDue(oyuncu.id, 2026, 9).durum === "odenmedi");
     check("iptal sonrası borçlu listesi", db.listUnpaid(2026, 9).length === 1);

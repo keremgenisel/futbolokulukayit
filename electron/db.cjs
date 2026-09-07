@@ -412,6 +412,12 @@ function createTraining({ age_group_id, tarih, saat = "", saha = "" }) {
   const r = db.prepare("INSERT INTO trainings (age_group_id,tarih,saat,saha) VALUES (?,?,?,?)").run(age_group_id, tarih, saat, saha);
   return { id: Number(r.lastInsertRowid), age_group_id, tarih, saat, saha };
 }
+// Takvim şeridi: aralıktaki antrenmanlar, grup adı ve yoklama ilerlemesiyle (oyuncu/işaretli/geldi).
+const trainingCalendar = (from, to) => db.prepare(`SELECT t.*, g.ad AS yas_grubu_ad,
+    (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
+    (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
+    (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi
+  FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat`).all(from, to);
 const listTrainings = (from, to) => db.prepare("SELECT t.*, g.ad AS yas_grubu_ad FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat").all(from, to);
 const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=? WHERE id=?").run(neden, id);
 const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum").run(tid, pid, durum);
@@ -604,7 +610,7 @@ module.exports = {
   listFeeItems, updateFeeItem,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, setReceiptPdf,
-  createTraining, listTrainings, cancelTraining, setAttendance, listAttendance, playerAttendance,
+  createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance,
   deleteAgeGroup, listPlayersWithDue, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
   listUsers, setUserActive, resetUserPassword,
   lisansDurumu, lisansKaydet, leaseKaydet, lisansAktiflestir, lisansYenile, lisansSaltOkunurMu,

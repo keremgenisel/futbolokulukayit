@@ -163,7 +163,7 @@ settings           kulup adı, logo, makbuz alt yazısı, tahsil eden varsayıla
    - Yoklama geçmişi
 5. **Yaş grupları** – oluştur, düzenle, oyuncu ata.
 6. **Tahsilat** – makbuz kesme ekranı: oyuncu seç, kalemler, tutarlar, ödeme yöntemi, tahsil eden. Kaydet + yazdır.
-7. **Yoklama** – antrenman seç, oyuncu listesi, geldi/gelmedi işaretle. Antrenman iptal düğmesi.
+7. **Yoklama** – üstte 14 günlük takvim şeridi (§9), seçili günün antrenman kartları, oyuncu listesi, geldi/gelmedi işaretle. Antrenman iptal düğmesi.
 8. **Raporlar** – borçlu listesi, tahsilat raporu, yoklama özeti. Excel/PDF.
 9. **Ayarlar** – kulüp bilgileri, aidat kalemleri ve fiyatları, kullanıcılar, yedekleme.
 
@@ -329,7 +329,7 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
 - Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız) — kulüp PC değiştirirse gerekir.
 
-## 9. Yoklama Takvim Şeridi (planlama, 07.09.2026)
+## 9. Yoklama Takvim Şeridi (planlandı ve UYGULANDI, 07.09.2026)
 
 **İstek:** Yoklama ekranının üstünde havayolu sitelerindeki tarih seçici gibi yatay bir gün şeridi
 olsun. Günler arasında gezildikçe o günün antrenmanları görünsün; yoksa eklenebilsin.
@@ -393,7 +393,7 @@ olsun. Günler arasında gezildikçe o günün antrenmanları görünsün; yoksa
 | 5 | Yoklama.jsx yeni düzen; antrenman kartları; satır içi ekleme; mevcut akış korunur | 2 s |
 | 6 | Duman testi ekran görüntüsü, kalıcılık testinde yoklama adımını yeni düzene uyarlama | 1 s |
 
-Toplam ~1 iş günü. Mevcut yoklama davranışı (işaretleme, iptal, aidat rozeti) değişmez; yalnız
+Tüm adımlar 07.09.2026'da tamamlandı (`src/lib/takvim.js`, `src/components/TakvimSeridi.jsx`, `db.trainingCalendar`; tuvalde "Yoklama — takvim şeridi" artboard'u). Mevcut yoklama davranışı (işaretleme, iptal, aidat rozeti) değişmez; yalnız
 antrenman seçme yolu değişir.
 
 ### 9.4 Sonraki aday (bu işe dahil değil)

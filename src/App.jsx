@@ -9,7 +9,6 @@ import { Yoklama } from "./components/Yoklama.jsx";
 import { Raporlar } from "./components/Raporlar.jsx";
 import { Ayarlar } from "./components/Ayarlar.jsx";
 import { ToastSaglayici } from "./components/ui.jsx";
-import { Ikon } from "./components/Ikon.jsx";
 import { KenarMenu } from "./components/KenarMenu.jsx";
 import { tarihTR } from "./lib/aidat.js";
 
