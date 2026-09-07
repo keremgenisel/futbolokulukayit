@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
+import { htmlYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
 import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi } from "../lib/takvim.js";
@@ -84,8 +85,10 @@ export function Yoklama({ saltOkunur }) {
     let logo = ""; try { logo = await uygulama().logo(); } catch { /* logosuz */ }
     return yoklamaFormuHtml({ grup: aktif.yas_grubu_ad || "", tarih: aktif.tarih, saat: aktif.saat, saha: aktif.saha, logo, oyuncular: oyuncular.map((o) => ({ ad_soyad: o.ad_soyad, durum: o.durum, isaret: yoklama[o.id] })) });
   };
-  const formYazdir = async () => { try { await cikti().yazdir(await formHtml()); } catch (e) { toast("err", hataMetni(e)); } };
-  const formPdf = async () => { try { await cikti().pdfKaydet(await formHtml(), `yoklama-${(aktif.yas_grubu_ad || "grup").replace(/\s+/g, "")}-${aktif.tarih}.pdf`, false); } catch (e) { toast("err", hataMetni(e)); } };
+  const formAdi = () => `yoklama-${(aktif.yas_grubu_ad || "grup").replace(/\s+/g, "")}-${aktif.tarih}`;
+  // Yazıcı yoksa / yazdırma başarısızsa form PDF olarak açılır (makbuzla aynı davranış); kullanıcı sessiz kalmaz.
+  const formYazdir = async () => { try { const y = await htmlYazdir(await formHtml(), formAdi()); if (!y.ok) toast("err", y.mesaj); } catch (e) { toast("err", hataMetni(e)); } };
+  const formPdf = async () => { try { await cikti().pdfKaydet(await formHtml(), formAdi() + ".pdf", false); } catch (e) { toast("err", hataMetni(e)); } };
   const say = (d) => oyuncular.filter((o) => yoklama[o.id] === d).length;
   const borclu = oyuncular.filter((o) => o.aidat_durum === "odenmedi").length;
   const Dugme = ({ pid, durum, etiket }) => {

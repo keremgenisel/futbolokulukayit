@@ -15,6 +15,22 @@ const HATA_TR = (h) => {
   return m ? `Yazdırma başarısız: ${m}` : "Yazdırma başarısız.";
 };
 
+/**
+ * Genel yazdırma (yoklama formu, rapor): yazıcı yoksa ya da yazdırma başarısızsa aynı HTML geçici PDF olarak
+ * sistem görüntüleyicisinde açılır; kullanıcı oradan yazdırır. İptal ise yalnız mesaj döner.
+ * @param {string} html @param {string} pdfAdi ör. "yoklama-U11-2026-09-07" @param {boolean=} yatay
+ * @returns {Promise<{ ok: boolean, mesaj?: string }>}
+ */
+export async function htmlYazdir(html, pdfAdi, yatay = false) {
+  const r = await cikti().yazdir(html);
+  if (r?.ok) return { ok: true };
+  const neden = HATA_TR(r?.hata);
+  if (/iptal/.test(neden)) return { ok: false, mesaj: neden };
+  const p = await cikti().pdfAc(html, pdfAdi, yatay);
+  if (p?.ok) return { ok: false, mesaj: `${neden} Form PDF olarak açıldı, oradan yazdırabilirsiniz.` };
+  return { ok: false, mesaj: `${neden} PDF de açılamadı: ${p?.error || ""}`.trim() };
+}
+
 /** @param {number} receiptId @param {string=} html hazırsa tekrar üretilmez */
 export async function makbuzYazdir(receiptId, html) {
   const h = html || await makbuzHtmlUret(receiptId);

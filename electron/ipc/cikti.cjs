@@ -1,6 +1,6 @@
 // Yazdırma, PDF ve Excel çıktıları. Renderer HTML'i hazırlar (makbuz/rapor şablonu), burada
 // gizli pencerede render edilip yazıcıya veya PDF'e gönderilir. Excel exceljs ile üretilir.
-const { ipcMain, BrowserWindow, dialog, shell } = require("electron");
+const { ipcMain, BrowserWindow, dialog, shell, app } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
@@ -48,6 +48,16 @@ function registerCiktiHandlers(getSession) {
     fs.writeFileSync(uploadsIci(yol), pdf);
     db.setReceiptPdf(r.id, yol);
     return { ok: true, pdf_yolu: yol };
+  });
+
+  // Yazıcı yokken yedek yol: HTML'i geçici PDF yapıp sistem görüntüleyicisinde açar (oradan yazdırılır).
+  ipcMain.handle("cikti:pdfAc", async (_e, html, ad, yatay) => {
+    yetki();
+    const dosya = String(ad || "cikti").replace(/[^\w.-]+/g, "_").replace(/\.pdf$/i, "") + ".pdf";
+    const yol = path.join(app.getPath("temp"), "eyupspor-" + Date.now() + "-" + dosya);
+    fs.writeFileSync(yol, await htmlToPdf(html, { yatay }));
+    const hata = await shell.openPath(yol);
+    return hata ? { error: hata } : { ok: true, yol };
   });
 
   // Rapor PDF: kullanıcı konum seçer.

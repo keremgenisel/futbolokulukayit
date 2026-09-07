@@ -75,4 +75,20 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.click(screen.getByRole("button", { name: "PDF" }));
     await waitFor(() => expect(window.okul.cikti.pdfKaydet).toHaveBeenCalledWith(expect.stringContaining("YOKLAMA FORMU"), `yoklama-U11-${bugun().iso}.pdf`, false));
   });
+
+  it("yazıcı yoksa Formu Yazdır sessiz kalmaz: uyarı verir ve formu PDF olarak açar; iptalde PDF açılmaz", async () => {
+    window.okul.cikti.yazdir = vi.fn(async () => ({ ok: false, hata: "No printers available on the network" }));
+    window.okul.cikti.pdfAc = vi.fn(async () => ({ ok: true, yol: "/tmp/x.pdf" }));
+    kur();
+    fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
+    await screen.findByText("Ada Kaya");
+    fireEvent.click(screen.getByRole("button", { name: "Formu Yazdır" }));
+    await waitFor(() => expect(window.okul.cikti.pdfAc).toHaveBeenCalledWith(expect.stringContaining("YOKLAMA FORMU"), `yoklama-U11-${bugun().iso}`, false));
+    expect(await screen.findByText(/tanımlı yazıcı yok.*PDF olarak açıldı/)).toBeInTheDocument();
+    window.okul.cikti.yazdir = vi.fn(async () => ({ ok: false, hata: "Print job canceled" }));
+    window.okul.cikti.pdfAc.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Formu Yazdır" }));
+    expect(await screen.findByText(/Yazdırma iptal edildi/)).toBeInTheDocument();
+    expect(window.okul.cikti.pdfAc).not.toHaveBeenCalled();
+  });
 });

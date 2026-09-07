@@ -22,6 +22,7 @@ contextBridge.exposeInMainWorld("okul", {
     yazdir: (html) => ipcRenderer.invoke("cikti:yazdir", html),
     makbuzPdf: (receiptId, html) => ipcRenderer.invoke("cikti:makbuzPdf", receiptId, html),
     pdfKaydet: (html, oneriAd, yatay) => ipcRenderer.invoke("cikti:pdfKaydet", html, oneriAd, yatay),
+    pdfAc: (html, ad, yatay) => ipcRenderer.invoke("cikti:pdfAc", html, ad, yatay),
     excelKaydet: (veri, oneriAd) => ipcRenderer.invoke("cikti:excelKaydet", veri, oneriAd),
   },
   yedek: {
