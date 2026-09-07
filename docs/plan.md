@@ -325,7 +325,7 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
   (rehber §3c). Doğum yılı ipucu alt grupları aday gösterir; sezon sihirbazı "U12 A" yoksa "U12"ye düşer.
 
 ### 8.4 Faz 3 adayları (kulüp isterse)
-- WhatsApp bildirimleri (tek tıkla gönder → otomasyon), bkz. §1.6.
+- WhatsApp bildirimleri → KARAR 07.09.2026: API yok (ücret/hesap/yasak riski); bağlantıyla gönderme, bkz. §13.
 - Sporcu kimlik kartı basımı, aidat borcunda kart bloke.
 - ~~Sağlık raporu geçerlilik uyarısı~~ — YAPILDI 07.09.2026 (pano sayaç/liste, oyuncu kartı rozeti).
 - Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
@@ -492,4 +492,61 @@ Uygulandı (12 madde, 07.09.2026):
 
 ### 12.4 Karar
 - Haftalık ızgara İSTENMİYOR (Kerem, 07.09.2026); yalnız tek antrenman formu. Mockup `design/YoklamaFormu.dc.html`.
+
+## 13. WhatsApp ile Hatırlatma — bağlantıyla gönderme (PLANLANDI, 07.09.2026)
+
+**Karar (07.09.2026):** Kulüp WhatsApp'a ödeme yapmak istemiyor. Resmi Cloud API mesaj başı ücretli ve Meta işletme
+hesabı + kart + özel numara ister; gayri resmi kütüphaneler kulübün numarasını yasaklatır. Yol: WhatsApp'ın herkese
+açık "tıkla ve yaz" bağlantısı (`https://wa.me/90XXXXXXXXXX?text=…`). Program mesajı hazırlar, kulübün mevcut
+WhatsApp masaüstü/Web'i açılır, kullanıcı Gönder'e basar. Ücret yok, hesap yok, yasak riski yok. Otomasyon değil:
+veli başına bir tık. İleride "tek tuşla herkese" istenirse tek dürüst yol resmi API + mesaj başı ücrettir; şablon ve
+onay altyapısı ortak kullanılır.
+
+### 13.1 Nerede görünür
+- **Pano > Aidat borcu olanlar:** her satırda yeşil WhatsApp düğmesi (aidat hatırlatma şablonuyla). Tablo başlığında
+  **"Borçlulara Hatırlat"** → toplu pencere: borçlu veliler listesi, sağda mesaj önizlemesi, her satırda "WhatsApp'ta Aç";
+  açılan satır "Hatırlatıldı" olur (geri alınabilir), üstte "3 / 14 hatırlatıldı" sayacı. Onaysız/numarasız satır gri,
+  nedeni yazılı ("Mesaj onayı yok", "Numara yok").
+- **Oyuncu kartı > Aile ve Acil Kişiler:** veli satırında WhatsApp düğmesi (serbest mesaj: şablon "genel", metin
+  pencerede düzenlenir). **Ödemeler** sekmesinde borç varsa "Aidat hatırlat".
+- **Oyuncu kartı > Bilgiler:** "Son hatırlatma: 05.09.2026 · Şerif Çelik" satırı.
+- Antrenman iptali bildirimi (Yoklama > İptal Et → "Velilere bildir") aynı toplu pencereyle; şablon "iptal". Faz 2 of §13.
+
+### 13.2 Mesaj şablonları (Ayarlar > Kulüp ve Makbuz > WhatsApp Mesajları)
+- `wa_sablon_aidat`, `wa_sablon_genel`, `wa_sablon_iptal` ayar anahtarları; çok satırlı metin, yer tutucular:
+  `{veli}`, `{oyuncu}`, `{ay}` (Eylül 2026), `{tutar}` (3.500 ₺), `{kalan}`, `{donem}` (1-10), `{grup}`, `{kulup}`,
+  `{tarih}`, `{saat}`. Yanında canlı önizleme (örnek oyuncuyla) ve "Varsayılana dön".
+- Varsayılan aidat metni: "Sayın {veli}, {oyuncu} için {ay} aidatı ({kalan}) henüz ödenmemiştir. Ödeme dönemi her ayın
+  {donem} günleridir. Bilgilerinize sunarız. {kulup}"
+- Mesaj tek satırlı değil; wa.me bağlantısı satır sonlarını korur (URL kodlaması).
+
+### 13.3 Veri ve kurallar
+- **Onay (KVKK):** `guardians.mesaj_onayi INTEGER NOT NULL DEFAULT 0` (şema 9). Oyuncu formu > veli satırında
+  "WhatsApp ile bilgilendirme onayı" kutusu; Excel aktarımında "Mesaj onayı" sütunu (evet/hayır). Onaysız veliye düğme
+  kapalı, nedeni ipucunda. Kâğıt kayıt formuna (docs/formlar/02) bir satır önerilir: "Aidat ve antrenman bilgilendirmelerinin
+  WhatsApp ile yapılmasını kabul ediyorum ☐". **Kulüp kararı:** mevcut kayıtlar için varsayılan onay verilip verilmeyeceği
+  (program varsayılanı: onaysız; toplu "hepsini onayla" düğmesi YOK, kayıt kayıt işaretlenir).
+- **Numara:** `whatsapp_no` doluysa o, yoksa `gsm`; `gsmNormalize` → `05XXXXXXXXX` → `90XXXXXXXXX`. Geçersizse düğme kapalı.
+- **Kayıt:** `message_log(id, player_id, guardian_id, tur aidat|genel|iptal, yil, ay, metin, tarih, kullanici)` (şema 9).
+  "WhatsApp'ta Aç" tıklanınca yazılır (program gönderildiğini bilemez; pencere "Hatırlatıldı" der, "Geri al" siler).
+  Aynı ay aynı veliye ikinci hatırlatmada satırda "bu ay 2. kez" uyarısı. Oyuncu kartında son 12 kayıt.
+- **Güvenlik:** renderer dış adres açamaz (mevcut kural); yeni IPC `app:whatsappAc(numara, metin)` yalnız
+  `https://wa.me/` bağlantısı üretip `shell.openExternal` ile açar; başka adres asla. Yetki: OKUMA seti (yazma değil),
+  `message_log` yazımı YAZMA seti (salt okunur lisansta hatırlatma kaydı tutulmaz ama bağlantı açılır).
+- **Çoklu PC:** istemcide de çalışır; log sunucuya `/api/db` ile.
+
+### 13.4 Teknik
+- `src/lib/whatsapp.js` — SAF: `waNumara(gsm)`, `sablonDoldur(sablon, degerler)`, `waBaglanti(numara, metin)`,
+  `VARSAYILAN_SABLONLAR`, `hatirlatmaUygunMu(veli)` → { ok, neden }. Vitest.
+- `electron/db.cjs`: `mesajKaydet`, `sonMesajlar(pid)`, `listUnpaid` sonucuna `veli_onay`, `son_hatirlatma` alanları;
+  `updateGuardian` (mesaj_onayi). Şema 9 göçü PRAGMA ile.
+- `src/components/WhatsAppHatirlat.jsx` — toplu pencere (Modal); `Pano.jsx`, `OyuncuKarti.jsx`, `OyuncuForm.jsx`,
+  `Ayarlar.jsx` (KulupAyar altına "WhatsApp Mesajları" bölümü), `OyuncuAktar` sütunu.
+- Testler: saf whatsapp.js; roundtrip (onay, log, şema 9); jsdom (pano düğmesi kapalı/açık, toplu pencere akışı,
+  şablon önizleme); yetki testi (`app:whatsappAc` yalnız wa.me).
+- Tahmini iş: 1 gün (§13.1 iptal bildirimi hariç, o yarım gün).
+
+### 13.5 Kulüpten cevap bekleyen
+- Onay varsayılanı (13.3). Şablon metinleri (13.2 varsayılanla başlanır). Kulübün WhatsApp'ı hangi PC'de: program
+  o PC'de kurulu olmalı ya da WhatsApp Web tarayıcıda açık olmalı (bağlantı tarayıcıya düşer, oradan WhatsApp'a geçer).
 
