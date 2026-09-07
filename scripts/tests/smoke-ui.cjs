@@ -108,6 +108,7 @@ app.whenReady().then(async () => {
     await tikla("Lisans"); await bekle(400); await shot("14-lisans");
     await tikla("Yeni Sezon"); await bekle(600); await js(`document.querySelector("input[aria-label='Kerem Yılmaz yeniledi']")?.click()`); await bekle(300); await shot("14b-yeni-sezon");
     await tikla("Yedekleme"); await bekle(400); await shot("15-yedekleme");
+    await js(`[...document.querySelectorAll("div")].find((d) => d.textContent.trim() === "Yeni bilgisayara taşıma paketi")?.scrollIntoView({ block: "start" })`); await bekle(300); await shot("15c-tasima-paketi");
     await tikla("Resim ve Belge Optimizasyonu"); await bekle(300); await tikla("Analiz Et"); await bekle(600); await shot("15b-optimizasyon");
     // Makbuz PDF üretildi mi?
     const makbuzlar = db.listReceipts(o2.id);

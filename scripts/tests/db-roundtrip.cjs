@@ -354,6 +354,24 @@ app.whenReady().then(async () => {
     db.hamBaglanti().exec("DROP TABLE message_log; CREATE TABLE message_log (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, kanal TEXT, tip TEXT NOT NULL, metin TEXT NOT NULL, durum TEXT, tarih TEXT); INSERT INTO message_log (tip, metin) VALUES ('x', 'eski kayıt')");
     db.close(); db.init();
     check("eski dolu message_log kenara alındı (message_log_eski_v1, 1 satır), yeni tablo çalışıyor", db.hamBaglanti().prepare("SELECT count(*) AS n FROM message_log_eski_v1").get().n === 1 && !!db.mesajKaydet({ player_id: db.listPlayers()[0].id, tur: "genel", metin: "yeni" }).id);
+    // ── Taşıma paketi (plan §14): parola korumalı, makine anahtarından bağımsız ──
+    const { tasimaPaketiOlustur, tasimaPaketiAc, tasimaGeriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
+    const paketYol = path.join(tmp, "tasima.eyupspor");
+    const oyuncuSayisi = db.listPlayers({ durum: null }).length;
+    const tpo = tasimaPaketiOlustur(paketYol, "cok-gizli-parola");
+    check("taşıma paketi oluşur (parola korumalı); kısa parola reddedilir", tpo.ok && fs.existsSync(paketYol) && !!tasimaPaketiOlustur(paketYol + ".x", "kisa").error);
+    check("paket düz metin değil, yanlış parola açmaz", !fs.readFileSync(paketYol).includes(Buffer.from("SQLite format 3")) && /Parola yanlış/.test(tasimaPaketiAc(paketYol, "yanlis-parola1").error || ""));
+    const acik = tasimaPaketiAc(paketYol, "cok-gizli-parola");
+    const Database = require("better-sqlite3-multiple-ciphers");
+    let duzOkundu = 0; try { duzOkundu = new Database(path.join(acik.klasor, "data.db"), { readonly: true }).prepare("SELECT count(*) AS n FROM players").get().n; } catch {}
+    check("paket açılır: özet doğru, içindeki data.db ŞİFRESİZ (anahtarsız okunur), uploads var", acik.ok && acik.oyuncu === oyuncuSayisi && duzOkundu === oyuncuSayisi && fs.existsSync(path.join(acik.klasor, "uploads")));
+    fs.rmSync(acik.klasor, { recursive: true, force: true });
+    // Geri yükleme: paket bu makineye yüklenir (düz db anahtarla yeniden şifrelenir), sonra normal açılır
+    db.createPlayer({ ad_soyad: "Paketten Sonra Eklenen", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, odeme_donemi: "1-10" });
+    const tgr = tasimaGeriYukleCekirdek(paketYol, "cok-gizli-parola"); // db.close() çekirdekte
+    db.init();
+    check("paketten geri yükleme: veri paketteki hale döndü, mevcut veri .pre-restore ile kenara alındı", tgr.ok && db.listPlayers({ durum: null }).length === oyuncuSayisi && fs.existsSync(tgr.kenarDb) && !db.listPlayers({ durum: null }).some((p) => p.ad_soyad === "Paketten Sonra Eklenen"));
+    check("geri yüklenen veritabanı bu makinede yeniden şifreli", !db.isEncrypted() || (() => { try { new Database(db.getDbPath(), { readonly: true }).prepare("SELECT count(*) FROM sqlite_master").get(); return false; } catch { return true; } })());
     // Silinen varsayılan kalem/tip yeniden açılışta geri gelmemeli (tohum tek seferlik)
     db.aidatAyarlariKaydet({ kalemler: [{ id: db.listFeeItems().find((k) => k.kod === "top").id, sil: true }], ucretTipleri: [{ kod: "indirimli", sil: true }] });
     db.close(); db.init();

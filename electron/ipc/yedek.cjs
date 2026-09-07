@@ -7,6 +7,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const { zipSync, unzipSync } = require("fflate"); // saf JS zip; native bağımlılık yok
+const tasima = require("../tasimaKripto.cjs");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
 const { sikliktNormalize, yedekGerekliMi, SIKLIKLAR } = require("../yedekSiklik.cjs");
@@ -45,8 +46,9 @@ function yedekAl(hedefKok) {
 }
 
 // Zip yedeğini geçici klasöre güvenle açar (yol geçişi/mutlak yol reddedilir). Dönüş: klasör yolu.
-function zipAc(zipYol) {
-  const arsiv = unzipSync(new Uint8Array(fs.readFileSync(zipYol)));
+function zipAc(zipYol) { return zipAcBuffer(new Uint8Array(fs.readFileSync(zipYol))); }
+function zipAcBuffer(veri) {
+  const arsiv = unzipSync(veri);
   if (!arsiv["data.db"]) throw new Error("Zip içinde data.db yok; bu bir Eyüpspor yedeği değil");
   const hedef = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-geri-"));
   const kok = path.resolve(hedef);
@@ -124,6 +126,44 @@ function geriYukleCekirdek(yedekYolu) {
   }
 }
 
+// ── Taşıma paketi (plan §14): başka bilgisayarda açılabilen, PAROLA korumalı yedek ──
+// İçerik: data.db (ŞİFRESİZ kopya) + uploads/ + paket.json; tamamı tasimaKripto ile şifrelenir. Uzantı .eyupspor.
+function tasimaPaketiOlustur(hedefYol, parola) {
+  if (!tasima.parolaGecerliMi(parola)) return { error: `Parola en az ${tasima.PAROLA_MIN} karakter olmalı` };
+  const gecici = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-tasima-"));
+  try {
+    const duzDb = path.join(gecici, "data.db");
+    db.duzKopyaOlustur(duzDb);
+    const girdiler = { "data.db": [new Uint8Array(fs.readFileSync(duzDb)), { level: 0 }], "paket.json": [new TextEncoder().encode(JSON.stringify({ tur: "eyupspor-tasima", surum: 1, olusturma: new Date().toISOString(), sifreliKaynak: db.isEncrypted() })), { level: 6 }] };
+    zipGirdileriTopla(db.getUploadsDir(), "uploads/", girdiler);
+    const zip = Buffer.from(zipSync(girdiler));
+    const paket = tasima.sifrele(zip, parola);
+    fs.writeFileSync(hedefYol + ".tmp", paket); fs.renameSync(hedefYol + ".tmp", hedefYol);
+    return { ok: true, yol: hedefYol, boyut: paket.length };
+  } catch (e) { return { error: "Taşıma paketi oluşturulamadı: " + e.message }; }
+  finally { try { fs.rmSync(gecici, { recursive: true, force: true }); } catch {} } // düz kopya diskte kalmaz
+}
+// Paketi parolayla açar: geçici klasör (data.db düz, uploads/) + özet. Çağıran klasörü siler.
+function tasimaPaketiAc(paketYol, parola) {
+  let zip;
+  try { zip = tasima.coz(fs.readFileSync(paketYol), parola); } catch (e) { return { error: e.message }; }
+  let klasor;
+  try { klasor = zipAcBuffer(new Uint8Array(zip)); } catch (e) { return { error: "Paket açılamadı: " + e.message }; }
+  const bilgi = db.yedekBilgisi(path.join(klasor, "data.db"), { duz: true });
+  if (bilgi.error) { try { fs.rmSync(klasor, { recursive: true, force: true }); } catch {} return bilgi; }
+  return { ok: true, klasor, ...bilgi };
+}
+// Paketten geri yükle: aç → düz data.db'yi BU makinenin anahtarıyla şifrele → mevcut çekirdekle yerine koy.
+function tasimaGeriYukleCekirdek(paketYol, parola) {
+  const h = tasimaPaketiAc(paketYol, parola);
+  if (h.error) return h;
+  try { db.duzVeritabaniniSifrele(path.join(h.klasor, "data.db")); }
+  catch (e) { try { fs.rmSync(h.klasor, { recursive: true, force: true }); } catch {} return { error: "Veritabanı bu bilgisayar için şifrelenemedi: " + e.message }; }
+  const r = geriYukleCekirdek(h.klasor); // klasör biçimi; çekirdek geçici klasörü silmez (gecici bayrağı yok), burada silinir
+  try { fs.rmSync(h.klasor, { recursive: true, force: true }); } catch {}
+  return r;
+}
+
 function registerYedekHandlers(getSession) {
   const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); };
   const istemciHata = () => ({ error: "Yedek yalnızca sunucu bilgisayarında alınır" });
@@ -165,6 +205,42 @@ function registerYedekHandlers(getSession) {
     setTimeout(() => { app.relaunch(); app.exit(0); }, 400);
     return { ok: true };
   });
+  // Taşıma paketi: oluştur (parola) / paketi seç / özetini göster / geri yükle
+  ipcMain.handle("yedek:tasimaOlustur", async (e, parola) => {
+    const s = getSession();
+    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    if (config.istemciMi()) return istemciHata();
+    if (!tasima.parolaGecerliMi(parola)) return { error: `Parola en az ${tasima.PAROLA_MIN} karakter olmalı` };
+    const damga = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
+    const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), { title: "Taşıma paketini kaydet", defaultPath: `eyupspor-tasima-${damga}.eyupspor`, filters: [{ name: "Eyüpspor taşıma paketi", extensions: ["eyupspor"] }] });
+    if (r.canceled || !r.filePath) return { iptal: true };
+    return tasimaPaketiOlustur(r.filePath, String(parola));
+  });
+  ipcMain.handle("yedek:tasimaSec", async (e) => {
+    const s = getSession();
+    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    if (config.istemciMi()) return istemciHata();
+    const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), { title: "Taşıma paketini seçin (eyupspor-tasima-….eyupspor)", properties: ["openFile"], filters: [{ name: "Eyüpspor taşıma paketi", extensions: ["eyupspor"] }] });
+    if (r.canceled || !r.filePaths[0]) return { iptal: true };
+    return { ok: true, yol: r.filePaths[0] };
+  });
+  ipcMain.handle("yedek:tasimaBilgi", async (_e, yol, parola) => {
+    const s = getSession();
+    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    const h = tasimaPaketiAc(String(yol || ""), String(parola || ""));
+    if (h.error) return h;
+    try { fs.rmSync(h.klasor, { recursive: true, force: true }); } catch {}
+    return { ok: true, yol, oyuncu: h.oyuncu, makbuz: h.makbuz, sonMakbuz: h.sonMakbuz, schema: h.schema };
+  });
+  ipcMain.handle("yedek:tasimaGeriYukle", async (_e, yol, parola) => {
+    const s = getSession();
+    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    if (config.istemciMi()) return istemciHata();
+    const r = tasimaGeriYukleCekirdek(String(yol || ""), String(parola || ""));
+    if (r.error) { try { db.init(); } catch {} return r; }
+    setTimeout(() => { app.relaunch(); app.exit(0); }, 400);
+    return { ok: true };
+  });
   ipcMain.handle("yedek:durum", () => config.istemciMi() ? { klasor: null, son: null, istemci: true } : ({ klasor: db.getSetting("yedek_klasoru"), son: db.getSetting("son_yedek"), siklik: sikliktNormalize(db.getSetting("yedek_sikligi")), sikliklar: SIKLIKLAR }));
   ipcMain.handle("yedek:siklik", (_e, siklik) => {
     yetki();
@@ -175,4 +251,4 @@ function registerYedekHandlers(getSession) {
   });
 }
 
-module.exports = { registerYedekHandlers, otomatikYedek, yedekAl, geriYukleCekirdek, yedekHazirla };
+module.exports = { registerYedekHandlers, otomatikYedek, yedekAl, geriYukleCekirdek, yedekHazirla, tasimaPaketiOlustur, tasimaPaketiAc, tasimaGeriYukleCekirdek };

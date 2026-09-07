@@ -108,6 +108,19 @@ Bir yaş grubuna sığmayacak kadar oyuncu olduğunda o yaşı iki ayrı grup ol
 
 Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antrenman ve yoklama kayıtları da silinir.
 
+## 3d. Yeni bilgisayara taşıma
+
+Normal yedek yalnız alındığı bilgisayarda açılır (şifreleme anahtarı o bilgisayara bağlıdır). Bilgisayar değişecekse
+ya da bozulma ihtimaline karşı düzenli olarak:
+
+1. Ayarlar > Yedekleme > **Yeni bilgisayara taşıma paketi**: bir parola belirleyin (en az 8 karakter), "Taşıma Paketi
+   Oluştur" deyip dosyayı harici diske ya da bulut klasörüne kaydedin. Parolayı programın dışında bir yere yazın; parola
+   olmadan paket açılamaz.
+2. Yeni bilgisayarda programı kurun, `admin`/`admin` ile girip parolayı değiştirin.
+3. Ayarlar > Yedekleme > **Taşıma paketinden geri yükle**: paket dosyasını seçin, parolayı girin, özeti onaylayın. Program
+   yeniden başlar; tüm oyuncular, makbuzlar, belgeler ve ayarlar yerine gelir. Lisans anahtarını yeniden girmeniz
+   gerekebilir (lisans makineye bağlıdır).
+
 ## 4. Sorun giderme
 - **"Lisans salt okunur modda"**: Ayarlar > Lisans'tan geçerli anahtar girin.
 - **"Sunucuya ulaşılamadı"**: Sunucu bilgisayarda program açık mı, aynı ağda mısınız, Tailscale bağlı mı?

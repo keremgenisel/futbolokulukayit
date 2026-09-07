@@ -1002,13 +1002,31 @@ const lisansSaltOkunurMu = () => lisansDurumu().mod === "saltOkunur";
 // ── Yedek doğrulama (geri yükleme öncesi) ──
 // Verilen data.db dosyasını BU makinenin anahtarıyla açmayı dener; açılırsa özet döner.
 // Başka bir PC'de alınmış (farklı anahtarla şifreli) yedek burada açılamaz → { error }.
-function yedekBilgisi(dbPath) {
+// Taşıma paketi (plan §14): veritabanının ŞİFRESİZ kopyası. VACUUM INTO makine anahtarıyla şifreli kopya üretir;
+// kopya aynı anahtarla açılıp `rekey=''` ile düz hale getirilir. Kopya yalnız parola korumalı pakete girer, sonra silinir.
+function duzKopyaOlustur(hedefYol) {
+  checkpoint();
+  try { fs.rmSync(hedefYol, { force: true }); } catch {}
+  db.exec(`VACUUM INTO '${String(hedefYol).replace(/'/g, "''")}'`);
+  const key = getDbKey();
+  if (key) { const c = new Database(hedefYol); c.pragma(`key='${key}'`); c.pragma("rekey=''"); c.close(); }
+  return hedefYol;
+}
+// Düz (şifresiz) bir veritabanı dosyasını bu makinenin anahtarıyla şifreler (taşıma paketinden geri yükleme).
+function duzVeritabaniniSifrele(yol) {
+  const key = getDbKey();
+  if (!key) return false;
+  const c = new Database(yol); c.pragma(`rekey='${key}'`); c.close();
+  return true;
+}
+// duz=true: dosya şifresiz (taşıma paketinden); yoksa bu makinenin anahtarıyla açılır.
+function yedekBilgisi(dbPath, { duz = false } = {}) {
   if (!Database) return { error: "SQLite modülü yok" };
   if (!fs.existsSync(dbPath)) return { error: "Yedek klasöründe data.db yok" };
   let conn = null;
   try {
     conn = new Database(dbPath, { readonly: true });
-    const key = getDbKey();
+    const key = duz ? null : getDbKey();
     if (key) conn.pragma(`key='${key}'`);
     const sv = Number(conn.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 0);
     if (!sv) return { error: "Bu dosya bir Eyüpspor veritabanı değil" };
@@ -1029,7 +1047,7 @@ const islem = (fn) => db.transaction(fn);
 
 module.exports = {
   islem,
-  init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi,
+  init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi, duzKopyaOlustur, duzVeritabaniniSifrele,
   hamBaglanti: () => db, // YALNIZ testler: göç senaryoları için ham SQL
   getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
   sezonAdayListesi, sezonDurumu, yeniSezonaGec, SEZON_DURUMLARI,

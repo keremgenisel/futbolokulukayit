@@ -523,7 +523,30 @@ function YedekAyar({ admin }) {
   const [d, setD] = useState({ klasor: null, son: null });
   const [bekliyor, setBekliyor] = useState(false);
   const [aday, setAday] = useState(null); // seçilen yedeğin özeti (onay bekliyor)
+  // Taşıma paketi (plan §14): parola korumalı, başka bilgisayarda açılır
+  const [tp, setTp] = useState({ p1: "", p2: "" });
+  const [tg, setTg] = useState({ yol: "", parola: "" }); // geri yükleme: seçilen paket + parola
+  const [tAday, setTAday] = useState(null); // paket özeti (onay bekliyor)
   const toast = useToast();
+  const tasimaOlustur = async () => {
+    if (tp.p1.length < 8) return toast("err", "Parola en az 8 karakter olmalı");
+    if (tp.p1 !== tp.p2) return toast("err", "Parolalar aynı değil");
+    setBekliyor(true);
+    try { const r = await yedek().tasimaOlustur(tp.p1); if (r.iptal) return; if (r.error) return toast("err", r.error); toast("ok", "Taşıma paketi kaydedildi: " + r.yol); setTp({ p1: "", p2: "" }); }
+    catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
+  };
+  const tasimaSec = async () => { try { const r = await yedek().tasimaSec(); if (r.iptal) return; if (r.error) return toast("err", r.error); setTg({ ...tg, yol: r.yol }); } catch (e) { toast("err", hataMetni(e)); } };
+  const tasimaKontrol = async () => {
+    if (!tg.yol) return toast("err", "Önce paket dosyasını seçin");
+    setBekliyor(true);
+    try { const r = await yedek().tasimaBilgi(tg.yol, tg.parola); if (r.error) return toast("err", r.error); setTAday(r); }
+    catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
+  };
+  const tasimaGeriYukle = async () => {
+    setBekliyor(true);
+    try { const r = await yedek().tasimaGeriYukle(tAday.yol, tg.parola); if (r.error) toast("err", r.error); else toast("ok", "Taşıma paketi yüklendi, program yeniden başlatılıyor…"); }
+    catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); setTAday(null); }
+  };
   const geriYukleSec = async () => {
     try { const r = await yedek().geriYukleSec(); if (r.iptal) return; if (r.error) return toast("err", r.error); setAday(r); }
     catch (e) { toast("err", hataMetni(e)); }
@@ -559,7 +582,27 @@ function YedekAyar({ admin }) {
           <div><Btn tur="danger" ikon={<Ikon ad="geri" />} onClick={geriYukleSec} disabled={bekliyor}>Yedek Dosyası Seç ve Geri Yükle</Btn></div>
         </div>
       )}
+      {admin && !d.istemci && (
+        <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
+          <div style={{ fontWeight: 700, fontSize: 16 }}>Yeni bilgisayara taşıma paketi</div>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Normal yedek yalnız bu bilgisayarda açılır (şifreleme anahtarı bu bilgisayara bağlıdır). Bilgisayar değişecekse ya da bozulma ihtimaline karşı, <b>parola korumalı</b> bir taşıma paketi (<code>eyupspor-tasima-tarih.eyupspor</code>) alın: veritabanı, belgeler ve makbuz PDF'leri tek dosyada, yalnız bu parolayla açılır. Parolayı ayrı bir yerde saklayın; unutulursa paket açılamaz.</p>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <Alan etiket="Paket parolası" style={{ width: 200 }}><Girdi type="password" value={tp.p1} onChange={(e) => setTp({ ...tp, p1: e.target.value })} aria-label="Paket parolası" placeholder="en az 8 karakter" /></Alan>
+            <Alan etiket="Parola (tekrar)" style={{ width: 200 }}><Girdi type="password" value={tp.p2} onChange={(e) => setTp({ ...tp, p2: e.target.value })} aria-label="Paket parolası tekrar" /></Alan>
+            <Btn ikon={<Ikon ad="indir" />} onClick={tasimaOlustur} disabled={bekliyor || !tp.p1}>Taşıma Paketi Oluştur</Btn>
+          </div>
+          <div style={{ fontWeight: 700, fontSize: 16, marginTop: 6 }}>Taşıma paketinden geri yükle (yeni bilgisayarda)</div>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Paket dosyasını seçin, parolasını girin. Veriler bu bilgisayarın anahtarıyla yeniden şifrelenir; mevcut veriler <code>.pre-restore</code> ile kenara alınır ve program yeniden başlar.</p>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <Btn tur="ghost" onClick={tasimaSec} disabled={bekliyor}>Paket Dosyası Seç</Btn>
+            <span style={{ fontSize: 13, color: "var(--soluk)", alignSelf: "center", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={tg.yol}>{tg.yol ? tg.yol.split(/[\\/]/).pop() : "Seçilmedi"}</span>
+            <Alan etiket="Paketin parolası" style={{ width: 200 }}><Girdi type="password" value={tg.parola} onChange={(e) => setTg({ ...tg, parola: e.target.value })} aria-label="Geri yükleme parolası" /></Alan>
+            <Btn tur="danger" ikon={<Ikon ad="geri" />} onClick={tasimaKontrol} disabled={bekliyor || !tg.yol || !tg.parola}>Paketi Aç ve Geri Yükle</Btn>
+          </div>
+        </div>
+      )}
       {aday && <Onay tehlikeli mesaj={`Seçilen yedek: ${aday.oyuncu} oyuncu, ${aday.makbuz} makbuz${aday.sonMakbuz ? ", son makbuz " + tarihTR(aday.sonMakbuz) : ""}. Mevcut veriler kenara alınıp bu yedek yüklenecek ve program yeniden başlayacak. Devam edilsin mi?`} onEvet={geriYukleOnayla} onHayir={() => setAday(null)} />}
+      {tAday && <Onay tehlikeli mesaj={`Taşıma paketi açıldı: ${tAday.oyuncu} oyuncu, ${tAday.makbuz} makbuz${tAday.sonMakbuz ? ", son makbuz " + tarihTR(tAday.sonMakbuz) : ""}. Mevcut veriler kenara alınıp paket bu bilgisayara yüklenecek ve program yeniden başlayacak. Devam edilsin mi?`} onEvet={tasimaGeriYukle} onHayir={() => setTAday(null)} />}
     </div>
   );
 }

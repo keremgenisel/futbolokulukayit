@@ -331,7 +331,7 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - ~~Sağlık raporu geçerlilik uyarısı~~ — YAPILDI 07.09.2026 (pano sayaç/liste, oyuncu kartı rozeti).
 - Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
 - ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
-- Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız) — kulüp PC değiştirirse gerekir.
+- ~~Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız)~~ — YAPILDI 07.09.2026 (§14).
 
 ## 9. Yoklama Takvim Şeridi (planlandı ve UYGULANDI, 07.09.2026)
 
@@ -594,4 +594,19 @@ onay altyapısı ortak kullanılır.
 - Şablon metinleri 13.2'deki varsayılanlarla başlar; kulüp Ayarlar'dan kendisi düzeltir.
 - Açık kalan tek nokta: kulübün WhatsApp'ı hangi PC'de — program o PC'de kurulu olmalı ya da WhatsApp Web tarayıcıda
   açık olmalı (bağlantı tarayıcıya düşer, oradan WhatsApp'a geçer). Kurulum günü kontrol edilir (§8.2).
+
+## 14. Yeni Bilgisayara Taşıma Paketi (UYGULANDI, 07.09.2026)
+
+**Sorun:** data.db bu bilgisayarın safeStorage anahtarıyla şifreli; normal yedek zip'i başka PC'de açılmaz. Bilgisayar
+değişince ya da bozulunca veri kurtarılamazdı.
+
+**Çözüm:** Ayarlar > Yedekleme > "Yeni bilgisayara taşıma paketi". Kullanıcı parola girer (≥ 8 karakter, iki kez);
+`eyupspor-tasima-<damga>.eyupspor` dosyası: içinde ŞİFRESİZ data.db kopyası + uploads/ + paket.json; tamamı
+`electron/tasimaKripto.cjs` ile şifreli (scrypt N=2^15 → AES-256-GCM; MAGIC `EYUPTASI1` + salt + iv + tag). Parola
+program dışında saklanır; unutulursa paket açılamaz (tasarım gereği).
+- Düz kopya: `VACUUM INTO` (makine anahtarıyla şifreli kopya) → aynı anahtarla açıp `PRAGMA rekey=''` → düz. Kopya geçici
+  klasörde, paket yazılınca silinir. (`backup()` sqlite3mc'de asılı kaldı; kullanılmadı.)
+- Geri yükleme (yeni PC): paket seç → parola → özet (oyuncu/makbuz) → onay → düz data.db yeni makinenin anahtarıyla
+  `PRAGMA rekey='<anahtar>'` ile şifrelenir → mevcut geri yükleme çekirdeği (`.pre-restore` kenara alma) → relaunch.
+- Yalnız yönetici; istemci modunda kapalı. Roundtrip testi: oluştur/aç/yanlış parola/geri yükle/yeniden şifreli.
 

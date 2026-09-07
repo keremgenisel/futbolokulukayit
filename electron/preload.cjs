@@ -32,6 +32,10 @@ contextBridge.exposeInMainWorld("okul", {
     siklik: (siklik) => ipcRenderer.invoke("yedek:siklik", siklik),
     geriYukleSec: () => ipcRenderer.invoke("yedek:geriYukleSec"),
     geriYukle: (klasor) => ipcRenderer.invoke("yedek:geriYukle", klasor),
+    tasimaOlustur: (parola) => ipcRenderer.invoke("yedek:tasimaOlustur", parola),
+    tasimaSec: () => ipcRenderer.invoke("yedek:tasimaSec"),
+    tasimaBilgi: (yol, parola) => ipcRenderer.invoke("yedek:tasimaBilgi", yol, parola),
+    tasimaGeriYukle: (yol, parola) => ipcRenderer.invoke("yedek:tasimaGeriYukle", yol, parola),
   },
   aktar: {
     sablon: () => ipcRenderer.invoke("aktar:sablon"),

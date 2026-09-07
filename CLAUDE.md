@@ -62,6 +62,9 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `electron/ipc/aktar.cjs` + `electron/oyuncuAktar.cjs` (saf satır çözümleme) — Excel'den oyuncu aktarımı
   (şablon / önizleme / tek işlemde aktar; `src/components/OyuncuAktar.jsx`).
 - `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
+- `electron/tasimaKripto.cjs` (SAF: parola → scrypt → AES-256-GCM) + `yedek.cjs` taşıma paketi: `.eyupspor` dosyası, içinde
+  ŞİFRESİZ data.db (`db.duzKopyaOlustur`: VACUUM INTO + rekey '') + uploads; geri yüklemede `db.duzVeritabaniniSifrele`
+  (rekey makine anahtarı). Başka PC'de açılır; normal yedek açılmaz. Plan §14.
 - `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip `eyupspor-yedek-<damga>.zip`,
   fflate, 30 gün saklama) ve
   geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
