@@ -309,22 +309,22 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 1. Kurulum dosyasını çalıştır, `admin`/`admin` ile gir, parolayı değiştir (rehber: `docs/kurulum.md`).
 2. Ayarlar > Lisans: anahtarı yapıştır. Online aktivasyon açıksa "Aktive Et".
 3. Ayarlar > Yedekleme: klasör seç (harici disk veya bulut klasörü).
-4. Ayarlar > Aidat Kalemleri: fiyatları gir. Ayarlar > Kulüp ve Makbuz: tahsil eden adı, alt yazı.
-5. Yaş gruplarını oluştur, mevcut oyuncu listesini gir (Excel varsa toplu aktarım, bkz. 8.3).
+4. İlk kurulum sihirbazı ilk girişte açılır (kulüp adı, aidat/indirim, gruplar, yedek, kurtarma kodları); atlandıysa Ayarlar > Kulüp ve Makbuz > Kurulum Sihirbazını Aç.
+5. Mevcut oyuncu listesini Oyuncular > İçe Aktar ile Excel'den yükle (şablon indir → doldur → önizle → aktar).
 6. Yazıcıda deneme makbuzu bas, düzeni kontrol et.
-7. İkinci PC varsa: sunucuyu başlat, diğer PC'den bağlan, Tailscale gerekiyorsa iki tarafa kur.
+7. İkinci PC istenirse: `src/lib/ozellikler.js` COKLU_PC_ACIK bayrağını aç, sunucuyu başlat, diğer PC'den bağlan (şu an arayüzde kapalı).
 8. Antrenöre 20 dakikalık kullanım eğitimi: oyuncu ekleme, makbuz, yoklama, tesise giriş kontrolü.
 
 ### 8.3 Kulüpten cevabı beklenen sorular (bkz. §6) ve etkisi
 - Aidat tutarı yaş grubuna göre değişiyorsa → her oyuncuda ayrı girilir, ek geliştirme gerekmez.
 - ~~İndirim yüzde ise → şu an sabit tutar giriliyor~~ — YAPILDI 07.09.2026: Ayarlar > Aidat Kalemleri'nde aidat taban fiyatı ve ücret tipi başına indirim yüzdesi (burslu varsayılan %100, indirimli/kardeş 0); oyuncu formunda ücret tipi seçilince aidat otomatik hesaplanır, elle değiştirilebilir.
-- Mevcut Excel oyuncu listesi varsa → `scripts/excel-aktar.cjs` yazılır (yarım gün).
+- ~~Mevcut Excel oyuncu listesi varsa → `scripts/excel-aktar.cjs` yazılır~~ — YAPILDI 07.09.2026 (Oyuncular > İçe Aktar).
 - Yazıcı fiş yazıcıysa → makbuz şablonuna 80 mm düzen eklenir (yarım gün).
 
 ### 8.4 Faz 3 adayları (kulüp isterse)
 - WhatsApp bildirimleri (tek tıkla gönder → otomasyon), bkz. §1.6.
 - Sporcu kimlik kartı basımı, aidat borcunda kart bloke.
-- Sağlık raporu geçerlilik uyarısı (alan var, uyarı ekranı yok).
+- ~~Sağlık raporu geçerlilik uyarısı~~ — YAPILDI 07.09.2026 (pano sayaç/liste, oyuncu kartı rozeti).
 - Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
 - ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
 - Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız) — kulüp PC değiştirirse gerekir.
@@ -397,9 +397,7 @@ Tüm adımlar 07.09.2026'da tamamlandı (`src/lib/takvim.js`, `src/components/Ta
 antrenman seçme yolu değişir.
 
 ### 9.4 Sonraki aday (bu işe dahil değil)
-- **Haftalık program şablonu:** grup başına sabit gün/saat/saha (U11 Pzt-Çar 17:00 Saha 1). Şeritte
-  "Bu haftayı programdan doldur" ile antrenmanlar toplu eklenir. Antrenörün her gün elle eklemesini
-  ortadan kaldırır; kulüp isterse yarım gün.
+- ~~**Haftalık program şablonu**~~ — YAPILDI 07.09.2026 (Yaş Grupları > Düzenle; Yoklama > Haftayı Programdan Doldur).
 
 ## 10. Yeni Sezon Geçişi (UYGULANDI, 07.09.2026)
 
