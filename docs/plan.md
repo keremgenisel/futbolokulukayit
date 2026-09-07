@@ -573,7 +573,7 @@ onay altyapısı ortak kullanılır.
 ### 13.6 Uygulama notları (07.09.2026)
 - Şablonlar ayrı bölüm: Ayarlar > **WhatsApp Mesajları** (Kulüp ve Makbuz altına değil; kendi tek Kaydet'i ve kaydedilmemiş
   değişiklik uyarısı var). Oyuncu kartı > Bilgiler'de "Son WhatsApp" satırı. Excel şablonuna "Mesaj Onayı" sütunu eklendi.
-- Pencere kapanırken uygun velilerin hepsine açıldıysa `bildirim_gerekli` iner; başlıkta "Bildirim gerekmiyor" ile elle de iner.
+- Pencere kapanırken uygun velilerin hepsine açıldıysa `bildirim_gerekli` iner. ("Bildirim gerekmiyor" düğmesi kaldırıldı: geri alınamıyordu; rozet ancak bildirimle iner.)
 - Gerçek uygulamada uçtan uca doğrulandı (Mac): Pano > Borçlulara Hatırlat > WhatsApp'ta Aç → `https://wa.me/905…?text=…`
   açıldı, message_log'a oturum kullanıcısıyla yazıldı.
 

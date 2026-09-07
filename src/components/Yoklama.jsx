@@ -119,7 +119,6 @@ export function Yoklama({ saltOkunur }) {
   };
   // Veli grubuna gönderim geri al (kart başlığından; pencere kapalıyken de): bildirim gereği yeniden açılır
   const grupGeriAl = async () => { try { await db("grupBildirimSil", aktif.id); toast("ok", "Grup bildirimi geri alındı"); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
-  const bildirimGerekmiyor = async () => { try { await db("bildirimGerekliAyarla", aktif.id, 0); takvimYukle(); } catch (e) { toast("err", hataMetni(e)); } };
 
   // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
   const formHtml = async () => {
@@ -195,7 +194,6 @@ export function Yoklama({ saltOkunur }) {
               </div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                 {aktif.bildirim_gerekli ? <Btn tur="yesil" ikon={<Ikon ad="whatsapp" />} onClick={() => bildirimAc(aktif, aktif.iptal ? "iptal" : "degisiklik")} title="Grubun velilerine WhatsApp ile iptal/değişiklik bildir">Velilere Bildir</Btn> : null}
-                {aktif.bildirim_gerekli && !saltOkunur ? <Btn tur="ghost" kucuk onClick={bildirimGerekmiyor} title="Bildirim yapılmayacak; rozeti kaldır">Bildirim gerekmiyor</Btn> : null}
                 {!aktif.iptal && <>
                   <Btn tur="ghost" ikon={<Ikon ad="yazdir" />} onClick={formYazdir} title="Sahada elle doldurulacak A4 yoklama formu; programda işaretli olanlar dolu gelir">Formu Yazdır</Btn>
                   <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={formPdf} title="Yoklama formunu PDF olarak kaydet">PDF</Btn>
