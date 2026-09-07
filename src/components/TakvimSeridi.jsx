@@ -67,7 +67,6 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
           {Object.keys(NOKTA_AD).map((k) => <span key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--soluk)" }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: NOKTA_RENK[k] }} />{NOKTA_AD[k][0].toLocaleUpperCase("tr-TR") + NOKTA_AD[k].slice(1)}</span>)}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontSize: 12, color: "var(--soluk)" }}>← → gün · Home bugün</span>
           <Btn kucuk tur="ghost" ikon={<Ikon ad="takvim" boyut={16} />} onClick={bugune}>Bugün</Btn>
           <Girdi type="date" value={secili} onChange={(e) => e.target.value && onSec(e.target.value)} aria-label="Tarihe git" style={{ width: 150, height: 36 }} />
         </div>
