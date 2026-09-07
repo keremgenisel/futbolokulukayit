@@ -89,6 +89,8 @@ app.whenReady().then(async () => {
     await js(`(() => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.startsWith("U12")); b && b.click(); })()`); await bekle(600); await shot("11-yoklama");
     await tikla("Raporlar"); await bekle(400); await tikla("Önizle"); await bekle(600); await shot("12-raporlar");
     await tikla("Yaş Grupları"); await bekle(400); await shot("13-gruplar");
+    await tikla("Ayarlar"); await bekle(400); await tikla("Kurulum Sihirbazını Aç"); await bekle(500); await shot("13a-kurulum-sihirbazi");
+    await js(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Şimdi değil")?.click()`); await bekle(400);
     await tikla("Ayarlar"); await bekle(400); await tikla("Aidat Kalemleri"); await bekle(500);
     await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; for (const [sel, v] of [["input[aria-label='Forma fiyatı']", "9000"], ["input[aria-label='Mont fiyatı']", "8000"]]) { const i = document.querySelector(sel); set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); } })()`); await bekle(300); await shot("13b-aidat-kalemleri");
     await tikla("Vazgeç"); await bekle(200); // kaydedilmemiş değişiklik uyarısı sonraki bölüm geçişini engellemesin

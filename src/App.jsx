@@ -108,7 +108,7 @@ export function App() {
           {tab === "tahsilat" && <Tahsilat key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onOyuncu={oyuncuAc} secilenOyuncuId={tahsilatOyuncu} onSecildi={() => setTahsilatOyuncu(null)} />}
           {tab === "yoklama" && <Yoklama key={sekmeKey} saltOkunur={saltOkunur} />}
           {tab === "raporlar" && <Raporlar key={sekmeKey} />}
-          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} baslangicBolum={ayarBolum} />}
+          {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} baslangicBolum={ayarBolum} onKurulumAc={() => setKurulum(true)} />}
         </section>
       </main>
       {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => setOturum({ ...oturum, must_change_password: false })} />}

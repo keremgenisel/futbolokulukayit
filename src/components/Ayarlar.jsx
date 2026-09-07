@@ -11,7 +11,7 @@ import { Ikon } from "./Ikon.jsx";
 
 const BOLUMLER = [{ kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" }, { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" }, { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" }, { kod: "sezon", ad: "Yeni Sezon", ikon: "takvim" }, { kod: "yedek", ad: "Yedekleme", ikon: "yedek" }, { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" }, ...(COKLU_PC_ACIK ? [{ kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }] : []), { kod: "lisans", ad: "Lisans", ikon: "kilit" }, { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" }];
 
-export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum }) {
+export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum, onKurulumAc }) {
   const [bolum, setBolum] = useState(baslangicBolum || "kulup");
   const [kirli, setKirli] = useState(false);     // açık bölümde kaydedilmemiş değişiklik var mı
   const [hedefBolum, setHedefBolum] = useState(null); // onay bekleyen bölüm geçişi
@@ -23,7 +23,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
         {BOLUMLER.map((b) => <button key={b.kod} type="button" onClick={() => bolumeGit(b.kod)} style={{ textAlign: "left", padding: "11px 14px", borderRadius: 8, cursor: "pointer", border: 0, background: bolum === b.kod ? "var(--mor-acik)" : "transparent", color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)", fontWeight: bolum === b.kod ? 700 : 500, fontSize: 15, display: "flex", alignItems: "center", gap: 10 }}><Ikon ad={b.ikon} /><span>{b.ad}</span></button>)}
       </Kart>
       <Kart style={{ padding: 24 }}>
-        {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} />}
+        {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} admin={admin} onKurulumAc={onKurulumAc} />}
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
         {bolum === "yedek" && <YedekAyar admin={admin} />}
@@ -38,7 +38,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
   );
 }
 
-function KulupAyar({ saltOkunur }) {
+function KulupAyar({ saltOkunur, admin, onKurulumAc }) {
   const [a, setA] = useState({ kulup_adi: "", tahsil_eden: "" });
   const toast = useToast();
   useEffect(() => { (async () => { const o = {}; for (const k of Object.keys(a)) o[k] = (await db("getSetting", k)) || ""; setA(o); })().catch(() => {}); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -49,6 +49,13 @@ function KulupAyar({ saltOkunur }) {
       <Alan etiket="Makbuzda görünen kulüp adı"><Girdi value={a.kulup_adi} onChange={(e) => setA({ ...a, kulup_adi: e.target.value })} placeholder="EYÜPSPOR FUTBOL OKULU" /></Alan>
       <Alan etiket="Varsayılan tahsil eden (kullanıcı adı boşsa)"><Girdi value={a.tahsil_eden} onChange={(e) => setA({ ...a, tahsil_eden: e.target.value })} /></Alan>
       {!saltOkunur && <div><Btn onClick={kaydet}>Kaydet</Btn></div>}
+      {admin && onKurulumAc && (
+        <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+          <div style={{ fontWeight: 700 }}>İlk kurulum sihirbazı</div>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Kulüp adı, aidat ve indirimler, yaş grupları, yedek klasörü ve kurtarma kodlarını adım adım gözden geçirmek için. İlk açılışta otomatik çıkar; buradan istediğiniz zaman yeniden açabilirsiniz.</p>
+          <div><Btn tur="ghost" ikon={<Ikon ad="takvim" />} onClick={onKurulumAc}>Kurulum Sihirbazını Aç</Btn></div>
+        </div>
+      )}
     </div>
   );
 }
