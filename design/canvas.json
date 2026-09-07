@@ -56,6 +56,14 @@
    "h": 1123,
    "title": "Makbuz (A4)",
    "print": "fixed"
+  },
+  {
+   "file": "YoklamaTakvim.dc.html",
+   "x": 1540,
+   "y": 3340,
+   "w": 1440,
+   "h": 900,
+   "title": "Yoklama — takvim şeridi (öneri)"
   }
  ],
  "annotations": [
@@ -72,9 +80,17 @@
    "y": 260,
    "w": 420,
    "text": "Pano üstündeki arama kutusu tesise giriş kontrolü için: ad veya TC yazınca oyuncu ve bu ayın aidat durumu yeşil/kırmızı görünür."
+  },
+  {
+   "id": "not-yoklama-takvim",
+   "x": 3080,
+   "y": 3340,
+   "w": 420,
+   "text": "Yoklama takvim şeridi (plan §9)\n\nÜstte 14 günlük şerit: oklar 7 gün kaydırır, Bugün düğmesi geri getirir. Hücre altındaki noktalar o günün antrenmanları: gri yoklama alınmadı, mor kısmen, yeşil tamamlandı, kırmızı iptal. Seçili gün mor, bugün sarı alt çizgi.\n\nOrtada seçili günün antrenman kartları ve satır içi ekleme formu (açık gösterildi). Altta bugünkü yoklama listesi olduğu gibi.\n\nSoldaki 300px sütun kalkıyor."
   }
  ],
  "launch": {
-  "view": "canvas"
+  "view": "focused",
+  "file": "YoklamaTakvim.dc.html"
  }
 }
