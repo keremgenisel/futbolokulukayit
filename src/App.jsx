@@ -10,7 +10,9 @@ import { Raporlar } from "./components/Raporlar.jsx";
 import { Ayarlar } from "./components/Ayarlar.jsx";
 import { ToastSaglayici } from "./components/ui.jsx";
 import { KenarMenu } from "./components/KenarMenu.jsx";
+import { IlkKurulum } from "./components/IlkKurulum.jsx";
 import { tarihTR } from "./lib/aidat.js";
+import { bugun } from "./lib/api.js";
 
 // Yönlendirici yok: sekme bir string, TABS'a göre koşullu render.
 export const TABS = [
@@ -27,7 +29,15 @@ export function App() {
   const [acilacakOyuncu, setAcilacakOyuncu] = useState(null); // Oyuncular'da açılacak kart
   const [sekmeKey, setSekmeKey] = useState(0); // aynı sekmeye tekrar geçişte ekranı tazelemek için
   const [mod, setMod] = useState(null); // { mode, serverUrl, sunucu }
-  const [kurtarmaHatirlat, setKurtarmaHatirlat] = useState(false); // ilk parola değişiminden sonra
+  const [kurulum, setKurulum] = useState(false); // ilk kurulum sihirbazı (ilk parola değişiminden sonra, oyuncu yokken)
+  const kurulumGerekliMi = useCallback(async () => {
+    try {
+      if (!oturum || oturum.role !== "admin" || oturum.must_change_password) return false;
+      if (await window.okul.db("getSetting", "kurulum_tamam")) return false;
+      return (await window.okul.db("playersPage", { yil: bugun().yil, ay: bugun().ay, sayfaBoyu: 1 })).toplam === 0;
+    } catch { return false; }
+  }, [oturum]);
+  useEffect(() => { kurulumGerekliMi().then((g) => g && setKurulum(true)); }, [kurulumGerekliMi]);
   const [ayarBolum, setAyarBolum] = useState(null); // Ayarlar'a belirli bölümle gitmek için
   const modYenile = useCallback(() => { window.okul?.mod?.oku().then(setMod).catch(() => {}); }, []);
 
@@ -90,17 +100,8 @@ export function App() {
           {tab === "ayarlar" && <Ayarlar key={sekmeKey} oturum={oturum} saltOkunur={saltOkunur} onLisansDegisti={lisansYenile} onModDegisti={modDegisti} baslangicBolum={ayarBolum} />}
         </section>
       </main>
-      {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => { setOturum({ ...oturum, must_change_password: false }); setKurtarmaHatirlat(true); }} />}
-      {kurtarmaHatirlat && (
-        <div role="status" style={{ position: "fixed", right: 24, bottom: 24, zIndex: 50, background: "#fff", border: "1.5px solid var(--sari)", borderRadius: 12, padding: "14px 16px", maxWidth: 420, boxShadow: "0 8px 30px rgba(0,0,0,.12)", display: "flex", flexDirection: "column", gap: 8 }}>
-          <b>Kurtarma kodlarınızı üretin</b>
-          <span style={{ fontSize: 14 }}>Parolanızı unutursanız bu kodlarla sıfırlarsınız. Ayarlar &gt; Kullanıcılar &gt; Hesabım.</span>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button type="button" onClick={() => { setKurtarmaHatirlat(false); setTab("ayarlar"); setAyarBolum("kullanici"); }} style={{ background: "var(--mor)", color: "#fff", border: 0, borderRadius: 8, padding: "8px 12px", cursor: "pointer", fontWeight: 600 }}>Şimdi üret</button>
-            <button type="button" onClick={() => setKurtarmaHatirlat(false)} style={{ background: "none", border: "1px solid var(--cizgi)", borderRadius: 8, padding: "8px 12px", cursor: "pointer" }}>Sonra</button>
-          </div>
-        </div>
-      )}
+      {oturum.must_change_password && <ParolaDegistir oturum={oturum} zorunlu onTamam={() => setOturum({ ...oturum, must_change_password: false })} />}
+      {kurulum && !oturum.must_change_password && <IlkKurulum oturum={oturum} onBitti={() => { setKurulum(false); setTab("pano"); setSekmeKey((k) => k + 1); }} onAktar={() => { setTab("oyuncular"); setAcilacakOyuncu("aktar"); }} />}
     </div>
     </ToastSaglayici>
   );

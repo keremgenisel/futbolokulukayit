@@ -4,9 +4,10 @@
 1. `Eyüpspor Futbol Okulu Setup x.y.z.exe` dosyasını çalıştırın, "Kur" deyin.
 2. Masaüstündeki simgeyle açın. İlk giriş: kullanıcı adı **admin**, parola **admin**.
 3. Program sizden hemen yeni bir parola isteyecek. En az 6 karakter girin.
-4. Ardından çıkan uyarıda **Şimdi üret** deyin: 8 adet kurtarma kodu gösterilir. Yazdırıp güvenli bir
-   yerde saklayın; parolanızı unutursanız bu kodlardan biriyle yeni parola belirlersiniz. Kodlar bir kez
-   gösterilir, her kod bir kez kullanılır (Ayarlar > Kullanıcılar > Hesabım'dan yenilenebilir).
+4. Ardından **İlk Kurulum** sihirbazı açılır: kulüp adı → aidat taban fiyatı ve indirimler → yaş grupları
+   ve sezon → yedek klasörü → kurtarma kodları (8 kod, bir kez gösterilir; yazdırıp saklayın) → Excel'den
+   oyuncu aktarımı. Her adım atlanabilir; hepsi sonradan Ayarlar'dan değiştirilebilir. "Şimdi değil"
+   derseniz oyuncu eklenene kadar bir sonraki girişte yeniden çıkar.
 5. İsterseniz kendi adınıza bir yönetici hesabı açıp (Ayarlar > Kullanıcılar) hazır gelen **admin**
    hesabını silebilirsiniz. Program en az bir aktif yönetici kalmasını şart koşar.
 4. **Ayarlar > Lisans**: satıcıdan aldığınız `EYUPSPOR.` ile başlayan anahtarı yapıştırıp kaydedin.

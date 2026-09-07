@@ -30,7 +30,9 @@ app.on("browser-window-created", async (_e, win) => {
       await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const [u, p] = document.querySelectorAll("input"); set.call(u, "admin"); u.dispatchEvent(new Event("input", { bubbles: true })); set.call(p, "admin"); p.dispatchEvent(new Event("input", { bubbles: true })); })()`);
       await tikla("Giriş Yap"); await bekle(500);
       await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; for (const i of document.querySelectorAll("input[type=password]")) { set.call(i, "kalici-parola-1"); i.dispatchEvent(new Event("input", { bubbles: true })); } })()`);
-      await tikla("Kaydet"); await bekle(500);
+      await tikla("Kaydet"); await bekle(700);
+      // İlk kurulum sihirbazı (oyuncu yok) → bu testte atla; kurulum akışı kendi testinde
+      if (await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Şimdi değil")`)) { await tikla("Şimdi değil"); await bekle(300); }
       // Yaş grubu
       await tikla("Yaş Grupları"); await bekle(400);
       await setInput('input[placeholder="U11"]', "U13"); await setInput('input[placeholder="2026-2027"]', "2026-2027");

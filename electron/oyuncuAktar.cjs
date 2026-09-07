@@ -21,7 +21,7 @@ const SUTUNLAR = [
   { anahtar: "notlar", basliklar: ["not", "notlar", "açıklama"] },
 ];
 const DURUM = { aktif: "aktif", deneme: "deneme", pasif: "pasif", ayrıldı: "ayrildi", ayrildi: "ayrildi", sakat: "sakat", dondurma: "dondurma" };
-const UCRET = { normal: "normal", burslu: "burslu", indirimli: "indirimli", "indirimli": "indirimli", kardeş: "kardes", kardes: "kardes", "kardeş indirimi": "kardes", ücretsiz: "ucretsiz", ucretsiz: "ucretsiz" };
+const UCRET = { normal: "normal", burslu: "burslu", indirimli: "indirimli", kardeş: "kardes", kardes: "kardes", "kardeş indirimi": "kardes", ücretsiz: "ucretsiz", ucretsiz: "ucretsiz" };
 const DONEM = new Set(["1-10", "11-20", "21-31"]);
 
 const norm = (s) => String(s ?? "").trim().toLocaleLowerCase("tr-TR").replace(/[.:_-]+/g, " ").replace(/\s+/g, " ");

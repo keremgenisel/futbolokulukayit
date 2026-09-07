@@ -70,6 +70,8 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
   istemcide üretilip sunucuya yüklenir, yedek yalnız sunucuda.
 - `aktivasyon-sunucu/` — Cloudflare Worker + D1 (GenCRM kopyası, EYUPSPOR önekleri). `deploy.sh`
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
+- `src/components/IlkKurulum.jsx` — ilk kurulum sihirbazı (ilk parola değişiminden sonra, `kurulum_tamam` boş ve oyuncu
+  yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı).
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi); Ayarlar > Yeni Sezon
   sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup, diğerleri pasif+not). Bkz. `docs/plan.md §10`.

@@ -207,7 +207,7 @@ function KullaniciAyar({ oturum, admin, saltOkunur }) {
 }
 
 // Üretilen kodlar YALNIZ bu pencerede görünür (DB'de şifreli). Kopyala / yazdır.
-function KurtarmaKodlari({ username, kodlar, onKapat }) {
+export function KurtarmaKodlari({ username, kodlar, onKapat, kapatMetni = "Kaydettim, Kapat" }) {
   const toast = useToast();
   const metin = `Eyüpspor Futbol Okulu — ${username} parola kurtarma kodları\n${kodlar.join("\n")}\nHer kod bir kez kullanılır.`;
   const kopyala = async () => { try { await navigator.clipboard.writeText(metin); toast("ok", "Kodlar panoya kopyalandı"); } catch { toast("err", "Kopyalanamadı"); } };
@@ -218,7 +218,7 @@ function KurtarmaKodlari({ username, kodlar, onKapat }) {
     if (!r?.ok) toast("err", r?.hata || "Yazdırılamadı");
   };
   return (
-    <Modal baslik={`${username} — Kurtarma Kodları`} onKapat={onKapat} genislik={520} altBar={<><Btn tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={yazdir}>Yazdır</Btn><Btn tur="ghost" onClick={kopyala}>Kopyala</Btn><Btn onClick={onKapat}>Kaydettim, Kapat</Btn></>}>
+    <Modal baslik={`${username} — Kurtarma Kodları`} onKapat={onKapat} genislik={520} altBar={<><Btn tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={yazdir}>Yazdır</Btn><Btn tur="ghost" onClick={kopyala}>Kopyala</Btn><Btn onClick={onKapat}>{kapatMetni}</Btn></>}>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div role="alert" style={{ background: "var(--sari-acik)", border: "1.5px solid var(--sari)", borderRadius: 10, padding: "10px 14px", fontSize: 14 }}>Bu kodlar yalnız şimdi görünür; kapattıktan sonra tekrar gösterilemez. Yazdırıp güvenli bir yerde saklayın.</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8 }}>

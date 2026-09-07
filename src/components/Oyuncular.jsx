@@ -36,7 +36,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
 
   useEffect(() => { db("listAgeGroups").then(setGruplar).catch(() => {}); }, []);
   useEffect(() => { const t = setTimeout(yukle, 150); return () => clearTimeout(t); }, [yukle]);
-  useEffect(() => { if (acilacakOyuncu === "yeni") { setYeni(true); onAcildi?.(); } else if (acilacakOyuncu) { setAcik(acilacakOyuncu); onAcildi?.(); } }, [acilacakOyuncu, onAcildi]);
+  useEffect(() => { if (acilacakOyuncu === "yeni") { setYeni(true); onAcildi?.(); } else if (acilacakOyuncu === "aktar") { setAktarAcik(true); onAcildi?.(); } else if (acilacakOyuncu) { setAcik(acilacakOyuncu); onAcildi?.(); } }, [acilacakOyuncu, onAcildi]);
 
   const ucretAd = (k) => UCRET_TIPLERI.find((u) => u.kod === k)?.ad || k;
   const durumAd = (k) => DURUMLAR.find((d) => d.kod === k)?.ad || k;
