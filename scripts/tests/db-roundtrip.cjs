@@ -119,6 +119,14 @@ app.whenReady().then(async () => {
     const sonYk = db.playerAttendanceSon(oyuncu.id, 1);
     check("playerAttendanceSon en yeni kaydı verir", sonYk.length === 1 && sonYk[0].tarih === "2026-09-20" && db.playerAttendanceSon(oyuncu.id, 10).length === 2);
 
+    // Tek makbuzda iki aidat ayı: ikisi de ödendi; iptal ikisini de geri açar
+    db.ensureMonthlyDues(2026, 11); db.ensureMonthlyDues(2026, 12);
+    const cift = db.createReceipt({ player_id: oyuncu.id, tarih: "2026-11-05", odeme_yontemi: "nakit", tahsil_eden: "T", satirlar: [
+      { fee_item_id: aidatKalemi.id, tutar: 3500, aciklama: "Kasım 2026", yil: 2026, ay: 11 }, { fee_item_id: aidatKalemi.id, tutar: 3500, aciklama: "Aralık 2026", yil: 2026, ay: 12 }] });
+    check("iki aylık makbuz iki ayı da ödendi yapar", db.getDue(oyuncu.id, 2026, 11).durum === "odendi" && db.getDue(oyuncu.id, 2026, 12).durum === "odendi" && db.getReceipt(cift.id).toplam === 7000 && db.getReceipt(cift.id).satirlar.length === 2);
+    db.cancelReceipt(cift.id);
+    check("iki aylık makbuz iptali iki ayı da geri açar", db.getDue(oyuncu.id, 2026, 11).durum === "odenmedi" && db.getDue(oyuncu.id, 2026, 12).durum === "odenmedi");
+
     // Excel aktarımı: tek işlem; yeni grup açılır, veli eklenir, bu ayın aidatı açılır; hata olursa hiçbiri yazılmaz
     const { aktarUygula } = require("../../electron/ipc/aktar.cjs");
     const { satirlariCoz } = require("../../electron/oyuncuAktar.cjs");

@@ -11,8 +11,10 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [oyuncu, setOyuncu] = useState(null);
   const [aidatlar, setAidatlar] = useState([]);
   const [kalemler, setKalemler] = useState([]);
-  const [secili, setSecili] = useState({}); // fee_item_id → tutar (string)
-  const [donem, setDonem] = useState(null); // { yil, ay }
+  const [secili, setSecili] = useState({}); // fee_item_id → tutar (string) — aidat dışı kalemler
+  const [aidatAylar, setAidatAylar] = useState({}); // "yil-ay" → tutar (string): tek makbuzda birden fazla ay
+  const ayAnahtar = (y, a) => `${y}-${a}`;
+  const ayCoz = (k) => { const [y, a] = k.split("-").map(Number); return { yil: y, ay: a }; };
   const [yontem, setYontem] = useState("nakit");
   const [tarih, setTarih] = useState(bugun().iso);
   const [tahsilEden, setTahsilEden] = useState(oturum?.ad_soyad || "");
@@ -40,14 +42,13 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     try {
       const p = await db("getPlayer", id); setOyuncu(p); setQ(""); setSonuc([]);
       const d = await db("listDues", id); setAidatlar(d);
-      const ilkBorc = [...d].reverse().find((x) => x.durum === "odenmedi");
+      const ilkBorc = [...d].reverse().find((x) => x.durum === "odenmedi"); // en eski borç önce
       const secim = ilkBorc ? { yil: ilkBorc.yil, ay: ilkBorc.ay } : { yil, ay };
-      setDonem(secim);
-      const aidat = kalemler.find((k) => k.kod === "aidat");
-      const muaf = ["ucretsiz", "burslu"].includes(p.ucret_tipi) || !(p.aylik_aidat > 0);
-      setSecili(aidat && !muaf && (ilkBorc || true) ? { [aidat.id]: String(ilkBorc?.tutar || p.aylik_aidat) } : {});
+      const muaf = p.ucret_tipi === "ucretsiz" || !(p.aylik_aidat > 0);
+      setAidatAylar(muaf ? {} : { [ayAnahtar(secim.yil, secim.ay)]: String(ilkBorc?.tutar || p.aylik_aidat) });
+      setSecili({});
     } catch (e) { toast("err", hataMetni(e)); }
-  }, [kalemler, yil, ay, toast]);
+  }, [yil, ay, toast]);
 
   useEffect(() => { if (secilenOyuncuId && kalemler.length) { oyuncuSec(secilenOyuncuId); onSecildi?.(); } }, [secilenOyuncuId, kalemler, oyuncuSec, onSecildi]);
 
@@ -60,19 +61,29 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   })();
 
   const aidatKalem = kalemler.find((k) => k.kod === "aidat");
-  const toplam = Object.values(secili).reduce((s, v) => s + (Number(v) || 0), 0);
-  const kalemToggle = (k) => {
-    if (secili[k.id] !== undefined) { const n = { ...secili }; delete n[k.id]; setSecili(n); }
-    else setSecili({ ...secili, [k.id]: String(k.kod === "aidat" ? (oyuncu?.aylik_aidat || "") : (k.varsayilan_fiyat || "")) });
+  const aidatToplam = Object.values(aidatAylar).reduce((s, v) => s + (Number(v) || 0), 0);
+  const toplam = Object.values(secili).reduce((s, v) => s + (Number(v) || 0), 0) + aidatToplam;
+  const aidatSecili = Object.keys(aidatAylar).length > 0;
+  const ayToggle = (d) => {
+    const k = ayAnahtar(d.yil, d.ay); const n = { ...aidatAylar };
+    if (n[k] !== undefined) delete n[k];
+    else n[k] = String(aidatlar.find((a) => a.yil === d.yil && a.ay === d.ay && a.durum === "odenmedi")?.tutar || oyuncu?.aylik_aidat || "");
+    setAidatAylar(n);
   };
+  const kalemToggle = (k) => {
+    if (k.kod === "aidat") { if (aidatSecili) setAidatAylar({}); else if (donemSecenekleri[0]) ayToggle(donemSecenekleri[0]); return; }
+    if (secili[k.id] !== undefined) { const n = { ...secili }; delete n[k.id]; setSecili(n); }
+    else setSecili({ ...secili, [k.id]: String(k.varsayilan_fiyat || "") });
+  };
+  const secliAylar = Object.keys(aidatAylar).map(ayCoz).sort((a, b) => (a.yil - b.yil) || (a.ay - b.ay));
+  const aidatEtiket = secliAylar.length ? "Aidat · " + secliAylar.map((d) => `${AY_ADLARI[d.ay - 1]} ${d.yil}`).join(", ") : "Aidat";
 
   const kaydet = async (yazdir) => {
     if (!oyuncu) return toast("err", "Önce oyuncu seçin");
-    const satirlar = Object.entries(secili).filter(([, v]) => Number(v) > 0).map(([id, v]) => {
-      const k = kalemler.find((x) => x.id === Number(id));
-      const aidatMi = k?.kod === "aidat";
-      return { fee_item_id: Number(id), tutar: Number(v), aciklama: aidatMi && donem ? `${AY_ADLARI[donem.ay - 1]} ${donem.yil}` : k?.ad || "", yil: aidatMi ? donem?.yil : null, ay: aidatMi ? donem?.ay : null };
-    });
+    const aidatSatirlari = aidatKalem ? Object.entries(aidatAylar).filter(([, v]) => Number(v) > 0).map(([k, v]) => { const d = ayCoz(k); return { fee_item_id: aidatKalem.id, tutar: Number(v), aciklama: `${AY_ADLARI[d.ay - 1]} ${d.yil}`, yil: d.yil, ay: d.ay }; })
+      .sort((a, b) => (a.yil - b.yil) || (a.ay - b.ay)) : [];
+    const digerSatirlar = Object.entries(secili).filter(([, v]) => Number(v) > 0).map(([id, v]) => { const k = kalemler.find((x) => x.id === Number(id)); return { fee_item_id: Number(id), tutar: Number(v), aciklama: k?.ad || "", yil: null, ay: null }; });
+    const satirlar = [...aidatSatirlari, ...digerSatirlar];
     if (!satirlar.length) return toast("err", "En az bir kalem seçin");
     setBekliyor(true);
     try {
@@ -81,7 +92,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
       await cikti().makbuzPdf(r.id, html);
       toast("ok", `Makbuz ${r.makbuz_no} kaydedildi`);
       if (yazdir) { const y = await makbuzYazdir(r.id, html); if (!y.ok) toast("err", y.mesaj); }
-      setOyuncu(null); setSecili({}); setNot(""); setAidatlar([]);
+      setOyuncu(null); setSecili({}); setAidatAylar({}); setNot(""); setAidatlar([]);
       bugunkuYukle();
     } catch (e) { toast("err", hataMetni(e)); } finally { setBekliyor(false); }
   };
@@ -115,22 +126,42 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
               )}
             </div>
           )}
-          {oyuncu && aidatKalem && secili[aidatKalem.id] !== undefined && (
+          {oyuncu && aidatKalem && (
             <div>
-              <div style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>Aidat dönemi</div>
+              <div style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em", marginBottom: 8 }}>Aidat dönemi <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>· birden fazla ay seçilebilir, tek makbuz kesilir</span></div>
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {donemSecenekleri.map((d) => { const aktif = donem?.yil === d.yil && donem?.ay === d.ay; return (
-                  <button key={`${d.yil}-${d.ay}`} type="button" onClick={() => { setDonem({ yil: d.yil, ay: d.ay }); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, border: `1px solid ${aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--cizgi)"}`, background: aktif ? (d.borc ? "var(--kirmizi-acik)" : "var(--mor-acik)") : "#fff", color: aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--soluk)" }}>{d.borc ? <Ikon ad="uyari" boyut={16} /> : null}{AY_ADLARI[d.ay - 1]} {d.yil}{d.borc ? " · ödenmedi" : ""}</button>
+                {donemSecenekleri.map((d) => { const aktif = aidatAylar[ayAnahtar(d.yil, d.ay)] !== undefined; return (
+                  <button key={`${d.yil}-${d.ay}`} type="button" onClick={() => ayToggle(d)} aria-pressed={aktif} aria-label={`${AY_ADLARI[d.ay - 1]} ${d.yil}`} style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 12px", borderRadius: 8, cursor: "pointer", fontWeight: 600, fontSize: 14, border: `1px solid ${aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--cizgi)"}`, background: aktif ? (d.borc ? "var(--kirmizi-acik)" : "var(--mor-acik)") : "#fff", color: aktif ? (d.borc ? "var(--kirmizi)" : "var(--mor)") : "var(--soluk)" }}>{d.borc ? <Ikon ad="uyari" boyut={16} /> : null}{AY_ADLARI[d.ay - 1]} {d.yil}{d.borc ? " · ödenmedi" : ""}</button>
                 ); })}
               </div>
             </div>
           )}
           <h3 style={{ fontSize: 22 }}>Kalemler</h3>
           <div>
-            {kalemler.filter((k) => k.aktif).map((k) => { const on = secili[k.id] !== undefined; return (
+            {kalemler.filter((k) => k.aktif).map((k) => {
+              if (k.kod === "aidat") return (
+                <div key={k.id} style={{ borderBottom: "1px solid var(--cizgi)", padding: "8px 0" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <input type="checkbox" checked={aidatSecili} onChange={() => kalemToggle(k)} disabled={!oyuncu || !donemSecenekleri.length} aria-label={k.ad} style={{ width: 20, height: 20 }} />
+                    <span style={{ flex: 1, fontWeight: aidatSecili ? 700 : 400 }}>{aidatEtiket}</span>
+                    <span style={{ width: 140, textAlign: "right", fontWeight: 700 }}>{aidatSecili ? paraTR(aidatToplam) : ""}</span>
+                  </div>
+                  {secliAylar.length > 0 && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8, paddingLeft: 34 }}>
+                      {secliAylar.map((d) => { const key = ayAnahtar(d.yil, d.ay); return (
+                        <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 14 }}>
+                          <span style={{ flex: 1, color: "var(--soluk)" }}>{AY_ADLARI[d.ay - 1]} {d.yil}</span>
+                          <ParaGirdi value={aidatAylar[key]} onDegis={(v) => setAidatAylar({ ...aidatAylar, [key]: v })} style={{ width: 140, height: 36 }} aria-label={`${AY_ADLARI[d.ay - 1]} ${d.yil} aidat tutarı`} />
+                        </div>
+                      ); })}
+                    </div>
+                  )}
+                </div>
+              );
+              const on = secili[k.id] !== undefined; return (
               <div key={k.id} style={{ display: "flex", alignItems: "center", gap: 14, padding: "8px 0", borderBottom: "1px solid var(--cizgi)" }}>
                 <input type="checkbox" checked={on} onChange={() => kalemToggle(k)} disabled={!oyuncu} aria-label={k.ad} style={{ width: 20, height: 20 }} />
-                <span style={{ flex: 1, fontWeight: on ? 700 : 400 }}>{k.kod === "aidat" && donem && on ? `Aidat · ${AY_ADLARI[donem.ay - 1]} ${donem.yil}` : k.ad}</span>
+                <span style={{ flex: 1, fontWeight: on ? 700 : 400 }}>{k.ad}</span>
                 <ParaGirdi value={on ? secili[k.id] : ""} disabled={!on} onDegis={(v) => setSecili({ ...secili, [k.id]: v })} style={{ width: 140, height: 40, fontWeight: 700 }} aria-label={`${k.ad} tutar`} />
               </div>
             ); })}
@@ -149,7 +180,8 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             <Alan etiket="Not"><Girdi value={not_} onChange={(e) => setNot(e.target.value)} placeholder="İsteğe bağlı" /></Alan>
           </Kart>
           <div style={{ background: "var(--mor-koyu)", borderRadius: 12, color: "#fff", padding: 22, display: "flex", flexDirection: "column", gap: 8 }}>
-            {Object.entries(secili).filter(([, v]) => Number(v) > 0).map(([id, v]) => { const k = kalemler.find((x) => x.id === Number(id)); return <div key={id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#D8CCE9" }}><span>{k?.kod === "aidat" && donem ? `Aidat · ${AY_ADLARI[donem.ay - 1]}` : k?.ad}</span><span>{paraTR(v)}</span></div>; })}
+            {secliAylar.filter((d) => Number(aidatAylar[ayAnahtar(d.yil, d.ay)]) > 0).map((d) => <div key={ayAnahtar(d.yil, d.ay)} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#D8CCE9" }}><span>Aidat · {AY_ADLARI[d.ay - 1]} {d.yil}</span><span>{paraTR(aidatAylar[ayAnahtar(d.yil, d.ay)])}</span></div>)}
+            {Object.entries(secili).filter(([, v]) => Number(v) > 0).map(([id, v]) => { const k = kalemler.find((x) => x.id === Number(id)); return <div key={id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#D8CCE9" }}><span>{k?.ad}</span><span>{paraTR(v)}</span></div>; })}
             <div style={{ height: 1, background: "rgba(255,255,255,.2)", margin: "6px 0" }} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}><span className="baslik" style={{ color: "#fff", fontSize: 22 }}>TOPLAM</span><span className="baslik" style={{ fontSize: 40, color: "var(--sari)" }}>{paraTR(toplam)}</span></div>
           </div>

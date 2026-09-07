@@ -26,6 +26,15 @@ describe("makbuzHtml", () => {
     const h = makbuzHtml({ makbuz, kalemler: [...kalemler, { id: 4, kod: "eldiven_bere", ad: "Eldiven & Bere" }], logo: "" });
     expect(h).toContain("ELDİVEN &amp; BERE");
   });
+  it("birden fazla aidat ayı ayrı satırlarda, eskiden yeniye; dönem bilgisi virgülle", () => {
+    const m = { ...makbuz, satirlar: [{ fee_item_id: 1, kalem_kod: "aidat", tutar: 3500, yil: 2026, ay: 10 }, { fee_item_id: 1, kalem_kod: "aidat", tutar: 3500, yil: 2026, ay: 9 }, { fee_item_id: 2, kalem_kod: "forma", tutar: 1200 }], toplam: 8200 };
+    const h = makbuzHtml({ makbuz: m, kalemler, logo: "" });
+    expect(h.indexOf("AİDAT · EYLÜL 2026")).toBeLessThan(h.indexOf("AİDAT · EKİM 2026"));
+    expect(h.match(/AİDAT · EYLÜL 2026/g)).toHaveLength(2); // iki kopya
+    expect(h).toContain("Eylül 2026, Ekim 2026");
+    expect(h).toContain("FORMA");
+    expect(h).toContain("8.200 ₺");
+  });
   it("makbuzda alt yazı (hashtag satırı) yok; eski ayar geçilse bile basılmaz", () => {
     const h = makbuzHtml({ makbuz, kalemler, logo: "", altYazi: "#BirSemtinRüyası" });
     expect(h).not.toContain("BirSemtinRüyası");

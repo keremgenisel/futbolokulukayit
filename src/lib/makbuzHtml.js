@@ -12,14 +12,19 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBOL OKULU" }) {
   /** @type {any[]} */
   const satirlar_ = makbuz.satirlar || [];
-  const satirMap = new Map(satirlar_.map((l) => [l.fee_item_id, l]));
-  const aidatSatir = satirlar_.find((l) => l.kalem_kod === "aidat");
-  const donem = aidatSatir?.yil && aidatSatir?.ay ? `${AY_ADLARI[aidatSatir.ay - 1]} ${aidatSatir.yil}` : "";
+  const satirMap = new Map(satirlar_.filter((l) => l.kalem_kod !== "aidat").map((l) => [l.fee_item_id, l]));
+  // Aidat: birden fazla ay tek makbuzda olabilir → her ay ayrı satır (eskiden yeniye)
+  const aidatSatirlari = satirlar_.filter((l) => l.kalem_kod === "aidat").sort((a, b) => (a.yil - b.yil) || (a.ay - b.ay));
+  const ayAdi = (l) => (l.yil && l.ay ? `${AY_ADLARI[l.ay - 1]} ${l.yil}` : "");
+  const donem = aidatSatirlari.map(ayAdi).filter(Boolean).join(", ");
   const yontem = ODEME_YONTEMLERI.find((y) => y.kod === makbuz.odeme_yontemi)?.ad || makbuz.odeme_yontemi;
+  const satir = (ad, l) => `<div class="r"><span class="k">${esc(ad)}</span><span class="v${l ? " b" : ""}">${l ? esc(paraTR(l.tutar)) : ""}</span></div>`;
   const satirlar = kalemler.map((k) => {
-    const l = satirMap.get(k.id);
-    const ad = k.kod === "aidat" && donem ? `AİDAT · ${donem.toLocaleUpperCase("tr-TR")}` : k.ad.toLocaleUpperCase("tr-TR");
-    return `<div class="r"><span class="k">${esc(ad)}</span><span class="v${l ? " b" : ""}">${l ? esc(paraTR(l.tutar)) : ""}</span></div>`;
+    if (k.kod === "aidat") {
+      if (!aidatSatirlari.length) return satir("AİDAT", null);
+      return aidatSatirlari.map((l) => satir(ayAdi(l) ? `AİDAT · ${ayAdi(l).toLocaleUpperCase("tr-TR")}` : "AİDAT", l)).join("");
+    }
+    return satir(k.ad.toLocaleUpperCase("tr-TR"), satirMap.get(k.id));
   }).join("");
 
   const blok = () => `
