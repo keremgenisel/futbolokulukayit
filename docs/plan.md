@@ -321,13 +321,13 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - Aidat tutarı yaş grubuna göre değişiyorsa → her oyuncuda ayrı girilir, ek geliştirme gerekmez.
 - ~~İndirim yüzde ise → şu an sabit tutar giriliyor~~ — YAPILDI 07.09.2026: Ayarlar > Aidat Kalemleri'nde aidat taban fiyatı ve ücret tipi başına indirim yüzdesi (burslu varsayılan %100, indirimli/kardeş 0); oyuncu formunda ücret tipi seçilince aidat otomatik hesaplanır, elle değiştirilebilir.
 - ~~Mevcut Excel oyuncu listesi varsa → `scripts/excel-aktar.cjs` yazılır~~ — YAPILDI 07.09.2026 (Oyuncular > İçe Aktar).
-- Yazıcı fiş yazıcıysa → makbuz şablonuna 80 mm düzen eklenir (yarım gün).
+- ~~Yazıcı fiş yazıcıysa → makbuz şablonuna 80 mm düzen~~ — KALDIRILDI 07.09.2026 (Kerem): fiş yazıcı senaryosu yok.
 - Bir yaşta çok oyuncu (iki U11) → KARAR 07.09.2026: alt grup alanı YOK; "U11 A" / "U11 B" iki ayrı yaş grubu açılır
   (rehber §3c). Doğum yılı ipucu alt grupları aday gösterir; sezon sihirbazı "U12 A" yoksa "U12"ye düşer.
 
 ### 8.4 Faz 3 adayları (kulüp isterse)
 - WhatsApp bildirimleri → KARAR 07.09.2026: API yok (ücret/hesap/yasak riski); bağlantıyla gönderme, bkz. §13.
-- Sporcu kimlik kartı basımı, aidat borcunda kart bloke.
+- ~~Sporcu kimlik kartı basımı, aidat borcunda kart bloke~~ — KALDIRILDI 07.09.2026 (Kerem).
 - ~~Sağlık raporu geçerlilik uyarısı~~ — YAPILDI 07.09.2026 (pano sayaç/liste, oyuncu kartı rozeti).
 - Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
 - ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
@@ -443,11 +443,10 @@ Uygulandı (12 madde, 07.09.2026):
 ### 11.1 Faz 3'e kalanlar (öneri listesinden)
 - **Otomatik güncelleme + lisans sunucusu yayını** (Kerem): GitHub deposu push, `aktivasyon-sunucu/deploy.sh`,
   `AKTIVASYON_URL`, tag `v1.0.0` (bkz. §8.1).
-- **İki yeni rapor:** yönteme göre aylık tahsilat özeti (nakit/havale ayrımı); yoklama yüzdesi düşük oyuncular.
+- **Yeni rapor:** sağlık raporu durumu (Excel/PDF; süresi dolan/dolacak/yok). ~~Yönteme göre aylık tahsilat özeti; yoklama yüzdesi düşük oyuncular~~ — KALDIRILDI 07.09.2026 (Kerem).
 - **Windows'ta gerçek yazıcı testi:** kulüp bilgisayarında makbuz basımı, kağıt boyutu ve kenar boşlukları.
-- **Arayüz tercihlerini ana sürece taşıma:** kenar menü ve hatırlanan kullanıcı adı localStorage'da; ani kapanışta
-  kaybolabiliyor (config.json'a taşınırsa kalıcı olur). Düşük öncelik.
-
+- ~~Arayüz tercihlerini ana sürece taşıma (kenar menü, hatırlanan kullanıcı adı)~~ — KALDIRILDI 07.09.2026 (Kerem): görünüm
+  tercihi; kaba kapanışta kaybolması kabul edildi.
 ## 12. Saha Yoklama Formu — yazdırılabilir (PLANLANDI ve UYGULANDI, 07.09.2026)
 
 **İhtiyaç:** Antrenör sahada elinde kâğıtla yoklama alır, sonra programa işler. Yoklama > antrenman seçilince
