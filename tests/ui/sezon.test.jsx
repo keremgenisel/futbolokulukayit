@@ -43,6 +43,26 @@ describe("Ayarlar > Yeni Sezon sihirbazı", () => {
     expect(screen.getByText(/2027-2028 sezonuna geçildi\./).closest("div")).toHaveTextContent("2 oyuncu yeniledi (1 üst gruba taşındı), 1 oyuncu pasife alındı, 2 eski aidat kaydı silindi"); // toast da role=status taşır
   });
 
+  it("yaş grubu filtresi ve arama listeyi daraltır; 'Görünenleri işaretle' yalnız görünenleri işaretler, özet tüm listeyi sayar", async () => {
+    window.okul = { db: vi.fn(async (fn) => (fn === "sezonDurumu" ? { aktifSezon: "2026-2027", baslangicAyi: 9, sonGecis: null, adaySayisi: 3 } : fn === "listAgeGroups" ? gruplar : fn === "sezonAdayListesi" ? adaylar : fn === "listUsers" ? [] : null)), app: { version: async () => "0.1.0" }, lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) }, mod: { oku: async () => ({ mode: "yerel" }) } };
+    render(<ToastSaglayici><Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="sezon" /></ToastSaglayici>);
+    await screen.findByLabelText("Ada Kaya yeniledi");
+    fireEvent.change(screen.getByLabelText("Yaş grubu filtresi"), { target: { value: "1" } });
+    expect(screen.queryByLabelText("Cem Polat yeniledi")).toBeNull();
+    expect(screen.getByText(/2 \/ 3 oyuncu gösteriliyor/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Görünenleri yeniledi işaretle" }));
+    expect(screen.getByTestId("sezon-ozet")).toHaveTextContent("2 oyuncu 2027-2028 sezonuna geçecek · 1 oyuncu pasife alınacak");
+    fireEvent.change(screen.getByLabelText("Yaş grubu filtresi"), { target: { value: "" } });
+    expect(screen.getByLabelText("Cem Polat yeniledi")).not.toBeChecked(); // filtre dışındaki dokunulmadı
+    expect(screen.getByLabelText("Ada Kaya yeniledi")).toBeChecked();
+    fireEvent.change(screen.getByLabelText("Oyuncu ara"), { target: { value: "cem" } });
+    expect(screen.queryByLabelText("Ada Kaya yeniledi")).toBeNull();
+    expect(screen.getByLabelText("Cem Polat yeniledi")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Oyuncu ara"), { target: { value: "yok böyle" } });
+    expect(screen.getByText("Filtreye uyan oyuncu yok.")).toBeInTheDocument();
+    expect(screen.getByTestId("sezon-ozet")).toHaveTextContent("2 oyuncu 2027-2028 sezonuna geçecek"); // özet değişmedi
+  });
+
   it("geçersiz sezon adıyla geçiş başlatılmaz; kullanıcı rolü bölümü göremez", async () => {
     window.okul = { db: vi.fn(async (fn) => (fn === "sezonDurumu" ? { aktifSezon: "", baslangicAyi: 9, sonGecis: null, adaySayisi: 1 } : fn === "listAgeGroups" ? gruplar : fn === "sezonAdayListesi" ? adaylar.slice(0, 1) : fn === "listUsers" ? [] : null)), app: { version: async () => "0.1.0" }, lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) }, mod: { oku: async () => ({ mode: "yerel" }) } };
     render(<ToastSaglayici><Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="sezon" /></ToastSaglayici>);

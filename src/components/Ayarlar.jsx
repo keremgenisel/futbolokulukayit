@@ -301,7 +301,12 @@ function SezonAyar({ admin, saltOkunur }) {
 
   const ayKaydet = async (ay) => { try { await db("setSetting", "sezon_baslangic_ayi", String(ay)); toast("ok", "Sezon başlangıç ayı kaydedildi"); yukle(); } catch (e) { toast("err", hataMetni(e)); } };
   const aktifSezonKaydet = async (sz) => { if (!sezonGecerliMi(sz)) return toast("err", "Sezon 2026-2027 biçiminde olmalı"); try { await db("setSetting", "aktif_sezon", sz); toast("ok", "Aktif sezon kaydedildi"); yukle(); } catch (e) { toast("err", hataMetni(e)); } };
-  const hepsi = (deger) => setSecim(Object.fromEntries(Object.entries(secim).map(([id, v]) => [id, { ...v, yeniledi: deger }])));
+  const [grupFiltre, setGrupFiltre] = useState("");
+  const [ara, setAra] = useState("");
+  // Filtre yalnız GÖRÜNÜMÜ daraltır; işaretler ve alttaki özet tüm liste üzerinden hesaplanır.
+  const gorunen = (adaylar || []).filter((o) => (!grupFiltre || String(o.yas_grubu_id) === grupFiltre) && (!ara.trim() || o.ad_soyad.toLocaleLowerCase("tr-TR").includes(ara.trim().toLocaleLowerCase("tr-TR"))));
+  const filtreli = !!grupFiltre || !!ara.trim();
+  const hepsi = (deger) => { const ids = new Set(gorunen.map((o) => String(o.id))); setSecim(Object.fromEntries(Object.entries(secim).map(([id, v]) => [id, ids.has(id) ? { ...v, yeniledi: deger } : v]))); };
   const yenileyenler = adaylar ? adaylar.filter((o) => secim[o.id]?.yeniledi) : [];
   const yenilemeyenler = adaylar ? adaylar.filter((o) => !secim[o.id]?.yeniledi) : [];
   const eskiBorc = yenilemeyenler.reduce((t, o) => t + (o.borc_tutar || 0), 0);
@@ -330,15 +335,19 @@ function SezonAyar({ admin, saltOkunur }) {
       {sonuc && <div role="status" style={{ background: "var(--yesil-acik)", border: "1.5px solid var(--yesil)", borderRadius: 10, padding: "12px 16px" }}><b>{sonuc.sezon} sezonuna geçildi.</b> {sonuc.yenilenen} oyuncu yeniledi{sonuc.grupDegisen ? ` (${sonuc.grupDegisen} üst gruba taşındı)` : ""}, {sonuc.pasif} oyuncu pasife alındı{sonuc.borcSilinen ? `, ${sonuc.borcSilinen} eski aidat kaydı silindi` : ""}.</div>}
 
       <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
-          <Alan etiket="Geçilecek sezon" style={{ width: 160 }}><Girdi value={yeniSezon} onChange={(e) => setYeniSezon(e.target.value.trim())} aria-label="Geçilecek sezon" disabled={saltOkunur} /></Alan>
+        <div style={{ position: "sticky", top: -24, zIndex: 2, background: "#fff", padding: "8px 0", display: "flex", alignItems: "flex-end", gap: 12, flexWrap: "wrap" }}>
+          <Alan etiket="Geçilecek sezon" style={{ width: 150 }}><Girdi value={yeniSezon} onChange={(e) => setYeniSezon(e.target.value.trim())} aria-label="Geçilecek sezon" disabled={saltOkunur} /></Alan>
+          <Alan etiket="Yaş grubu" style={{ width: 160 }}><Secim secenekler={gruplar} bos="Tüm gruplar" value={grupFiltre} onChange={(e) => setGrupFiltre(e.target.value)} aria-label="Yaş grubu filtresi" /></Alan>
+          <Alan etiket="Ara" style={{ width: 200 }}><Girdi value={ara} onChange={(e) => setAra(e.target.value)} placeholder="Ad soyad" aria-label="Oyuncu ara" /></Alan>
           <div style={{ flex: 1 }} />
-          <Btn kucuk tur="ghost" onClick={() => hepsi(true)} disabled={saltOkunur}>Tümünü yeniledi işaretle</Btn>
-          <Btn kucuk tur="ghost" onClick={() => hepsi(false)} disabled={saltOkunur}>Tümünü kaldır</Btn>
+          <Btn kucuk tur="ghost" onClick={() => hepsi(true)} disabled={saltOkunur || gorunen.length === 0}>{filtreli ? "Görünenleri yeniledi işaretle" : "Tümünü yeniledi işaretle"}</Btn>
+          <Btn kucuk tur="ghost" onClick={() => hepsi(false)} disabled={saltOkunur || gorunen.length === 0}>{filtreli ? "Görünenleri kaldır" : "Tümünü kaldır"}</Btn>
         </div>
+        {filtreli && <div style={{ fontSize: 13, color: "var(--soluk)" }}>{gorunen.length} / {adaylar.length} oyuncu gösteriliyor · işaretler ve özet tüm liste için geçerli</div>}
         {adaylar.length === 0 ? <Bos metin="Aktif oyuncu yok." /> : (
-          <table><thead><tr><th>Yeniledi</th><th>Oyuncu</th><th>Mevcut grup</th><th>Yeni sezon grubu</th><th>Ödenmemiş aidat</th></tr></thead><tbody>
-            {adaylar.map((o) => { const sc = secim[o.id]; return (
+          <table><thead style={{ position: "sticky", top: 74, zIndex: 1, background: "#fff" }}><tr><th>Yeniledi</th><th>Oyuncu</th><th>Mevcut grup</th><th>Yeni sezon grubu</th><th>Ödenmemiş aidat</th></tr></thead><tbody>
+            {gorunen.length === 0 && <tr><td colSpan={5} style={{ color: "var(--soluk)" }}>Filtreye uyan oyuncu yok.</td></tr>}
+            {gorunen.map((o) => { const sc = secim[o.id]; return (
               <tr key={o.id} style={{ background: sc?.yeniledi ? "var(--yesil-acik)" : undefined }}>
                 <td><input type="checkbox" checked={!!sc?.yeniledi} onChange={(e) => setSecim({ ...secim, [o.id]: { ...sc, yeniledi: e.target.checked } })} aria-label={`${o.ad_soyad} yeniledi`} disabled={saltOkunur} style={{ width: 20, height: 20 }} /></td>
                 <td style={{ fontWeight: 600 }}>{o.ad_soyad}{o.durum !== "aktif" && <span style={{ color: "var(--soluk)", fontWeight: 400 }}> · {o.durum === "deneme" ? "Deneme" : "Sakat"}</span>}</td>
