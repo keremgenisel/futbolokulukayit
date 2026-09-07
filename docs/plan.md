@@ -328,3 +328,75 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 - Kullanıcı rolleri ince ayarı (antrenör yalnız yoklama görsün).
 - ~~Yedeklerden geri yükleme ekranı~~ — YAPILDI 06.09.2026 (Ayarlar > Yedekleme; aynı PC'de alınmış yedek, mevcut veri `.pre-restore` ile kenara alınır, uygulama yeniden başlar).
 - Yedeği başka PC'ye taşıma paketi (parola korumalı, şifreleme anahtarından bağımsız) — kulüp PC değiştirirse gerekir.
+
+## 9. Yoklama Takvim Şeridi (planlama, 07.09.2026)
+
+**İstek:** Yoklama ekranının üstünde havayolu sitelerindeki tarih seçici gibi yatay bir gün şeridi
+olsun. Günler arasında gezildikçe o günün antrenmanları görünsün; yoksa eklenebilsin.
+
+### 9.1 Ekran düzeni (üstten alta)
+
+```
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ ‹  PZT   SAL   ÇAR   PER   CUM   CMT   PAZ   PZT   SAL   ÇAR   PER  …   ›   │
+│    1     2     3     4     5     6     7     8     9    10    11            │
+│   EYL   ●●    ●     ●●●         ●                 ●●                        │
+│              [BUGÜN]                                       [📅 tarihe git] │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ 2 Eylül 2026 Salı · 2 antrenman                        [+ Antrenman Ekle]    │
+│ ┌───────────────┐ ┌───────────────┐                                          │
+│ │ U11 · 17:00   │ │ U13 · 18:30   │   ← seçili gün kartları (chip)           │
+│ │ Saha 1        │ │ Saha 2  İPTAL │                                          │
+│ │ 12/15 işaretli│ │               │                                          │
+│ └───────────────┘ └───────────────┘                                          │
+├──────────────────────────────────────────────────────────────────────────────┤
+│ U11 Yoklama · 17:00      Toplam 15 · Geldi 10 · Gelmedi 1 · İzinli 1         │
+│ (mevcut oyuncu listesi: Geldi / Gelmedi / İzinli düğmeleri)                  │
+└──────────────────────────────────────────────────────────────────────────────┘
+```
+
+- **Gün şeridi:** 14 gün görünür (bugün ortada başlar), her hücrede kısa gün adı (Pzt…Paz), gün
+  numarası, ay değişiminde ay kısaltması. Hücre altında antrenman noktaları: gri = yoklama alınmamış,
+  mor = kısmen alınmış, yeşil = tamamlanmış, kırmızı = iptal. Seçili gün mor dolgu, bugün sarı alt çizgi.
+- **Gezinme:** ‹ › oklar 7 gün kaydırır; "Bugün" düğmesi şeridi bugüne getirir; tarih girdisi ile
+  uzak tarihe atlanır; klavye ← → gün, Home bugün. Şerit kaydırıldıkça görünür pencere ±4 hafta
+  önbellekle tek sorguda yüklenir (`listTrainings(from, to)` zaten aralık alıyor).
+- **Gün paneli:** seçili günün antrenmanları kart olarak; kartta grup · saat · saha, iptal rozeti,
+  "işaretli/toplam" ilerlemesi. Kart tıklanınca alttaki yoklama listesi açılır. "+ Antrenman Ekle"
+  aynı satırda; mevcut form (grup, saat, saha) satır içi açılır. Boş günde "Bu tarihte antrenman yok"
+  ve yine ekle düğmesi.
+- **Yoklama listesi:** bugünkü sağ kart olduğu gibi kalır (Kalanları Geldi İşaretle, iptal, özet).
+  Sol 300px sütun kalkar; özet sayıları liste başlığına taşınır.
+- **Pano bağlantısı:** Pano'daki "Yoklama" bağlantısı bugünü açar (değişmez); ileride antrenman
+  kartından o antrenmanı doğrudan seçili açma `git("yoklama", { tarih, trainingId })` ile.
+
+### 9.2 Veri ve mantık
+
+- Şema değişmez. `trainings`/`attendance` yeterli.
+- Yeni okuma sorgusu `trainingCalendar(from, to)`: gün başına `{ tarih, toplam, iptal, tamam, kismi }`
+  (panoOzet'teki `isaretli`/`geldi` alt sorgusunun aralık sürümü). `yetki.cjs` OKUMA setine eklenir;
+  sunucu/istemci aynı beyaz listeden geçtiği için çoklu PC'de ek iş yok.
+- Saf yardımcılar `src/lib/takvim.js` (`// @ts-check`): `gunSeridi(merkezIso, adet)` → hücre
+  dizisi (iso, gün adı TR, gün no, ay kısaltması, ayBasiMi, bugunMu, haftaSonuMu), `gunKaydir(iso, n)`,
+  `haftaBasi(iso)`. Tarih işlemleri UTC'siz string tabanlı (saat dilimi kayması olmasın).
+- Bileşen `src/components/TakvimSeridi.jsx`: prop'lar `secili`, `onSec`, `gunOzetleri` (tarih → özet),
+  `onPencereDegisti(from, to)`. Yoklama.jsx bunu üstte kullanır.
+
+### 9.3 Adımlar ve süre
+
+| # | Adım | Süre |
+|---|------|------|
+| 1 | `design/Yoklama.dc.html` tuvalini yeni düzene göre güncelle (şerit + gün kartları), onay | 1 s |
+| 2 | `src/lib/takvim.js` + saf testler (ay sınırı, yıl sınırı, bugün, Türkçe gün adları) | 1 s |
+| 3 | `db.trainingCalendar` + Electron roundtrip testi + yetki beyaz listesi | 1 s |
+| 4 | `TakvimSeridi.jsx` + jsdom testi (ok tuşları, Bugün, gün seçimi, nokta renkleri) | 2 s |
+| 5 | Yoklama.jsx yeni düzen; antrenman kartları; satır içi ekleme; mevcut akış korunur | 2 s |
+| 6 | Duman testi ekran görüntüsü, kalıcılık testinde yoklama adımını yeni düzene uyarlama | 1 s |
+
+Toplam ~1 iş günü. Mevcut yoklama davranışı (işaretleme, iptal, aidat rozeti) değişmez; yalnız
+antrenman seçme yolu değişir.
+
+### 9.4 Sonraki aday (bu işe dahil değil)
+- **Haftalık program şablonu:** grup başına sabit gün/saat/saha (U11 Pzt-Çar 17:00 Saha 1). Şeritte
+  "Bu haftayı programdan doldur" ile antrenmanlar toplu eklenir. Antrenörün her gün elle eklemesini
+  ortadan kaldırır; kulüp isterse yarım gün.
