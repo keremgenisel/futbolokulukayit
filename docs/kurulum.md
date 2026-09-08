@@ -78,6 +78,8 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
   grubu varsa penceredeki "Veli Grubuna Gönder" ile tek mesaj: WhatsApp sohbet seçme ekranı metin hazır açılır, grubu seçin.
 - **Kullanıcı rolleri:** "Yönetici" her şeyi görür. "Kullanıcı" (antrenör/sekreter) Ayarlar'ı görmez; oyuncu, makbuz, yoklama,
   yaş grupları, raporlar, WhatsApp ve Excel aktarımı dahil geri kalan her şeyi yapar. Kullanıcı eklemek: Ayarlar > Kullanıcılar.
+- **Sağlık raporu olmayanlar:** Oyuncular listesinde "Bu ay ödemeyenler" yanındaki düğme; raporu hiç yüklenmemiş, tarihsiz ya da
+  süresi dolmuş oyuncuları süzer, satırda kırmızı rozet gösterir.
 - **Sağlık raporu durumu raporu:** Raporlar > Sağlık Raporu Durumu; bugüne göre süresi dolan, 30 gün içinde dolacak, yüklenmemiş ve
   geçerli raporlar en acil önce; yaş grubu filtresi; Excel/PDF.
 - **Saha yoklama formu:** Yoklama'da antrenmanı seçip "Formu Yazdır" (ya da "PDF") deyin; A4 formda programda işaretli

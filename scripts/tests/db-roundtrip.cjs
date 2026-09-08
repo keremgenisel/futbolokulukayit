@@ -354,6 +354,10 @@ app.whenReady().then(async () => {
     db.hamBaglanti().exec("DROP TABLE message_log; CREATE TABLE message_log (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, kanal TEXT, tip TEXT NOT NULL, metin TEXT NOT NULL, durum TEXT, tarih TEXT); INSERT INTO message_log (tip, metin) VALUES ('x', 'eski kayıt')");
     db.close(); db.init();
     check("eski dolu message_log kenara alındı (message_log_eski_v1, 1 satır), yeni tablo çalışıyor", db.hamBaglanti().prepare("SELECT count(*) AS n FROM message_log_eski_v1").get().n === 1 && !!db.mesajKaydet({ player_id: db.listPlayers()[0].id, tur: "genel", metin: "yeni" }).id);
+    // Oyuncular > "Sağlık raporu olmayanlar" filtresi: yok / tarihsiz / süresi dolmuş; geçerli olan listede değil
+    const ss = db.listPlayersWithDue({ yil: 2026, ay: 9, saglikSorunlu: true, bugun: "2026-09-07", durum: "aktifler" });
+    const sl0 = db.saglikRaporuListesi("2026-09-07");
+    check("sağlık filtresi: rapor listesindeki yok/tarihsiz/doldu ile aynı küme, geçerli/dolacak dışarıda", ss.length === sl0.filter((r) => ["yok", "tarihsiz", "doldu"].includes(r.durum)).length && ss.every((p) => p.saglik_adet === 0 || !p.saglik_gecerlilik || p.saglik_gecerlilik < "2026-09-07") && db.playersPage({ yil: 2026, ay: 9, saglikSorunlu: true, bugun: "2026-09-07", durum: "aktifler", sayfaBoyu: 500 }).toplam === ss.length);
     // Sağlık raporu durumu raporu (Faz 3): tüm aktifler, en acil önce; grup filtresi
     const sl = db.saglikRaporuListesi("2026-09-07");
     check("sağlık raporu listesi: tüm aktif/deneme/sakat oyuncular, en acil önce, durumlar tutarlı", sl.length === db.listPlayers({ durum: "aktifler" }).length && sl.every((r) => ["doldu", "dolacak", "tarihsiz", "yok", "gecerli"].includes(r.durum)) && sl.map((r) => ({ doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3, gecerli: 4 })[r.durum]).every((v, i, a) => i === 0 || v >= a[i - 1]) && db.saglikRaporuDurumu("2026-09-07").uyarilar.length === sl.filter((r) => r.durum !== "gecerli").length);

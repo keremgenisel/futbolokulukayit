@@ -3,6 +3,7 @@ import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidat
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
+import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { OyuncuAktar } from "./OyuncuAktar.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
@@ -19,21 +20,22 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [grup, setGrup] = useState("");
   const [durum, setDurum] = useState("aktifler"); // varsayılan: aktif + deneme + sakat (sahadaki herkes); pasif/ayrıldı/dondurma filtreyle görülür
   const [odemeyen, setOdemeyen] = useState(false);
+  const [saglik, setSaglik] = useState(false); // sağlık raporu yok / tarihsiz / süresi dolmuş
   const [yeni, setYeni] = useState(false);
   const [aktarAcik, setAktarAcik] = useState(false);
   const [acik, setAcik] = useState(null);
   const toast = useToast();
-  const { yil, ay } = bugun();
+  const { yil, ay, iso } = bugun();
 
-  const filtre = () => ({ q, yas_grubu_id: grup ? Number(grup) : null, durum: durum || null, yil, ay, sadeceOdemeyen: odemeyen });
+  const filtre = () => ({ q, yas_grubu_id: grup ? Number(grup) : null, durum: durum || null, yil, ay, sadeceOdemeyen: odemeyen, saglikSorunlu: saglik, bugun: iso });
   const yukle = useCallback(async () => {
     try {
       const r = await db("playersPage", { ...filtre(), sayfa, sayfaBoyu: SAYFA_BOYU });
       setListe(r.liste); setToplam(r.toplam); if (r.sayfa !== sayfa) setSayfa(r.sayfa); // sayfa taşarsa sunucu son sayfaya çeker
     } catch (e) { toast("err", hataMetni(e)); }
-  }, [q, grup, durum, odemeyen, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, grup, durum, odemeyen, saglik, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   // Filtre değişince ilk sayfaya dön.
-  useEffect(() => { setSayfa(1); }, [q, grup, durum, odemeyen]);
+  useEffect(() => { setSayfa(1); }, [q, grup, durum, odemeyen, saglik]);
 
   useEffect(() => { db("listAgeGroups").then(setGruplar).catch(() => {}); }, []);
   useEffect(() => { const t = setTimeout(yukle, 150); return () => clearTimeout(t); }, [yukle]);
@@ -74,6 +76,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         <Secim secenekler={gruplar} bos="Tüm gruplar" value={grup} onChange={(e) => setGrup(e.target.value)} style={{ width: 160, height: 40 }} aria-label="Yaş grubu" />
         <Secim secenekler={[{ kod: "aktifler", ad: "Aktif, deneme ve sakat" }, ...DURUMLAR]} bos="Tüm durumlar" value={durum} onChange={(e) => setDurum(e.target.value)} style={{ width: 190, height: 40 }} aria-label="Durum" />
         <Btn kucuk tur={odemeyen ? "danger" : "ghost"} onClick={() => setOdemeyen(!odemeyen)} style={{ height: 40 }}>{odemeyen ? "✕ " : ""}Bu ay ödemeyenler</Btn>
+        <Btn kucuk tur={saglik ? "danger" : "ghost"} onClick={() => setSaglik(!saglik)} style={{ height: 40 }} title="Sağlık raporu hiç yüklenmemiş, tarihsiz ya da süresi dolmuş oyuncular">{saglik ? "✕ " : ""}Sağlık raporu olmayanlar</Btn>
         <div style={{ flex: 1 }} />
         <span style={{ color: "var(--soluk)", fontSize: 14 }}>{toplam} oyuncu</span>
       </Kart>
@@ -84,7 +87,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
             <tbody>
               {liste.map((o) => (
                 <tr key={o.id} onClick={() => setAcik(o.id)} style={{ cursor: "pointer" }}>
-                  <td><div style={{ display: "flex", alignItems: "center", gap: 12 }}><Avatar ad={o.ad_soyad} /><div><div style={{ fontWeight: 700 }}>{o.ad_soyad}</div><div style={{ fontSize: 12, color: "var(--soluk)" }}>{kimlikKisa(o)}</div></div></div></td>
+                  <td><div style={{ display: "flex", alignItems: "center", gap: 12 }}><Avatar ad={o.ad_soyad} /><div><div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>{o.ad_soyad}{(() => { if (o.saglik_adet === undefined) return null; const g = o.saglik_adet === 0 ? { durum: "yok" } : belgeGecerlilik(o.saglik_gecerlilik, iso); return g.durum === "gecerli" ? null : <Rozet ton={g.durum === "dolacak" ? "yellow" : "red"}>{o.saglik_adet === 0 ? "Sağlık raporu yok" : g.durum === "yok" ? "Rapor tarihsiz" : belgeEtiketi(g)}</Rozet>; })()}</div><div style={{ fontSize: 12, color: "var(--soluk)" }}>{kimlikKisa(o)}</div></div></div></td>
                   <td>{tarihTR(o.dogum_tarihi)}</td>
                   <td>{o.yas_grubu_ad ? <Rozet ton="purple">{o.yas_grubu_ad}</Rozet> : <span style={{ color: "var(--soluk)" }}>—</span>}</td>
                   <td style={{ fontSize: 13 }}>{o.veli_ad ? <div>{o.veli_ad}</div> : null}<Telefon no={o.veli_tel} etiket={o.veli_ad} /></td>

@@ -98,4 +98,23 @@ describe("Raporlar: önizleme sayfalı", () => {
     fireEvent.click(screen.getByRole("button", { name: "Excel" }));
     await waitFor(() => expect(window.okul.cikti.excelKaydet).toHaveBeenCalledWith(expect.objectContaining({ sayfa: "Sağlık Raporu Durumu" }), expect.any(String)));
   });
+
+  it("Oyuncular: 'Sağlık raporu olmayanlar' filtresi bugünün tarihiyle sorguya gider; satırda rapor rozeti", async () => {
+    const cagrilar = [];
+    const l = [
+      { id: 1, ad_soyad: "Raporsuz Oyuncu", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi", saglik_adet: 0, saglik_gecerlilik: null },
+      { id: 2, ad_soyad: "Dolmuş Oyuncu", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi", saglik_adet: 1, saglik_gecerlilik: "2020-01-01" },
+      { id: 3, ad_soyad: "Geçerli Oyuncu", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi", saglik_adet: 1, saglik_gecerlilik: "2099-01-01" },
+    ];
+    window.okul = { db: vi.fn(async (fn, a) => { if (fn === "listAgeGroups") return []; if (fn === "playersPage") { cagrilar.push(a); const f = a.saglikSorunlu ? l.filter((o) => o.id !== 3) : l; return { liste: f, toplam: f.length, sayfa: 1, sayfaBoyu: 50 }; } return null; }), cikti: {}, app: { logo: async () => "" } };
+    render(<ToastSaglayici><Oyuncular oturum={{ role: "admin" }} saltOkunur={false} /></ToastSaglayici>);
+    await screen.findByText("Geçerli Oyuncu");
+    expect(screen.getByText("Sağlık raporu yok")).toBeInTheDocument();
+    expect(screen.getByText(/Süresi doldu/)).toBeInTheDocument();
+    expect(cagrilar.at(-1)).toMatchObject({ saglikSorunlu: false, bugun: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/) });
+    fireEvent.click(screen.getByRole("button", { name: "Sağlık raporu olmayanlar" }));
+    await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ saglikSorunlu: true }));
+    await waitFor(() => expect(screen.queryByText("Geçerli Oyuncu")).toBeNull());
+    expect(screen.getByRole("button", { name: "✕ Sağlık raporu olmayanlar" })).toBeInTheDocument();
+  });
 });

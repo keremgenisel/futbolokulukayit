@@ -752,19 +752,21 @@ const deleteAgeGroup = (id) => {
 
 // Oyuncu listesi + verilen ayın aidat durumu (liste ekranı ve tesise giriş kontrolü).
 // Oyuncu listesi + seçilen ayın aidat durumu: ortak WHERE (liste, sayfa ve sayım aynı filtreyi kullanır).
-function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false } = {}) {
+function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false, saglikSorunlu = false, bugun = null } = {}) {
   const where = []; const args = [yil, ay];
   if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
   else if (durum) { where.push("p.durum=?"); args.push(durum); }
   if (sadeceOdemeyen) where.push("d.durum IN ('odenmedi','kismi')");
+  // Sağlık raporu olmayanlar: hiç rapor yok, tarihsiz rapor ya da son raporun süresi dolmuş (panodaki "yok/doldu" ile aynı kural)
+  if (saglikSorunlu) { where.push(`((SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') = 0 OR COALESCE((SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1), '') < ?)`); args.push(String(bugun || new Date().toISOString().slice(0, 10))); }
   const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
     ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
   return { govde, args };
 }
-const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
+const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
 function listPlayersWithDue(opts = {}) {
   const { govde, args } = playersWhere(opts);
   return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
