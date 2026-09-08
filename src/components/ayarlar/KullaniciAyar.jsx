@@ -27,27 +27,28 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
   const kodUretOnay = async () => {
     const u = kodUret;
     setKodUret(null);
-    try {
+    return dene(async () => {
       const r = await window.okul.auth.kurtarmaUret(u.id);
       if (!r.ok) return toast("err", r.error);
       setKodlar({ username: u.username, kodlar: r.kodlar });
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
-  const silOnay = async () => {
-    try {
-      const r = await db("deleteUser", sil.id);
-      if (r?.error) toast("err", r.error);
-      else toast("ok", `${sil.username} silindi`);
-      setSil(null);
-      yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-      setSil(null);
-    }
-  };
+  const silOnay = () =>
+    dene(
+      async () => {
+        const r = await db("deleteUser", sil.id);
+        if (r?.error) toast("err", r.error);
+        else toast("ok", `${sil.username} silindi`);
+        setSil(null);
+        yukle();
+      },
+      {
+        hata: () => {
+          setSil(null);
+        },
+      },
+    );
   const ekle = async () => {
     if (!yeni.username.trim() || yeni.password.length < 8) return toast("err", "Kullanıcı adı ve en az 8 karakter parola gerekli");
     try {

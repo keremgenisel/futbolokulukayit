@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast } from "./ui.jsx";
+import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
-import { db, bugun, hataMetni } from "../lib/api.js";
+import { db, bugun } from "../lib/api.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
 import { sezonSonuMu, guncelSezon } from "../lib/sezon.js";
 import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../lib/belge.js";
@@ -50,12 +50,11 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
   const [q, setQ] = useState("");
   const [sonuc, setSonuc] = useState([]);
   const toast = useToast();
+  const dene = useDene();
   const { yil, ay, iso } = bugun();
 
   useEffect(() => {
-    db("panoOzet", { yil, ay, bugun: iso })
-      .then(setOzet)
-      .catch((e) => toast("err", hataMetni(e)));
+    dene(() => db("panoOzet", { yil, ay, bugun: iso }).then(setOzet));
     db("listUnpaid", yil, ay)
       .then(setBorclular)
       .catch(() => {});
@@ -65,7 +64,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
     db("saglikRaporuDurumu", iso)
       .then((d) => d && Array.isArray(d.uyarilar) && setSaglik({ ...d, uyarilar: uyariSirala(d.uyarilar) }))
       .catch(() => {});
-  }, [yil, ay, iso, toast]);
+  }, [yil, ay, iso, toast, dene]);
   const sezonUyari = sezon && sezon.aktifSezon && sezonSonuMu(sezon.aktifSezon, iso, sezon.baslangicAyi);
 
   useEffect(() => {

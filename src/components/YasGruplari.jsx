@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Kart, Btn, Alan, Girdi, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
-import { db, hataMetni } from "../lib/api.js";
+import { db } from "../lib/api.js";
 import { programCoz, programOzeti, GUN_ADLARI } from "../lib/program.js";
 
 export function YasGruplari({ saltOkunur }) {
@@ -25,14 +25,12 @@ export function YasGruplari({ saltOkunur }) {
 
   const ekle = async () => {
     if (!yeni.ad.trim()) return;
-    try {
+    return dene(async () => {
       await db("createAgeGroup", { ad: yeni.ad.trim(), sezon: yeni.sezon.trim(), sira: gruplar.length + 1 });
       setYeni({ ad: "", sezon: "" });
       toast("ok", "Grup eklendi");
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const kaydet = () =>
     dene(async () => {

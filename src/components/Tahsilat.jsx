@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Modal, Bos, useToast, useDene, ParaGirdi } from "./ui.jsx";
-import { db, cikti, bugun, hataMetni } from "../lib/api.js";
+import { db, cikti, bugun } from "../lib/api.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -63,7 +63,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
 
   const oyuncuSec = useCallback(
     async (id) => {
-      try {
+      return dene(async () => {
         const p = await db("getPlayer", id);
         setOyuncu(p);
         setQ("");
@@ -75,11 +75,9 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
         const muaf = p.ucret_tipi === "ucretsiz" || !(p.aylik_aidat > 0);
         setAidatAylar(muaf ? {} : { [ayAnahtar(secim.yil, secim.ay)]: String(ilkBorc ? aidatKalan(ilkBorc) : p.aylik_aidat) });
         setSecili({});
-      } catch (e) {
-        toast("err", hataMetni(e));
-      }
+      });
     },
-    [yil, ay, toast],
+    [yil, ay, dene],
   );
 
   useEffect(() => {
@@ -163,26 +161,36 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     const satirlar = [...aidatSatirlari, ...digerSatirlar];
     if (!satirlar.length) return toast("err", "En az bir kalem seçin");
     setBekliyor(true);
-    try {
-      const r = await db("createReceipt", { player_id: oyuncu.id, tarih, odeme_yontemi: yontem, tahsil_eden: tahsilEden, not_, satirlar });
-      const html = await makbuzHtmlUret(r.id);
-      await cikti().makbuzPdf(r.id, html);
-      toast("ok", `Makbuz ${r.makbuz_no} kaydedildi`);
-      if (yazdir) {
-        const y = await makbuzYazdir(r.id, html);
-        if (!y.ok) toast("err", y.mesaj);
-      }
-      setOyuncu(null);
-      setSecili({});
-      setAidatAylar({});
-      setNot("");
-      setAidatlar([]);
-      bugunkuYukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await db("createReceipt", {
+          player_id: oyuncu.id,
+          tarih,
+          odeme_yontemi: yontem,
+          tahsil_eden: tahsilEden,
+          not_,
+          satirlar,
+        });
+        const html = await makbuzHtmlUret(r.id);
+        await cikti().makbuzPdf(r.id, html);
+        toast("ok", `Makbuz ${r.makbuz_no} kaydedildi`);
+        if (yazdir) {
+          const y = await makbuzYazdir(r.id, html);
+          if (!y.ok) toast("err", y.mesaj);
+        }
+        setOyuncu(null);
+        setSecili({});
+        setAidatAylar({});
+        setNot("");
+        setAidatlar([]);
+        bugunkuYukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
 
   const yazdir = (id) =>
@@ -193,15 +201,13 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [iptalNedeni, setIptalNedeni] = useState("");
   const iptalEt = async () => {
     if (!iptalNedeni.trim()) return toast("err", "İptal nedeni yazın");
-    try {
+    return dene(async () => {
       await db("cancelReceipt", iptal.id, iptalNedeni.trim());
       toast("ok", "Makbuz iptal edildi");
       setIptal(null);
       setIptalNedeni("");
       bugunkuYukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
 
   const bugunToplam = bugunku.reduce((s, m) => s + m.toplam, 0);

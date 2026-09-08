@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
-import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
+import { db, cikti, uygulama, bugun } from "../lib/api.js";
 import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
 import { htmlYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -31,16 +31,14 @@ export function Yoklama({ saltOkunur }) {
   const dene = useDene();
 
   const takvimYukle = useCallback(async () => {
-    try {
+    return dene(async () => {
       const l = await db("trainingCalendar", gunKaydir(baslangic, -PENCERE_GUN), gunKaydir(baslangic, SERIT_GUN - 1 + PENCERE_GUN));
       const m = {};
       for (const t of l) (m[t.tarih] ||= []).push(t);
       setTakvim(m);
       setAktif((a) => (a ? l.find((t) => t.id === a.id) || a : a)); // seçili antrenmanın sayaçlarını tazele
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  }, [baslangic, toast]);
+    });
+  }, [baslangic, dene]);
   useEffect(() => {
     db("listAgeGroups")
       .then((g) => setGruplar(g.filter((x) => x.aktif)))
@@ -59,39 +57,33 @@ export function Yoklama({ saltOkunur }) {
   const antrenmanSec = useCallback(
     async (t) => {
       setAktif(t);
-      try {
+      return dene(async () => {
         const { yil, ay } = bugun();
         const l = await db("listPlayersWithDue", { yas_grubu_id: t.age_group_id, yil, ay });
         setOyuncular(l.filter((o) => ["aktif", "deneme", "sakat"].includes(o.durum)));
         const a = await db("listAttendance", t.id);
         setYoklama(Object.fromEntries(a.map((x) => [x.player_id, x.durum])));
-      } catch (e) {
-        toast("err", hataMetni(e));
-      }
+      });
     },
-    [toast],
+    [dene],
   );
 
   const isaretle = async (pid, durum) => {
     if (saltOkunur || aktif.iptal) return;
     setYoklama({ ...yoklama, [pid]: durum });
-    try {
+    return dene(async () => {
       await db("setAttendance", aktif.id, pid, durum);
       takvimYukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const tumuGeldi = async () => {
     const n = { ...yoklama };
     for (const o of oyuncular)
       if (!n[o.id]) {
         n[o.id] = "geldi";
-        try {
+        return dene(async () => {
           await db("setAttendance", aktif.id, o.id, "geldi");
-        } catch (e) {
-          toast("err", hataMetni(e));
-        }
+        });
       }
     setYoklama(n);
     takvimYukle();
@@ -99,16 +91,14 @@ export function Yoklama({ saltOkunur }) {
   };
   const antrenmanEkle = async () => {
     if (!yeni.age_group_id) return toast("err", "Yaş grubu seçin");
-    try {
+    return dene(async () => {
       const t = await db("createTraining", { age_group_id: Number(yeni.age_group_id), tarih, saat: yeni.saat, saha: yeni.saha });
       toast("ok", "Antrenman eklendi");
       setYeni({ age_group_id: "", saat: "", saha: "" });
       setFormAcik(false);
       await takvimYukle();
       antrenmanSec({ ...t, yas_grubu_ad: gruplar.find((g) => g.id === t.age_group_id)?.ad, iptal: 0, oyuncu: 0, isaretli: 0 });
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const haftayiDoldur = () =>
     dene(async () => {
@@ -148,7 +138,7 @@ export function Yoklama({ saltOkunur }) {
   // Bildirim penceresi: grubun aktif oyuncularının birincil velileri (onay + numara) ve bu antrenman için açılmış kayıtlar
   const bildirimAc = async (t0, tur) => {
     setBildir(null);
-    try {
+    return dene(async () => {
       // Antrenmanı taze oku: iptal/değişiklik yeni olay açar (grup_bildirim sıfırlanır); ekrandaki eski kopya yanıltmasın
       const t = (await db("trainingCalendar", t0.tarih, t0.tarih)).find((x) => x.id === t0.id) || t0;
       const l = await db("antrenmanVelileri", t.id);
@@ -168,9 +158,7 @@ export function Yoklama({ saltOkunur }) {
           degerler: antrenmanDegerleri(t, { veli_ad: v.veli_ad, ad_soyad: v.ad_soyad }),
         })),
       });
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const bildirimKapat = async () => {
     const t = waAnt.t;

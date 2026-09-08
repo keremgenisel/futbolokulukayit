@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Modal, Btn, Rozet, useToast, useDene } from "./ui.jsx";
-import { aktar, hataMetni } from "../lib/api.js";
+import { aktar } from "../lib/api.js";
 import { tarihTR, paraTR } from "../lib/aidat.js";
 import { Ikon } from "./Ikon.jsx";
 
@@ -20,32 +20,38 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
     });
   const sec = async () => {
     setBekliyor(true);
-    try {
-      const r = await aktar().onizle();
-      if (r.error) toast("err", r.error);
-      else if (!r.iptal) {
-        setOnizleme(r);
-        setSonuc(null);
-      }
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await aktar().onizle();
+        if (r.error) toast("err", r.error);
+        else if (!r.iptal) {
+          setOnizleme(r);
+          setSonuc(null);
+        }
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const uygula = async () => {
     setBekliyor(true);
-    try {
-      const r = await aktar().uygula(onizleme.kayitlar);
-      if (r.error) return toast("err", r.error);
-      setSonuc(r);
-      toast("ok", `${r.eklenen} oyuncu aktarıldı`);
-      onAktarildi?.();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await aktar().uygula(onizleme.kayitlar);
+        if (r.error) return toast("err", r.error);
+        setSonuc(r);
+        toast("ok", `${r.eklenen} oyuncu aktarıldı`);
+        onAktarildi?.();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const dosyaAdi = onizleme?.dosya ? onizleme.dosya.split(/[\\/]/).pop() : "";
 

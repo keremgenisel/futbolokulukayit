@@ -1,7 +1,7 @@
 // Oyuncu kartı > Aile ve Acil Kişiler sekmesi (veli ekle/sil, mesaj onayı, acil kişi)
 import { useState } from "react";
-import { Btn, Rozet, Alan, Girdi, Secim, Bos, useToast, useDene } from "../ui.jsx";
-import { db, hataMetni } from "../../lib/api.js";
+import { Btn, Rozet, Alan, Girdi, Secim, Bos, useDene } from "../ui.jsx";
+import { db } from "../../lib/api.js";
 import { hatirlatmaUygunMu } from "../../lib/whatsapp.js";
 import { Ikon } from "../Ikon.jsx";
 
@@ -13,11 +13,10 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
       onDegisti();
     });
   const [a, setA] = useState({ ad_soyad: "", yakinlik: "", telefon: "" });
-  const toast = useToast();
   const dene = useDene();
   const veliEkle = async () => {
     if (!v.ad_soyad.trim()) return;
-    try {
+    return dene(async () => {
       await db("addGuardian", oyuncu.id, {
         ...v,
         whatsapp_no: v.whatsapp_no || v.gsm,
@@ -26,19 +25,15 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
       });
       setV({ tip: "anne", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false, mesaj_onayi: true });
       onDegisti();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const acilEkle = async () => {
     if (!a.ad_soyad.trim()) return;
-    try {
+    return dene(async () => {
       await db("addEmergency", oyuncu.id, a);
       setA({ ad_soyad: "", yakinlik: "", telefon: "" });
       onDegisti();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const TIP = [
     { kod: "baba", ad: "Baba" },

@@ -1,7 +1,7 @@
 // Ayarlar > Resim ve Belge Optimizasyonu
 import { useState } from "react";
-import { Btn, Rozet, useToast } from "../ui.jsx";
-import { optimize, hataMetni } from "../../lib/api.js";
+import { Btn, Rozet, useToast, useDene } from "../ui.jsx";
+import { optimize } from "../../lib/api.js";
 import { Ikon } from "../Ikon.jsx";
 
 const KATEGORI_AD = {
@@ -23,39 +23,46 @@ export function OptimizeAyar({ admin, saltOkunur }) {
   const [sonuc, setSonuc] = useState(null); // uygulama sonucu
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
   const analiz = async () => {
     setBekliyor(true);
-    try {
-      const r = await optimize().analiz();
-      if (r.error) toast("err", r.error);
-      else {
-        setDurum(r);
-        setSonuc(null);
-      }
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await optimize().analiz();
+        if (r.error) toast("err", r.error);
+        else {
+          setDurum(r);
+          setSonuc(null);
+        }
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const uygula = async () => {
     setBekliyor(true);
-    try {
-      const r = await optimize().uygula();
-      if (r.error) return toast("err", r.error);
-      setSonuc(r);
-      const yuzde = r.once > 0 ? Math.round((r.tasarruf / r.once) * 100) : 0;
-      toast(
-        "ok",
-        r.adet === 0 ? "Optimize edilecek resim yok" : `${r.kucultulen} resim küçültüldü, ${kb(r.tasarruf)} tasarruf (%${yuzde})`,
-      );
-      const a = await optimize().analiz();
-      if (!a.error) setDurum(a);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await optimize().uygula();
+        if (r.error) return toast("err", r.error);
+        setSonuc(r);
+        const yuzde = r.once > 0 ? Math.round((r.tasarruf / r.once) * 100) : 0;
+        toast(
+          "ok",
+          r.adet === 0 ? "Optimize edilecek resim yok" : `${r.kucultulen} resim küçültüldü, ${kb(r.tasarruf)} tasarruf (%${yuzde})`,
+        );
+        const a = await optimize().analiz();
+        if (!a.error) setDurum(a);
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   if (!admin) return <div style={{ color: "var(--soluk)" }}>Bu bölüm yalnız yöneticiler içindir.</div>;
   const yuzde = sonuc && sonuc.once > 0 ? Math.round((sonuc.tasarruf / sonuc.once) * 100) : 0;

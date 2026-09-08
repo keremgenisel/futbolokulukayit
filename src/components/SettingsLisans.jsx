@@ -1,7 +1,7 @@
 // Ayarlar > Lisans: durum kartı + anahtar girişi + lease (docs/plan.md §7). GenCRM SettingsLisans'ın uyarlaması.
 import { useState, useEffect } from "react";
-import { Btn, useToast } from "./ui.jsx";
-import { lisans, hataMetni } from "../lib/api.js";
+import { Btn, useToast, useDene } from "./ui.jsx";
+import { lisans } from "../lib/api.js";
 import { tarihTR } from "../lib/aidat.js";
 
 const MOD = {
@@ -25,6 +25,7 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
   const [lease, setLease] = useState("");
   const [bekliyor, setBekliyor] = useState("");
   const toast = useToast();
+  const dene = useDene();
   const yenile = () =>
     lisans()
       .durum()
@@ -38,18 +39,21 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
 
   const islem = async (ad, fn) => {
     setBekliyor(ad);
-    try {
-      const r = await fn();
-      if (r?.ok) {
-        setDurum(r.durum);
-        toast("ok", "Kaydedildi");
-        onLisansDegisti?.();
-      } else toast("err", r?.error || "İşlem başarısız");
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor("");
-    }
+    return dene(
+      async () => {
+        const r = await fn();
+        if (r?.ok) {
+          setDurum(r.durum);
+          toast("ok", "Kaydedildi");
+          onLisansDegisti?.();
+        } else toast("err", r?.error || "İşlem başarısız");
+      },
+      {
+        sonunda: () => {
+          setBekliyor("");
+        },
+      },
+    );
   };
 
   const m = MOD[durum?.mod];

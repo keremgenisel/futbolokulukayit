@@ -222,14 +222,18 @@ const ToastCtx = createContext(() => {});
 export const useToast = () => useContext(ToastCtx);
 // Hata yakalayıp toast'a yazan sarmalayıcı (refactor §3.4): `const dene = useDene(); const kaydet = () => dene(async () => { ... })`.
 // Başarıda fn'in dönüşünü, hatada undefined döner; hata metni hataMetni ile kullanıcı diline çevrilir.
+// Seçenekler: `sonunda` her durumda (finally), `hata(e)` toast'tan sonra ek iş (durum sıfırlama vb.).
 export function useDene() {
   const toast = useToast();
   return useCallback(
-    async (fn) => {
+    async (fn, { sonunda, hata } = {}) => {
       try {
         return await fn();
       } catch (e) {
         toast("err", hataMetni(e));
+        hata?.(e);
+      } finally {
+        sonunda?.();
       }
     },
     [toast],

@@ -1,7 +1,7 @@
 // Ayarlar > Yeni Sezon sihirbazı (docs/plan.md §10)
 import { useEffect, useState, useCallback } from "react";
 import { Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "../ui.jsx";
-import { db, hataMetni, bugun } from "../../lib/api.js";
+import { db, bugun } from "../../lib/api.js";
 import { paraTR, tarihTR, AY_ADLARI } from "../../lib/aidat.js";
 import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupOner } from "../../lib/sezon.js";
 import { araEslesir } from "../../lib/metin.js";
@@ -24,7 +24,7 @@ export function SezonAyar({ admin, saltOkunur }) {
   const iso = bugun().iso;
 
   const yukle = useCallback(async () => {
-    try {
+    return dene(async () => {
       const d = await db("sezonDurumu");
       setDurum(d);
       const g = await db("listAgeGroups");
@@ -33,10 +33,8 @@ export function SezonAyar({ admin, saltOkunur }) {
       setAdaylar(l);
       setSecim(Object.fromEntries(l.map((o) => [o.id, { yeniledi: false, yas_grubu_id: ustGrupOner(g, o.yas_grubu_id) }])));
       setYeniSezon(d.aktifSezon ? sonrakiSezon(d.aktifSezon) : guncelSezon(iso, d.baslangicAyi));
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  }, [toast, iso]);
+    });
+  }, [dene, iso]);
   useEffect(() => {
     yukle();
   }, [yukle]);
@@ -49,13 +47,11 @@ export function SezonAyar({ admin, saltOkunur }) {
     });
   const aktifSezonKaydet = async (sz) => {
     if (!sezonGecerliMi(sz)) return toast("err", "Sezon 2026-2027 biçiminde olmalı");
-    try {
+    return dene(async () => {
       await db("setSetting", "aktif_sezon", sz);
       toast("ok", "Aktif sezon kaydedildi");
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const [grupFiltre, setGrupFiltre] = useState("");
   const [ara, setAra] = useState("");
@@ -74,21 +70,24 @@ export function SezonAyar({ admin, saltOkunur }) {
   const gec = async () => {
     setOnay(false);
     setBekliyor(true);
-    try {
-      const r = await db("yeniSezonaGec", {
-        sezon: yeniSezon,
-        eskiBorcSil,
-        yenileyenler: yenileyenler.map((o) => ({ id: o.id, yas_grubu_id: secim[o.id].yas_grubu_id })),
-      });
-      if (r?.error) return toast("err", r.error);
-      setSonuc(r);
-      toast("ok", `${r.sezon} sezonuna geçildi`);
-      yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await db("yeniSezonaGec", {
+          sezon: yeniSezon,
+          eskiBorcSil,
+          yenileyenler: yenileyenler.map((o) => ({ id: o.id, yas_grubu_id: secim[o.id].yas_grubu_id })),
+        });
+        if (r?.error) return toast("err", r.error);
+        setSonuc(r);
+        toast("ok", `${r.sezon} sezonuna geçildi`);
+        yukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
 
   if (!admin) return <div style={{ color: "var(--soluk)" }}>Bu bölüm yalnız yöneticiler içindir.</div>;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Modal, Btn, Alan, Girdi, ParaGirdi, Rozet, useToast, useDene } from "./ui.jsx";
-import { db, yedek, hataMetni, bugun } from "../lib/api.js";
+import { db, yedek, bugun } from "../lib/api.js";
 import { UCRET_TIPLERI, SABIT_INDIRIM, VARSAYILAN_INDIRIM, aidatHesapla, paraTR } from "../lib/aidat.js";
 import { guncelSezon, sezonGecerliMi } from "../lib/sezon.js";
 import { KurtarmaKodlari } from "./Ayarlar.jsx";
@@ -75,16 +75,19 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
   };
   const ileri = async () => {
     setBekliyor(true);
-    try {
-      if (adim === 0) await kaydetKulup();
-      else if (adim === 1) await kaydetAidat();
-      else if (adim === 2) await kaydetGruplar();
-      setAdim(adim + 1);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        if (adim === 0) await kaydetKulup();
+        else if (adim === 1) await kaydetAidat();
+        else if (adim === 2) await kaydetGruplar();
+        setAdim(adim + 1);
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const bitir = async (birDahaGosterme = true) => {
     try {
@@ -102,19 +105,22 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
     });
   const kodUret = async () => {
     setBekliyor(true);
-    try {
-      const ben = (await db("listUsers")).find((u) => u.username === oturum.username);
-      const r = await window.okul.auth.kurtarmaUret(ben.id);
-      if (!r.ok) toast("err", r.error);
-      else {
-        setKodlar(r.kodlar);
-        setKodPencere(true);
-      }
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const ben = (await db("listUsers")).find((u) => u.username === oturum.username);
+        const r = await window.okul.auth.kurtarmaUret(ben.id);
+        if (!r.ok) toast("err", r.error);
+        else {
+          setKodlar(r.kodlar);
+          setKodPencere(true);
+        }
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const grupToggle = (ad) => {
     const n = new Set(gruplar);

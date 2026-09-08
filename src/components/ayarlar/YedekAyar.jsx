@@ -19,17 +19,20 @@ export function YedekAyar({ admin }) {
     if (tp.p1.length < 10) return toast("err", "Parola en az 10 karakter olmalı");
     if (tp.p1 !== tp.p2) return toast("err", "Parolalar aynı değil");
     setBekliyor(true);
-    try {
-      const r = await yedek().tasimaOlustur(tp.p1);
-      if (r.iptal) return;
-      if (r.error) return toast("err", r.error);
-      toast("ok", "Taşıma paketi kaydedildi: " + r.yol);
-      setTp({ p1: "", p2: "" });
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await yedek().tasimaOlustur(tp.p1);
+        if (r.iptal) return;
+        if (r.error) return toast("err", r.error);
+        toast("ok", "Taşıma paketi kaydedildi: " + r.yol);
+        setTp({ p1: "", p2: "" });
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const tasimaSec = () =>
     dene(async () => {
@@ -41,28 +44,34 @@ export function YedekAyar({ admin }) {
   const tasimaKontrol = async () => {
     if (!tg.yol) return toast("err", "Önce paket dosyasını seçin");
     setBekliyor(true);
-    try {
-      const r = await yedek().tasimaBilgi(tg.yol, tg.parola);
-      if (r.error) return toast("err", r.error);
-      setTAday(r);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await yedek().tasimaBilgi(tg.yol, tg.parola);
+        if (r.error) return toast("err", r.error);
+        setTAday(r);
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const tasimaGeriYukle = async () => {
     setBekliyor(true);
-    try {
-      const r = await yedek().tasimaGeriYukle(tAday.yol, tg.parola);
-      if (r.error) toast("err", r.error);
-      else toast("ok", "Taşıma paketi yüklendi, program yeniden başlatılıyor…");
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-      setTAday(null);
-    }
+    return dene(
+      async () => {
+        const r = await yedek().tasimaGeriYukle(tAday.yol, tg.parola);
+        if (r.error) toast("err", r.error);
+        else toast("ok", "Taşıma paketi yüklendi, program yeniden başlatılıyor…");
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+          setTAday(null);
+        },
+      },
+    );
   };
   const geriYukleSec = () =>
     dene(async () => {
@@ -73,16 +82,19 @@ export function YedekAyar({ admin }) {
     });
   const geriYukleOnayla = async () => {
     setBekliyor(true);
-    try {
-      const r = await yedek().geriYukle(aday.klasor);
-      if (r.error) toast("err", r.error);
-      else toast("ok", "Geri yüklendi, program yeniden başlatılıyor…");
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-      setAday(null);
-    }
+    return dene(
+      async () => {
+        const r = await yedek().geriYukle(aday.klasor);
+        if (r.error) toast("err", r.error);
+        else toast("ok", "Geri yüklendi, program yeniden başlatılıyor…");
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+          setAday(null);
+        },
+      },
+    );
   };
   const yukle = () =>
     yedek()
@@ -115,16 +127,19 @@ export function YedekAyar({ admin }) {
   };
   const al = async () => {
     setBekliyor(true);
-    try {
-      const r = await yedek().al();
-      if (r.error) toast("err", r.error);
-      else toast("ok", "Yedek alındı: " + r.yol);
-      yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await yedek().al();
+        if (r.error) toast("err", r.error);
+        else toast("ok", "Yedek alındı: " + r.yol);
+        yukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 640 }}>

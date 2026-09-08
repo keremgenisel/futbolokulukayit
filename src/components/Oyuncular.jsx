@@ -15,7 +15,7 @@ import {
   Sayfalama,
   Telefon,
 } from "./ui.jsx";
-import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
+import { db, cikti, uygulama, bugun } from "../lib/api.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
@@ -54,14 +54,12 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     bugun: iso,
   });
   const yukle = useCallback(async () => {
-    try {
+    return dene(async () => {
       const r = await db("playersPage", { ...filtre(), sayfa, sayfaBoyu: SAYFA_BOYU });
       setListe(r.liste);
       setToplam(r.toplam);
       if (r.sayfa !== sayfa) setSayfa(r.sayfa); // sayfa taşarsa sunucu son sayfaya çeker
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   }, [q, grup, durum, odemeyen, saglik, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   // Filtre değişince ilk sayfaya dön.
   useEffect(() => {

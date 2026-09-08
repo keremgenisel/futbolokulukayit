@@ -1,7 +1,7 @@
 // Ayarlar > Aidat Kalemleri (kalemler + ücret tipleri, tek Kaydet)
 import { useEffect, useState, useCallback } from "react";
-import { Btn, Girdi, ParaGirdi, Rozet, useToast } from "../ui.jsx";
-import { db, hataMetni } from "../../lib/api.js";
+import { Btn, Girdi, ParaGirdi, Rozet, useToast, useDene } from "../ui.jsx";
+import { db } from "../../lib/api.js";
 import { paraTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimYuzdesi, aidatHesapla } from "../../lib/aidat.js";
 import { ucretTipleriYenile } from "../../lib/ucretTipleri.js";
 import { Ikon } from "../Ikon.jsx";
@@ -24,10 +24,11 @@ export function KalemAyar({ saltOkunur, onKirli }) {
   const [yeniTip, setYeniTip] = useState({ ad: "", indirim: "0" });
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
 
   const tipSatiri = (t) => ({ ad: t.ad, indirim: String(indirimYuzdesi(t.kod, t.indirim)), aktif: t.aktif !== 0 });
   const yukle = useCallback(async () => {
-    try {
+    return dene(async () => {
       const l = await db("listFeeItems");
       const a = await db("aidatAyarlari");
       // Eski sürüm / test: ucretTipleri yoksa varsayılan tiplerden kur
@@ -47,10 +48,8 @@ export function KalemAyar({ saltOkunur, onKirli }) {
       setTipTaslak(Object.fromEntries(tl.map((t) => [t.kod, tipSatiri(t)])));
       setYeniTipler([]);
       setSilTip(new Set());
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  }, [toast]);
+    });
+  }, [dene]);
   useEffect(() => {
     yukle();
   }, [yukle]);
@@ -105,34 +104,37 @@ export function KalemAyar({ saltOkunur, onKirli }) {
   };
   const kaydet = async () => {
     setBekliyor(true);
-    try {
-      const r = await db("aidatAyarlariKaydet", {
-        kalemler: [
-          ...degisenKalemler.map((k) => {
-            const t = taslak[k.id];
-            return { id: k.id, ad: t.ad, varsayilan_fiyat: Number(t.varsayilan_fiyat) || 0, aktif: t.aktif ? 1 : 0 };
-          }),
-          ...yeniKalemler.map((k) => ({ yeni: true, ad: k.ad, varsayilan_fiyat: k.varsayilan_fiyat })),
-          ...[...silKalem].map((id) => ({ id, sil: true })),
-        ],
-        ucretTipleri: [
-          ...degisenTipler.map((t) => {
-            const d = tipTaslak[t.kod];
-            return { kod: t.kod, ad: d.ad, indirim: indirimYuzdesi(t.kod, d.indirim), aktif: d.aktif ? 1 : 0 };
-          }),
-          ...yeniTipler.map((t) => ({ yeni: true, ad: t.ad, indirim: t.indirim })),
-          ...[...silTip].map((kod) => ({ kod, sil: true })),
-        ],
-      });
-      if (r?.error) return toast("err", r.error);
-      toast("ok", `${degisiklik} değişiklik kaydedildi`);
-      ucretTipleriYenile();
-      await yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await db("aidatAyarlariKaydet", {
+          kalemler: [
+            ...degisenKalemler.map((k) => {
+              const t = taslak[k.id];
+              return { id: k.id, ad: t.ad, varsayilan_fiyat: Number(t.varsayilan_fiyat) || 0, aktif: t.aktif ? 1 : 0 };
+            }),
+            ...yeniKalemler.map((k) => ({ yeni: true, ad: k.ad, varsayilan_fiyat: k.varsayilan_fiyat })),
+            ...[...silKalem].map((id) => ({ id, sil: true })),
+          ],
+          ucretTipleri: [
+            ...degisenTipler.map((t) => {
+              const d = tipTaslak[t.kod];
+              return { kod: t.kod, ad: d.ad, indirim: indirimYuzdesi(t.kod, d.indirim), aktif: d.aktif ? 1 : 0 };
+            }),
+            ...yeniTipler.map((t) => ({ yeni: true, ad: t.ad, indirim: t.indirim })),
+            ...[...silTip].map((kod) => ({ kod, sil: true })),
+          ],
+        });
+        if (r?.error) return toast("err", r.error);
+        toast("ok", `${degisiklik} değişiklik kaydedildi`);
+        ucretTipleriYenile();
+        await yukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
 
   const taban = Number(taslak[kalemler.find((k) => k.kod === "aidat")?.id]?.varsayilan_fiyat) || 0;

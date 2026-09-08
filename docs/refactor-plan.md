@@ -1,7 +1,7 @@
 # Refactor Hazırlığı ve Planı (08.09.2026)
 
 > **Durum (08.09.2026, aynı gün):** §5'teki 7 adımın tamamı uygulandı; her adım ayrı commit, her commit'te `npm test` yeşil.
-> Sonuç ölçüleri §6'da. Kalan iş: 45 farklı biçimli try/catch (finally/ek deyim) isteğe bağlı olarak `useDene`'ye geçirilebilir.
+> Sonuç ölçüleri §6'da. try/catch + toast kalıbının tamamı `useDene`'ye geçirildi (08.09.2026).
 
 Kod tabanı özellik olarak tamamlandı (Faz 1-3 + güvenlik incelemesi). Bu belge, davranışı DEĞİŞTİRMEDEN yapıyı
 iyileştirmek için taban çizgisini, sıcak noktaları, güvenlik ağını ve adım sırasını kaydeder. Her adım ayrı commit,
@@ -121,7 +121,7 @@ Eksik güvenlik ağı (refactor'dan önce kapatıldı/kapatılacak):
 | `OyuncuKarti.jsx` | 302 satır (946), 5 sekme tek dosya | 344 satırlık kabuk + `oyuncu-karti/` 6 dosya; 4 sekme karakterizasyon testi |
 | `Raporlar.jsx` | 342 satır, rapor mantığı bileşende | 205 satır; 5 üretici `src/lib/raporlar.js` (saf, 6 test) |
 | IPC elle yönetici/oturum kontrolü | 14 yer | 2 yer (`data.cjs` login yolu, `koruma.cjs` tanımı); geri kalanı `ipc/koruma.cjs` |
-| `toast("err", hataMetni(e))` | 73 | 45 (32 tam-gövde try/catch `useDene` ile sadeleşti) |
+| `toast("err", hataMetni(e))` | 73 | 0 (tamamı `useDene` ile: `dene(fn, { sonunda, hata })`; `hataMetni` yalnız 4 özel yerde: form/parola/güncelleme durum metni) |
 | Test | 53 dosya / 265 test | 56 dosya / 280 test (+ `ipc-koruma`, `raporlar`, `oyuncu-karti-sekmeler`) |
 | Kapsama (süreç içi) | `src/lib` %97,8 · `src/components` %79,5 · `electron` %18,5 | `src/lib` %98,2 · `src/components` %76,6 · `electron` %31,9 (saf modüller arttı; `electron/db` yine yalnız Electron altı testle) |
 | Komutlar | — | `npm run format`, `format:check`, `test:saf` (~19 sn), `test:coverage`; `.git-blame-ignore-revs` biçimlendirme commit'i |

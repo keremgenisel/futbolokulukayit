@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Alan, Girdi, Secim, Sayfalama, useToast } from "./ui.jsx";
-import { db, cikti, uygulama, bugun, ayAraligi, hataMetni } from "../lib/api.js";
+import { Kart, Btn, Alan, Girdi, Secim, Sayfalama, useDene } from "./ui.jsx";
+import { db, cikti, uygulama, bugun, ayAraligi } from "../lib/api.js";
 import { AY_ADLARI, paraTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
@@ -21,7 +21,7 @@ export function Raporlar() {
   const [veri, setVeri] = useState(null);
   const [sayfa, setSayfa] = useState(1);
   const ONIZLEME_BOYU = 100; // önizleme sayfası; Excel/PDF tam liste
-  const toast = useToast();
+  const dene = useDene();
   useEffect(() => {
     db("listAgeGroups")
       .then(setGruplar)
@@ -29,8 +29,8 @@ export function Raporlar() {
   }, []);
 
   const grupEk = grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : "";
-  const hazirla = async () => {
-    try {
+  const hazirla = () =>
+    dene(async () => {
       if (rapor === "oyuncu") {
         const liste = await db("listPlayersWithDue", { yil: yilS, ay: ayS, yas_grubu_id: grup ? Number(grup) : null });
         return oyuncuListesiRaporu({ liste, yil: yilS, ay: ayS, grupEk, ucretAd });
@@ -53,11 +53,7 @@ export function Raporlar() {
       }
       const liste = await db("attendanceReport", from, to, grup ? Number(grup) : null);
       return yoklamaOzetiRaporu({ liste, from, to, grupEk });
-    } catch (e) {
-      toast("err", hataMetni(e));
-      return null;
-    }
-  };
+    });
 
   const onizle = async () => {
     setSayfa(1);
@@ -67,25 +63,21 @@ export function Raporlar() {
   const excel = async () => {
     const v = veri || (await hazirla());
     if (!v) return;
-    try {
+    return dene(async () => {
       await cikti().excelKaydet({ sayfa: v.baslik, sutunlar: v.sutunlar, satirlar: v.satirlar }, `${rapor}.xlsx`);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
   const pdf = async () => {
     const v = veri || (await hazirla());
     if (!v) return;
-    try {
+    return dene(async () => {
       const logo = await uygulama().logo();
       await cikti().pdfKaydet(
         raporHtml({ baslik: v.baslik, altBaslik: v.alt, sutunlar: v.sutunlar, satirlar: v.satirlar, logo, yatay: !!v.yatay }),
         `${rapor}.pdf`,
         !!v.yatay,
       );
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   };
 
   const aylik = rapor === "oyuncu" || rapor === "borclu";

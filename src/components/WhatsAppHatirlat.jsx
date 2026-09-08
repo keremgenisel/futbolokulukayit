@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Modal, Btn, Rozet, useToast, useDene } from "./ui.jsx";
-import { db, uygulama, hataMetni } from "../lib/api.js";
+import { db, uygulama } from "../lib/api.js";
 import { Ikon } from "./Ikon.jsx";
 import { tarihTR } from "../lib/aidat.js";
 import {
@@ -35,9 +35,7 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
   const toast = useToast();
   const dene = useDene();
   useEffect(() => {
-    sablonOku(tur)
-      .then(setAyar)
-      .catch((e) => toast("err", hataMetni(e)));
+    dene(() => sablonOku(tur).then(setAyar));
   }, [tur]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const satir = (a) => ({ ...a, uygun: hatirlatmaUygunMu(a), mesaj_id: durum[a.key] });
@@ -53,30 +51,33 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
   const ac = async (a) => {
     if (!ayar) return;
     setBekliyor(true);
-    try {
-      const m = metin(a);
-      const r = await uygulama().whatsappAc(a.uygun.numara, m);
-      if (r?.error) return toast("err", r.error);
-      if (!saltOkunur) {
-        const k = await db("mesajKaydet", {
-          player_id: a.player_id,
-          guardian_id: a.guardian_id || null,
-          tur,
-          yil: kayit.yil ?? null,
-          ay: kayit.ay ?? null,
-          training_id: kayit.training_id ?? null,
-          metin: m,
-        });
-        setDurum((d) => ({ ...d, [a.key]: k.id }));
-        onDegisti?.();
-      } else setDurum((d) => ({ ...d, [a.key]: -1 })); // salt okunurda kayıt yok, ekranda işaretli kalsın
-      const sonraki = uygunlar.find((s) => s.key !== a.key && !s.mesaj_id && !durum[s.key]);
-      if (sonraki) setSecili(sonraki.key);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const m = metin(a);
+        const r = await uygulama().whatsappAc(a.uygun.numara, m);
+        if (r?.error) return toast("err", r.error);
+        if (!saltOkunur) {
+          const k = await db("mesajKaydet", {
+            player_id: a.player_id,
+            guardian_id: a.guardian_id || null,
+            tur,
+            yil: kayit.yil ?? null,
+            ay: kayit.ay ?? null,
+            training_id: kayit.training_id ?? null,
+            metin: m,
+          });
+          setDurum((d) => ({ ...d, [a.key]: k.id }));
+          onDegisti?.();
+        } else setDurum((d) => ({ ...d, [a.key]: -1 })); // salt okunurda kayıt yok, ekranda işaretli kalsın
+        const sonraki = uygunlar.find((s) => s.key !== a.key && !s.mesaj_id && !durum[s.key]);
+        if (sonraki) setSecili(sonraki.key);
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const geriAl = (a) =>
     dene(async () => {
@@ -90,17 +91,20 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
   const grubaGonder = async () => {
     if (!ayar) return;
     setBekliyor(true);
-    try {
-      const r = await uygulama().whatsappAc("", grupMetni());
-      if (r?.error) return toast("err", r.error);
-      if (!saltOkunur && grup?.training_id) await db("grupBildirimKaydet", grup.training_id);
-      setGrupGonderildi(true);
-      onDegisti?.();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await uygulama().whatsappAc("", grupMetni());
+        if (r?.error) return toast("err", r.error);
+        if (!saltOkunur && grup?.training_id) await db("grupBildirimKaydet", grup.training_id);
+        setGrupGonderildi(true);
+        onDegisti?.();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const grupGeriAl = () =>
     dene(async () => {

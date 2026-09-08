@@ -1,7 +1,7 @@
 // Oyuncu kartı: durum, yükleme ve üst şerit burada; sekmeler src/components/oyuncu-karti/ altında (refactor §3.4).
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, useDene, OYUNCU_MODAL } from "./ui.jsx";
-import { db, files, hataMetni, bugun } from "../lib/api.js";
+import { db, files, bugun } from "../lib/api.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
@@ -45,7 +45,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   const dene = useDene();
 
   const yukle = useCallback(async () => {
-    try {
+    return dene(async () => {
       const p = await db("getPlayer", oyuncuId);
       setO(p);
       if (p?.foto_yolu)
@@ -72,9 +72,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       } catch {
         setMesajlar([]);
       }
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   }, [oyuncuId, tumu, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     yukle();

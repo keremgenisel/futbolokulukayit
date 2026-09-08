@@ -2,7 +2,6 @@
 // sunucuya bağlan. İstemci ilk bağlantıda sunucunun sertifika parmak izini onaylar (TOFU).
 import { useEffect, useState } from "react";
 import { Btn, Alan, Girdi, Rozet, Onay, useToast, useDene } from "./ui.jsx";
-import { hataMetni } from "../lib/api.js";
 
 export function SettingsSunucu({ admin, onModDegisti }) {
   const [d, setD] = useState(null);
@@ -29,19 +28,22 @@ export function SettingsSunucu({ admin, onModDegisti }) {
 
   const baslat = async () => {
     setBekliyor(true);
-    try {
-      const r = await window.okul.mod.sunucuBaslat(Number(port));
-      if (r.error) toast("err", r.error);
-      else {
-        toast("ok", `Sunucu ${r.port} portunda açıldı`);
-        onModDegisti?.();
-      }
-      yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await window.okul.mod.sunucuBaslat(Number(port));
+        if (r.error) toast("err", r.error);
+        else {
+          toast("ok", `Sunucu ${r.port} portunda açıldı`);
+          onModDegisti?.();
+        }
+        yukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const durdur = () =>
     dene(async () => {
@@ -52,22 +54,25 @@ export function SettingsSunucu({ admin, onModDegisti }) {
     });
   const baglan = async (secenek = {}) => {
     setBekliyor(true);
-    try {
-      const r = await window.okul.mod.istemciBaglan(url, secenek);
-      if (r.error) toast("err", r.error);
-      else if (r.needTrust) setOnay({ fp: r.fp });
-      else if (r.mismatch) setOnay({ fp: r.fp, mismatch: true, eskiFp: r.eskiFp });
-      else {
-        setOnay(null);
-        toast("ok", "Sunucuya bağlandı. Şimdi sunucudaki kullanıcı adı ve parolanızla giriş yapın.");
-        onModDegisti?.("istemci");
-      }
-      yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        const r = await window.okul.mod.istemciBaglan(url, secenek);
+        if (r.error) toast("err", r.error);
+        else if (r.needTrust) setOnay({ fp: r.fp });
+        else if (r.mismatch) setOnay({ fp: r.fp, mismatch: true, eskiFp: r.eskiFp });
+        else {
+          setOnay(null);
+          toast("ok", "Sunucuya bağlandı. Şimdi sunucudaki kullanıcı adı ve parolanızla giriş yapın.");
+          onModDegisti?.("istemci");
+        }
+        yukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const koparOnayla = async () => {
     await window.okul.mod.istemciKopar();

@@ -1,7 +1,7 @@
 // Ayarlar > WhatsApp Mesajları
 import { useEffect, useState, useCallback } from "react";
-import { Btn, useToast } from "../ui.jsx";
-import { db, hataMetni } from "../../lib/api.js";
+import { Btn, useToast, useDene } from "../ui.jsx";
+import { db } from "../../lib/api.js";
 import {
   SABLON_ANAHTARLARI,
   SABLON_ADLARI,
@@ -43,16 +43,15 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
   const [onizleme, setOnizleme] = useState("aidat");
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
   const yukle = useCallback(async () => {
-    try {
+    return dene(async () => {
       const m = {};
       for (const t of TURLER) m[t] = (await db("getSetting", SABLON_ANAHTARLARI[t])) || VARSAYILAN_SABLONLAR[t];
       setKayitli(m);
       setTaslak(m);
       setKulup((await db("getSetting", "kulup_adi")) || VARSAYILAN_KULUP);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
+    });
   }, [toast]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     yukle();
@@ -64,18 +63,21 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
   useEffect(() => () => onKirli?.(false), []); // eslint-disable-line react-hooks/exhaustive-deps
   const kaydet = async () => {
     setBekliyor(true);
-    try {
-      for (const t of degisen) {
-        if (!String(taslak[t]).trim()) throw new Error(`${SABLON_ADLARI[t]} şablonu boş olamaz`);
-        await db("setSetting", SABLON_ANAHTARLARI[t], taslak[t]);
-      }
-      toast("ok", `${degisen.length} şablon kaydedildi`);
-      await yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    } finally {
-      setBekliyor(false);
-    }
+    return dene(
+      async () => {
+        for (const t of degisen) {
+          if (!String(taslak[t]).trim()) throw new Error(`${SABLON_ADLARI[t]} şablonu boş olamaz`);
+          await db("setSetting", SABLON_ANAHTARLARI[t], taslak[t]);
+        }
+        toast("ok", `${degisen.length} şablon kaydedildi`);
+        await yukle();
+      },
+      {
+        sonunda: () => {
+          setBekliyor(false);
+        },
+      },
+    );
   };
   const ornekDegerler = (t) =>
     t === "aidat" || t === "genel" ? aidatDegerleri(WA_ORNEK, kulup) : antrenmanDegerleri(WA_ORNEK_ANT, WA_ORNEK, kulup);
