@@ -3,6 +3,7 @@ const { ipcMain, dialog, BrowserWindow, shell } = require("electron");
 const ExcelJS = require("exceljs");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
+const koruma = require("./koruma.cjs");
 const { satirlariCoz, SABLON_BASLIKLAR, SABLON_ORNEK } = require("../oyuncuAktar.cjs");
 
 // exceljs hücre değerini ham değere indirger (formül/richText/hyperlink → metin).
@@ -70,13 +71,12 @@ function aktarUygula(kayitlar) {
 }
 
 function registerAktarHandlers(getSession) {
-  const kontrol = () => {
-    const s = getSession();
-    if (!s) return { error: "Oturum gerekli" }; // Oyuncular > İçe Aktar: her kullanıcı (Ayarlar dışı; 07.09.2026)
-    if (config.istemciMi()) return { error: "Aktarım yalnızca sunucu bilgisayarında yapılır" };
-    if (db.lisansSaltOkunurMu()) return { error: "Lisans salt okunur modda" };
-    return null;
-  };
+  // Oyuncular > İçe Aktar: her kullanıcı (Ayarlar dışı; 07.09.2026)
+  const kontrol = koruma.donerek(getSession, {
+    istemciMi: config.istemciMi,
+    istemciMesaji: "Aktarım yalnızca sunucu bilgisayarında yapılır",
+    saltOkunurMu: db.lisansSaltOkunurMu,
+  });
   ipcMain.handle("aktar:sablon", async (e) => {
     const k = kontrol();
     if (k) return k;

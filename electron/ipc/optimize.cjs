@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
+const koruma = require("./koruma.cjs");
 const { optimizeImage, optimizeEdilebilirMi } = require("../imageOptimize.cjs");
 
 function dosyalariTopla(kok) {
@@ -70,13 +71,12 @@ function uygula(kok = db.getUploadsDir()) {
 }
 
 function registerOptimizeHandlers(getSession) {
-  const kontrol = () => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return { error: "Optimizasyon yalnızca sunucu bilgisayarında çalışır" };
-    if (db.lisansSaltOkunurMu()) return { error: "Lisans salt okunur modda" };
-    return null;
-  };
+  const kontrol = koruma.donerek(getSession, {
+    yonetici: true,
+    istemciMi: config.istemciMi,
+    istemciMesaji: "Optimizasyon yalnızca sunucu bilgisayarında çalışır",
+    saltOkunurMu: db.lisansSaltOkunurMu,
+  });
   ipcMain.handle("optimize:analiz", () => kontrol() || analiz());
   ipcMain.handle("optimize:uygula", () => kontrol() || uygula());
 }

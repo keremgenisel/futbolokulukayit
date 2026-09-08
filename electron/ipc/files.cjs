@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
+const koruma = require("./koruma.cjs");
 const istemci = require("../istemci.cjs");
 const { optimizeImage } = require("../imageOptimize.cjs");
 const { belgeGirdiDogrula } = require("../belgeDogrula.cjs");
@@ -37,10 +38,8 @@ function uploadsIci(p) {
 }
 
 function registerFileHandlers(getSession) {
-  const yetki = () => {
-    if (!getSession()) throw new Error("Oturum gerekli");
-    if (!config.istemciMi() && db.lisansSaltOkunurMu()) throw new Error("Lisans salt okunur modda");
-  };
+  const yetki = koruma.firlatarak(getSession, { saltOkunurMu: () => !config.istemciMi() && db.lisansSaltOkunurMu() });
+  const oturum = koruma.firlatarak(getSession);
 
   // Belge yükle: dialog aç, kopyala, kaydet. Dönüş: yeni belge kaydı veya { iptal: true }.
   ipcMain.handle("files:addDocument", async (e, playerId, tip, gecerlilik) => {
@@ -102,14 +101,14 @@ function registerFileHandlers(getSession) {
   });
 
   ipcMain.handle("files:open", async (_e, yol) => {
-    if (!getSession()) throw new Error("Oturum gerekli");
+    oturum();
     if (config.istemciMi()) return shell.openPath(await istemci.dosyaIndir(String(yol)));
     return shell.openPath(uploadsIci(yol));
   });
 
   // Görsel/PDF önizleme için data URL (renderer sandbox'ta dosya okuyamaz).
   ipcMain.handle("files:dataUrl", async (_e, yol) => {
-    if (!getSession()) throw new Error("Oturum gerekli");
+    oturum();
     if (config.istemciMi()) return (await istemci.istek("/api/files/dataUrl?yol=" + encodeURIComponent(String(yol)))).dataUrl;
     const tam = uploadsIci(yol);
     if (!fs.existsSync(tam)) return null;

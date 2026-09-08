@@ -12,6 +12,7 @@ const tasima = require("../tasimaKripto.cjs");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
 const { sikliktNormalize, yedekGerekliMi, SIKLIKLAR } = require("../yedekSiklik.cjs");
+const koruma = require("./koruma.cjs");
 
 function kopyalaKlasor(kaynak, hedef) {
   if (!fs.existsSync(kaynak)) return;
@@ -310,12 +311,10 @@ function registerYedekHandlers(getSession) {
   // İnceleme #16: geri yükleme yolu diyalogdan gelir; renderer'ın verdiği yol YALNIZ diyalogda seçilenle aynıysa kabul edilir.
   let bekleyenYedek = null,
     bekleyenPaket = null;
-  const istemciHata = () => ({ error: "Yedek yalnızca sunucu bilgisayarında alınır" });
-  const yonetici = () => {
-    const s = getSession();
-    if (!s) throw new Error("Oturum gerekli");
-    if (s.role !== "admin") throw new Error("Yönetici yetkisi gerekli");
-  };
+  const ISTEMCI_MESAJI = "Yedek yalnızca sunucu bilgisayarında alınır";
+  const istemciHata = () => ({ error: ISTEMCI_MESAJI });
+  const yonetici = koruma.firlatarak(getSession, { yonetici: true });
+  const yoneticiHata = koruma.donerek(getSession, { yonetici: true, istemciMi: config.istemciMi, istemciMesaji: ISTEMCI_MESAJI });
   ipcMain.handle("yedek:klasorSec", async (e) => {
     yonetici();
     if (config.istemciMi()) return istemciHata();
@@ -333,9 +332,8 @@ function registerYedekHandlers(getSession) {
   });
   // Geri yükleme: klasör seç → doğrula (özet göster) → onay → geri yükle → uygulamayı yeniden başlat.
   ipcMain.handle("yedek:geriYukleSec", async (e) => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return istemciHata();
+    const hata = yoneticiHata();
+    if (hata) return hata;
     const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
       title: "Yedek dosyasını seçin (eyupspor-yedek-….eyupyedek)",
       properties: ["openFile"],
@@ -354,9 +352,8 @@ function registerYedekHandlers(getSession) {
     return { ok: true, klasor: yol, oyuncu: h.oyuncu, makbuz: h.makbuz, sonMakbuz: h.sonMakbuz };
   });
   ipcMain.handle("yedek:geriYukle", async (_e, klasor) => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return istemciHata();
+    const hata = yoneticiHata();
+    if (hata) return hata;
     if (!bekleyenYedek || String(klasor || "") !== bekleyenYedek) return { error: "Önce yedek dosyasını seçin" };
     const r = geriYukleCekirdek(bekleyenYedek);
     bekleyenYedek = null;
@@ -375,9 +372,8 @@ function registerYedekHandlers(getSession) {
   });
   // Taşıma paketi: oluştur (parola) / paketi seç / özetini göster / geri yükle
   ipcMain.handle("yedek:tasimaOlustur", async (e, parola) => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return istemciHata();
+    const hata = yoneticiHata();
+    if (hata) return hata;
     if (!tasima.parolaGecerliMi(parola)) return { error: `Parola en az ${tasima.PAROLA_MIN} karakter olmalı` };
     const damga = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
@@ -389,9 +385,8 @@ function registerYedekHandlers(getSession) {
     return tasimaPaketiOlustur(r.filePath, String(parola));
   });
   ipcMain.handle("yedek:tasimaSec", async (e) => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return istemciHata();
+    const hata = yoneticiHata();
+    if (hata) return hata;
     const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
       title: "Taşıma paketini seçin (eyupspor-tasima-….eyupspor)",
       properties: ["openFile"],
@@ -402,18 +397,16 @@ function registerYedekHandlers(getSession) {
     return { ok: true, yol: bekleyenPaket };
   });
   ipcMain.handle("yedek:tasimaBilgi", async (_e, yol, parola) => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return istemciHata();
+    const hata = yoneticiHata();
+    if (hata) return hata;
     if (!bekleyenPaket || String(yol || "") !== bekleyenPaket) return { error: "Önce paket dosyasını seçin" };
     const h = tasimaPaketiOzet(bekleyenPaket, String(parola || "")); // bellek içi; düz kopya diske yazılmaz
     if (h.error) return h;
     return { ok: true, yol: bekleyenPaket, oyuncu: h.oyuncu, makbuz: h.makbuz, sonMakbuz: h.sonMakbuz, schema: h.schema };
   });
   ipcMain.handle("yedek:tasimaGeriYukle", async (_e, yol, parola) => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-    if (config.istemciMi()) return istemciHata();
+    const hata = yoneticiHata();
+    if (hata) return hata;
     if (!bekleyenPaket || String(yol || "") !== bekleyenPaket) return { error: "Önce paket dosyasını seçin" };
     const r = tasimaGeriYukleCekirdek(bekleyenPaket, String(parola || ""));
     bekleyenPaket = null;

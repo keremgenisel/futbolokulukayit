@@ -6,6 +6,7 @@ const path = require("path");
 const ExcelJS = require("exceljs");
 const db = require("../db.cjs");
 const config = require("../config.cjs");
+const koruma = require("./koruma.cjs");
 const istemci = require("../istemci.cjs");
 const { uploadsIci } = require("./files.cjs");
 const { makbuzPdfIzni } = require("../makbuzIzin.cjs");
@@ -43,9 +44,7 @@ async function htmlToPdf(html, opts = {}) {
 }
 
 function registerCiktiHandlers(getSession) {
-  const yetki = () => {
-    if (!getSession()) throw new Error("Oturum gerekli");
-  };
+  const yetki = koruma.firlatarak(getSession);
 
   ipcMain.handle("cikti:yazdir", async (_e, html) => {
     yetki();

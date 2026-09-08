@@ -2,11 +2,15 @@
 // Yalnız paketli (Setup ile kurulmuş) sürümde iş yapar; geliştirme/test ortamında autoUpdater null → devMode.
 // İndirme ve kurma yalnız yönetici; denetleme her oturum. Olaylar ana pencereye "updater:*" kanallarıyla gider.
 const { ipcMain, app } = require("electron");
+const koruma = require("./koruma.cjs");
 
 function registerGuncellemeHandlers({ getSession, autoUpdater = null, getWin = () => null }) {
   const guncellemeYok = () => !autoUpdater || !app.isPackaged;
+  const oturumHata = koruma.donerek(getSession);
+  const yoneticiHata = koruma.donerek(getSession, { yonetici: true });
   ipcMain.handle("updater:check", async () => {
-    if (!getSession()) return { error: "Oturum gerekli" };
+    const hata = oturumHata();
+    if (hata) return hata;
     if (guncellemeYok()) return { devMode: true, current: app.getVersion() };
     try {
       const r = await autoUpdater.checkForUpdates();
@@ -22,8 +26,8 @@ function registerGuncellemeHandlers({ getSession, autoUpdater = null, getWin = (
     }
   });
   ipcMain.handle("updater:download", async () => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    const hata = yoneticiHata();
+    if (hata) return hata;
     if (guncellemeYok()) return { error: "Geliştirme modunda güncelleme yok" };
     try {
       await autoUpdater.downloadUpdate();
@@ -33,8 +37,8 @@ function registerGuncellemeHandlers({ getSession, autoUpdater = null, getWin = (
     }
   });
   ipcMain.handle("updater:install", () => {
-    const s = getSession();
-    if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
+    const hata = yoneticiHata();
+    if (hata) return hata;
     if (guncellemeYok()) return { error: "Geliştirme modunda güncelleme yok" };
     setTimeout(() => autoUpdater.quitAndInstall(false, true), 300);
     return { ok: true };
