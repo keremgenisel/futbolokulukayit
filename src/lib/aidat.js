@@ -234,3 +234,10 @@ export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
   const adaylar = (tam ? [tam] : aktif.filter((x) => altOnek.test(norm(x)))).map((x) => ({ id: x.id, ad: x.ad }));
   return { ad, id: adaylar.length === 1 ? adaylar[0].id : null, adaylar };
 }
+
+/** Aidat dönem durumunun ekran etiketi (null/bilinmeyen → "Kayıt yok"). @param {string|null|undefined} d */
+export function aidatEtiket(d) {
+  /** @type {Record<string, string>} */
+  const e = { odendi: "Ödendi", odenmedi: "Ödenmedi", kismi: "Kısmi", muaf: "Muaf" };
+  return (d && e[d]) || "Kayıt yok";
+}
