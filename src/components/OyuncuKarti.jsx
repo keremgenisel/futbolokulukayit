@@ -219,14 +219,20 @@ function BelgeTarihDuzenle({ belge, onKaydet }) {
 // Tekil tiplerde (vesikalık) ikinci dosya eklenmez; "Değiştir" eskisinin yerine koyar (asıl kural main süreçte, db.belgeEkle).
 // Geçerlilik isteyen belgede (sağlık raporu) tarih ZORUNLU: kutu bir yıl sonrasıyla dolu gelir, değiştirilebilir; boşsa yükleme yapılmaz
 // (tarihsiz rapor pano/filtrede "raporsuz" sayılıyordu — 08.09.2026).
+// Rapor zaten varken tarih kutusu hep görünmesin (mevcut raporun "Tarihi değiştir" kutusuyla karışıyordu — 08.09.2026):
+// ilk yüklemede kutu açık gelir; rapor varken önce "Yeni Rapor Yükle", tıklanınca tarih + Yükle açılır.
 function BelgeYukleDugmesi({ tip, mevcut = 0, onYukle }) {
   const [gecerlilik, setGecerlilik] = useState(() => (tip.gecerlilik ? onerilenGecerlilik(bugun().iso) : ""));
+  const [acik, setAcik] = useState(false);
   const degistir = tip.tekil && mevcut > 0;
   const tarihEksik = !!tip.gecerlilik && !gecerlilik;
+  const tarihGoster = !!tip.gecerlilik && (mevcut === 0 || acik);
+  if (tip.gecerlilik && mevcut > 0 && !acik) return <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => setAcik(true)}>Yeni Rapor Yükle</Btn>;
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      {tip.gecerlilik && <Girdi type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} style={{ width: 150, height: 36, borderColor: tarihEksik ? "var(--kirmizi)" : undefined }} title="Geçerlilik tarihi (zorunlu; öneri: bir yıl)" aria-label={`${tip.ad} geçerlilik tarihi`} />}
-      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => onYukle(tip.kod, gecerlilik)} disabled={tarihEksik} title={tarihEksik ? "Önce geçerlilik tarihini girin" : degistir ? "Vesikalık tek dosya olur; yenisi eskisinin yerine geçer" : undefined}>{degistir ? "Değiştir" : "Yükle"}</Btn>
+      {tarihGoster && <Girdi type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} style={{ width: 150, height: 36, borderColor: tarihEksik ? "var(--kirmizi)" : undefined }} title="Yeni raporun geçerlilik tarihi (zorunlu; öneri: bir yıl)" aria-label={`${tip.ad} geçerlilik tarihi`} />}
+      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={async () => { await onYukle(tip.kod, gecerlilik); setAcik(false); }} disabled={tarihEksik} title={tarihEksik ? "Önce geçerlilik tarihini girin" : degistir ? "Vesikalık tek dosya olur; yenisi eskisinin yerine geçer" : undefined}>{degistir ? "Değiştir" : "Yükle"}</Btn>
+      {acik && <Btn kucuk tur="ghost" onClick={() => setAcik(false)}>Vazgeç</Btn>}
     </div>
   );
 }

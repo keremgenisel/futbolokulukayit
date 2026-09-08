@@ -21,9 +21,12 @@ describe("Oyuncu kartı > Belgeler: sağlık raporu geçerlilik tarihi", () => {
       app: { logo: async () => "" },
     };
   });
-  it("tarih kutusu bir yıl sonrasıyla dolu gelir; boşaltılınca Yükle kapanır; dolu tarihle yükleme tarihi gönderir; tarihsiz eski rapor 'Tarih girilmemiş'", async () => {
+  it("rapor varken tek tarih kutusu görünmez: 'Yeni Rapor Yükle' → tarih (bir yıl önerili) + Yükle; boşsa Yükle kapalı; tarihsiz eski rapor 'Tarih girilmemiş'", async () => {
     render(<ToastSaglayici><OyuncuKarti oyuncuId={7} oturum={{ role: "admin" }} gruplar={[]} saltOkunur={false} onKapat={vi.fn()} onMakbuzKes={vi.fn()} /></ToastSaglayici>);
     fireEvent.click(await screen.findByRole("button", { name: "Belgeler" }));
+    await screen.findByText("Tarih girilmemiş");
+    expect(screen.queryByLabelText("Sağlık raporu geçerlilik tarihi")).toBeNull(); // rapor varken kutu kapalı
+    fireEvent.click(screen.getByRole("button", { name: "Yeni Rapor Yükle" }));
     const tarih = await screen.findByLabelText("Sağlık raporu geçerlilik tarihi");
     expect(tarih).toHaveValue(onerilenGecerlilik(bugun().iso));
     expect(screen.getByText("Tarih girilmemiş")).toBeInTheDocument(); // mevcut tarihsiz rapor uyarı olarak kalır
@@ -46,5 +49,13 @@ describe("Oyuncu kartı > Belgeler: sağlık raporu geçerlilik tarihi", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Kaydet" }).at(-1));
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("updateDocument", 1, { gecerlilik_tarihi: "2027-01-10" }));
     expect(window.okul.files.addDocument).not.toHaveBeenCalled();
+  });
+
+  it("hiç rapor yokken tarih kutusu doğrudan açık gelir (ilk yükleme)", async () => {
+    window.okul.db = vi.fn(async (fn) => (fn === "getPlayer" ? { id: 7, ad_soyad: "Yeni", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 0, odeme_donemi: "1-10", kayit_tarihi: "2026-09-01", updated_at: "2026-09-01" } : []));
+    render(<ToastSaglayici><OyuncuKarti oyuncuId={7} oturum={{ role: "admin" }} gruplar={[]} saltOkunur={false} onKapat={vi.fn()} onMakbuzKes={vi.fn()} /></ToastSaglayici>);
+    fireEvent.click(await screen.findByRole("button", { name: "Belgeler" }));
+    expect(await screen.findByLabelText("Sağlık raporu geçerlilik tarihi")).toHaveValue(onerilenGecerlilik(bugun().iso));
+    expect(screen.queryByRole("button", { name: "Yeni Rapor Yükle" })).toBeNull();
   });
 });
