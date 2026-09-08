@@ -302,15 +302,21 @@ depo düzeninden vazgeçildi, 08.09.2026). Depoda kod ve kurulum dosyaları olur
 ASLA olmaz (gitignore + gitleaks). Altyapı hazır (build.publish → `keremgenisel/eyupspor`, release.yml GITHUB_TOKEN ile
 yayınlar, publish-release.cjs depo özelse durur, Ayarlar > Hakkında > Uygulama güncellemesi akışı). Sıra:
 
-| # | İş | Nasıl | Durum |
-|---|----|-------|-------|
-| 1 | Lisans özel anahtarlarını yedekle | `scripts/keys/lisans-private.pem` ve `lisans-lease-private.pem` dosyalarını şifreli USB veya parola yöneticisine kopyala. Kaybolursa dağıtılan tüm lisanslar geçersiz olur. | Bekliyor |
-| 2 | Depoyu oluştur ve push et (HERKESE AÇIK) | `gh repo create keremgenisel/eyupspor --public --source . --remote origin --push` | Bekliyor |
-| 3 | Aktivasyon sunucusunu deploy et | `cd aktivasyon-sunucu && npx wrangler login && ./deploy.sh`. Çıkan adresi `electron/aktivasyonIstemci.cjs` → `AKTIVASYON_URL` alanına yaz, commit et. | Bekliyor |
-| 4 | Kulübe lisans anahtarı üret | `node scripts/lisans-uret.cjs --firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon` ve `node scripts/lisans-yonet.cjs kaydet --anahtar "…" --kurulum 2`. Aktivasyon sunucusu yoksa `--aktivasyon` bayrağını KOYMA. | Bekliyor |
-| 5 | İlk sürümü yayınla | `package.json` version `1.0.0`, commit, `git tag v1.0.0 && git push --follow-tags` → GitHub Actions ~10 dk → Release v1.0.0 (.exe + latest.yml). Kontrol: `gh release view v1.0.0 --repo keremgenisel/eyupspor`. | Bekliyor |
-| 6 | Wrangler'ı 4.x'e yükselt | `aktivasyon-sunucu` içinde `npm install --save-dev wrangler@4` (3.x uyarı veriyor). | Bekliyor |
-| 7 | GitHub hesabını sıkılaştır (güvenlik incelemesi #9) | Hesapta 2FA aç; depoda Settings > Tags > "Protected tags" ile `v*` deseni ekle (yalnız sen etiket atabilirsin). Kod imzası (Windows sertifikası, yıllık ücret) bütçe çıkarsa `verifyUpdateCodeSignature` açılır. | Bekliyor |
+Sıra bağımlılığa göredir (08.09.2026): her adım bir sonrakinin ön koşulu. 1–4 hesap ve depo işi (~yarım saat), 5–8 yayın
+(~bir saat), 9 kulüp ziyareti, 10 bütçe kararı.
+
+| # | İş | Nasıl | Neden bu sırada | Durum |
+|---|----|-------|-----------------|-------|
+| 1 | Lisans özel anahtarlarını yedekle | `scripts/keys/lisans-private.pem` ve `lisans-lease-private.pem` dosyalarını şifreli USB veya parola yöneticisine kopyala. | Sonraki her adım bu anahtarlara dayanır; kaybı geri alınamaz, dağıtılan tüm lisanslar geçersiz olur. | Bekliyor |
+| 2 | GitHub hesabında 2FA aç (güvenlik #9) | github.com > Settings > Password and authentication. | Herkese açık depo ve otomatik güncelleme bu hesabın güvenliğine dayanır; önce hesap, sonra depo. | Bekliyor |
+| 3 | Depoyu HERKESE AÇIK oluştur ve push et | `gh repo create keremgenisel/eyupspor --public --source . --remote origin --push` | Etiket kuralı ve sürüm yayını depo olmadan yapılamaz. | Bekliyor |
+| 4 | Korumalı etiket kuralı ekle (güvenlik #9) | Depoda Settings > Tags > "Protected tags", desen `v*` (yalnız sen etiket atabilirsin). | İlk etiket atılmadan önce; yayın kanalı ilk günden korunur. | Bekliyor |
+| 5 | Wrangler'ı 4.x'e yükselt | `aktivasyon-sunucu` içinde `npm install --save-dev wrangler@4` (3.x uyarı veriyor). | Deploy'u temiz araçla yapmak için, deploy'dan hemen önce. | Bekliyor |
+| 6 | Aktivasyon sunucusunu deploy et | `cd aktivasyon-sunucu && npx wrangler login && ./deploy.sh`. Çıkan adresi `electron/aktivasyonIstemci.cjs` → `AKTIVASYON_URL` alanına yaz, commit et. | `--aktivasyon` bayraklı lisans bu sunucuya bağlanır; adres uygulamaya gömülü olduğu için ilk sürümden ÖNCE commit'te olmalı. | Bekliyor |
+| 7 | Kulübe lisans anahtarı üret | `node scripts/lisans-uret.cjs --firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon` ve `node scripts/lisans-yonet.cjs kaydet --anahtar "…" --kurulum 2`. Aktivasyon sunucusu yoksa `--aktivasyon` bayrağını KOYMA. | Sunucu ayakta olunca; kurulum sayısı sınırı burada tanımlanır. | Bekliyor |
+| 8 | İlk sürümü yayınla | `package.json` version `1.0.0`, commit, `git tag v1.0.0 && git push --follow-tags` → GitHub Actions ~10 dk → Release v1.0.0 (.exe + latest.yml). Kontrol: `gh release view v1.0.0 --repo keremgenisel/eyupspor`. | Aktivasyon adresi gömülü ve etiketler korumalı olduktan sonra. | Bekliyor |
+| 9 | Kulüp bilgisayarında kurulum ve Windows doğrulamaları | §8.2 kurulum adımları + gerçek yazıcı testi (makbuz, kağıt boyutu, kenar boşlukları) + güvenlik raporundaki doğrulanamayan 4 madde: WAL dosyası (`data.db-wal`) şifreli mi, `db-key.enc` yalnız o Windows kullanıcısına açık mı, GitHub 2FA/korumalı etiket gerçekten açık mı, yazdırma penceresinden `file://` erişimi engelli mi. | Kurulum dosyası hazır olunca tek ziyarette. | Bekliyor |
+| 10 | Kod imzası sertifikası (güvenlik #9) | Windows kod imzası sertifikası (yıllık ücret) alınırsa `electron-builder` ayarında imza ve `verifyUpdateCodeSignature: true`; yeni sürüm yayınla. | Hiçbir şey buna bağlı değil; bütçe kararı, en sona. | Bekliyor |
 
 **Her yeni sürümde (kurulumdan sonra):** version yükselt → commit → `git tag vX.Y.Z && git push --follow-tags`. Kulüpteki
 uygulama sonraki açılışta üst şeritte "Yeni sürüm hazır" der; yönetici Ayarlar > Hakkında'dan İndir → Yeniden Başlat ve Kur.
