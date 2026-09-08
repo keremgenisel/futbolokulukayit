@@ -18,6 +18,8 @@ npm run dev          # vite + electron, hot reload
 npm run build        # vite build → dist/
 npm run build:win    # vite build + electron-builder --win → release/*.exe
 npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği ve arayüz duman testi (dist/ gerekir)
+npm run test:saf     # yalnız süreç içi testler (~19 sn) — refactor döngüsü için
+npm run test:coverage # test:saf + kapsama raporu (coverage/); Electron alt süreç kodu (db.cjs, ipc/*) ölçülmez
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
 npm run lint         # ESLint 9 (hata sayısı 0 tutulur)
 npm run typecheck    # tsc --noEmit (// @ts-check işaretli dosyalar)
@@ -39,6 +41,11 @@ Faz 1 tamam: giriş + zorunlu parola değişimi, yaş grupları, oyuncu kaydı (
 aylık aidat, makbuz kesme/yazdırma/PDF, yoklama, pano (tesise giriş kontrolü), raporlar (Excel/PDF),
 ayarlar (kalemler, kullanıcılar, yedekleme), offline lisans çekirdeği. Faz 2: Tailscale/çoklu PC,
 online aktivasyon sunucusu. Bkz. `docs/plan.md`.
+
+## Refactor
+
+Yapısal iyileştirme planı, taban çizgisi ve güvenlik ağı `docs/refactor-plan.md` (08.09.2026). Refactor commit'i davranış
+değiştirmez; `db.cjs` dış API'si ve `yetki.cjs` beyaz listesi sabit kalır.
 
 ## Mimari
 

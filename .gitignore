@@ -15,3 +15,6 @@ sast/
 
 # Lisans özel anahtarları — ASLA commit edilmez
 scripts/keys/
+
+# Kapsama raporu (npm run test:coverage)
+coverage/
