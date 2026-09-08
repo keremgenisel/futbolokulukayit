@@ -1,6 +1,6 @@
 // Oyuncu kartı: durum, yükleme ve üst şerit burada; sekmeler src/components/oyuncu-karti/ altında (refactor §3.4).
 import { useEffect, useState, useCallback } from "react";
-import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, OYUNCU_MODAL } from "./ui.jsx";
+import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, useDene, OYUNCU_MODAL } from "./ui.jsx";
 import { db, files, hataMetni, bugun } from "../lib/api.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
@@ -42,6 +42,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   const [mesajlar, setMesajlar] = useState([]); // WhatsApp hatırlatma/bildirim kayıtları (son 12)
   const [wa, setWa] = useState(null); // { tur, alicilar, baslik, altBaslik, kayit, duzenlenebilir }
   const toast = useToast();
+  const dene = useDene();
 
   const yukle = useCallback(async () => {
     try {
@@ -79,28 +80,22 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     yukle();
   }, [yukle]);
 
-  const durumDegistir = async (d) => {
-    try {
+  const durumDegistir = (d) =>
+    dene(async () => {
       await db("updatePlayer", o.id, { durum: d });
       toast("ok", "Durum güncellendi");
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const belgeYukle = async (tip, gecerlilik) => {
-    try {
+    });
+  const belgeYukle = (tip, gecerlilik) =>
+    dene(async () => {
       const r = await files().addDocument(o.id, tip, gecerlilik || null);
       if (!r.iptal) {
         toast("ok", "Belge yüklendi");
         yukle();
       }
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const silOnayla = async () => {
-    try {
+    });
+  const silOnayla = () =>
+    dene(async () => {
       if (sil.tip === "veli") await db("deleteGuardian", sil.id);
       if (sil.tip === "acil") await db("deleteEmergency", sil.id);
       if (sil.tip === "belge") await files().deleteDocument(sil.id);
@@ -112,28 +107,19 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       }
       setSil(null);
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const makbuzYazdir = async (id) => {
-    try {
+    });
+  const makbuzYazdir = (id) =>
+    dene(async () => {
       const y = await makbuzYazdirAkis(id);
       if (!y.ok) toast("err", y.mesaj);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
 
-  const belgeTarihKaydet = async (id, g) => {
-    try {
+  const belgeTarihKaydet = (id, g) =>
+    dene(async () => {
       await db("updateDocument", id, { gecerlilik_tarihi: g });
       toast("ok", "Geçerlilik tarihi kaydedildi");
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const tumunuGoster = (k) => setTumu({ ...tumu, [k]: true });
 
   if (!o) return null;

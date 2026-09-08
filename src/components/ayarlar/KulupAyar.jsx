@@ -1,12 +1,13 @@
 // Ayarlar > Kulüp ve Makbuz
 import { useEffect, useState } from "react";
-import { Btn, Alan, Girdi, useToast } from "../ui.jsx";
-import { db, hataMetni } from "../../lib/api.js";
+import { Btn, Alan, Girdi, useToast, useDene } from "../ui.jsx";
+import { db } from "../../lib/api.js";
 import { Ikon } from "../Ikon.jsx";
 
 export function KulupAyar({ saltOkunur, admin, onKurulumAc }) {
   const [a, setA] = useState({ kulup_adi: "", tahsil_eden: "" });
   const toast = useToast();
+  const dene = useDene();
   useEffect(() => {
     (async () => {
       const o = {};
@@ -14,14 +15,11 @@ export function KulupAyar({ saltOkunur, admin, onKurulumAc }) {
       setA(o);
     })().catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
-  const kaydet = async () => {
-    try {
+  const kaydet = () =>
+    dene(async () => {
       for (const [k, v] of Object.entries(a)) await db("setSetting", k, v);
       toast("ok", "Kaydedildi");
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 560 }}>
       <h3 style={{ fontSize: 22 }}>Kulüp ve Makbuz</h3>

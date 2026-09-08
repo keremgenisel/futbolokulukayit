@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Btn, Rozet, useToast } from "./ui.jsx";
+import { Modal, Btn, Rozet, useToast, useDene } from "./ui.jsx";
 import { aktar, hataMetni } from "../lib/api.js";
 import { tarihTR, paraTR } from "../lib/aidat.js";
 import { Ikon } from "./Ikon.jsx";
@@ -10,16 +10,14 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
   const [bekliyor, setBekliyor] = useState(false);
   const [sonuc, setSonuc] = useState(null);
   const toast = useToast();
+  const dene = useDene();
 
-  const sablon = async () => {
-    try {
+  const sablon = () =>
+    dene(async () => {
       const r = await aktar().sablon();
       if (r.error) toast("err", r.error);
       else if (!r.iptal) toast("ok", "Şablon kaydedildi ve açıldı");
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const sec = async () => {
     setBekliyor(true);
     try {

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Modal, Bos, useToast, ParaGirdi } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Modal, Bos, useToast, useDene, ParaGirdi } from "./ui.jsx";
 import { db, cikti, bugun, hataMetni } from "../lib/api.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
@@ -26,6 +26,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [iptal, setIptal] = useState(null);
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
   const { yil, ay } = bugun();
 
   const bugunkuYukle = useCallback(async () => {
@@ -184,14 +185,11 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     }
   };
 
-  const yazdir = async (id) => {
-    try {
+  const yazdir = (id) =>
+    dene(async () => {
       const y = await makbuzYazdir(id);
       if (!y.ok) toast("err", y.mesaj);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const [iptalNedeni, setIptalNedeni] = useState("");
   const iptalEt = async () => {
     if (!iptalNedeni.trim()) return toast("err", "İptal nedeni yazın");

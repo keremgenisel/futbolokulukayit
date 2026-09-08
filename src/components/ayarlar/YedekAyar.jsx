@@ -1,6 +1,6 @@
 // Ayarlar > Yedekleme (yedek klasörü/sıklık, geri yükleme, taşıma paketi)
 import { useEffect, useState } from "react";
-import { Btn, Alan, Girdi, Secim, Onay, useToast } from "../ui.jsx";
+import { Btn, Alan, Girdi, Secim, Onay, useToast, useDene } from "../ui.jsx";
 import { yedek, hataMetni } from "../../lib/api.js";
 import { tarihTR } from "../../lib/aidat.js";
 import { Ikon } from "../Ikon.jsx";
@@ -14,6 +14,7 @@ export function YedekAyar({ admin }) {
   const [tg, setTg] = useState({ yol: "", parola: "" }); // geri yükleme: seçilen paket + parola
   const [tAday, setTAday] = useState(null); // paket özeti (onay bekliyor)
   const toast = useToast();
+  const dene = useDene();
   const tasimaOlustur = async () => {
     if (tp.p1.length < 10) return toast("err", "Parola en az 10 karakter olmalı");
     if (tp.p1 !== tp.p2) return toast("err", "Parolalar aynı değil");
@@ -30,16 +31,13 @@ export function YedekAyar({ admin }) {
       setBekliyor(false);
     }
   };
-  const tasimaSec = async () => {
-    try {
+  const tasimaSec = () =>
+    dene(async () => {
       const r = await yedek().tasimaSec();
       if (r.iptal) return;
       if (r.error) return toast("err", r.error);
       setTg({ ...tg, yol: r.yol });
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const tasimaKontrol = async () => {
     if (!tg.yol) return toast("err", "Önce paket dosyasını seçin");
     setBekliyor(true);
@@ -66,16 +64,13 @@ export function YedekAyar({ admin }) {
       setTAday(null);
     }
   };
-  const geriYukleSec = async () => {
-    try {
+  const geriYukleSec = () =>
+    dene(async () => {
       const r = await yedek().geriYukleSec();
       if (r.iptal) return;
       if (r.error) return toast("err", r.error);
       setAday(r);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const geriYukleOnayla = async () => {
     setBekliyor(true);
     try {
@@ -97,17 +92,14 @@ export function YedekAyar({ admin }) {
   useEffect(() => {
     yukle();
   }, []);
-  const sec = async () => {
-    try {
+  const sec = () =>
+    dene(async () => {
       const r = await yedek().klasorSec();
       if (!r.iptal) {
         toast("ok", "Yedek klasörü ayarlandı");
         yukle();
       }
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const siklikDegistir = async (e) => {
     const k = e.target.value;
     try {

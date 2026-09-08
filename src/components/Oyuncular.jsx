@@ -1,5 +1,20 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Rozet, Girdi, Secim, Avatar, Bos, useToast, durumTonu, aidatTonu, aidatEtiket, Sayfalama, Telefon } from "./ui.jsx";
+import {
+  Kart,
+  Btn,
+  Rozet,
+  Girdi,
+  Secim,
+  Avatar,
+  Bos,
+  useToast,
+  useDene,
+  durumTonu,
+  aidatTonu,
+  aidatEtiket,
+  Sayfalama,
+  Telefon,
+} from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
@@ -25,6 +40,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [aktarAcik, setAktarAcik] = useState(false);
   const [acik, setAcik] = useState(null);
   const toast = useToast();
+  const dene = useDene();
   const { yil, ay, iso } = bugun();
 
   const filtre = () => ({
@@ -109,15 +125,12 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       gsm: o.gsm || "",
     })),
   });
-  const excel = async () => {
-    try {
+  const excel = () =>
+    dene(async () => {
       await cikti().excelKaydet(await raporVerisi(), "oyuncular.xlsx");
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const pdf = async () => {
-    try {
+    });
+  const pdf = () =>
+    dene(async () => {
       const v = await raporVerisi();
       const logo = await uygulama().logo();
       await cikti().pdfKaydet(
@@ -132,10 +145,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         "oyuncular.pdf",
         true,
       );
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

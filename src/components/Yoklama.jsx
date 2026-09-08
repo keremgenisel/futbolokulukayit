@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, hataMetni } from "../lib/api.js";
 import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
 import { htmlYazdir } from "../lib/yazdir.js";
@@ -28,6 +28,7 @@ export function Yoklama({ saltOkunur }) {
   const [bildir, setBildir] = useState(null); // "Velilere bildirilsin mi?" sorusu { t, tur }
   const [waAnt, setWaAnt] = useState(null); // açık bildirim penceresi { t, tur, alicilar }
   const toast = useToast();
+  const dene = useDene();
 
   const takvimYukle = useCallback(async () => {
     try {
@@ -109,8 +110,8 @@ export function Yoklama({ saltOkunur }) {
       toast("err", hataMetni(e));
     }
   };
-  const haftayiDoldur = async () => {
-    try {
+  const haftayiDoldur = () =>
+    dene(async () => {
       const r = await db("haftayiProgramdanDoldur", haftaBasi(tarih));
       if (r?.error) return toast("err", r.error);
       if (r.eklenen === 0 && r.programsiz > 0 && r.atlanan === 0)
@@ -121,12 +122,9 @@ export function Yoklama({ saltOkunur }) {
           `${r.eklenen} antrenman eklendi${r.atlanan ? `, ${r.atlanan} zaten vardı` : ""}${r.programsiz ? `, ${r.programsiz} grubun programı yok` : ""}`,
         );
       await takvimYukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const iptalEt = async () => {
-    try {
+    });
+  const iptalEt = () =>
+    dene(async () => {
       await db("cancelTraining", iptal.id, "İptal");
       toast("ok", "Antrenman iptal edildi");
       const t = { ...iptal, iptal: 1, iptal_nedeni: "İptal", bildirim_gerekli: 1 };
@@ -134,13 +132,10 @@ export function Yoklama({ saltOkunur }) {
       setAktif(null);
       await takvimYukle();
       setBildir({ t, tur: "iptal" });
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   // Antrenman düzenleme (plan §13): tarih/saat/saha; değiştiyse velilere bildirim sorulur
-  const duzenKaydet = async () => {
-    try {
+  const duzenKaydet = () =>
+    dene(async () => {
       const t = await db("updateTraining", aktif.id, { tarih: duzen.tarih, saat: duzen.saat, saha: duzen.saha });
       setDuzen(null);
       if (!t.degisti) return toast("ok", "Değişiklik yok");
@@ -149,10 +144,7 @@ export function Yoklama({ saltOkunur }) {
       await takvimYukle();
       setAktif((a) => (a ? { ...a, ...t } : a));
       setBildir({ t: { ...aktif, ...t }, tur: "degisiklik" });
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   // Bildirim penceresi: grubun aktif oyuncularının birincil velileri (onay + numara) ve bu antrenman için açılmış kayıtlar
   const bildirimAc = async (t0, tur) => {
     setBildir(null);
@@ -194,15 +186,12 @@ export function Yoklama({ saltOkunur }) {
     takvimYukle();
   };
   // Veli grubuna gönderim geri al (kart başlığından; pencere kapalıyken de): bildirim gereği yeniden açılır
-  const grupGeriAl = async () => {
-    try {
+  const grupGeriAl = () =>
+    dene(async () => {
       await db("grupBildirimSil", aktif.id);
       toast("ok", "Grup bildirimi geri alındı");
       takvimYukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
 
   // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
   const formHtml = async () => {
@@ -223,21 +212,15 @@ export function Yoklama({ saltOkunur }) {
   };
   const formAdi = () => `yoklama-${(aktif.yas_grubu_ad || "grup").replace(/\s+/g, "")}-${aktif.tarih}`;
   // Yazıcı yoksa / yazdırma başarısızsa form PDF olarak açılır (makbuzla aynı davranış); kullanıcı sessiz kalmaz.
-  const formYazdir = async () => {
-    try {
+  const formYazdir = () =>
+    dene(async () => {
       const y = await htmlYazdir(await formHtml(), formAdi());
       if (!y.ok) toast("err", y.mesaj);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const formPdf = async () => {
-    try {
+    });
+  const formPdf = () =>
+    dene(async () => {
       await cikti().pdfKaydet(await formHtml(), formAdi() + ".pdf", false);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const say = (d) => oyuncular.filter((o) => yoklama[o.id] === d).length;
   const borclu = oyuncular.filter((o) => o.aidat_durum === "odenmedi").length;
   const Dugme = ({ pid, durum, etiket }) => {

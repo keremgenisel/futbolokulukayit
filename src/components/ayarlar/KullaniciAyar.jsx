@@ -1,6 +1,6 @@
 // Ayarlar > Kullanıcılar (+ kurtarma kodları penceresi; ilk kurulum sihirbazı da kullanır)
 import { useEffect, useState } from "react";
-import { Btn, Alan, Girdi, Rozet, Onay, Modal, useToast } from "../ui.jsx";
+import { Btn, Alan, Girdi, Rozet, Onay, Modal, useToast, useDene } from "../ui.jsx";
 import { db, hataMetni, hataHam } from "../../lib/api.js";
 import { ParolaDegistir } from "../ParolaDegistir.jsx";
 import { esc as htmlEsc } from "../../lib/metin.js";
@@ -15,6 +15,7 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
   const [kodUret, setKodUret] = useState(null); // onay bekleyen kullanıcı
   const [kodlar, setKodlar] = useState(null); // { username, kodlar }
   const toast = useToast();
+  const dene = useDene();
   // Yönetici tüm listeyi görür; kullanıcı yalnız kendi kaydını (kurtarma kodu sayısı için).
   const yukle = () => {
     db("listUsers")
@@ -58,15 +59,12 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
       toast("err", hataHam(e).includes("UNIQUE") ? "Bu kullanıcı adı kullanımda" : hataMetni(e));
     }
   };
-  const sifirlaOnay = async () => {
-    try {
+  const sifirlaOnay = () =>
+    dene(async () => {
       const r = await db("resetUserPassword", sifirla.id);
       toast("ok", `Geçici parola: ${r.parola} (ilk girişte değiştirilecek)`);
       setSifirla(null);
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>

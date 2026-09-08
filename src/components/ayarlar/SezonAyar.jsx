@@ -1,6 +1,6 @@
 // Ayarlar > Yeni Sezon sihirbazı (docs/plan.md §10)
 import { useEffect, useState, useCallback } from "react";
-import { Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast } from "../ui.jsx";
+import { Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "../ui.jsx";
 import { db, hataMetni, bugun } from "../../lib/api.js";
 import { paraTR, tarihTR, AY_ADLARI } from "../../lib/aidat.js";
 import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupOner } from "../../lib/sezon.js";
@@ -20,6 +20,7 @@ export function SezonAyar({ admin, saltOkunur }) {
   const [sonuc, setSonuc] = useState(null);
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
   const iso = bugun().iso;
 
   const yukle = useCallback(async () => {
@@ -40,15 +41,12 @@ export function SezonAyar({ admin, saltOkunur }) {
     yukle();
   }, [yukle]);
 
-  const ayKaydet = async (ay) => {
-    try {
+  const ayKaydet = (ay) =>
+    dene(async () => {
       await db("setSetting", "sezon_baslangic_ayi", String(ay));
       toast("ok", "Sezon başlangıç ayı kaydedildi");
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const aktifSezonKaydet = async (sz) => {
     if (!sezonGecerliMi(sz)) return toast("err", "Sezon 2026-2027 biçiminde olmalı");
     try {

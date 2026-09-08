@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Modal, Btn, Alan, Girdi, ParaGirdi, Rozet, useToast } from "./ui.jsx";
+import { Modal, Btn, Alan, Girdi, ParaGirdi, Rozet, useToast, useDene } from "./ui.jsx";
 import { db, yedek, hataMetni, bugun } from "../lib/api.js";
 import { UCRET_TIPLERI, SABIT_INDIRIM, VARSAYILAN_INDIRIM, aidatHesapla, paraTR } from "../lib/aidat.js";
 import { guncelSezon, sezonGecerliMi } from "../lib/sezon.js";
@@ -26,6 +26,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
   const [kodPencere, setKodPencere] = useState(false);
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
 
   useEffect(() => {
     yedek()
@@ -93,15 +94,12 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
     }
     onBitti?.();
   };
-  const klasorSec = async () => {
-    try {
+  const klasorSec = () =>
+    dene(async () => {
       const r = await yedek().klasorSec();
       if (r.error) toast("err", r.error);
       else if (!r.iptal) setYedekDurum(await yedek().durum());
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const kodUret = async () => {
     setBekliyor(true);
     try {

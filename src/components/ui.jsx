@@ -1,6 +1,7 @@
 // Arayüz ilkelleri. Tüm stil inline; kulüp renkleri ui.css'teki CSS değişkenlerinden.
 import { useEffect, useState, createContext, useContext, useCallback } from "react";
 import { sayiAyikla, sayiBicimle } from "../lib/aidat.js";
+import { hataMetni } from "../lib/api.js";
 
 export function Btn({ tur = "primary", children, ikon, style, kucuk, ...rest }) {
   const turler = {
@@ -219,6 +220,21 @@ export function Onay({ mesaj, onEvet, onHayir, tehlikeli }) {
 // ── Bildirim (toast) ──
 const ToastCtx = createContext(() => {});
 export const useToast = () => useContext(ToastCtx);
+// Hata yakalayıp toast'a yazan sarmalayıcı (refactor §3.4): `const dene = useDene(); const kaydet = () => dene(async () => { ... })`.
+// Başarıda fn'in dönüşünü, hatada undefined döner; hata metni hataMetni ile kullanıcı diline çevrilir.
+export function useDene() {
+  const toast = useToast();
+  return useCallback(
+    async (fn) => {
+      try {
+        return await fn();
+      } catch (e) {
+        toast("err", hataMetni(e));
+      }
+    },
+    [toast],
+  );
+}
 export function ToastSaglayici({ children }) {
   const [liste, setListe] = useState([]);
   const goster = useCallback((tur, metin) => {

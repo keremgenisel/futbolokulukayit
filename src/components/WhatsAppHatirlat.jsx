@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Modal, Btn, Rozet, useToast } from "./ui.jsx";
+import { Modal, Btn, Rozet, useToast, useDene } from "./ui.jsx";
 import { db, uygulama, hataMetni } from "../lib/api.js";
 import { Ikon } from "./Ikon.jsx";
 import { tarihTR } from "../lib/aidat.js";
@@ -33,6 +33,7 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
   const [metinDuzen, setMetinDuzen] = useState(null); // düzenlenebilir modda kullanıcının metni
   const [bekliyor, setBekliyor] = useState(false);
   const toast = useToast();
+  const dene = useDene();
   useEffect(() => {
     sablonOku(tur)
       .then(setAyar)
@@ -77,16 +78,13 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
       setBekliyor(false);
     }
   };
-  const geriAl = async (a) => {
-    try {
+  const geriAl = (a) =>
+    dene(async () => {
       if (a.mesaj_id > 0) await db("mesajSil", a.mesaj_id);
       setDurum((d) => ({ ...d, [a.key]: null }));
       setSecili(a.key);
       onDegisti?.();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   // Veli grubuna tek mesaj: numarasız bağlantı WhatsApp'ta "sohbet seç" ekranını metin hazır açar; kullanıcı grubu seçer.
   const grupMetni = () => sablonDoldur(ayar?.sablon || "", grupDegerleri({ ...(alicilar[0]?.degerler || {}), kulup: ayar?.kulup }));
   const grubaGonder = async () => {
@@ -104,15 +102,12 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
       setBekliyor(false);
     }
   };
-  const grupGeriAl = async () => {
-    try {
+  const grupGeriAl = () =>
+    dene(async () => {
       if (!saltOkunur && grup?.training_id) await db("grupBildirimSil", grup.training_id);
       setGrupGonderildi(false);
       onDegisti?.();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const TUR_ETIKET = { aidat: "hatırlatıldı", genel: "gönderildi", iptal: "bildirildi", degisiklik: "bildirildi" };
   const etiket = TUR_ETIKET[tur] || "açıldı";
   const Etiket = etiket.charAt(0).toLocaleUpperCase("tr-TR") + etiket.slice(1);

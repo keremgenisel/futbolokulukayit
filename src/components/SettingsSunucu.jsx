@@ -1,7 +1,7 @@
 // Ayarlar > Sunucu / Çoklu PC: bu bilgisayarı sunucu yap (diğer PC'ler bağlansın) veya başka PC'deki
 // sunucuya bağlan. İstemci ilk bağlantıda sunucunun sertifika parmak izini onaylar (TOFU).
 import { useEffect, useState } from "react";
-import { Btn, Alan, Girdi, Rozet, Onay, useToast } from "./ui.jsx";
+import { Btn, Alan, Girdi, Rozet, Onay, useToast, useDene } from "./ui.jsx";
 import { hataMetni } from "../lib/api.js";
 
 export function SettingsSunucu({ admin, onModDegisti }) {
@@ -12,6 +12,7 @@ export function SettingsSunucu({ admin, onModDegisti }) {
   const [bekliyor, setBekliyor] = useState(false);
   const [kopar, setKopar] = useState(false);
   const toast = useToast();
+  const dene = useDene();
 
   const yukle = () =>
     window.okul.mod
@@ -42,16 +43,13 @@ export function SettingsSunucu({ admin, onModDegisti }) {
       setBekliyor(false);
     }
   };
-  const durdur = async () => {
-    try {
+  const durdur = () =>
+    dene(async () => {
       await window.okul.mod.sunucuDurdur();
       toast("ok", "Sunucu durduruldu");
       onModDegisti?.();
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const baglan = async (secenek = {}) => {
     setBekliyor(true);
     try {

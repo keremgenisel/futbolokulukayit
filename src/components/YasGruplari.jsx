@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Alan, Girdi, Rozet, Onay, Bos, useToast } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db, hataMetni } from "../lib/api.js";
 import { programCoz, programOzeti, GUN_ADLARI } from "../lib/program.js";
 
@@ -10,15 +10,13 @@ export function YasGruplari({ saltOkunur }) {
   const [duzenle, setDuzenle] = useState(null); // { id, ad, sezon, sira, aktif }
   const [sil, setSil] = useState(null);
   const toast = useToast();
+  const dene = useDene();
 
-  const yukle = async () => {
-    try {
+  const yukle = () =>
+    dene(async () => {
       setGruplar(await db("listAgeGroups"));
       setOyuncular(await db("listPlayers"));
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   useEffect(() => {
     yukle();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -36,8 +34,8 @@ export function YasGruplari({ saltOkunur }) {
       toast("err", hataMetni(e));
     }
   };
-  const kaydet = async () => {
-    try {
+  const kaydet = () =>
+    dene(async () => {
       await db("updateAgeGroup", duzenle.id, {
         ad: duzenle.ad,
         sezon: duzenle.sezon,
@@ -48,21 +46,15 @@ export function YasGruplari({ saltOkunur }) {
       setDuzenle(null);
       toast("ok", "Kaydedildi");
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const silOnayla = async () => {
-    try {
+    });
+  const silOnayla = () =>
+    dene(async () => {
       const r = await db("deleteAgeGroup", sil.id);
       if (r?.error) toast("err", r.error);
       else toast("ok", "Grup silindi");
       setSil(null);
       yukle();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

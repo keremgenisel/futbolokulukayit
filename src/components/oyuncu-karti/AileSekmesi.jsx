@@ -1,22 +1,20 @@
 // Oyuncu kartı > Aile ve Acil Kişiler sekmesi (veli ekle/sil, mesaj onayı, acil kişi)
 import { useState } from "react";
-import { Btn, Rozet, Alan, Girdi, Secim, Bos, useToast } from "../ui.jsx";
+import { Btn, Rozet, Alan, Girdi, Secim, Bos, useToast, useDene } from "../ui.jsx";
 import { db, hataMetni } from "../../lib/api.js";
 import { hatirlatmaUygunMu } from "../../lib/whatsapp.js";
 import { Ikon } from "../Ikon.jsx";
 
 export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil, onWhatsApp }) {
   const [v, setV] = useState({ tip: "baba", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false, mesaj_onayi: true });
-  const onayDegistir = async (x, deger) => {
-    try {
+  const onayDegistir = (x, deger) =>
+    dene(async () => {
       await db("updateGuardian", x.id, { mesaj_onayi: deger ? 1 : 0 });
       onDegisti();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
+    });
   const [a, setA] = useState({ ad_soyad: "", yakinlik: "", telefon: "" });
   const toast = useToast();
+  const dene = useDene();
   const veliEkle = async () => {
     if (!v.ad_soyad.trim()) return;
     try {
