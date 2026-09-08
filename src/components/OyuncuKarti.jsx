@@ -8,7 +8,7 @@ import { aidatDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
-import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
+import { belgeGecerlilik, belgeEtiketi, onerilenGecerlilik } from "../lib/belge.js";
 
 const BELGE_TIPLERI = [
   { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true }, { kod: "foto", ad: "Vesikalık fotoğraf", tekil: true },
@@ -144,7 +144,8 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
                   {mevcut.length === 0 ? <div style={{ fontSize: 12, color: "var(--soluk)" }}>Henüz yüklenmedi</div> : mevcut.map((b) => (
                     <div key={b.id} style={{ fontSize: 13, display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>
                       <a href="#" onClick={(e) => { e.preventDefault(); files().open(b.dosya_yolu); }}>{b.orijinal_ad || b.dosya_yolu}</a>
-                      <span style={{ color: "var(--soluk)" }}>{tarihTR(b.yuklenme_tarihi)}{b.gecerlilik_tarihi ? ` · geçerlilik ${tarihTR(b.gecerlilik_tarihi)}` : ""}</span>
+                      <span style={{ color: "var(--soluk)" }}>{tarihTR(b.yuklenme_tarihi)}{b.gecerlilik_tarihi ? ` · geçerlilik ${tarihTR(b.gecerlilik_tarihi)}` : t.gecerlilik ? " · tarih girilmemiş" : ""}</span>
+                      {t.gecerlilik && !saltOkunur && <BelgeTarihDuzenle belge={b} onKaydet={async (g) => { try { await db("updateDocument", b.id, { gecerlilik_tarihi: g }); toast("ok", "Geçerlilik tarihi kaydedildi"); yukle(); } catch (e) { toast("err", hataMetni(e)); } }} />}
                       {!saltOkunur && <button type="button" onClick={() => setSil({ tip: "belge", id: b.id, mesaj: "Belge silinsin mi?" })} style={{ background: "none", border: 0, color: "var(--kirmizi)", cursor: "pointer", fontSize: 12 }}>sil</button>}
                     </div>
                   ))}
@@ -201,14 +202,31 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   );
 }
 
+// Mevcut belgenin geçerlilik tarihi: "Tarih gir" / "Tarihi değiştir" → satır içi tarih kutusu + Kaydet (dosyayı yeniden yüklemeden).
+function BelgeTarihDuzenle({ belge, onKaydet }) {
+  const [acik, setAcik] = useState(false);
+  const [g, setG] = useState(belge.gecerlilik_tarihi || onerilenGecerlilik(bugun().iso));
+  if (!acik) return <button type="button" onClick={() => setAcik(true)} style={{ background: "none", border: 0, color: belge.gecerlilik_tarihi ? "var(--mor)" : "var(--kirmizi)", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}>{belge.gecerlilik_tarihi ? "Tarihi değiştir" : "Tarih gir"}</button>;
+  return (
+    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+      <Girdi type="date" value={g} onChange={(e) => setG(e.target.value)} aria-label="Belge geçerlilik tarihi" style={{ width: 150, height: 32 }} />
+      <Btn kucuk onClick={async () => { if (!g) return; await onKaydet(g); setAcik(false); }} disabled={!g}>Kaydet</Btn>
+      <Btn kucuk tur="ghost" onClick={() => setAcik(false)}>Vazgeç</Btn>
+    </span>
+  );
+}
+
 // Tekil tiplerde (vesikalık) ikinci dosya eklenmez; "Değiştir" eskisinin yerine koyar (asıl kural main süreçte, db.belgeEkle).
+// Geçerlilik isteyen belgede (sağlık raporu) tarih ZORUNLU: kutu bir yıl sonrasıyla dolu gelir, değiştirilebilir; boşsa yükleme yapılmaz
+// (tarihsiz rapor pano/filtrede "raporsuz" sayılıyordu — 08.09.2026).
 function BelgeYukleDugmesi({ tip, mevcut = 0, onYukle }) {
-  const [gecerlilik, setGecerlilik] = useState("");
+  const [gecerlilik, setGecerlilik] = useState(() => (tip.gecerlilik ? onerilenGecerlilik(bugun().iso) : ""));
   const degistir = tip.tekil && mevcut > 0;
+  const tarihEksik = !!tip.gecerlilik && !gecerlilik;
   return (
     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      {tip.gecerlilik && <Girdi type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} style={{ width: 150, height: 36 }} title="Geçerlilik tarihi" />}
-      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => onYukle(tip.kod, gecerlilik)} title={degistir ? "Vesikalık tek dosya olur; yenisi eskisinin yerine geçer" : undefined}>{degistir ? "Değiştir" : "Yükle"}</Btn>
+      {tip.gecerlilik && <Girdi type="date" value={gecerlilik} onChange={(e) => setGecerlilik(e.target.value)} style={{ width: 150, height: 36, borderColor: tarihEksik ? "var(--kirmizi)" : undefined }} title="Geçerlilik tarihi (zorunlu; öneri: bir yıl)" aria-label={`${tip.ad} geçerlilik tarihi`} />}
+      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => onYukle(tip.kod, gecerlilik)} disabled={tarihEksik} title={tarihEksik ? "Önce geçerlilik tarihini girin" : degistir ? "Vesikalık tek dosya olur; yenisi eskisinin yerine geçer" : undefined}>{degistir ? "Değiştir" : "Yükle"}</Btn>
     </div>
   );
 }

@@ -507,6 +507,14 @@ function belgeEkle(pid, d) {
 }
 const addDocument = (pid, d) => belgeEkle(pid, d).id;
 const deleteDocument = (id) => db.prepare("DELETE FROM documents WHERE id=?").run(id);
+// Belgenin geçerlilik tarihini sonradan gir/değiştir (tarihsiz yüklenmiş sağlık raporu için; 08.09.2026)
+function updateDocument(id, { gecerlilik_tarihi }) {
+  const g = gecerlilik_tarihi ? String(gecerlilik_tarihi) : null;
+  if (g && !/^\d{4}-\d{2}-\d{2}$/.test(g)) throw new Error("Geçerlilik tarihi geçersiz");
+  const r = db.prepare("UPDATE documents SET gecerlilik_tarihi=? WHERE id=?").run(g, Number(id));
+  if (r.changes === 0) throw new Error("Belge bulunamadı");
+  return { ok: true };
+}
 const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get(id) || null;
 
 // Sağlık raporu uyarıları: aktif oyuncuların EN SON sağlık raporu; yoksa, süresi dolduysa ya da esik gün içinde dolacaksa listelenir.
@@ -529,7 +537,7 @@ function saglikSatirlari(bugun, esikGun = 30, age_group_id = null) {
 function saglikRaporuDurumu(bugun, esikGun = 30) {
   const rows = saglikSatirlari(bugun, esikGun);
   const uyarilar = rows.filter((r) => r.durum !== "gecerli").map(({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }) => ({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }));
-  return { toplam: rows.length, uyarilar, doldu: uyarilar.filter((u) => u.durum === "doldu").length, dolacak: uyarilar.filter((u) => u.durum === "dolacak").length, yok: uyarilar.filter((u) => u.durum === "yok" || u.durum === "tarihsiz").length };
+  return { toplam: rows.length, uyarilar, doldu: uyarilar.filter((u) => u.durum === "doldu").length, dolacak: uyarilar.filter((u) => u.durum === "dolacak").length, yok: uyarilar.filter((u) => u.durum === "yok").length, tarihsiz: uyarilar.filter((u) => u.durum === "tarihsiz").length };
 }
 // Raporlar > Sağlık Raporu Durumu: tüm satırlar (geçerliler dahil), en acil önce.
 const ACILIYET_SIRA = { doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3, gecerli: 4 };
@@ -1072,7 +1080,7 @@ module.exports = {
   createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
   listGuardians, addGuardian, updateGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
   mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla, grupBildirimKaydet, grupBildirimSil,
-  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, getDocument, saglikRaporuDurumu, saglikRaporuListesi,
+  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, updateDocument, getDocument, saglikRaporuDurumu, saglikRaporuListesi,
   listFeeItems, updateFeeItem, listFeeTypes,
   ensureMonthlyDues, getDue, listDues, listUnpaid,
   createReceipt, getReceipt, listReceipts, listReceiptsByDate, listCancelledReceipts, setReceiptPdf,

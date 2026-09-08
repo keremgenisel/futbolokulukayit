@@ -16,6 +16,12 @@ export function belgeGecerlilik(gecerlilikIso, bugunIso, esik = UYARI_GUN) {
   return { durum: "gecerli", kalanGun };
 }
 
+/** Sağlık raporu için önerilen geçerlilik: yüklendiği günden bir yıl sonrası (kulüp: sporcu sağlık raporu yıllık). @param {string} bugunIso */
+export function onerilenGecerlilik(bugunIso) {
+  const d = new Date(bugunIso + "T00:00:00"); d.setFullYear(d.getFullYear() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 /** Kısa Türkçe etiket. @param {{durum:string, kalanGun:number|null}} d */
 export function belgeEtiketi(d) {
   if (d.durum === "doldu") return `Süresi doldu (${Math.abs(d.kalanGun || 0)} gün önce)`;

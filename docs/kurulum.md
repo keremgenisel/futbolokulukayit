@@ -78,6 +78,8 @@ adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
   grubu varsa penceredeki "Veli Grubuna Gönder" ile tek mesaj: WhatsApp sohbet seçme ekranı metin hazır açılır, grubu seçin.
 - **Kullanıcı rolleri:** "Yönetici" her şeyi görür. "Kullanıcı" (antrenör/sekreter) Ayarlar'ı görmez; oyuncu, makbuz, yoklama,
   yaş grupları, raporlar, WhatsApp ve Excel aktarımı dahil geri kalan her şeyi yapar. Kullanıcı eklemek: Ayarlar > Kullanıcılar.
+- **Sağlık raporu tarihi:** Rapor yüklerken geçerlilik tarihi zorunludur, kutu bir yıl sonrasıyla dolu gelir. Tarihsiz yüklenmiş
+  eski raporlara Belgeler sekmesinde "Tarih gir" ile tarih girilir; tarih girilene kadar rapor "tarihsiz" sayılır.
 - **Sağlık raporu olmayanlar:** Oyuncular listesinde "Bu ay ödemeyenler" yanındaki düğme; raporu hiç yüklenmemiş, tarihsiz ya da
   süresi dolmuş oyuncuları süzer, satırda kırmızı rozet gösterir.
 - **Sağlık raporu durumu raporu:** Raporlar > Sağlık Raporu Durumu; bugüne göre süresi dolan, 30 gün içinde dolacak, yüklenmemiş ve

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../src/lib/belge.js";
+import { belgeGecerlilik, belgeEtiketi, uyariSirala, onerilenGecerlilik } from "../src/lib/belge.js";
 
 describe("sağlık raporu geçerliliği", () => {
   it("yok / geçerli / dolacak (≤30 gün) / doldu", () => {
@@ -26,5 +26,11 @@ describe("sağlık raporu geçerliliği", () => {
     ];
     expect(uyariSirala(l).map((u) => u.ad_soyad)).toEqual(["Deniz", "Bora", "Ece", "Ali", "Fatma", "Ceren", "Zeynep"]);
     expect(l[0].ad_soyad).toBe("Zeynep"); // girdi değişmez
+  });
+
+  it("onerilenGecerlilik: bir yıl sonrası (artık yıl dahil)", () => {
+    expect(onerilenGecerlilik("2026-09-08")).toBe("2027-09-08");
+    expect(onerilenGecerlilik("2028-02-29")).toBe("2029-03-01"); // 29 Şubat yoksa 1 Mart
+    expect(onerilenGecerlilik("2026-12-31")).toBe("2027-12-31");
   });
 });

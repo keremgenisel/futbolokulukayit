@@ -9,7 +9,7 @@ const OKUMA = new Set([
 const YAZMA = new Set([
   "createAgeGroup", "updateAgeGroup", "deleteAgeGroup",
   "createPlayer", "updatePlayer", "deletePlayer",
-  "addGuardian", "updateGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument", "mesajKaydet", "mesajSil", "updateTraining", "bildirimGerekliAyarla", "grupBildirimKaydet", "grupBildirimSil",
+  "addGuardian", "updateGuardian", "deleteGuardian", "addEmergency", "deleteEmergency", "deleteDocument", "updateDocument", "mesajKaydet", "mesajSil", "updateTraining", "bildirimGerekliAyarla", "grupBildirimKaydet", "grupBildirimSil",
   "ensureMonthlyDues", "createReceipt", "cancelReceipt",
   "createTraining", "cancelTraining", "setAttendance", "haftayiProgramdanDoldur",
 ]);

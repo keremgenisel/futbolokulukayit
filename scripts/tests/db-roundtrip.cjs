@@ -354,6 +354,17 @@ app.whenReady().then(async () => {
     db.hamBaglanti().exec("DROP TABLE message_log; CREATE TABLE message_log (id INTEGER PRIMARY KEY AUTOINCREMENT, player_id INTEGER, kanal TEXT, tip TEXT NOT NULL, metin TEXT NOT NULL, durum TEXT, tarih TEXT); INSERT INTO message_log (tip, metin) VALUES ('x', 'eski kayıt')");
     db.close(); db.init();
     check("eski dolu message_log kenara alındı (message_log_eski_v1, 1 satır), yeni tablo çalışıyor", db.hamBaglanti().prepare("SELECT count(*) AS n FROM message_log_eski_v1").get().n === 1 && !!db.mesajKaydet({ player_id: db.listPlayers()[0].id, tur: "genel", metin: "yeni" }).id);
+    // Tarihsiz sağlık raporuna sonradan tarih girme (08.09.2026)
+    const trP = db.createPlayer({ ad_soyad: "Tarihsiz Rapor", dogum_tarihi: "2015-02-02", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, odeme_donemi: "1-10" });
+    const trD = db.addDocument(trP.id, { tip: "saglik", dosya_yolu: "oyuncu-x/rapor.pdf", orijinal_ad: "rapor.pdf", gecerlilik_tarihi: null });
+    const trDid = typeof trD === "object" ? trD.id : trD;
+    const once = db.saglikRaporuDurumu("2026-09-07");
+    check("tarihsiz rapor panoda 'tarihsiz' olarak ayrı sayılır", once.tarihsiz >= 1 && once.uyarilar.some((u) => u.player_id === trP.id && u.durum === "tarihsiz"));
+    db.updateDocument(trDid, { gecerlilik_tarihi: "2027-09-01" });
+    check("updateDocument: tarih girilince rapor geçerli olur, uyarıdan düşer", db.listDocuments(trP.id)[0].gecerlilik_tarihi === "2027-09-01" && !db.saglikRaporuDurumu("2026-09-07").uyarilar.some((u) => u.player_id === trP.id));
+    let trRed = ""; try { db.updateDocument(trDid, { gecerlilik_tarihi: "bozuk" }); } catch (e) { trRed = e.message; }
+    let trYok = ""; try { db.updateDocument(999999, { gecerlilik_tarihi: "2027-01-01" }); } catch (e) { trYok = e.message; }
+    check("updateDocument: geçersiz tarih ve olmayan belge reddedilir", /geçersiz/.test(trRed) && /bulunamadı/.test(trYok));
     // Oyuncular > "Sağlık raporu olmayanlar" filtresi: yok / tarihsiz / süresi dolmuş; geçerli olan listede değil
     const ss = db.listPlayersWithDue({ yil: 2026, ay: 9, saglikSorunlu: true, bugun: "2026-09-07", durum: "aktifler" });
     const sl0 = db.saglikRaporuListesi("2026-09-07");

@@ -55,14 +55,14 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         <Stat etiket="Bu ay ödeyen" deger={ozet?.odeyen ?? "—"} renk="var(--yesil)" not={`${AY_ADLARI[ay - 1]} ${yil}`} />
         <Stat etiket="Aidat borcu olan" deger={ozet?.borclu ?? "—"} renk="var(--kirmizi)" not="Tesise giremez" />
         <Stat etiket="Bugün antrenman" deger={ozet?.antrenmanlar?.length ?? "—"} renk="#9A7D00" not={(ozet?.antrenmanlar || []).map((t) => t.yas_grubu_ad).join(" · ") || "Antrenman yok"} />
-        <Stat etiket="Sağlık raporu" deger={saglik ? saglik.uyarilar.length : "—"} renk={saglik && saglik.uyarilar.length ? "var(--kirmizi)" : "var(--yesil)"} not={saglik ? (saglik.uyarilar.length ? `${saglik.doldu} doldu · ${saglik.dolacak} dolacak · ${saglik.yok} yok` : "Hepsi geçerli") : ""} />
+        <Stat etiket="Sağlık raporu" deger={saglik ? saglik.uyarilar.length : "—"} renk={saglik && saglik.uyarilar.length ? "var(--kirmizi)" : "var(--yesil)"} not={saglik ? (saglik.uyarilar.length ? `${saglik.doldu} doldu · ${saglik.dolacak} dolacak · ${saglik.yok} yok${saglik.tarihsiz ? ` · ${saglik.tarihsiz} tarihsiz` : ""}` : "Hepsi geçerli") : ""} />
       </div>
       {saglik && saglik.uyarilar.length > 0 && (
         <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><h3 style={{ fontSize: 22 }}>Sağlık Raporu Uyarıları <span style={{ color: "var(--soluk)", fontSize: 15, fontWeight: 500 }}>({saglik.uyarilar.length})</span></h3><span style={{ color: "var(--soluk)", fontSize: 13 }}>Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş · en acil önce</span></div>
           <table><thead><tr><th>Oyuncu</th><th>Grup</th><th>Geçerlilik</th><th>Durum</th></tr></thead><tbody>
             {(saglikTumu ? saglik.uyarilar : saglik.uyarilar.slice(0, SAGLIK_KISA)).map((u) => { const d = u.durum === "yok" ? { durum: "yok", kalanGun: null } : belgeGecerlilik(u.gecerlilik, iso); return (
-              <tr key={u.player_id} onClick={() => onOyuncu(u.player_id)} style={{ cursor: "pointer" }}><td style={{ fontWeight: 600 }}>{u.ad_soyad}</td><td>{u.yas_grubu_ad || "—"}</td><td>{u.gecerlilik ? tarihTR(u.gecerlilik) : "—"}</td><td><Rozet ton={u.durum === "dolacak" ? "yellow" : "red"}>{u.durum === "yok" ? "Rapor yok" : belgeEtiketi(d)}</Rozet></td></tr>
+              <tr key={u.player_id} onClick={() => onOyuncu(u.player_id)} style={{ cursor: "pointer" }}><td style={{ fontWeight: 600 }}>{u.ad_soyad}</td><td>{u.yas_grubu_ad || "—"}</td><td>{u.gecerlilik ? tarihTR(u.gecerlilik) : "—"}</td><td><Rozet ton={u.durum === "dolacak" ? "yellow" : "red"}>{u.durum === "yok" ? "Rapor yok" : u.durum === "tarihsiz" ? "Rapor tarihsiz" : belgeEtiketi(d)}</Rozet></td></tr>
             ); })}
           </tbody></table>
           {saglik.uyarilar.length > SAGLIK_KISA && (
