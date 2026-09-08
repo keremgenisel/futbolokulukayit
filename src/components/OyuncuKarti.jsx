@@ -1,38 +1,20 @@
+// Oyuncu kartı: durum, yükleme ve üst şerit burada; sekmeler src/components/oyuncu-karti/ altında (refactor §3.4).
 import { useEffect, useState, useCallback } from "react";
-import {
-  Modal,
-  Btn,
-  Rozet,
-  Alan,
-  Girdi,
-  Secim,
-  Avatar,
-  Sekmeler,
-  Onay,
-  Bos,
-  useToast,
-  aidatTonu,
-  aidatEtiket,
-  OYUNCU_MODAL,
-} from "./ui.jsx";
+import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, OYUNCU_MODAL } from "./ui.jsx";
 import { db, files, hataMetni, bugun } from "../lib/api.js";
-import { DURUMLAR, ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, kimlikBilgisi, aidatKalan } from "../lib/aidat.js";
+import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
-import { aidatDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
+import { aidatDegerleri } from "../lib/whatsapp.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
-import { belgeGecerlilik, belgeEtiketi, onerilenGecerlilik } from "../lib/belge.js";
+import { BilgiSekmesi } from "./oyuncu-karti/BilgiSekmesi.jsx";
+import { AileSekmesi } from "./oyuncu-karti/AileSekmesi.jsx";
+import { BelgeSekmesi } from "./oyuncu-karti/BelgeSekmesi.jsx";
+import { OdemeSekmesi } from "./oyuncu-karti/OdemeSekmesi.jsx";
+import { YoklamaSekmesi } from "./oyuncu-karti/YoklamaSekmesi.jsx";
 
-const BELGE_TIPLERI = [
-  { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true },
-  { kod: "foto", ad: "Vesikalık fotoğraf", tekil: true },
-  { kod: "sporcu_kimlik", ad: "Sporcu kimlik fotokopisi" },
-  { kod: "veli_kimlik", ad: "Veli kimlik fotokopisi" },
-  { kod: "kayit_formu", ad: "İmzalı kayıt formu" },
-  { kod: "diger", ad: "Diğer" },
-];
 const SEKMELER = [
   { kod: "bilgi", ad: "Bilgiler" },
   { kod: "aile", ad: "Aile ve Acil Kişiler" },
@@ -40,17 +22,6 @@ const SEKMELER = [
   { kod: "odeme", ad: "Ödemeler" },
   { kod: "yoklama", ad: "Yoklama" },
 ];
-
-function Bilgi({ etiket, deger, genis }) {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, gridColumn: genis ? "span 2" : undefined }}>
-      <span style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
-        {etiket}
-      </span>
-      <span style={{ fontSize: 15, fontWeight: 600 }}>{deger || "—"}</span>
-    </div>
-  );
-}
 
 export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, onMakbuzKes }) {
   const { ad: ucretAd } = useUcretTipleri();
@@ -154,8 +125,18 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     }
   };
 
+  const belgeTarihKaydet = async (id, g) => {
+    try {
+      await db("updateDocument", id, { gecerlilik_tarihi: g });
+      toast("ok", "Geçerlilik tarihi kaydedildi");
+      yukle();
+    } catch (e) {
+      toast("err", hataMetni(e));
+    }
+  };
+  const tumunuGoster = (k) => setTumu({ ...tumu, [k]: true });
+
   if (!o) return null;
-  const veliAd = veliler.find((v) => v.veli_mi)?.ad_soyad;
   // WhatsApp (plan §13): birincil veliye aidat hatırlatma / serbest mesaj
   const birincilVeli = veliler.find((v) => v.veli_mi) || veliler[0] || null;
   const waAlici = (v, degerler) => ({
@@ -311,41 +292,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         />
       </div>
 
-      {sekme === "bilgi" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-          <h3 style={{ fontSize: 20 }}>Öğrenci</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 18 }}>
-            <Bilgi etiket={kimlikBilgisi(o).etiket} deger={kimlikBilgisi(o).deger} />
-            <Bilgi etiket="Adı Soyadı" deger={o.ad_soyad} />
-            <Bilgi etiket="Doğum Tarihi" deger={tarihTR(o.dogum_tarihi)} />
-            <Bilgi etiket="Doğum Yeri" deger={o.dogum_yeri} />
-            <Bilgi etiket="Okulu" deger={o.okul} />
-            <Bilgi etiket="Kan Grubu" deger={o.kan_grubu} />
-            <Bilgi etiket="GSM" deger={o.gsm} />
-            <Bilgi etiket="Ev Adresi" deger={o.adres} genis />
-          </div>
-          <div style={{ height: 1, background: "var(--cizgi)" }} />
-          <h3 style={{ fontSize: 20 }}>Kayıt ve Ücret</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 18 }}>
-            <Bilgi etiket="Yaş Grubu" deger={o.yas_grubu_ad} />
-            <Bilgi etiket="Ücret Tipi" deger={ucretAd(o.ucret_tipi)} />
-            <Bilgi etiket="Aylık Aidat" deger={paraTR(o.aylik_aidat)} />
-            <Bilgi etiket="Ödeme Dönemi" deger={`Her ayın ${o.odeme_donemi} arası`} />
-            <Bilgi etiket="Veli" deger={veliAd} />
-            <Bilgi etiket="Veli WhatsApp" deger={veliler.find((v) => v.veli_mi)?.whatsapp_no} />
-            <Bilgi etiket="Kayıt Tarihi" deger={tarihTR(o.kayit_tarihi)} />
-            <Bilgi etiket="Notlar" deger={o.notlar} />
-            <Bilgi
-              etiket="Son WhatsApp"
-              deger={
-                sonMesaj
-                  ? `${tarihTR(String(sonMesaj.tarih).slice(0, 10))} · ${{ aidat: "aidat hatırlatma", genel: "mesaj", iptal: "iptal bildirimi", degisiklik: "değişiklik bildirimi" }[sonMesaj.tur] || sonMesaj.tur}${sonMesaj.kullanici ? ` · ${sonMesaj.kullanici}` : ""}`
-                  : ""
-              }
-            />
-          </div>
-        </div>
-      )}
+      {sekme === "bilgi" && <BilgiSekmesi o={o} veliler={veliler} ucretAd={ucretAd} sonMesaj={sonMesaj} />}
 
       {sekme === "aile" && (
         <AileSekmesi
@@ -360,246 +307,24 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       )}
 
       {sekme === "belge" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {BELGE_TIPLERI.map((t) => {
-            const mevcut = belgeler.filter((b) => b.tip === t.kod);
-            return (
-              <div
-                key={t.kod}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                  padding: "12px 14px",
-                  border: "1px solid var(--cizgi)",
-                  borderRadius: 10,
-                }}
-              >
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 600 }}>{t.ad}</div>
-                  {mevcut.length === 0 ? (
-                    <div style={{ fontSize: 12, color: "var(--soluk)" }}>Henüz yüklenmedi</div>
-                  ) : (
-                    mevcut.map((b) => (
-                      <div key={b.id} style={{ fontSize: 13, display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>
-                        <a
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            files().open(b.dosya_yolu);
-                          }}
-                        >
-                          {b.orijinal_ad || b.dosya_yolu}
-                        </a>
-                        <span style={{ color: "var(--soluk)" }}>
-                          {tarihTR(b.yuklenme_tarihi)}
-                          {b.gecerlilik_tarihi
-                            ? ` · geçerlilik ${tarihTR(b.gecerlilik_tarihi)}`
-                            : t.gecerlilik
-                              ? " · tarih girilmemiş"
-                              : ""}
-                        </span>
-                        {t.gecerlilik && !saltOkunur && (
-                          <BelgeTarihDuzenle
-                            belge={b}
-                            onKaydet={async (g) => {
-                              try {
-                                await db("updateDocument", b.id, { gecerlilik_tarihi: g });
-                                toast("ok", "Geçerlilik tarihi kaydedildi");
-                                yukle();
-                              } catch (e) {
-                                toast("err", hataMetni(e));
-                              }
-                            }}
-                          />
-                        )}
-                        {!saltOkunur && (
-                          <button
-                            type="button"
-                            onClick={() => setSil({ tip: "belge", id: b.id, mesaj: "Belge silinsin mi?" })}
-                            style={{ background: "none", border: 0, color: "var(--kirmizi)", cursor: "pointer", fontSize: 12 }}
-                          >
-                            sil
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-                {mevcut.length ? (
-                  t.gecerlilik ? (
-                    (() => {
-                      const g = belgeGecerlilik(mevcut[0].gecerlilik_tarihi, bugun().iso);
-                      return (
-                        <Rozet ton={g.durum === "gecerli" ? "green" : g.durum === "dolacak" ? "yellow" : "red"}>{belgeEtiketi(g)}</Rozet>
-                      );
-                    })()
-                  ) : (
-                    <Rozet ton="green">Yüklü</Rozet>
-                  )
-                ) : (
-                  <Rozet ton="red">Eksik</Rozet>
-                )}
-                {!saltOkunur && <BelgeYukleDugmesi tip={t} mevcut={mevcut.length} onYukle={belgeYukle} />}
-              </div>
-            );
-          })}
-        </div>
+        <BelgeSekmesi belgeler={belgeler} saltOkunur={saltOkunur} onYukle={belgeYukle} onTarihKaydet={belgeTarihKaydet} onSil={setSil} />
       )}
 
       {sekme === "odeme" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          <div>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 10 }}>
-              <h3 style={{ fontSize: 20 }}>Aylık Aidat</h3>
-              {acikAidat &&
-                (() => {
-                  const u = hatirlatmaUygunMu({
-                    numara: birincilVeli ? birincilVeli.whatsapp_no || birincilVeli.gsm : "",
-                    onay: birincilVeli?.mesaj_onayi,
-                  });
-                  return (
-                    <Btn
-                      kucuk
-                      tur={u.ok ? "yesil" : "ghost"}
-                      ikon={<Ikon ad="whatsapp" boyut={16} />}
-                      disabled={!u.ok}
-                      title={u.ok ? "" : u.neden}
-                      onClick={aidatHatirlat}
-                    >
-                      Aidat Hatırlat
-                    </Btn>
-                  );
-                })()}
-            </div>
-            {aidatlar.length === 0 ? (
-              <Bos metin="Aidat kaydı yok." />
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>Dönem</th>
-                    <th>Tutar</th>
-                    <th>Ödenen</th>
-                    <th>Durum</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {aidatlar.map((a) => (
-                    <tr key={a.id}>
-                      <td>
-                        {AY_ADLARI[a.ay - 1]} {a.yil}
-                      </td>
-                      <td>{paraTR(a.tutar)}</td>
-                      <td>{a.durum === "muaf" ? "—" : paraTR(a.odenen || 0)}</td>
-                      <td>
-                        <Rozet ton={aidatTonu(a.durum)}>{aidatEtiket(a.durum)}</Rozet>
-                        {a.durum === "kismi" && (
-                          <span style={{ fontSize: 12, color: "var(--kirmizi)", marginLeft: 6 }}>kalan {paraTR(aidatKalan(a))}</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {!tumu.aidat && aidatlar.length >= SON.aidat && (
-              <TumunuGoster onClick={() => setTumu({ ...tumu, aidat: true })} metin={`Son ${SON.aidat} dönem gösteriliyor`} />
-            )}
-          </div>
-          <div>
-            <h3 style={{ fontSize: 20, marginBottom: 12 }}>Makbuzlar</h3>
-            {makbuzlar.length === 0 ? (
-              <Bos metin="Makbuz yok." />
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>No</th>
-                    <th>Tarih</th>
-                    <th>Tutar</th>
-                    <th>Yöntem</th>
-                    <th></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {makbuzlar.map((m) => (
-                    <tr key={m.id} style={{ opacity: m.iptal ? 0.5 : 1 }}>
-                      <td>
-                        {m.makbuz_no}
-                        {m.iptal ? (
-                          <span
-                            title={`${m.iptal_nedeni || ""}${m.iptal_eden ? " · " + m.iptal_eden : ""}`}
-                            style={{ color: "var(--kirmizi)", fontSize: 12 }}
-                          >
-                            {" "}
-                            · iptal{m.iptal_nedeni ? `: ${m.iptal_nedeni}` : ""}
-                          </span>
-                        ) : (
-                          ""
-                        )}
-                      </td>
-                      <td>{tarihTR(m.tarih)}</td>
-                      <td>{paraTR(m.toplam)}</td>
-                      <td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td>
-                      <td>
-                        <Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => makbuzYazdir(m.id)}>
-                          Yazdır
-                        </Btn>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-            {!tumu.makbuz && makbuzlar.length >= SON.makbuz && (
-              <TumunuGoster onClick={() => setTumu({ ...tumu, makbuz: true })} metin={`Son ${SON.makbuz} makbuz gösteriliyor`} />
-            )}
-          </div>
-        </div>
+        <OdemeSekmesi
+          aidatlar={aidatlar}
+          makbuzlar={makbuzlar}
+          tumu={tumu}
+          son={SON}
+          onTumu={tumunuGoster}
+          acikAidat={acikAidat}
+          birincilVeli={birincilVeli}
+          onAidatHatirlat={aidatHatirlat}
+          onMakbuzYazdir={makbuzYazdir}
+        />
       )}
 
-      {sekme === "yoklama" && (
-        <div>
-          <div style={{ display: "flex", gap: 24, marginBottom: 16 }}>
-            {["geldi", "gelmedi", "izinli"].map((d) => (
-              <div key={d}>
-                <div style={{ fontSize: 12, color: "var(--soluk)", textTransform: "uppercase", fontWeight: 600 }}>{d}</div>
-                <div className="baslik" style={{ fontSize: 32 }}>
-                  {yoklamaOzet[d] || 0}
-                </div>
-              </div>
-            ))}
-          </div>
-          {yoklama.length === 0 ? (
-            <Bos metin="Yoklama kaydı yok." />
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Tarih</th>
-                  <th>Saat</th>
-                  <th>Durum</th>
-                </tr>
-              </thead>
-              <tbody>
-                {yoklama.map((y, i) => (
-                  <tr key={i}>
-                    <td>{tarihTR(y.tarih)}</td>
-                    <td>{y.saat}</td>
-                    <td>
-                      <Rozet ton={y.durum === "geldi" ? "green" : y.durum === "gelmedi" ? "red" : "yellow"}>{y.durum}</Rozet>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-          {!tumu.yoklama && yoklama.length >= SON.yoklama && (
-            <TumunuGoster onClick={() => setTumu({ ...tumu, yoklama: true })} metin={`Son ${SON.yoklama} yoklama gösteriliyor`} />
-          )}
-        </div>
-      )}
+      {sekme === "yoklama" && <YoklamaSekmesi yoklama={yoklama} yoklamaOzet={yoklamaOzet} tumu={tumu} son={SON} onTumu={tumunuGoster} />}
 
       {duzenle && (
         <OyuncuForm
@@ -629,318 +354,5 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       )}
       {sil && <Onay tehlikeli mesaj={sil.mesaj} onEvet={silOnayla} onHayir={() => setSil(null)} />}
     </Modal>
-  );
-}
-
-// Mevcut belgenin geçerlilik tarihi: "Tarih gir" / "Tarihi değiştir" → satır içi tarih kutusu + Kaydet (dosyayı yeniden yüklemeden).
-function BelgeTarihDuzenle({ belge, onKaydet }) {
-  const [acik, setAcik] = useState(false);
-  const [g, setG] = useState(belge.gecerlilik_tarihi || onerilenGecerlilik(bugun().iso));
-  if (!acik)
-    return (
-      <button
-        type="button"
-        onClick={() => setAcik(true)}
-        style={{
-          background: "none",
-          border: 0,
-          color: belge.gecerlilik_tarihi ? "var(--mor)" : "var(--kirmizi)",
-          cursor: "pointer",
-          fontSize: 12,
-          textDecoration: "underline",
-        }}
-      >
-        {belge.gecerlilik_tarihi ? "Tarihi değiştir" : "Tarih gir"}
-      </button>
-    );
-  return (
-    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
-      <Girdi
-        type="date"
-        value={g}
-        onChange={(e) => setG(e.target.value)}
-        aria-label="Belge geçerlilik tarihi"
-        style={{ width: 150, height: 32 }}
-      />
-      <Btn
-        kucuk
-        onClick={async () => {
-          if (!g) return;
-          await onKaydet(g);
-          setAcik(false);
-        }}
-        disabled={!g}
-      >
-        Kaydet
-      </Btn>
-      <Btn kucuk tur="ghost" onClick={() => setAcik(false)}>
-        Vazgeç
-      </Btn>
-    </span>
-  );
-}
-
-// Tekil tiplerde (vesikalık) ikinci dosya eklenmez; "Değiştir" eskisinin yerine koyar (asıl kural main süreçte, db.belgeEkle).
-// Geçerlilik isteyen belgede (sağlık raporu) tarih ZORUNLU: kutu bir yıl sonrasıyla dolu gelir, değiştirilebilir; boşsa yükleme yapılmaz
-// (tarihsiz rapor pano/filtrede "raporsuz" sayılıyordu — 08.09.2026).
-// Rapor zaten varken tarih kutusu hep görünmesin (mevcut raporun "Tarihi değiştir" kutusuyla karışıyordu — 08.09.2026):
-// ilk yüklemede kutu açık gelir; rapor varken önce "Yeni Rapor Yükle", tıklanınca tarih + Yükle açılır.
-function BelgeYukleDugmesi({ tip, mevcut = 0, onYukle }) {
-  const [gecerlilik, setGecerlilik] = useState(() => (tip.gecerlilik ? onerilenGecerlilik(bugun().iso) : ""));
-  const [acik, setAcik] = useState(false);
-  const degistir = tip.tekil && mevcut > 0;
-  const tarihEksik = !!tip.gecerlilik && !gecerlilik;
-  const tarihGoster = !!tip.gecerlilik && (mevcut === 0 || acik);
-  if (tip.gecerlilik && mevcut > 0 && !acik)
-    return (
-      <Btn kucuk tur="ghost" ikon={<Ikon ad="yukle" boyut={16} />} onClick={() => setAcik(true)}>
-        Yeni Rapor Yükle
-      </Btn>
-    );
-  return (
-    <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-      {tarihGoster && (
-        <Girdi
-          type="date"
-          value={gecerlilik}
-          onChange={(e) => setGecerlilik(e.target.value)}
-          style={{ width: 150, height: 36, borderColor: tarihEksik ? "var(--kirmizi)" : undefined }}
-          title="Yeni raporun geçerlilik tarihi (zorunlu; öneri: bir yıl)"
-          aria-label={`${tip.ad} geçerlilik tarihi`}
-        />
-      )}
-      <Btn
-        kucuk
-        tur="ghost"
-        ikon={<Ikon ad="yukle" boyut={16} />}
-        onClick={async () => {
-          await onYukle(tip.kod, gecerlilik);
-          setAcik(false);
-        }}
-        disabled={tarihEksik}
-        title={
-          tarihEksik ? "Önce geçerlilik tarihini girin" : degistir ? "Vesikalık tek dosya olur; yenisi eskisinin yerine geçer" : undefined
-        }
-      >
-        {degistir ? "Değiştir" : "Yükle"}
-      </Btn>
-      {acik && (
-        <Btn kucuk tur="ghost" onClick={() => setAcik(false)}>
-          Vazgeç
-        </Btn>
-      )}
-    </div>
-  );
-}
-
-function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSil, onWhatsApp }) {
-  const [v, setV] = useState({ tip: "baba", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false, mesaj_onayi: true });
-  const onayDegistir = async (x, deger) => {
-    try {
-      await db("updateGuardian", x.id, { mesaj_onayi: deger ? 1 : 0 });
-      onDegisti();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const [a, setA] = useState({ ad_soyad: "", yakinlik: "", telefon: "" });
-  const toast = useToast();
-  const veliEkle = async () => {
-    if (!v.ad_soyad.trim()) return;
-    try {
-      await db("addGuardian", oyuncu.id, {
-        ...v,
-        whatsapp_no: v.whatsapp_no || v.gsm,
-        veli_mi: v.veli_mi ? 1 : 0,
-        mesaj_onayi: v.mesaj_onayi ? 1 : 0,
-      });
-      setV({ tip: "anne", ad_soyad: "", gsm: "", whatsapp_no: "", veli_mi: false, mesaj_onayi: true });
-      onDegisti();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const acilEkle = async () => {
-    if (!a.ad_soyad.trim()) return;
-    try {
-      await db("addEmergency", oyuncu.id, a);
-      setA({ ad_soyad: "", yakinlik: "", telefon: "" });
-      onDegisti();
-    } catch (e) {
-      toast("err", hataMetni(e));
-    }
-  };
-  const TIP = [
-    { kod: "baba", ad: "Baba" },
-    { kod: "anne", ad: "Anne" },
-    { kod: "veli", ad: "Diğer veli" },
-  ];
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-      <div>
-        <h3 style={{ fontSize: 20, marginBottom: 12 }}>Aile Bilgileri</h3>
-        {veliler.length === 0 ? (
-          <Bos metin="Henüz veli eklenmedi." />
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Yakınlık</th>
-                <th>Ad Soyad</th>
-                <th>GSM</th>
-                <th>WhatsApp</th>
-                <th>Veli</th>
-                <th title="WhatsApp ile bilgilendirme onayı (KVKK)">Mesaj onayı</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {veliler.map((x) => {
-                const u = hatirlatmaUygunMu({ numara: x.whatsapp_no || x.gsm, onay: x.mesaj_onayi });
-                return (
-                  <tr key={x.id}>
-                    <td>{TIP.find((t) => t.kod === x.tip)?.ad}</td>
-                    <td style={{ fontWeight: 600 }}>{x.ad_soyad}</td>
-                    <td>{x.gsm}</td>
-                    <td>{x.whatsapp_no}</td>
-                    <td>{x.veli_mi ? <Rozet ton="purple">Veli</Rozet> : ""}</td>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={x.mesaj_onayi !== 0}
-                        onChange={(e) => onayDegistir(x, e.target.checked)}
-                        disabled={saltOkunur}
-                        aria-label={`${x.ad_soyad} mesaj onayı`}
-                      />
-                    </td>
-                    <td>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
-                        <Btn
-                          kucuk
-                          tur={u.ok ? "yesil" : "ghost"}
-                          ikon={<Ikon ad="whatsapp" boyut={16} />}
-                          disabled={!u.ok}
-                          title={u.ok ? "WhatsApp'ta mesaj yaz" : u.neden}
-                          onClick={() => onWhatsApp(x)}
-                          aria-label={`${x.ad_soyad} WhatsApp`}
-                        >
-                          WhatsApp
-                        </Btn>
-                        {!saltOkunur && (
-                          <Btn kucuk tur="danger" onClick={() => onSil({ tip: "veli", id: x.id, mesaj: `${x.ad_soyad} silinsin mi?` })}>
-                            Sil
-                          </Btn>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-        {!saltOkunur && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
-            <Alan etiket="Yakınlık" style={{ width: 130 }}>
-              <Secim secenekler={TIP} value={v.tip} onChange={(e) => setV({ ...v, tip: e.target.value })} />
-            </Alan>
-            <Alan etiket="Ad Soyad" style={{ flex: 1, minWidth: 160 }}>
-              <Girdi value={v.ad_soyad} onChange={(e) => setV({ ...v, ad_soyad: e.target.value })} />
-            </Alan>
-            <Alan etiket="GSM" style={{ width: 150 }}>
-              <Girdi value={v.gsm} onChange={(e) => setV({ ...v, gsm: e.target.value })} />
-            </Alan>
-            <Alan etiket="WhatsApp" style={{ width: 150 }}>
-              <Girdi
-                value={v.whatsapp_no}
-                onChange={(e) => setV({ ...v, whatsapp_no: e.target.value })}
-                placeholder="GSM ile aynıysa boş"
-              />
-            </Alan>
-            <label style={{ display: "flex", gap: 6, alignItems: "center", height: 42 }}>
-              <input type="checkbox" checked={v.veli_mi} onChange={(e) => setV({ ...v, veli_mi: e.target.checked })} /> Veli
-            </label>
-            <label style={{ display: "flex", gap: 6, alignItems: "center", height: 42 }} title="WhatsApp ile bilgilendirme onayı (KVKK)">
-              <input type="checkbox" checked={v.mesaj_onayi} onChange={(e) => setV({ ...v, mesaj_onayi: e.target.checked })} /> Mesaj onayı
-            </label>
-            <Btn onClick={veliEkle} disabled={!v.ad_soyad.trim()}>
-              Ekle
-            </Btn>
-          </div>
-        )}
-      </div>
-      <div>
-        <h3 style={{ fontSize: 20, marginBottom: 12 }}>Acil Durumda Veli Dışında Ulaşılacak Kişiler</h3>
-        {acil.length === 0 ? (
-          <Bos metin="Henüz kişi eklenmedi." />
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>Ad Soyad</th>
-                <th>Yakınlık</th>
-                <th>Telefon</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {acil.map((x) => (
-                <tr key={x.id}>
-                  <td style={{ fontWeight: 600 }}>{x.ad_soyad}</td>
-                  <td>{x.yakinlik}</td>
-                  <td>{x.telefon}</td>
-                  <td>
-                    {!saltOkunur && (
-                      <Btn kucuk tur="danger" onClick={() => onSil({ tip: "acil", id: x.id, mesaj: `${x.ad_soyad} silinsin mi?` })}>
-                        Sil
-                      </Btn>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        {!saltOkunur && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12 }}>
-            <Alan etiket="Ad Soyad" style={{ flex: 1 }}>
-              <Girdi value={a.ad_soyad} onChange={(e) => setA({ ...a, ad_soyad: e.target.value })} />
-            </Alan>
-            <Alan etiket="Yakınlık" style={{ width: 160 }}>
-              <Girdi value={a.yakinlik} onChange={(e) => setA({ ...a, yakinlik: e.target.value })} />
-            </Alan>
-            <Alan etiket="Telefon" style={{ width: 160 }}>
-              <Girdi value={a.telefon} onChange={(e) => setA({ ...a, telefon: e.target.value })} />
-            </Alan>
-            <Btn onClick={acilEkle} disabled={!a.ad_soyad.trim()}>
-              Ekle
-            </Btn>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function TumunuGoster({ onClick, metin }) {
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", fontSize: 13, color: "var(--soluk)" }}>
-      <span>{metin}</span>
-      <button
-        type="button"
-        onClick={onClick}
-        style={{
-          background: "none",
-          border: 0,
-          color: "var(--mor)",
-          cursor: "pointer",
-          fontSize: 13,
-          textDecoration: "underline",
-          padding: 0,
-        }}
-      >
-        Tümünü göster
-      </button>
-    </div>
   );
 }
