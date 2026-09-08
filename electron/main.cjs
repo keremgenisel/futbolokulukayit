@@ -3,6 +3,7 @@ const path = require("path");
 const fs = require("fs");
 const db = require("./db.cjs");
 const { registerDataHandlers, getSession } = require("./ipc/data.cjs");
+const { registerGuncellemeHandlers } = require("./ipc/guncelleme.cjs");
 const { registerFileHandlers } = require("./ipc/files.cjs");
 const { registerCiktiHandlers } = require("./ipc/cikti.cjs");
 const { registerYedekHandlers, otomatikYedek } = require("./ipc/yedek.cjs");
@@ -79,35 +80,7 @@ if (!app.requestSingleInstanceLock()) {
     registerAktarHandlers(getSession);
 
     ipcMain.handle("app:version", () => app.getVersion());
-    // ── Güncelleme (electron-updater, GitHub Releases: keremgenisel/eyupspor-releases; yalnız paketli sürümde) ──
-    const guncellemeYok = () => !autoUpdater || !app.isPackaged;
-    ipcMain.handle("updater:check", async () => {
-      if (!getSession()) return { error: "Oturum gerekli" };
-      if (guncellemeYok()) return { devMode: true, current: app.getVersion() };
-      try {
-        const r = await autoUpdater.checkForUpdates();
-        const latest = r?.updateInfo?.version || null;
-        return { current: app.getVersion(), latest, available: !!latest && latest !== app.getVersion(), notlar: typeof r?.updateInfo?.releaseNotes === "string" ? r.updateInfo.releaseNotes : "" };
-      } catch (e) { return { error: "Güncelleme sunucusuna erişilemedi: " + (e.message || e) }; }
-    });
-    ipcMain.handle("updater:download", async () => {
-      const s = getSession(); if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-      if (guncellemeYok()) return { error: "Geliştirme modunda güncelleme yok" };
-      try { await autoUpdater.downloadUpdate(); return { ok: true }; } catch (e) { return { error: "İndirme başarısız: " + (e.message || e) }; }
-    });
-    ipcMain.handle("updater:install", () => {
-      const s = getSession(); if (!s || s.role !== "admin") return { error: "Yönetici yetkisi gerekli" };
-      if (guncellemeYok()) return { error: "Geliştirme modunda güncelleme yok" };
-      setTimeout(() => autoUpdater.quitAndInstall(false, true), 300);
-      return { ok: true };
-    });
-    if (autoUpdater) {
-      const gonder = (kanal, veri) => { if (mainWin && !mainWin.isDestroyed()) mainWin.webContents.send(kanal, veri); };
-      autoUpdater.on("update-available", (info) => gonder("updater:available", { version: info?.version }));
-      autoUpdater.on("download-progress", (p) => gonder("updater:progress", Math.round(p?.percent || 0)));
-      autoUpdater.on("update-downloaded", (info) => gonder("updater:downloaded", { version: info?.version }));
-      autoUpdater.on("error", (e) => gonder("updater:error", e?.message || "Bilinmeyen hata"));
-    }
+    registerGuncellemeHandlers({ getSession, autoUpdater, getWin: () => mainWin });
     // WhatsApp "tıkla ve yaz" (plan §13): yalnız https://wa.me/<90…> açılır; renderer başka dış adres açamaz.
     ipcMain.handle("app:whatsappAc", async (_e, numara, metin) => {
       if (!getSession()) return { error: "Oturum gerekli" };
