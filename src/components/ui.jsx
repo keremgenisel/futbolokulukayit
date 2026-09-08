@@ -97,9 +97,10 @@ export function ToastSaglayici({ children }) {
   return (
     <ToastCtx.Provider value={goster}>
       {children}
-      <div style={{ position: "fixed", right: 20, bottom: 20, display: "flex", flexDirection: "column", gap: 8, zIndex: 100 }}>
+      {/* Bildirimler en üstte ortada (kullanıcı isteği 08.09.2026; sağ alt gözden kaçıyordu). Modal'ların (zIndex 50) üstünde. */}
+      <div data-testid="toast-kapsayici" style={{ position: "fixed", top: 20, left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: 8, zIndex: 100, pointerEvents: "none" }}>
         {liste.map((t) => (
-          <div key={t.id} role="status" style={{ padding: "12px 16px", borderRadius: 10, color: "#fff", background: t.tur === "err" ? "var(--kirmizi)" : t.tur === "ok" ? "var(--yesil)" : "var(--mor-koyu)", fontWeight: 600, boxShadow: "0 8px 24px rgba(0,0,0,.2)", maxWidth: 420 }}>{t.metin}</div>
+          <div key={t.id} role="status" style={{ padding: "12px 16px", borderRadius: 10, color: "#fff", background: t.tur === "err" ? "var(--kirmizi)" : t.tur === "ok" ? "var(--yesil)" : "var(--mor-koyu)", fontWeight: 600, boxShadow: "0 8px 24px rgba(0,0,0,.2)", maxWidth: 560, textAlign: "center", pointerEvents: "auto" }}>{t.metin}</div>
         ))}
       </div>
     </ToastCtx.Provider>
