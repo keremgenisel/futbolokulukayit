@@ -99,7 +99,7 @@ gösterir; pasifleri görmek için durum filtresini değiştirin.
 Bir yaş grubuna sığmayacak kadar oyuncu olduğunda o yaşı iki ayrı grup olarak açın. Programda ek bir
 "alt grup" alanı yoktur, ayrı grup açmak yeterlidir.
 
-1. Ayarlar > Yaş Grupları'ndan "U11 A" ve "U11 B" adında iki grup açın. Sıra numaralarını ardışık verin ki
+1. Yaş Grupları sekmesinden "U11 A" ve "U11 B" adında iki grup açın. Sıra numaralarını ardışık verin ki
    listelerde yan yana dursunlar.
 2. Her grubun haftalık programını kendi gün, saat ve sahasıyla girin. İki grup aynı saatte çalışıyorsa sahayı
    farklı yazın.
