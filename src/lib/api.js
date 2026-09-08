@@ -18,6 +18,8 @@ export const optimize = () => okul().optimize;
 export const aktar = () => okul().aktar;
 export const lisans = () => okul().lisans;
 export const uygulama = () => okul().app;
+/** Otomatik güncelleme köprüsü (yalnız paketli sürümde iş yapar; tarayıcı/test ortamında olmayabilir). */
+export const guncelleme = () => okul().updater || null;
 
 /** Bugünün yıl/ay/ISO tarihi. */
 export function bugun() {

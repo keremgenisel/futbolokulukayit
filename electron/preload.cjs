@@ -60,6 +60,13 @@ contextBridge.exposeInMainWorld("okul", {
     istemciBaglan: (url, secenek) => ipcRenderer.invoke("istemci:baglan", url, secenek),
     istemciKopar: () => ipcRenderer.invoke("istemci:kopar"),
   },
+  updater: {
+    check: () => ipcRenderer.invoke("updater:check"),
+    download: () => ipcRenderer.invoke("updater:download"),
+    install: () => ipcRenderer.invoke("updater:install"),
+    // Olaylar: geri çağrı döndürür; bileşen unmount'ta çağırıp dinlemeyi bırakır
+    on: (olay, cb) => { const kanal = "updater:" + olay; const h = (_e, v) => cb(v); ipcRenderer.on(kanal, h); return () => ipcRenderer.removeListener(kanal, h); },
+  },
   app: {
     version: () => ipcRenderer.invoke("app:version"),
     logo: () => ipcRenderer.invoke("app:logo"),

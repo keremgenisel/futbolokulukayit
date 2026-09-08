@@ -78,7 +78,14 @@ declare global {
         aktiflestir(): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
         yenile(): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
       };
-      app: { version(): Promise<string>; logo(): Promise<string> };
+      app: { version(): Promise<string>; logo(): Promise<string>; whatsappAc(numara: string, metin: string): Promise<{ ok?: boolean; error?: string }> };
+      /** Otomatik güncelleme (electron-updater); yalnız paketli sürümde iş yapar. */
+      updater?: {
+        check(): Promise<{ devMode?: boolean; current?: string; latest?: string | null; available?: boolean; notlar?: string; error?: string }>;
+        download(): Promise<{ ok?: boolean; error?: string }>;
+        install(): Promise<{ ok?: boolean; error?: string }>;
+        on(olay: "available" | "progress" | "downloaded" | "error", cb: (v: any) => void): () => void;
+      };
     };
   }
 }

@@ -13,7 +13,7 @@ import { KenarMenu } from "./components/KenarMenu.jsx";
 import { IlkKurulum } from "./components/IlkKurulum.jsx";
 import { HizliArama } from "./components/HizliArama.jsx";
 import { tarihTR } from "./lib/aidat.js";
-import { bugun } from "./lib/api.js";
+import { bugun, guncelleme } from "./lib/api.js";
 
 // Yönlendirici yok: sekme bir string, TABS'a göre koşullu render.
 export const TABS = [
@@ -46,6 +46,8 @@ export function App() {
   }, [oturum]);
   useEffect(() => { kurulumGerekliMi().then((g) => g && setKurulum(true)); }, [kurulumGerekliMi]);
   const [ayarBolum, setAyarBolum] = useState(null); // Ayarlar'a belirli bölümle gitmek için
+  const [yeniSurum, setYeniSurum] = useState(null); // açılış denetimi yeni sürüm bulursa (paketli sürüm; yöneticiye şerit)
+  useEffect(() => { const g = guncelleme(); if (!g?.on) return undefined; return g.on("available", (i) => setYeniSurum(i?.version || "yeni")); }, []);
   const modYenile = useCallback(() => { window.okul?.mod?.oku().then(setMod).catch(() => {}); }, []);
 
   const lisansYenile = useCallback(() => { window.okul?.lisans.durum().then((r) => { if (r?.ok) setLisans(r.durum); }).catch(() => {}); }, []);
@@ -90,6 +92,12 @@ export function App() {
             <div role="alert" style={{ background: "var(--kirmizi-acik)", border: "1.5px solid var(--kirmizi)", borderRadius: 10, padding: "12px 16px", marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: "var(--kirmizi)" }}>{lisans.neden === "denemeBitti" ? "Deneme süresi doldu — salt okunur mod" : "Lisans geçerli değil — salt okunur mod"}</div>
               <div style={{ fontSize: 13, marginTop: 2 }}>Verileriniz güvende; görüntüleme ve dışa aktarma açık, değişiklik kapalı. Ayarlar &gt; Lisans'tan anahtar girince kilit kalkar.</div>
+            </div>
+          )}
+          {yeniSurum && oturum.role === "admin" && tab !== "ayarlar" && (
+            <div role="status" style={{ background: "var(--mor-acik)", border: "1.5px solid var(--mor)", borderRadius: 10, padding: "10px 16px", marginBottom: 20, fontSize: 13.5, display: "flex", alignItems: "center", gap: 12 }}>
+              <span style={{ flex: 1 }}><b>Yeni sürüm {yeniSurum} hazır.</b> Kurmak için Ayarlar &gt; Hakkında bölümünden İndir ve Kur deyin.</span>
+              <button type="button" onClick={() => { setTab("ayarlar"); setAyarBolum("hakkinda"); setSekmeKey((k) => k + 1); }} style={{ background: "none", border: 0, color: "var(--mor)", cursor: "pointer", fontWeight: 700, textDecoration: "underline" }}>Hakkında'ya git</button>
             </div>
           )}
           {!saltOkunur && lisans?.mod === "deneme" && (

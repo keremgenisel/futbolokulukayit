@@ -129,6 +129,13 @@ ya da bozulma ihtimaline karşı düzenli olarak:
    yeniden başlar; tüm oyuncular, makbuzlar, belgeler ve ayarlar yerine gelir. Lisans anahtarını yeniden girmeniz
    gerekebilir (lisans makineye bağlıdır).
 
+## 3e. Program güncellemesi
+
+Yeni sürümler internetten kendiliğinden bulunur. Program açılınca yeni sürüm varsa üstte "Yeni sürüm hazır" şeridi
+görünür (yalnız yöneticiye). Ayarlar > Hakkında > **Uygulama güncellemesi**: "Güncelleme Denetle" → "İndir" → "Yeniden
+Başlat ve Kur". Program kapanıp yeni sürümle açılır; oyuncular, makbuzlar, belgeler ve ayarlar yerinde kalır. İnternet
+yoksa güncelleme denetlenemez, program normal çalışmaya devam eder.
+
 ## 4. Sorun giderme
 - **"Lisans salt okunur modda"**: Ayarlar > Lisans'tan geçerli anahtar girin.
 - **"Sunucuya ulaşılamadı"**: Sunucu bilgisayarda program açık mı, aynı ağda mısınız, Tailscale bağlı mı?

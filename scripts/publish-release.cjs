@@ -145,6 +145,13 @@ function uploadAsset(token, releaseId, assetName, filePath, contentType) {
 async function main() {
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN;
   if (!token) throw new Error("GH_TOKEN (veya GITHUB_TOKEN) tanımlı değil.");
+  // İki depo düzeni (08.09.2026): kod ÖZEL depoda, kurulum dosyaları HERKESE AÇIK yayın deposunda (electron-updater
+  // kimliksiz indirir; özel depodan indiremez). Yayın deposu yoksa/boşsa/özelse erken ve anlaşılır dur.
+  const depo = await ghRequest({ method: "GET", host: "api.github.com", path: `/repos/${OWNER}/${REPO}`, token });
+  if (depo.status === 404) throw new Error(`Yayın deposu bulunamadı: ${OWNER}/${REPO}. GitHub'da HERKESE AÇIK, README'li bir depo oluşturun (plan §8.1).`);
+  if (depo.status !== 200) throw new Error(`Yayın deposuna erişilemedi (HTTP ${depo.status}); RELEASES_TOKEN 'repo' yetkili mi?`);
+  if (depo.json && depo.json.private) throw new Error(`Yayın deposu ${OWNER}/${REPO} ÖZEL; kurulu uygulama güncellemeyi indiremez. Depoyu herkese açık yapın.`);
+  if (depo.json && depo.json.size === 0) throw new Error(`Yayın deposu ${OWNER}/${REPO} boş; en az bir commit (README) gerekir, yoksa GitHub release/tag oluşturamaz.`);
   if (!OWNER || !REPO) throw new Error("package.json build.publish owner/repo eksik.");
 
   const exeLocal = path.join(RELEASE_DIR, `${PRODUCT} Setup ${VERSION}.exe`);
