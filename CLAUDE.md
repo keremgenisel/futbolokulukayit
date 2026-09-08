@@ -103,6 +103,9 @@ değiştirmez; `db.cjs` dış API'si ve `yetki.cjs` beyaz listesi sabit kalır.
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/components/IlkKurulum.jsx` — ilk kurulum sihirbazı (ilk parola değişiminden sonra, `kurulum_tamam` boş ve oyuncu
   yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı).
+- `src/components/Ayarlar.jsx` — yalnız kabuk (bölüm menüsü, `onKirli` uyarısı); bölümler `src/components/ayarlar/` (KulupAyar,
+  KalemAyar, KullaniciAyar+KurtarmaKodlari, SezonAyar, YedekAyar, OptimizeAyar, WhatsAppAyar, Hakkinda+Guncelleme). Dış API
+  (`Ayarlar`, `KurtarmaKodlari`, `Guncelleme`) Ayarlar.jsx'ten yeniden dışa verilir.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi); Ayarlar > Yeni Sezon
   sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup, diğerleri pasif+not). Bkz. `docs/plan.md §10`.
