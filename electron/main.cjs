@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Menu, session } = require("electron");
+const { pathToFileURL } = require("url");
 const path = require("path");
 const fs = require("fs");
 const db = require("./db.cjs");
@@ -6,7 +7,7 @@ const { registerDataHandlers, getSession } = require("./ipc/data.cjs");
 const { registerGuncellemeHandlers } = require("./ipc/guncelleme.cjs");
 const { registerFileHandlers } = require("./ipc/files.cjs");
 const { registerCiktiHandlers } = require("./ipc/cikti.cjs");
-const { registerYedekHandlers, otomatikYedek } = require("./ipc/yedek.cjs");
+const { registerYedekHandlers, otomatikYedek, geciciArtiklariTemizle } = require("./ipc/yedek.cjs");
 const { registerOptimizeHandlers } = require("./ipc/optimize.cjs");
 const { registerAktarHandlers } = require("./ipc/aktar.cjs");
 const config = require("./config.cjs");
@@ -36,15 +37,17 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
+      devTools: !app.isPackaged, // inceleme #11: paketli sürümde geliştirici araçları kapalı
     },
   });
 
-  // Güvenlik: dış adreslere gezinme ve yeni pencere yok.
-  mainWin.webContents.on("will-navigate", (e, url) => {
-    const devUrl = process.env.VITE_DEV_SERVER_URL;
-    const isLocal = url.startsWith("file://") || (devUrl && url.startsWith(devUrl));
-    if (!isLocal) e.preventDefault();
-  });
+  // Güvenlik (inceleme #12): yalnız uygulamanın kendi sayfasına (dist/index.html ya da dev sunucusu) gezinilir;
+  // başka file:// adresleri dahil her şey engellenir. Yeni pencere yok.
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  const kendiSayfasi = pathToFileURL(path.join(__dirname, "../dist/index.html")).href;
+  const izinliMi = (url) => url === kendiSayfasi || url.startsWith(kendiSayfasi + "#") || url.startsWith(kendiSayfasi + "?") || (!!devUrl && url.startsWith(devUrl));
+  mainWin.webContents.on("will-navigate", (e, url) => { if (!izinliMi(url)) e.preventDefault(); });
+  mainWin.webContents.on("will-redirect", (e, url) => { if (!izinliMi(url)) e.preventDefault(); });
   mainWin.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
   if (process.env.VITE_DEV_SERVER_URL) mainWin.loadURL(process.env.VITE_DEV_SERVER_URL);
@@ -63,6 +66,11 @@ if (!app.requestSingleInstanceLock()) {
   });
 
   app.whenReady().then(() => {
+    // İnceleme #11: paketli sürümde menü çubuğu ve kısayolları kapalı (macOS'ta Cmd+C/V menüye bağlı olduğundan yalnız Windows/Linux);
+    // kamera/mikrofon/konum gibi izin istekleri her zaman reddedilir (uygulama hiçbirini kullanmaz).
+    if (app.isPackaged && process.platform !== "darwin") Menu.setApplicationMenu(null);
+    session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+    geciciArtiklariTemizle(); // inceleme #8: kaba kapanıştan kalan düz (şifresiz) geçici kopyalar
     db.init();
     // Bu ayın aidat kayıtlarını aç: açılışta, sonra saatte bir ve pencere öne gelince (uygulama ay sonunda
     // açık kalırsa yeni ayın borçları yeniden başlatma beklemeden görünsün). INSERT OR IGNORE → tekrar güvenli.

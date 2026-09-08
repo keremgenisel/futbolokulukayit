@@ -7,6 +7,42 @@ Tehdit modeli: tek kulüp PC'si; klavye başındaki kişi (personel) DevTools a�
 çağırabilir. Bu yüzden arayüzdeki gizlemeler koruma sayılmaz, yalnız ana süreç kontrolleri sayılır. Sunucu modu arayüzde
 kapalı ama IPC'leri canlı.
 
+## Düzeltme durumu (08.09.2026, aynı gün)
+
+Bulguların tamamı uygulandı; ikisi dışında (9: Kerem'in GitHub tarafı işi, 10: bilinçli kabul edilen risk). Her düzeltme
+testle geldi (`tests/guvenlik-saf.test.js`, `tests/ui/parola-degistir.test.jsx`, `tests/ui/sifresiz-uyari.test.jsx`,
+`tests/yetki.test.js`, `tests/metin.test.js`, `tests/tasima-kripto.test.js`, `tests/aktivasyon-sunucu.test.js`,
+`scripts/tests/db-roundtrip.cjs`, `server-security.cjs`, `kalicilik.cjs`).
+
+| # | Durum | Ne yapıldı |
+|---|-------|-----------|
+| 1 | DÜZELTİLDİ | `duzKopyaOlustur` paket kopyasından `makineId`/`lisansLease` siler; canlı DB'de kalır. |
+| 2 | DÜZELTİLDİ | IPC login'de kullanıcı adı başına 8 deneme/15 dk (`data.cjs loginDenemeleri`), parola min 8 (IPC + sunucu + arayüz). |
+| 3 | DÜZELTİLDİ | `istemci:baglan`/`kopar` admin oturumu (ya da ilk kurulum: oyuncu yok, ≤1 kullanıcı) ister; `trust/force` yalnız ana süreçte bekleyen parmak izi varsa. |
+| 4 | DÜZELTİLDİ | `electron/makbuzIzin.cjs` (saf): salt okunur / iptal / PDF'i olan makbuz (admin değilse) reddedilir. |
+| 5 | DÜZELTİLDİ | Yazdırma penceresi `session.fromPartition("cikti")`: `data:`/`about:`/`blob:` dışı her istek `onBeforeRequest` ile iptal, izin istekleri red, gezinme/açılır pencere kapalı. |
+| 6 | DÜZELTİLDİ | Yedek zip'i makine anahtarıyla şifreli kapta yazılır (`eyupspor-yedek-<damga>.eyupyedek`, `tasimaKripto` YEDEK_MAGIC); eski düz `.zip` yedekler açılmaya devam eder; anahtar yoksa düz zip. |
+| 7 | DÜZELTİLDİ | Yöneticiye kırmızı şerit `SifresizUyari` (`isEncrypted` OKUMA kümesine alındı). |
+| 8 | DÜZELTİLDİ | Açılışta `geciciArtiklariTemizle()` (`eyupspor-tasima-*`/`eyupspor-geri-*`); `tasimaBilgi` bellek içi özet (`db.yedekBilgisiBuffer`), diske düz kopya yazmaz. |
+| 9 | KEREM | Kod imzası bütçeye bağlı. Şimdilik: GitHub hesabında 2FA + `v*` etiketleri için korumalı etiket kuralı (plan §8.1 madde 7). |
+| 10 | KABUL EDİLEN RİSK | Makine kimliği donanıma bağlanmadı: dağıtılmış lisansları bozar; 1 numaralı düzeltme pratik istismarı kapatıyor. DB + `lisans-meta.enc` birlikte silinirse deneme yeniden başlar (bilinçli). |
+| 11 | DÜZELTİLDİ | `devTools: !app.isPackaged`, paketli Windows'ta uygulama menüsü yok, tüm izin istekleri red. |
+| 12 | DÜZELTİLDİ | `will-navigate`/`will-redirect` yalnız `dist/index.html` (ya da dev URL). |
+| 13 | DÜZELTİLDİ | `cagriYetkisi`: `must_change_password` olan oturumda her veri çağrısı 403 (IPC ve sunucu ortak). |
+| 14 | DÜZELTİLDİ | Zorunlu ilk değişim dışında mevcut parola istenir ve doğrulanır (IPC, sunucu, `ParolaDegistir`). |
+| 15 | DÜZELTİLDİ | `electron/belgeDogrula.cjs` (saf): tip beyaz listesi, pozitif tamsayı id, ISO tarih; oyuncu var mı kontrolü (IPC + sunucu). |
+| 16 | DÜZELTİLDİ | Geri yükleme/taşıma yolu yalnız diyalogda seçilen (ana süreçte bekletilen) yol; 2 GB üst sınır. |
+| 17 | DÜZELTİLDİ | Sunucu `sunucu_adres` ayarı varsa o adresi dinler (varsayılan 0.0.0.0); kurtarma sınırı `ip|kullanıcı` anahtarıyla. |
+| 18 | DÜZELTİLDİ | Geçici parola ana süreçte `crypto.randomBytes` ile üretilir (`resetUserPassword`), renderer yalnız gösterir. |
+| 19 | DÜZELTİLDİ | `hataMetni` SQLite/Chromium eşleme tablosu; ham metin yalnız `hataHam` ile (UNIQUE ayrımı için). |
+| 20 | DÜZELTİLDİ | `guvenliLogo`: yalnız `data:image/(png|jpeg);base64,…`; üç şablon bunu kullanır. |
+| 21 | DÜZELTİLDİ | Tek `esc` (`src/lib/metin.js`), tek tırnak dahil. |
+| 22 | DÜZELTİLDİ | `resimBoyutu` başlıktan okur; 50 MP üstü resim çözülmeden atlanır. |
+| 23 | DÜZELTİLDİ | `db-key.enc`/`lisans-meta.enc` `mode: 0o600`. |
+| 24 | DÜZELTİLDİ | Taşıma parolası min 10, scrypt N=2^16 (maxmem 128 MB). |
+| 25 | DÜZELTİLDİ | Admin token sabit zamanlı (`tokenEsit`), `/aktivasyon` ve `/yenile` IP başına 30/dk → 429. |
+| Bilgi | DÜZELTİLDİ | LIKE `%`/`_` kaçışı; `listUsers` ADMIN kümesine; `.pre-restore` kopyaları son 3. Dev CSP notu olduğu gibi. |
+
 ## Sağlam bulunanlar
 - Electron: `contextIsolation`, `sandbox`, `nodeIntegration=false`, `setWindowOpenHandler` deny, CSP `default-src 'self'`
   (`main.cjs:34-48`, `index.html:6`). Preload'da `ipcRenderer` sızmıyor; kanal adları sabit.

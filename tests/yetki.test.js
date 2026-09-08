@@ -31,6 +31,15 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     for (const f of ["createAgeGroup", "updateAgeGroup", "createReceipt", "cancelReceipt", "updateTraining", "mesajKaydet"]) expect(cagriYetkisi(f, kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("getSetting", kullanici, true).ok).toBe(true); // okuma serbest (şablon, kulüp adı)
   });
+  it("güvenlik incelemesi (08.09.2026): listUsers yönetici; isEncrypted okunur; zorunlu parola değişimi ana süreçte", () => {
+    expect(cagriYetkisi("listUsers", kullanici, false).kod).toBe(403);
+    expect(cagriYetkisi("listUsers", admin, false).ok).toBe(true);
+    expect(cagriYetkisi("isEncrypted", kullanici, true).ok).toBe(true);
+    const degistirmeli = { username: "k", role: "kullanici", must_change_password: true };
+    const r = cagriYetkisi("listPlayers", degistirmeli, false);
+    expect(r.ok).toBe(false); expect(r.kod).toBe(403); expect(r.mesaj).toMatch(/parolanızı değiştirin/);
+    expect(cagriYetkisi("listPlayers", { ...degistirmeli, must_change_password: false }, false).ok).toBe(true);
+  });
   it("admin işlemleri yalnız yönetici", () => {
     expect(cagriYetkisi("createUser", kullanici, false).kod).toBe(403);
     expect(cagriYetkisi("createUser", admin, false).ok).toBe(true);

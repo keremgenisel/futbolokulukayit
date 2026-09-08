@@ -101,6 +101,9 @@ app.whenReady().then(async () => {
     check("Türkçe duyarsız arama: 'i', 'ibrahim', 'isik', 'IŞIK', 'ışık' hepsi İbrahim IŞIK'ı bulur", ["i", "ibrahim", "isik", "IŞIK", "ışık", "İbrahim ış"].every(bulur) && !bulur("ibrahimm"));
     const aktL = db.listPlayersWithDue({ durum: "aktifler", yil: 2026, ay: 9 }), aktP = db.playersPage({ durum: "aktifler", yil: 2026, ay: 9, sayfaBoyu: 500 });
     check("durum 'aktifler' = aktif + deneme + sakat (pasif/ayrıldı/dondurma hariç), liste ve sayfada aynı", aktL.length > 0 && aktL.every((p) => ["aktif", "deneme", "sakat"].includes(p.durum)) && aktP.toplam === aktL.length && db.listPlayers({ durum: "pasif" }).every((p) => !aktL.some((x) => x.id === p.id)));
+    check("LIKE joker kaçışı: '%' ve '_' arama metninde joker değil", db.listPlayers({ q: "%" }).length === 0 && db.listPlayers({ q: "_" }).length === 0);
+    const rp = db.resetUserPassword(db.listUsers().find((u) => u.username === "admin").id);
+    check("resetUserPassword parola üretir (ana süreç, ≥8) ve giriş yapılır; kısa parola reddedilir", rp.ok && rp.parola.length >= 8 && !!db.verifyPassword("admin", rp.parola) && (() => { try { db.resetUserPassword(1, "kisa"); return false; } catch (e) { return /en az 8/.test(e.message); } })());
     check("pasaport araması büyük/küçük harf duyarsız", db.listPlayers({ q: "u1234567" }).some((p) => p.id === yab.id));
     check("pasaport ile arama (liste ve pano)", db.listPlayers({ q: "U12345" }).some((p) => p.id === yab.id) && db.listPlayersWithDue({ q: "U1234567", yil: 2026, ay: 9 }).some((p) => p.id === yab.id));
     let pasaportTekil = false; try { db.createPlayer({ uyruk: "yabanci", pasaport_no: "U1234567", ad_soyad: "Kopya", dogum_tarihi: "2014-02-02" }); } catch (e) { pasaportTekil = /UNIQUE/.test(e.message); }
@@ -282,19 +285,33 @@ app.whenReady().then(async () => {
     fs.mkdirSync(path.join(upKok, "oyuncu-1"), { recursive: true });
     fs.writeFileSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf"), "%PDF-1.4 yedek testi");
     const y = yedekAl(yedekKok);
-    check("yedek tek zip dosyası", y.ok && /eyupspor-yedek-.*\.zip$/.test(y.yol) && fs.existsSync(y.yol) && y.dosya >= 1);
+    check("yedek tek şifreli dosya (.eyupyedek)", y.ok && y.sifreli && /eyupspor-yedek-.*\.eyupyedek$/.test(y.yol) && fs.existsSync(y.yol) && y.dosya >= 1);
+    const hamYedek = fs.readFileSync(y.yol);
+    check("yedek düz zip değil; belge içeriği ve SQLite başlığı düz okunmaz (inceleme #6)", hamYedek.subarray(0, 2).toString() !== "PK" && !hamYedek.includes(Buffer.from("%PDF-1.4 yedek testi")) && !hamYedek.includes(Buffer.from("SQLite format 3")));
     const { unzipSync } = require("fflate");
-    const arsiv = unzipSync(new Uint8Array(fs.readFileSync(y.yol)));
-    check("zip içinde data.db ve belge var", !!arsiv["data.db"] && Buffer.from(arsiv["uploads/oyuncu-1/1-saglik-rapor.pdf"]).toString() === "%PDF-1.4 yedek testi");
+    const tasimaK = require("../../electron/tasimaKripto.cjs");
+    const arsiv = unzipSync(new Uint8Array(tasimaK.coz(hamYedek, db.getDbKey(), { magic: tasimaK.YEDEK_MAGIC })));
+    check("makine anahtarıyla çözülen zip'te data.db ve belge var", !!arsiv["data.db"] && Buffer.from(arsiv["uploads/oyuncu-1/1-saglik-rapor.pdf"]).toString() === "%PDF-1.4 yedek testi");
+    check("yedek kabı taşıma paketi olarak açılmaz (ayrı MAGIC)", !tasimaK.paketMi(hamYedek) && /taşıma paketi değil/.test((() => { try { tasimaK.coz(hamYedek, db.getDbKey()); return ""; } catch (e) { return e.message; } })()));
     const { yedekHazirla } = require("../../electron/ipc/yedek.cjs");
     const hz = yedekHazirla(y.yol);
-    check("zip yedek doğrulanıyor", hz.ok && hz.oyuncu === yedekOncesi && hz.gecici);
+    check("şifreli yedek doğrulanıyor", hz.ok && hz.oyuncu === yedekOncesi && hz.gecici);
     fs.rmSync(hz.klasor, { recursive: true, force: true });
+    // Başka makinenin anahtarıyla şifrelenmiş yedek burada açılmaz
+    const yabanci = path.join(yedekKok, "yabanci.eyupyedek");
+    fs.writeFileSync(yabanci, tasimaK.sifrele(Buffer.from(require("fflate").zipSync({ "data.db": arsiv["data.db"] })), "baska-makine-anahtari-1234", { magic: tasimaK.YEDEK_MAGIC }));
+    check("başka bilgisayarın yedeği açılmaz, taşıma paketine yönlendirir", /başka bir bilgisayarın/.test(yedekHazirla(yabanci).error || ""));
+    // Eski düz .zip yedek hâlâ açılır
+    const eskiZip = path.join(yedekKok, "eyupspor-yedek-eski.zip");
+    fs.writeFileSync(eskiZip, Buffer.from(require("fflate").zipSync({ "data.db": arsiv["data.db"] })));
+    const hzEski = yedekHazirla(eskiZip);
+    check("eski düz zip yedek de doğrulanır", hzEski.ok === true && hzEski.oyuncu === yedekOncesi);
+    if (hzEski.ok) fs.rmSync(hzEski.klasor, { recursive: true, force: true });
     db.createPlayer({ ad_soyad: "Sonradan Eklenen", dogum_tarihi: "2016-01-01" });
     fs.unlinkSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf"));
     check("geri yükleme öncesi bir oyuncu fazla, belge silinmiş", db.listPlayers().length === yedekOncesi + 1 && !fs.existsSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf")));
     const g = geriYukleCekirdek(y.yol);
-    check("zip'ten geri yükleme başarılı", !!g.ok);
+    check("şifreli yedekten geri yükleme başarılı", !!g.ok);
     db.init();
     check("geri yükleme sonrası eski oyuncu sayısı", db.listPlayers().length === yedekOncesi);
     check("belge zip'ten geri geldi", fs.readFileSync(path.join(db.getUploadsDir(), "oyuncu-1", "1-saglik-rapor.pdf"), "utf8") === "%PDF-1.4 yedek testi");
@@ -385,6 +402,16 @@ app.whenReady().then(async () => {
     const Database = require("better-sqlite3-multiple-ciphers");
     let duzOkundu = 0; try { duzOkundu = new Database(path.join(acik.klasor, "data.db"), { readonly: true }).prepare("SELECT count(*) AS n FROM players").get().n; } catch {}
     check("paket açılır: özet doğru, içindeki data.db ŞİFRESİZ (anahtarsız okunur), uploads var", acik.ok && acik.oyuncu === oyuncuSayisi && duzOkundu === oyuncuSayisi && fs.existsSync(path.join(acik.klasor, "uploads")));
+    // Güvenlik #1: paketteki DB'de makine kimliği ve lease YOK; canlı DB'de duruyor
+    const paketMeta = new Database(path.join(acik.klasor, "data.db"), { readonly: true }).prepare("SELECT key FROM meta WHERE key IN ('makineId','lisansLease')").all();
+    check("taşıma paketi makineId/lisansLease taşımaz (canlıda kalır)", paketMeta.length === 0 && !!db.getMetaValue("makineId"));
+    // Güvenlik #8: yalnız özet bellek içinden, düz kopya diske yazılmaz
+    const belOzet = require("../../electron/ipc/yedek.cjs").tasimaPaketiOzet(paketYol, "cok-gizli-parola");
+    check("tasimaPaketiOzet bellek içi özet verir; yanlış parola reddedilir", belOzet.ok && belOzet.oyuncu === oyuncuSayisi && /Parola yanlış/.test(require("../../electron/ipc/yedek.cjs").tasimaPaketiOzet(paketYol, "yanlis-parola-1").error || ""));
+    // Güvenlik #8: açılış temizliği geçici artıkları siler
+    const art = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-tasima-")); fs.writeFileSync(path.join(art, "data.db"), "duz");
+    require("../../electron/ipc/yedek.cjs").geciciArtiklariTemizle();
+    check("geçici taşıma artığı açılışta silinir", !fs.existsSync(art));
     fs.rmSync(acik.klasor, { recursive: true, force: true });
     // Geri yükleme: paket bu makineye yüklenir (düz db anahtarla yeniden şifrelenir), sonra normal açılır
     db.createPlayer({ ad_soyad: "Paketten Sonra Eklenen", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, odeme_donemi: "1-10" });

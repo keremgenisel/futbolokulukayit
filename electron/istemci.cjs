@@ -69,8 +69,8 @@ async function oturum() {
   if (!config.tokenOku()) return null;
   try { return (await istek("/api/auth/me")).user; } catch (e) { if (e.kod === 401) config.tokenYaz(null); return null; }
 }
-async function parolaDegistir(newPassword) {
-  const r = await istek("/api/auth/changePassword", { method: "POST", body: { newPassword } });
+async function parolaDegistir(newPassword, oldPassword) {
+  const r = await istek("/api/auth/changePassword", { method: "POST", body: { newPassword, oldPassword } });
   if (r.token) config.tokenYaz(r.token);
   return r;
 }

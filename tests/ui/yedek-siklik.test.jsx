@@ -36,7 +36,7 @@ describe("Ayarlar > Yedekleme: sıklık seçimi", () => {
     const p1 = await screen.findByLabelText("Paket parolası");
     fireEvent.change(p1, { target: { value: "kisa" } }); fireEvent.change(screen.getByLabelText("Paket parolası tekrar"), { target: { value: "kisa" } });
     fireEvent.click(screen.getByRole("button", { name: "Taşıma Paketi Oluştur" }));
-    expect(await screen.findByText("Parola en az 8 karakter olmalı")).toBeInTheDocument();
+    expect(await screen.findByText("Parola en az 10 karakter olmalı")).toBeInTheDocument();
     fireEvent.change(p1, { target: { value: "cok-gizli-1" } }); fireEvent.change(screen.getByLabelText("Paket parolası tekrar"), { target: { value: "cok-gizli-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Taşıma Paketi Oluştur" }));
     expect(await screen.findByText("Parolalar aynı değil")).toBeInTheDocument();

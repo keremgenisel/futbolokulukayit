@@ -3,7 +3,8 @@
 ## 1. Kurulum (tek bilgisayar)
 1. `Eyüpspor Futbol Okulu Setup x.y.z.exe` dosyasını çalıştırın, "Kur" deyin.
 2. Masaüstündeki simgeyle açın. İlk giriş: kullanıcı adı **admin**, parola **admin**.
-3. Program sizden hemen yeni bir parola isteyecek. En az 6 karakter girin.
+3. Program sizden hemen yeni bir parola isteyecek. En az 8 karakter girin. (Sonraki parola değişimlerinde
+   mevcut parolanız da sorulur. Üst üste 8 yanlış girişte kullanıcı 15 dakika kilitlenir.)
 4. Ardından **İlk Kurulum** sihirbazı açılır: kulüp adı → aidat taban fiyatı ve indirimler → yaş grupları
    ve sezon → yedek klasörü → kurtarma kodları (8 kod, bir kez gösterilir; yazdırıp saklayın) → Excel'den
    oyuncu aktarımı. Her adım atlanabilir; hepsi sonradan Ayarlar'dan değiştirilebilir. "Şimdi değil"
@@ -14,9 +15,9 @@
    Anahtar girilmezse program 30 gün deneme olarak çalışır, sonra salt okunur olur.
 5. **Ayarlar > Yedekleme**: bir klasör seçin (harici disk veya OneDrive/Google Drive klasörü önerilir).
    Program açılışta otomatik yedek alır; sıklığı aynı ekrandan seçersiniz: her açılışta, günde bir
-   (varsayılan), haftada bir ya da kapalı (yalnız "Şimdi Yedek Al"). Her yedek tek bir zip dosyasıdır
-   (`eyupspor-yedek-tarih.zip`): veritabanı, vesikalıklar, belgeler ve makbuz PDF'leri içindedir.
-   Geri yüklemek için aynı ekrandan zip dosyasını seçin.
+   (varsayılan), haftada bir ya da kapalı (yalnız "Şimdi Yedek Al"). Her yedek tek bir şifreli dosyadır
+   (`eyupspor-yedek-tarih.eyupyedek`): veritabanı, vesikalıklar, belgeler ve makbuz PDF'leri içindedir; bulut
+   klasöründe bile içerik okunamaz. Geri yüklemek için aynı ekrandan dosyayı seçin (eski `.zip` yedekler de açılır).
 6. **Ayarlar > Resim ve Belge Optimizasyonu**: eski yüklenmiş büyük fotoğrafları küçültür (yedekler küçülür).
    Yeni yüklenen JPG/PNG dosyaları zaten yükleme anında optimize edilir; PDF'lere dokunulmaz.
 6. **Ayarlar > Aidat Kalemleri**: forma, eşofman gibi kalemlerin fiyatlarını girin.
@@ -58,6 +59,9 @@ Tailscale kurun ve aynı hesapla giriş yapın. Sunucu adresinde 100.x.x.x ile b
 adresini kullanın. Windows güvenlik duvarı sorarsa programa izin verin.
 
 **Yedek** yalnızca sunucu bilgisayarında alınır.
+
+Sunucu varsayılan olarak tüm ağ arayüzlerini dinler. Yalnız Tailscale üzerinden erişilsin isteniyorsa `sunucu_adres`
+ayarına Tailscale adresi (100.x.x.x) yazılır (satıcı ayarı; arayüzde alanı yok), sunucu yeniden başlatılır.
 
 ## 2b. Günlük kullanımı kolaylaştıranlar
 
@@ -121,7 +125,7 @@ Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antren
 Normal yedek yalnız alındığı bilgisayarda açılır (şifreleme anahtarı o bilgisayara bağlıdır). Bilgisayar değişecekse
 ya da bozulma ihtimaline karşı düzenli olarak:
 
-1. Ayarlar > Yedekleme > **Yeni bilgisayara taşıma paketi**: bir parola belirleyin (en az 8 karakter), "Taşıma Paketi
+1. Ayarlar > Yedekleme > **Yeni bilgisayara taşıma paketi**: bir parola belirleyin (en az 10 karakter), "Taşıma Paketi
    Oluştur" deyip dosyayı harici diske ya da bulut klasörüne kaydedin. Parolayı programın dışında bir yere yazın; parola
    olmadan paket açılamaz.
 2. Yeni bilgisayarda programı kurun, `admin`/`admin` ile girip parolayı değiştirin.

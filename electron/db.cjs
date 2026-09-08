@@ -40,7 +40,7 @@ function getDbKey() {
     if (fs.existsSync(p)) return (cachedDbKey = safeStorage.decryptString(fs.readFileSync(p)));
   } catch (e) { console.error("[db] anahtar okunamadı:", e.message); }
   const key = crypto.randomBytes(32).toString("hex");
-  try { fs.writeFileSync(p, safeStorage.encryptString(key)); cachedDbKey = key; }
+  try { fs.writeFileSync(p, safeStorage.encryptString(key), { mode: 0o600 }); cachedDbKey = key; }
   catch (e) { console.error("[db] anahtar kaydedilemedi, şifreleme kapalı:", e.message); cachedDbKey = null; }
   return cachedDbKey;
 }
@@ -251,6 +251,8 @@ const FEE_TYPES = [
 ];
 const { kodUret, KOD_GECERLI } = require("./kodUret.cjs");
 const { araNormalize } = require("./metin.cjs");
+// LIKE içinde kullanıcı girdisinin % _ \ karakterleri joker olmasın (ESCAPE '\\')
+const likeKacir = (s) => String(s).replace(/[\\%_]/g, (c) => "\\" + c);
 
 function openDb(dbPath) {
   const conn = new Database(dbPath);
@@ -438,7 +440,7 @@ function updatePlayer(id, p) {
 const getPlayer = (id) => db.prepare("SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.id=?").get(id) || null;
 function listPlayers({ q = "", yas_grubu_id = null, durum = null } = {}) {
   const where = []; const args = [];
-  if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
+  if (q) { const a = `%${likeKacir(araNormalize(q))}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')"); args.push(a, `%${likeKacir(q)}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
   else if (durum) { where.push("p.durum=?"); args.push(durum); }
@@ -762,7 +764,7 @@ const deleteAgeGroup = (id) => {
 // Oyuncu listesi + seçilen ayın aidat durumu: ortak WHERE (liste, sayfa ve sayım aynı filtreyi kullanır).
 function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false, saglikSorunlu = false, bugun = null } = {}) {
   const where = []; const args = [yil, ay];
-  if (q) { const a = `%${araNormalize(q)}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? OR p.tc_no LIKE ? OR tr_ara(p.pasaport_no) LIKE ?)"); args.push(a, `%${q}%`, a); }
+  if (q) { const a = `%${likeKacir(araNormalize(q))}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')"); args.push(a, `%${likeKacir(q)}%`, a); }
   if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
   if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
   else if (durum) { where.push("p.durum=?"); args.push(durum); }
@@ -891,7 +893,15 @@ const listUsers = () => db.prepare(`SELECT id, username, ad_soyad, role, is_acti
     (SELECT count(*) FROM recovery_codes r WHERE r.user_id=u.id AND r.used_at IS NULL) AS kurtarma_kodu
   FROM users u ORDER BY username`).all();
 const setUserActive = (id, aktif) => db.prepare("UPDATE users SET is_active=? WHERE id=?").run(aktif ? 1 : 0, id);
-const resetUserPassword = (id, yeni) => db.prepare("UPDATE users SET password_hash=?, must_change_password=1, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(yeni, 10), id);
+// Parola sıfırlama: yeni parola verilmezse ana süreçte kriptografik rastgele üretilir (inceleme #18) ve döndürülür;
+// kullanıcı ilk girişte değiştirir (must_change_password=1).
+function resetUserPassword(id, yeni) {
+  const parola = yeni ? String(yeni) : "ey-" + crypto.randomBytes(6).toString("base64url").replace(/[^A-Za-z0-9]/g, "x").slice(0, 8);
+  if (parola.length < 8) throw new Error("Parola en az 8 karakter olmalı");
+  const r = db.prepare("UPDATE users SET password_hash=?, must_change_password=1, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(parola, 10), id);
+  if (r.changes === 0) throw new Error("Kullanıcı bulunamadı");
+  return { ok: true, parola };
+}
 // Kullanıcı silme: en az bir aktif yönetici kalmalı (ilk admin dahil herkes silinebilir).
 function deleteUser(id) {
   const u = db.prepare("SELECT * FROM users WHERE id=?").get(id);
@@ -959,7 +969,7 @@ function kaliciMetaOku() {
 function kaliciMetaYaz(obj) {
   const ss = getSafeStorage();
   if (!ss) return;
-  try { fs.writeFileSync(getLisansMetaPath(), ss.encryptString(JSON.stringify(obj))); } catch { /* sessiz, DB meta yedek */ }
+  try { fs.writeFileSync(getLisansMetaPath(), ss.encryptString(JSON.stringify(obj)), { mode: 0o600 }); } catch { /* sessiz, DB meta yedek */ }
 }
 function lisansDurumu() {
   if (!db) return lisansM.durumHesapla({});
@@ -1034,7 +1044,23 @@ function duzKopyaOlustur(hedefYol) {
   db.exec(`VACUUM INTO '${String(hedefYol).replace(/'/g, "''")}'`);
   const key = getDbKey();
   if (key) { const c = new Database(hedefYol); c.pragma(`key='${key}'`); c.pragma("rekey=''"); c.close(); }
+  // Güvenlik (inceleme 08.09.2026 #1): makine kimliği ve lease pakete GİRMEZ; yoksa makineye kilitli lisans her PC'de
+  // geçerli olurdu. Lisans anahtarı kalır (yeni PC kendi makineId'sini üretir, gerekirse yeniden aktive edilir).
+  const c2 = new Database(hedefYol); c2.prepare("DELETE FROM meta WHERE key IN ('makineId','lisansLease')").run(); c2.close();
   return hedefYol;
+}
+// Yedek/paket özeti bellek içinden (düz data.db baytları) — diske düz kopya yazmadan (inceleme #8).
+function yedekBilgisiBuffer(buf) {
+  if (!Database) return { error: "SQLite modülü yok" };
+  let conn = null;
+  try {
+    conn = new Database(Buffer.from(buf));
+    const sv = Number(conn.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 0);
+    if (!sv) return { error: "Bu dosya bir Eyüpspor veritabanı değil" };
+    if (sv > SCHEMA_VERSION) return { error: `Yedek daha yeni bir program sürümünden (şema ${sv}); önce programı güncelleyin` };
+    return { ok: true, oyuncu: conn.prepare("SELECT count(*) AS n FROM players").get().n, makbuz: conn.prepare("SELECT count(*) AS n FROM receipts").get().n, sonMakbuz: conn.prepare("SELECT max(tarih) AS t FROM receipts").get().t, schema: sv };
+  } catch (e) { return { error: "Paket açılamadı: " + String(e.message || e) }; }
+  finally { try { conn?.close(); } catch {} }
 }
 // Düz (şifresiz) bir veritabanı dosyasını bu makinenin anahtarıyla şifreler (taşıma paketinden geri yükleme).
 function duzVeritabaniniSifrele(yol) {
@@ -1071,7 +1097,7 @@ const islem = (fn) => db.transaction(fn);
 
 module.exports = {
   islem,
-  init, close, checkpoint, isEncrypted, getUploadsDir, getDbPath, yedekBilgisi, duzKopyaOlustur, duzVeritabaniniSifrele,
+  init, close, checkpoint, isEncrypted, getDbKey, getUploadsDir, getDbPath, yedekBilgisi, yedekBilgisiBuffer, duzKopyaOlustur, duzVeritabaniniSifrele,
   hamBaglanti: () => db, // YALNIZ testler: göç senaryoları için ham SQL
   getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
   sezonAdayListesi, sezonDurumu, yeniSezonaGec, SEZON_DURUMLARI,

@@ -39,7 +39,27 @@ export const ayAraligi = (yil, ay) => {
  * IPC hata metnini temizler ("Error invoking remote method 'db:call': Error: X" → "X").
  * @param {unknown} e
  */
-export function hataMetni(e) {
+/**
+ * Ham IPC hata metni ("Error invoking remote method 'db:call': Error: X" → "X"); UNIQUE gibi teknik eşleme için.
+ * @param {unknown} e
+ */
+export function hataHam(e) {
   const m = String(/** @type {any} */ (e)?.message || e || "Beklenmeyen hata");
   return m.replace(/^Error invoking remote method '[^']+': /, "").replace(/^Error: /, "");
+}
+/** Kullanıcıya gösterilecek metin: ham SQLite/Chromium hataları Türkçe karşılığına çevrilir (inceleme #19); ham metin konsola. @param {unknown} e */
+export function hataMetni(e) {
+  const m = hataHam(e);
+  /** @type {[RegExp, string][]} */
+  const ESLEME = [
+    [/UNIQUE constraint failed/i, "Bu kayıt zaten var (aynı değer kullanılıyor)"],
+    [/FOREIGN KEY constraint failed/i, "Bağlı kayıtlar olduğu için bu işlem yapılamadı"],
+    [/NOT NULL constraint failed/i, "Zorunlu bir alan boş bırakıldı"],
+    [/CHECK constraint failed/i, "Girilen değer izin verilen aralıkta değil"],
+    [/SQLITE_BUSY|database is locked/i, "Veritabanı meşgul, birkaç saniye sonra tekrar deneyin"],
+    [/SQLITE_(FULL|IOERR)/i, "Diske yazılamadı (disk dolu ya da erişilemiyor)"],
+    [/no such table|no such column|SQLITE_ERROR/i, "Veritabanı hatası; programı yeniden başlatın"],
+  ];
+  for (const [re, tr] of ESLEME) if (re.test(m)) { try { console.error("[hata]", m); } catch { /* yoksay */ } return tr; }
+  return m;
 }

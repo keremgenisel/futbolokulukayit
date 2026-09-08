@@ -36,7 +36,11 @@ app.whenReady().then(async () => {
 
     const giris = await istek("/api/auth/login", { method: "POST", body: { username: "admin", password: "admin" } });
     check("doğru parola jeton verir", giris.status === 200 && !!giris.body.token && giris.body.user.role === "admin");
-    const tok = giris.body.token;
+    // İnceleme: zorunlu parola değişimi yapılmadan hiçbir veri çağrısı geçmez (sunucuda da)
+    check("zorunlu parola değişimi öncesi /api/db 403", (await istek("/api/db", { method: "POST", body: { fn: "listAgeGroups", args: [] }, token: giris.body.token })).status === 403);
+    const ilkDeg = await istek("/api/auth/changePassword", { method: "POST", body: { newPassword: "admin-parola-1" }, token: giris.body.token });
+    check("ilk zorunlu değişim eski parola istemez", ilkDeg.status === 200 && !!ilkDeg.body.token);
+    const tok = ilkDeg.body.token;
 
     check("jetonla okuma", (await istek("/api/db", { method: "POST", body: { fn: "listFeeItems", args: [] }, token: tok })).body.sonuc.length >= 10);
     const grp = await istek("/api/db", { method: "POST", body: { fn: "createAgeGroup", args: [{ ad: "U11" }] }, token: tok });
@@ -52,7 +56,9 @@ app.whenReady().then(async () => {
     check("yönetici olmayan okuma serbest", (await istek("/api/db", { method: "POST", body: { fn: "listAgeGroups", args: [] }, token: g2.body.token })).status === 200);
 
     // Parola değişimi: eski jeton düşer, yeni jeton çalışır
-    const pd = await istek("/api/auth/changePassword", { method: "POST", body: { newPassword: "yeni-parola-1" }, token: g2.body.token });
+    check("eski parolasız değişim 400 (inceleme #14)", (await istek("/api/auth/changePassword", { method: "POST", body: { newPassword: "yeni-parola-1" }, token: g2.body.token })).status === 400);
+    check("kısa yeni parola 400", (await istek("/api/auth/changePassword", { method: "POST", body: { newPassword: "kisa7", oldPassword: "antrenor1" }, token: g2.body.token })).status === 400);
+    const pd = await istek("/api/auth/changePassword", { method: "POST", body: { newPassword: "yeni-parola-1", oldPassword: "antrenor1" }, token: g2.body.token });
     check("parola değişimi yeni jeton verir", pd.status === 200 && !!pd.body.token);
     check("eski jeton geçersiz (token_version)", (await istek("/api/auth/me", { token: g2.body.token })).status === 401);
     check("yeni jeton geçerli", (await istek("/api/auth/me", { token: pd.body.token })).status === 200);

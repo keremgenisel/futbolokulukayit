@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Modal, Btn, Alan, Girdi, ParaGirdi, Secim, useToast, OYUNCU_MODAL } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
-import { db, hataMetni } from "../lib/api.js";
+import { db, hataMetni, hataHam } from "../lib/api.js";
 import { DURUMLAR, UCRET_TIPLERI, ODEME_DONEMLERI, UYRUKLAR, aidatHesapla, indirimYuzdesi, paraTR, pasaportGecerliMi, pasaportNormalize, tcGecerliMi, gsmNormalize, gsmGecerliMi, yasGrubuOner } from "../lib/aidat.js";
 import { guncelSezon } from "../lib/sezon.js";
 import { bugun } from "../lib/api.js";
@@ -54,7 +54,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
       onKaydedildi(kayit);
     } catch (e) {
       const m = hataMetni(e);
-      setHata(m.includes("UNIQUE") ? (yabanci ? "Bu pasaport numarasıyla kayıtlı oyuncu var" : "Bu TC kimlik numarasıyla kayıtlı oyuncu var") : m);
+      setHata(hataHam(e).includes("UNIQUE") ? (yabanci ? "Bu pasaport numarasıyla kayıtlı oyuncu var" : "Bu TC kimlik numarasıyla kayıtlı oyuncu var") : m);
     } finally { setBekliyor(false); }
   };
 

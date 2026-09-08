@@ -1,7 +1,6 @@
 // @ts-check
 // Basit tablo raporu HTML'i (PDF çıktısı için). Başlık, alt başlık, sütunlar ve satırlar.
-/** @param {unknown} s */
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] || c);
+import { esc, guvenliLogo } from "./metin.js";
 
 /**
  * @param {{ baslik: string, altBaslik?: string, sutunlar: {baslik: string, anahtar: string, sag?: boolean}[], satirlar: Record<string, unknown>[], logo?: string, yatay?: boolean }} p
@@ -24,7 +23,7 @@ export function raporHtml({ baslik, altBaslik = "", sutunlar, satirlar, logo = "
   tr:nth-child(even) td { background: #FAF8FD; }
   .dip { margin-top: 4mm; font-size: 8.5pt; color: #6B6480; }
 </style></head><body>
-<div class="ust">${logo ? `<img src="${logo}" alt="">` : ""}<div><h1>${esc(baslik)}</h1>${altBaslik ? `<div class="alt">${esc(altBaslik)}</div>` : ""}</div></div>
+<div class="ust">${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}<div><h1>${esc(baslik)}</h1>${altBaslik ? `<div class="alt">${esc(altBaslik)}</div>` : ""}</div></div>
 <table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
 <div class="dip">${satirlar.length} kayıt · Eyüpspor Futbol Okulu</div>
 </body></html>`;

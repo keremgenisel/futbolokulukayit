@@ -35,7 +35,7 @@ export function Giris({ onGiris, mod, onModDegisti }) {
   const kurtarmaAc = () => { setKurtarma(true); setK({ kullanici: kullanici.trim(), kod: "", p1: "", p2: "" }); setKMesaj({ tur: "", metin: "" }); };
   const kurtarmaGonder = async () => {
     if (!k.kullanici.trim() || !k.kod.trim()) return setKMesaj({ tur: "err", metin: "Kullanıcı adı ve kurtarma kodu gerekli" });
-    if (k.p1.length < 6) return setKMesaj({ tur: "err", metin: "Yeni parola en az 6 karakter olmalı" });
+    if (k.p1.length < 8) return setKMesaj({ tur: "err", metin: "Yeni parola en az 8 karakter olmalı" });
     if (k.p1 !== k.p2) return setKMesaj({ tur: "err", metin: "Parolalar aynı değil" });
     setBekliyor(true);
     const r = await window.okul.auth.kurtarmaSifirla(k.kullanici.trim(), k.kod, k.p1);

@@ -5,7 +5,7 @@ contextBridge.exposeInMainWorld("okul", {
   auth: {
     login: (username, password) => ipcRenderer.invoke("auth:login", username, password),
     logout: () => ipcRenderer.invoke("auth:logout"),
-    changePassword: (username, newPassword) => ipcRenderer.invoke("auth:changePassword", username, newPassword),
+    changePassword: (username, newPassword, oldPassword) => ipcRenderer.invoke("auth:changePassword", username, newPassword, oldPassword),
     session: () => ipcRenderer.invoke("auth:session"),
     kurtarmaUret: (userId) => ipcRenderer.invoke("auth:kurtarmaUret", userId),
     kurtarmaSifirla: (username, kod, yeniParola) => ipcRenderer.invoke("auth:kurtarmaSifirla", username, kod, yeniParola),

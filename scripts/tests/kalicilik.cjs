@@ -27,6 +27,9 @@ app.on("browser-window-created", async (_e, win) => {
     if (adim === "yaz") {
       const inputs = await js(`document.querySelectorAll("input").length`);
       check("giriş ekranı açıldı", inputs >= 2);
+      // Güvenlik #2: yerel giriş deneme sınırı (kullanıcı adı başına 8/15 dk) — köprüden 9 yanlış deneme
+      const sonuclar = await js(`(async () => { const r = []; for (let i = 0; i < 9; i++) r.push((await window.okul.auth.login("kaba-kuvvet", "p" + i)).error); return r; })()`);
+      check("9. yanlış girişte 'çok fazla deneme' engeli; admin etkilenmez", /Çok fazla/.test(sonuclar[8]) && !/Çok fazla/.test(sonuclar[0]));
       await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const [u, p] = document.querySelectorAll("input"); set.call(u, "admin"); u.dispatchEvent(new Event("input", { bubbles: true })); set.call(p, "admin"); p.dispatchEvent(new Event("input", { bubbles: true })); })()`);
       await tikla("Giriş Yap"); await bekle(500);
       await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; for (const i of document.querySelectorAll("input[type=password]")) { set.call(i, "kalici-parola-1"); i.dispatchEvent(new Event("input", { bubbles: true })); } })()`);

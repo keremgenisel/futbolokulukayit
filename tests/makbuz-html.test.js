@@ -45,4 +45,11 @@ describe("makbuzHtml", () => {
     expect(h).not.toContain("<script>x");
     expect(h).toContain("&lt;script&gt;");
   });
+
+  it("logo yalnız güvenli data URL ise şablona girer (inceleme #20)", () => {
+    const iyi = makbuzHtml({ makbuz, kalemler, logo: "data:image/png;base64,iVBORw0KGgo=" });
+    expect(iyi).toContain('src="data:image/png;base64,iVBORw0KGgo="');
+    const kotu = makbuzHtml({ makbuz, kalemler, logo: '"><img src="http://saldirgan/?x' });
+    expect(kotu).not.toContain("saldirgan"); expect(kotu).not.toContain("<img");
+  });
 });

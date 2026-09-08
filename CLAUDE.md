@@ -67,10 +67,17 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 - `electron/tasimaKripto.cjs` (SAF: parola → scrypt → AES-256-GCM) + `yedek.cjs` taşıma paketi: `.eyupspor` dosyası, içinde
   ŞİFRESİZ data.db (`db.duzKopyaOlustur`: VACUUM INTO + rekey '') + uploads; geri yüklemede `db.duzVeritabaniniSifrele`
   (rekey makine anahtarı). Başka PC'de açılır; normal yedek açılmaz. Plan §14.
-- `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip `eyupspor-yedek-<damga>.zip`,
+- `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip, makine anahtarıyla `tasimaKripto` YEDEK_MAGIC kabında şifreli `eyupspor-yedek-<damga>.eyupyedek`; anahtar yoksa düz `.zip`; eski düz zip'ler açılmaya devam eder,
   fflate, 30 gün saklama) ve
   geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
   Yedek aynı PC'nin safeStorage anahtarıyla şifreli; başka PC'de açılmaz (`db.yedekBilgisi` bunu raporlar).
+- **Güvenlik (inceleme `docs/guvenlik-inceleme.md`, 08.09.2026, tamamı uygulandı):** IPC login sınırı kullanıcı başına 8/15 dk
+  (`ipc/data.cjs`), parola min 8, zorunlu değişim dışında mevcut parola doğrulanır; `yetki.cjs` `must_change_password`
+  oturumunda her çağrı 403; saf modüller `electron/makbuzIzin.cjs` (makbuz PDF izni), `electron/belgeDogrula.cjs` (belge
+  girdi doğrulama), `imageOptimize.resimBoyutu` (50 MP üstü atlanır); `src/lib/metin.js` `esc` + `guvenliLogo` tüm
+  şablonlarda; yazdırma penceresi ayrı `cikti` oturumunda ağa kapalı; `main.cjs` devTools yalnız dev, menü yok, izin
+  istekleri red, gezinme yalnız `dist/index.html`; `SifresizUyari` yöneticiye şifresiz DB şeridi; geri yükleme yolları
+  yalnız diyalogdan (ana süreçte bekletilir). Testler `tests/guvenlik-saf.test.js` ve ilgili dosyalar.
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
   önek `EYUPSPOR.`/`EYUPLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).

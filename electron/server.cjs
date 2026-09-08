@@ -14,6 +14,7 @@ const serverTls = require("./serverTls.cjs");
 const { getSecret } = require("./jwtSecret.cjs");
 const { rateAllow, rateHit, rateRetryAfter, rateReset } = require("./rateLimit.cjs");
 const { cagriYetkisi } = require("./yetki.cjs");
+const { belgeGirdiDogrula } = require("./belgeDogrula.cjs");
 const { optimizeImage } = require("./imageOptimize.cjs");
 
 let srv = null;
@@ -78,7 +79,9 @@ function buildApp({ surum = "" } = {}) {
   app.get("/api/auth/me", requireAuth, (req, res) => res.json({ ok: true, user: req.user }));
   app.post("/api/auth/changePassword", requireAuth, (req, res) => {
     const yeni = String(req.body?.newPassword || "");
-    if (yeni.length < 6) return res.status(400).json({ error: "Parola en az 6 karakter olmalı" });
+    if (yeni.length < 8) return res.status(400).json({ error: "Parola en az 8 karakter olmalı" });
+    // İnceleme #14: zorunlu ilk değişim dışında mevcut parola doğrulanır
+    if (!req.user.must_change_password && !db.verifyPassword(req.user.username, String(req.body?.oldPassword || ""))) return res.status(400).json({ error: "Mevcut parola hatalı" });
     db.changePassword(req.user.username, yeni);
     // token_version arttı → yeni jeton ver ki istemci düşmesin
     const u = db.getUserByUsername(req.user.username);
@@ -97,15 +100,16 @@ function buildApp({ surum = "" } = {}) {
   app.post("/api/auth/kurtarmaSifirla", (req, res) => {
     const { username, kod, yeniParola } = req.body || {};
     const ad = String(username || "").trim();
-    if (String(yeniParola || "").length < 6) return res.status(400).json({ error: "Parola en az 6 karakter olmalı" });
+    if (String(yeniParola || "").length < 8) return res.status(400).json({ error: "Parola en az 8 karakter olmalı" });
     const now = Date.now();
-    if (!rateAllow(kurtarmaDenemeleri, ad, now, KURTARMA_MAX, KURTARMA_PENCERE)) {
-      res.set("Retry-After", String(Math.ceil(rateRetryAfter(kurtarmaDenemeleri, ad, now) / 1000)));
+    const kAnahtar = `${req.socket.remoteAddress || "?"}|${ad}`; // inceleme #17: IP + kullanıcı adı (tek IP farklı adlarla sınırsız denemesin; başkası kilitleyemesin)
+    if (!rateAllow(kurtarmaDenemeleri, kAnahtar, now, KURTARMA_MAX, KURTARMA_PENCERE)) {
+      res.set("Retry-After", String(Math.ceil(rateRetryAfter(kurtarmaDenemeleri, kAnahtar, now) / 1000)));
       return res.status(429).json({ error: "Çok fazla deneme, 15 dakika sonra tekrar deneyin" });
     }
     const r = db.kurtarmaIleSifirla(ad, String(kod || ""), String(yeniParola));
-    if (r.error) { rateHit(kurtarmaDenemeleri, ad, now, KURTARMA_PENCERE); return res.status(401).json({ error: r.error }); }
-    rateReset(kurtarmaDenemeleri, ad);
+    if (r.error) { rateHit(kurtarmaDenemeleri, kAnahtar, now, KURTARMA_PENCERE); return res.status(401).json({ error: r.error }); }
+    rateReset(kurtarmaDenemeleri, kAnahtar);
     res.json({ ok: true, kalan: r.kalan });
   });
 
@@ -126,7 +130,9 @@ function buildApp({ surum = "" } = {}) {
   app.post("/api/files/addDocument", requireAuth, (req, res) => {
     if (!yazmaKontrol(res)) return;
     try {
-      const { playerId, tip, gecerlilik, ad, base64 } = req.body || {};
+      const { ad, base64 } = req.body || {};
+      const { playerId, tip, gecerlilik } = belgeGirdiDogrula(req.body || {});
+      if (!db.getPlayer(playerId)) return res.status(400).json({ error: "Oyuncu bulunamadı" });
       const uz = path.extname(String(ad || "")).toLowerCase();
       if (!IZINLI_UZANTI.has(uz)) return res.status(400).json({ error: "Bu dosya türü desteklenmiyor" });
       const buf = Buffer.from(String(base64 || ""), "base64");
@@ -191,7 +197,9 @@ async function baslat({ port, surum = "" }) {
   await new Promise((resolve, reject) => {
     srv = https.createServer({ key, cert }, app);
     srv.once("error", reject);
-    srv.listen(port, "0.0.0.0", resolve);
+    // İnceleme #17: dinleme adresi ayardan (varsayılan tüm arayüzler; Tailscale 100.x ya da belirli LAN IP seçilebilir)
+    const adres = String(db.getSetting("sunucu_adres") || "0.0.0.0").trim() || "0.0.0.0";
+    srv.listen(port, adres, resolve);
   });
   bilgi = { port: srv.address().port, fp, adresler: yerelIpler() };
   console.log(`[server] https://0.0.0.0:${bilgi.port} fp=${fp}`);

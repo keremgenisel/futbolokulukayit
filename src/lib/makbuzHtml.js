@@ -3,8 +3,7 @@
 // Düzen design/Makbuz.dc.html ile birebir; kağıt makbuzdaki kalem sırası korunur.
 import { paraTR, tarihTR, AY_ADLARI, ODEME_YONTEMLERI } from "./aidat.js";
 
-/** @param {unknown} s */
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] || c);
+import { esc, guvenliLogo } from "./metin.js";
 
 /**
  * @param {{ makbuz: any, kalemler: any[], logo: string, kulupAdi?: string }} p
@@ -32,7 +31,7 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBO
   const blok = () => `
   <div class="mk">
     <div class="ust">
-      ${logo ? `<img src="${logo}" alt="">` : ""}
+      ${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}
       <div class="bas"><div class="t1">TAHSİLAT MAKBUZU</div><div class="t2">${esc(kulupAdi)}</div></div>
       <div class="sag"><div><span>Makbuz No:</span> <b>${esc(makbuz.makbuz_no)}</b></div><div><span>Tarih:</span> <b>${esc(tarihTR(makbuz.tarih))}</b></div></div>
     </div>

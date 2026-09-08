@@ -131,4 +131,15 @@ describe("Aktivasyon sunucusu — kurulum limiti + iptal + admin", () => {
   it("/saglik ok", async () => {
     expect((await call("/saglik", "GET")).body.ok).toBe(true);
   });
+
+  it("admin token sabit zamanlı karşılaştırma; aktivasyon hız sınırı (inceleme #25)", async () => {
+    const { tokenEsit, hizAsildi } = await import("../aktivasyon-sunucu/src/index.js");
+    expect(tokenEsit("abc", "abc")).toBe(true); expect(tokenEsit("abc", "abd")).toBe(false); expect(tokenEsit("abc", "abcd")).toBe(false); expect(tokenEsit(null, "")).toBe(true);
+    const t0 = 1_000_000; let asildi = false;
+    for (let i = 0; i < 30; i++) asildi = hizAsildi("1.2.3.4", t0 + i) || asildi;
+    expect(asildi).toBe(false);
+    expect(hizAsildi("1.2.3.4", t0 + 31)).toBe(true);            // 31. istek aynı dakikada → 429
+    expect(hizAsildi("1.2.3.4", t0 + 61 * 1000)).toBe(false);    // pencere geçti → serbest
+    expect(hizAsildi("5.6.7.8", t0 + 40)).toBe(false);           // başka IP etkilenmez
+  });
 });

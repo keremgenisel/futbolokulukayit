@@ -7,11 +7,13 @@ const db = require("../db.cjs");
 const config = require("../config.cjs");
 const istemci = require("../istemci.cjs");
 const { optimizeImage } = require("../imageOptimize.cjs");
+const { belgeGirdiDogrula } = require("../belgeDogrula.cjs");
 
 const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 
 const guvenliAd = (ad) => String(ad).replace(/[^\w.\-çğıöşüÇĞİÖŞÜ ]+/g, "_").slice(0, 80);
+
 
 // Tekil belge (vesikalık) değiştirildiğinde eski dosyaları kaldır; kayıt zaten db.belgeEkle'de silindi.
 function eskiDosyalariSil(yollar) {
@@ -38,6 +40,8 @@ function registerFileHandlers(getSession) {
       filters: [{ name: "Belge", extensions: ["pdf", "jpg", "jpeg", "png", "webp", "heic", "doc", "docx"] }],
     });
     if (r.canceled || !r.filePaths[0]) return { iptal: true };
+    ({ playerId, tip, gecerlilik } = belgeGirdiDogrula({ playerId, tip, gecerlilik }));
+    if (!config.istemciMi() && !db.getPlayer(playerId)) throw new Error("Oyuncu bulunamadı");
     const kaynak = r.filePaths[0];
     const uz = path.extname(kaynak).toLowerCase();
     if (!IZINLI_UZANTI.has(uz)) throw new Error("Bu dosya türü desteklenmiyor");

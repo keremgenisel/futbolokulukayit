@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, ParaGirdi, Secim, Rozet, Onay, Modal, Bos, useToast } from "./ui.jsx";
-import { db, yedek, optimize, uygulama, guncelleme, hataMetni, bugun } from "../lib/api.js";
+import { db, yedek, optimize, uygulama, guncelleme, hataMetni, hataHam, bugun } from "../lib/api.js";
 import { paraTR, tarihTR, AY_ADLARI, UCRET_TIPLERI, SABIT_INDIRIM, indirimYuzdesi, aidatHesapla } from "../lib/aidat.js";
 import { ParolaDegistir } from "./ParolaDegistir.jsx";
 import { SettingsLisans } from "./SettingsLisans.jsx";
@@ -8,7 +8,7 @@ import { SettingsSunucu } from "./SettingsSunucu.jsx";
 import { COKLU_PC_ACIK } from "../lib/ozellikler.js";
 import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupOner } from "../lib/sezon.js";
 import { ucretTipleriYenile } from "../lib/ucretTipleri.js";
-import { araEslesir } from "../lib/metin.js";
+import { araEslesir, esc as htmlEsc } from "../lib/metin.js";
 import { SABLON_ANAHTARLARI, SABLON_ADLARI, VARSAYILAN_SABLONLAR, VARSAYILAN_KULUP, YER_TUTUCULAR, sablonDoldur, aidatDegerleri, antrenmanDegerleri } from "../lib/whatsapp.js";
 
 // WhatsApp mesaj şablonları (plan §13.2): dört şablon, yer tutucular, örnek oyuncuyla canlı önizleme, tek Kaydet.
@@ -309,10 +309,10 @@ function KullaniciAyar({ oturum, admin, saltOkunur }) {
     catch (e) { toast("err", hataMetni(e)); setSil(null); }
   };
   const ekle = async () => {
-    if (!yeni.username.trim() || yeni.password.length < 6) return toast("err", "Kullanıcı adı ve en az 6 karakter parola gerekli");
-    try { await db("createUser", { ...yeni, username: yeni.username.trim(), must_change_password: 1 }); toast("ok", "Kullanıcı eklendi"); setYeni({ username: "", ad_soyad: "", password: "", role: "kullanici" }); yukle(); } catch (e) { toast("err", hataMetni(e).includes("UNIQUE") ? "Bu kullanıcı adı kullanımda" : hataMetni(e)); }
+    if (!yeni.username.trim() || yeni.password.length < 8) return toast("err", "Kullanıcı adı ve en az 8 karakter parola gerekli");
+    try { await db("createUser", { ...yeni, username: yeni.username.trim(), must_change_password: 1 }); toast("ok", "Kullanıcı eklendi"); setYeni({ username: "", ad_soyad: "", password: "", role: "kullanici" }); yukle(); } catch (e) { toast("err", hataHam(e).includes("UNIQUE") ? "Bu kullanıcı adı kullanımda" : hataMetni(e)); }
   };
-  const sifirlaOnay = async () => { try { const p = "eyupspor" + Math.floor(1000 + Math.random() * 9000); await db("resetUserPassword", sifirla.id, p); toast("ok", `Geçici parola: ${p} (ilk girişte değiştirilecek)`); setSifirla(null); } catch (e) { toast("err", hataMetni(e)); } };
+  const sifirlaOnay = async () => { try { const r = await db("resetUserPassword", sifirla.id); toast("ok", `Geçici parola: ${r.parola} (ilk girişte değiştirilecek)`); setSifirla(null); } catch (e) { toast("err", hataMetni(e)); } };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div>
@@ -358,7 +358,7 @@ export function KurtarmaKodlari({ username, kodlar, onKapat, kapatMetni = "Kayde
   const metin = `Eyüpspor Futbol Okulu — ${username} parola kurtarma kodları\n${kodlar.join("\n")}\nHer kod bir kez kullanılır.`;
   const kopyala = async () => { try { await navigator.clipboard.writeText(metin); toast("ok", "Kodlar panoya kopyalandı"); } catch { toast("err", "Kopyalanamadı"); } };
   const yazdir = async () => {
-    const esc = (t) => String(t).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+    const esc = htmlEsc;
     const html = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Kurtarma kodları</title><style>body{font-family:sans-serif;padding:32px}h1{font-size:18px}code{display:block;font-size:18px;letter-spacing:.1em;margin:6px 0}</style></head><body><h1>Eyüpspor Futbol Okulu — ${esc(username)} parola kurtarma kodları</h1>${kodlar.map((k) => `<code>${esc(k)}</code>`).join("")}<p>Her kod bir kez kullanılır. Güvenli bir yerde saklayın.</p></body></html>`;
     const r = await window.okul.cikti.yazdir(html);
     if (!r?.ok) toast("err", r?.hata || "Yazdırılamadı");
@@ -529,7 +529,7 @@ function YedekAyar({ admin }) {
   const [tAday, setTAday] = useState(null); // paket özeti (onay bekliyor)
   const toast = useToast();
   const tasimaOlustur = async () => {
-    if (tp.p1.length < 8) return toast("err", "Parola en az 8 karakter olmalı");
+    if (tp.p1.length < 10) return toast("err", "Parola en az 10 karakter olmalı");
     if (tp.p1 !== tp.p2) return toast("err", "Parolalar aynı değil");
     setBekliyor(true);
     try { const r = await yedek().tasimaOlustur(tp.p1); if (r.iptal) return; if (r.error) return toast("err", r.error); toast("ok", "Taşıma paketi kaydedildi: " + r.yol); setTp({ p1: "", p2: "" }); }
@@ -564,7 +564,7 @@ function YedekAyar({ admin }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 640 }}>
       <h3 style={{ fontSize: 22 }}>Yedekleme</h3>
-      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir zip dosyasına (<code>eyupspor-yedek-tarih.zip</code>) yazılır. Otomatik yedek uygulama açılışında, aşağıda seçtiğiniz sıklıkla alınır; en eski yedekler silinir, son 30 yedek saklanır. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.</p>
+      <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir şifreli dosyaya (<code>eyupspor-yedek-tarih.eyupyedek</code>) yazılır; bulut klasöründe bile içerik okunamaz. Otomatik yedek uygulama açılışında, aşağıda seçtiğiniz sıklıkla alınır; en eski yedekler silinir, son 30 yedek saklanır. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.</p>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 15 }}>
         <div><span style={{ color: "var(--soluk)" }}>Yedek klasörü:</span> <b>{d.klasor || "Seçilmedi"}</b></div>
         <div><span style={{ color: "var(--soluk)" }}>Son yedek:</span> <b>{d.son ? `${tarihTR(d.son)} ${d.son.slice(11, 16)}` : "Henüz alınmadı"}</b></div>
@@ -578,7 +578,7 @@ function YedekAyar({ admin }) {
       {admin && !d.istemci && (
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Yedekten geri yükle</div>
-          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Bir yedek zip dosyası seçin. Mevcut veriler silinmez, <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda alınmış olmalıdır.</p>
+          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Bir yedek dosyası (<code>.eyupyedek</code> ya da eski <code>.zip</code>) seçin. Mevcut veriler silinmez, <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda alınmış olmalıdır.</p>
           <div><Btn tur="danger" ikon={<Ikon ad="geri" />} onClick={geriYukleSec} disabled={bekliyor}>Yedek Dosyası Seç ve Geri Yükle</Btn></div>
         </div>
       )}
@@ -587,7 +587,7 @@ function YedekAyar({ admin }) {
           <div style={{ fontWeight: 700, fontSize: 16 }}>Yeni bilgisayara taşıma paketi</div>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Normal yedek yalnız bu bilgisayarda açılır (şifreleme anahtarı bu bilgisayara bağlıdır). Bilgisayar değişecekse ya da bozulma ihtimaline karşı, <b>parola korumalı</b> bir taşıma paketi (<code>eyupspor-tasima-tarih.eyupspor</code>) alın: veritabanı, belgeler ve makbuz PDF'leri tek dosyada, yalnız bu parolayla açılır. Parolayı ayrı bir yerde saklayın; unutulursa paket açılamaz.</p>
           <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <Alan etiket="Paket parolası" style={{ width: 200 }}><Girdi type="password" value={tp.p1} onChange={(e) => setTp({ ...tp, p1: e.target.value })} aria-label="Paket parolası" placeholder="en az 8 karakter" /></Alan>
+            <Alan etiket="Paket parolası" style={{ width: 200 }}><Girdi type="password" value={tp.p1} onChange={(e) => setTp({ ...tp, p1: e.target.value })} aria-label="Paket parolası" placeholder="en az 10 karakter" /></Alan>
             <Alan etiket="Parola (tekrar)" style={{ width: 200 }}><Girdi type="password" value={tp.p2} onChange={(e) => setTp({ ...tp, p2: e.target.value })} aria-label="Paket parolası tekrar" /></Alan>
             <Btn ikon={<Ikon ad="indir" />} onClick={tasimaOlustur} disabled={bekliyor || !tp.p1}>Taşıma Paketi Oluştur</Btn>
           </div>

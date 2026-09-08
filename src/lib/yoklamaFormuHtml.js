@@ -3,8 +3,7 @@
 // SAF: I/O yok. Plan §12. Aidat/borç bilgisi kasıtlı olarak forma girmez (kâğıt sahada velilerin gözü önünde).
 import { uzunTarih } from "./takvim.js";
 
-/** @param {unknown} s */
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] || c);
+import { esc, guvenliLogo } from "./metin.js";
 
 /** Boş satır sayısı: sonradan gelen/deneme oyuncular elle yazılır. */
 export const EK_BOS_SATIR = 3;
@@ -67,7 +66,7 @@ export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular,
   .dip { margin-top: 5mm; text-align: center; font-size: 8.5pt; color: #5B2D8E; font-weight: 600; }
   tr { page-break-inside: avoid; }
 </style></head><body>
-<div class="ust">${logo ? `<img src="${logo}" alt="">` : ""}<div class="baslik"><h1>YOKLAMA FORMU</h1><span class="kulup">${esc(kulup)}</span></div>
+<div class="ust">${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}<div class="baslik"><h1>YOKLAMA FORMU</h1><span class="kulup">${esc(kulup)}</span></div>
 <div class="sag"><span class="grup">${esc(grup)}</span><span><b>${esc(uzunTarih(tarih))}</b>${saat ? ` · ${esc(saat)}` : ""}</span>${saha ? `<span><span class="soluk">Saha:</span> <b>${esc(saha)}</b></span>` : ""}</div></div>
 <div class="bant"></div>
 <div class="antrenor"><span class="soluk">Antrenör:</span>${cizgi(60)}<span class="ipucu">Programda işaretli olanlar dolu gelir; kalanları sahada işaretleyin.</span></div>

@@ -36,7 +36,7 @@ declare global {
       auth: {
         login(username: string, password: string): Promise<{ ok: boolean; user?: Session; error?: string }>;
         logout(): Promise<{ ok: boolean }>;
-        changePassword(username: string, newPassword: string): Promise<{ ok: boolean; error?: string }>;
+        changePassword(username: string, newPassword: string, oldPassword?: string): Promise<{ ok: boolean; error?: string }>;
         session(): Promise<Session | null>;
         kurtarmaUret(userId: number): Promise<{ ok: boolean; kodlar?: string[]; error?: string }>;
         kurtarmaSifirla(username: string, kod: string, yeniParola: string): Promise<{ ok: boolean; kalan?: number; error?: string }>;

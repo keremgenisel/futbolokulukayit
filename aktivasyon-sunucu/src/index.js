@@ -66,7 +66,7 @@ async function yenile(request, env) {
 // Satıcı: bir lisansı kaydet/güncelle (maksKurulum ayarla, iptal et). Anahtar doğrulanır; firma/bitis/
 // maksKullanici imzalı payload'dan okunur (değiştirilemez), maksKurulum/iptal D1'de tutulur (dinamik).
 async function adminLisans(request, env) {
-  if (request.headers.get("x-admin-token") !== env.ADMIN_TOKEN) return json({ error: "yetkisiz" }, 401);
+  if (!tokenEsit(request.headers.get("x-admin-token"), env.ADMIN_TOKEN)) return json({ error: "yetkisiz" }, 401);
   const { anahtar, maksKurulum, iptal } = await request.json().catch(() => ({}));
   const pub = await acikAnahtarYukle(env.LISANS_PUBLIC_PEM);
   const d = await lisansDogrula(anahtar || "", pub);
@@ -79,13 +79,13 @@ async function adminLisans(request, env) {
 }
 
 async function adminHepsi(request, env) {
-  if (request.headers.get("x-admin-token") !== env.ADMIN_TOKEN) return json({ error: "yetkisiz" }, 401);
+  if (!tokenEsit(request.headers.get("x-admin-token"), env.ADMIN_TOKEN)) return json({ error: "yetkisiz" }, 401);
   const r = await tumLisanslar(env);
   return json({ ok: true, lisanslar: r.results || [] });
 }
 
 async function adminListe(request, env) {
-  if (request.headers.get("x-admin-token") !== env.ADMIN_TOKEN) return json({ error: "yetkisiz" }, 401);
+  if (!tokenEsit(request.headers.get("x-admin-token"), env.ADMIN_TOKEN)) return json({ error: "yetkisiz" }, 401);
   const anahtar = new URL(request.url).searchParams.get("anahtar");
   if (!anahtar) return json({ error: "anahtar gerekli" }, 400);
   const lisans = await lisansBul(env, await sha256hex(anahtar));
@@ -94,11 +94,29 @@ async function adminListe(request, env) {
   return json({ ok: true, lisans: { firma: lisans.firma, bitis: lisans.bitis, maksKurulum: lisans.maksKurulum, iptal: !!lisans.iptal }, kurulumlar: k.results || [] });
 }
 
+// İnceleme #25: admin token sabit zamanlı karşılaştırma; /aktivasyon ve /yenile için IP başına basit hız sınırı
+// (isolate belleğinde; tam koruma için Cloudflare "Rate limiting rules" de eklenmeli — plan §8.1).
+function tokenEsit(a, b) {
+  const x = new TextEncoder().encode(String(a || "")), y = new TextEncoder().encode(String(b || ""));
+  if (x.length !== y.length) return false;
+  let fark = 0; for (let i = 0; i < x.length; i++) fark |= x[i] ^ y[i];
+  return fark === 0;
+}
+const hizSayac = new Map(); // ip → { n, t }
+const HIZ_MAX = 30, HIZ_PENCERE = 60 * 1000;
+function hizAsildi(ip, now = Date.now()) {
+  const r = hizSayac.get(ip);
+  if (!r || now - r.t > HIZ_PENCERE) { hizSayac.set(ip, { n: 1, t: now }); return false; }
+  r.n += 1; return r.n > HIZ_MAX;
+}
+export { tokenEsit, hizAsildi };
+
 export default {
   async fetch(request, env) {
     const yol = new URL(request.url).pathname;
     const m = request.method;
     try {
+      if (m === "POST" && (yol === "/aktivasyon" || yol === "/yenile") && hizAsildi(request.headers.get("cf-connecting-ip") || "?")) return json({ error: "çok fazla istek" }, 429);
       if (m === "GET" && yol === "/saglik") return json({ ok: true });
       if (m === "POST" && yol === "/aktivasyon") return await aktivasyon(request, env);
       if (m === "POST" && yol === "/yenile") return await yenile(request, env);

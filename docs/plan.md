@@ -310,6 +310,7 @@ yayınlar, publish-release.cjs depo özelse durur, Ayarlar > Hakkında > Uygulam
 | 4 | Kulübe lisans anahtarı üret | `node scripts/lisans-uret.cjs --firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon` ve `node scripts/lisans-yonet.cjs kaydet --anahtar "…" --kurulum 2`. Aktivasyon sunucusu yoksa `--aktivasyon` bayrağını KOYMA. | Bekliyor |
 | 5 | İlk sürümü yayınla | `package.json` version `1.0.0`, commit, `git tag v1.0.0 && git push --follow-tags` → GitHub Actions ~10 dk → Release v1.0.0 (.exe + latest.yml). Kontrol: `gh release view v1.0.0 --repo keremgenisel/eyupspor`. | Bekliyor |
 | 6 | Wrangler'ı 4.x'e yükselt | `aktivasyon-sunucu` içinde `npm install --save-dev wrangler@4` (3.x uyarı veriyor). | Bekliyor |
+| 7 | GitHub hesabını sıkılaştır (güvenlik incelemesi #9) | Hesapta 2FA aç; depoda Settings > Tags > "Protected tags" ile `v*` deseni ekle (yalnız sen etiket atabilirsin). Kod imzası (Windows sertifikası, yıllık ücret) bütçe çıkarsa `verifyUpdateCodeSignature` açılır. | Bekliyor |
 
 **Her yeni sürümde (kurulumdan sonra):** version yükselt → commit → `git tag vX.Y.Z && git push --follow-tags`. Kulüpteki
 uygulama sonraki açılışta üst şeritte "Yeni sürüm hazır" der; yönetici Ayarlar > Hakkında'dan İndir → Yeniden Başlat ve Kur.

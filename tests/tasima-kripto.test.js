@@ -16,8 +16,18 @@ describe("taşıma paketi şifrelemesi", () => {
     expect(() => coz(bozuk, "cok-gizli-parola")).toThrow("Parola yanlış ya da paket bozuk");
     expect(() => coz(Buffer.from("PK zip ama paket degil"), "cok-gizli-parola")).toThrow("Bu bir Eyüpspor taşıma paketi değil");
   });
-  it("parola en az 8 karakter", () => {
-    expect(parolaGecerliMi("1234567")).toBe(false); expect(parolaGecerliMi("12345678")).toBe(true); expect(PAROLA_MIN).toBe(8);
-    expect(() => sifrele(veri, "kisa")).toThrow("en az 8 karakter");
+  it("parola en az 10 karakter (inceleme #24)", () => {
+    expect(parolaGecerliMi("123456789")).toBe(false); expect(parolaGecerliMi("1234567890")).toBe(true); expect(PAROLA_MIN).toBe(10);
+    expect(() => sifrele(veri, "kisa")).toThrow("en az 10 karakter");
+  });
+
+  it("yedek kabı (YEDEK_MAGIC) ile taşıma paketi birbirinin yerine geçmez (inceleme #6)", async () => {
+    const { YEDEK_MAGIC } = await import("../electron/tasimaKripto.cjs");
+    const y = sifrele(veri, "makine-anahtari-abcdef", { magic: YEDEK_MAGIC });
+    expect(paketMi(y)).toBe(false); expect(paketMi(y, YEDEK_MAGIC)).toBe(true);
+    expect(coz(y, "makine-anahtari-abcdef", { magic: YEDEK_MAGIC }).equals(veri)).toBe(true);
+    expect(() => coz(y, "makine-anahtari-abcdef")).toThrow("taşıma paketi değil");
+    expect(() => coz(sifrele(veri, "cok-gizli-parola"), "cok-gizli-parola", { magic: YEDEK_MAGIC })).toThrow("Eyüpspor yedeği değil");
+    expect(() => coz(y, "yanlis-anahtar-xx", { magic: YEDEK_MAGIC })).toThrow("Parola yanlış");
   });
 });
