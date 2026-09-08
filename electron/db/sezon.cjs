@@ -1,0 +1,61 @@
+// ── Yeni sezon geçişi (docs/plan.md §10) ──
+const { db } = require("./baglanti.cjs");
+const { getSetting, setSetting } = require("./meta.cjs");
+
+const SEZON_DURUMLARI = ["aktif", "deneme", "sakat"];
+// Sihirbaz listesi: sezonda aktif sayılan oyuncular + geçmiş ödenmemiş aidat sayısı/tutarı.
+const sezonAdayListesi = () =>
+  db
+    .prepare(
+      `SELECT p.id, p.ad_soyad, p.durum, p.yas_grubu_id, p.sezon, p.aylik_aidat, p.ucret_tipi, g.ad AS yas_grubu_ad,
+    (SELECT count(*) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum IN ('odenmedi','kismi')) AS borc_adet,
+    (SELECT COALESCE(sum(MAX(0, tutar-odenen)),0) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum IN ('odenmedi','kismi')) AS borc_tutar
+  FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`,
+    )
+    .all();
+function sezonDurumu() {
+  return {
+    aktifSezon: getSetting("aktif_sezon") || "",
+    baslangicAyi: Number(getSetting("sezon_baslangic_ayi")) || 9,
+    sonGecis: getSetting("son_sezon_gecisi") || null,
+    adaySayisi: db.prepare("SELECT count(*) AS n FROM players WHERE durum IN ('aktif','deneme','sakat')").get().n,
+  };
+}
+// Tek işlem: yenileyenler yeni sezona (isteğe bağlı yeni grup), diğerleri pasif + not; gruplar ve aktif sezon güncellenir.
+function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
+  if (!/^\d{4}-\d{4}$/.test(String(sezon || ""))) throw new Error("Sezon adı 2027-2028 biçiminde olmalı");
+  const eskiSezon = getSetting("aktif_sezon") || "";
+  const tx = db.transaction(() => {
+    const adaylar = db.prepare("SELECT id, notlar, yas_grubu_id FROM players WHERE durum IN ('aktif','deneme','sakat')").all();
+    const yenile = new Map(yenileyenler.map((y) => [Number(y.id), y]));
+    let yenilenen = 0,
+      pasif = 0,
+      grupDegisen = 0,
+      borcSilinen = 0;
+    for (const p of adaylar) {
+      const y = yenile.get(p.id);
+      if (y) {
+        const grup = y.yas_grubu_id ? Number(y.yas_grubu_id) : p.yas_grubu_id;
+        if (grup !== p.yas_grubu_id) grupDegisen++;
+        db.prepare("UPDATE players SET sezon=?, yas_grubu_id=?, updated_at=datetime('now') WHERE id=?").run(sezon, grup, p.id);
+        yenilenen++;
+      } else {
+        const notEk = `${eskiSezon || "Önceki"} sezonu sonunda yenilemedi (${new Date().toISOString().slice(0, 10)})`;
+        const notlar = p.notlar ? `${p.notlar}\n${notEk}` : notEk;
+        db.prepare("UPDATE players SET durum='pasif', notlar=?, updated_at=datetime('now') WHERE id=?").run(notlar, p.id);
+        pasif++;
+        if (eskiBorcSil)
+          borcSilinen += db
+            .prepare("UPDATE monthly_dues SET durum='muaf' WHERE player_id=? AND durum IN ('odenmedi','kismi')")
+            .run(p.id).changes;
+      }
+    }
+    db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1").run(sezon);
+    setSetting("aktif_sezon", sezon);
+    setSetting("son_sezon_gecisi", new Date().toISOString());
+    return { ok: true, sezon, yenilenen, pasif, grupDegisen, borcSilinen };
+  });
+  return tx();
+}
+
+module.exports = { SEZON_DURUMLARI, sezonAdayListesi, sezonDurumu, yeniSezonaGec };

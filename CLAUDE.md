@@ -54,8 +54,10 @@ değiştirmez; `db.cjs` dış API'si ve `yetki.cjs` beyaz listesi sabit kalır.
   dış gezinme engeli), tek örnek kilidi, yazdırma, otomatik güncelleme (yalnız paketli).
 - `electron/preload.cjs` — renderer'a tek köprü: `window.okul` (`auth.*`, `db(fn, ...args)`, `app.*`).
 - `electron/ipc/data.cjs` — `db:call` beyaz listesi; oturum yoksa hiçbir veri çağrısı geçmez.
-- `electron/db.cjs` — SQLite şeması, göç (`schema_version`), tohum (aidat kalemleri, ilk admin),
-  tüm sorgular, lisans durumu (`lisansDurumu`/`lisansKaydet`/`leaseKaydet`). Şema `docs/plan.md §3`.
+- `electron/db.cjs` — dış API (102 işlev, tek `require`); gövde `electron/db/` modüllerinde (refactor 08.09.2026): `baglanti`
+  (bağlantı Proxy `db`, anahtar, yollar, `islem`), `sema` (şema/göç/tohum, `init`), `meta`, `kullanicilar`, `gruplar`, `oyuncular`,
+  `mesaj`, `belgeler`, `aidat`, `makbuz`, `antrenman`, `sezon`, `pano`, `lisansDurum`, `yedek`. Yeni sorgu ilgili modüle yazılır,
+  db.cjs export listesine ve `yetki.cjs` beyaz listesine eklenir. Şema `docs/plan.md §3`.
   Anahtar `safeStorage` ile OS anahtarlığında.
   Şema sürümü 11: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
   6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani · 8 fee_types (ücret tipleri
