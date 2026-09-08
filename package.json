@@ -114,7 +114,7 @@
       {
         "provider": "github",
         "owner": "keremgenisel",
-        "repo": "eyupspor-releases",
+        "repo": "eyupspor",
         "releaseType": "release"
       }
     ],

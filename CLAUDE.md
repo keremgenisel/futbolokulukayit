@@ -29,9 +29,9 @@ npm run audit        # npm audit --audit-level=high
 
 Faz 2 uygulama tarafı tamam: gömülü HTTPS sunucu + istemci modu (Ayarlar > Sunucu / Çoklu PC),
 aktivasyon sunucusu kodu hazır (deploy bekliyor: `aktivasyon-sunucu/deploy.sh`). Kullanıcı rehberi
-`docs/kurulum.md`. Yazı tipleri @fontsource ile gömülü. İKİ DEPO: kod özel `keremgenisel/eyupspor`, kurulum dosyaları herkese
-açık `keremgenisel/eyupspor-releases` (build.publish; RELEASES_TOKEN gizli ayarı). Güncelleme arayüzü Ayarlar > Hakkında
-(`Guncelleme`, IPC `updater:*`). Windows yayını `.github/workflows/release.yml`
+`docs/kurulum.md`. Yazı tipleri @fontsource ile gömülü. TEK HERKESE AÇIK depo `keremgenisel/eyupspor` (kod + GitHub Releases; electron-updater
+kimliksiz indirir, özel depo olmaz; publish-release.cjs özelse durur). Güncelleme arayüzü Ayarlar > Hakkında (`Guncelleme`,
+IPC `updater:*`, `electron/ipc/guncelleme.cjs`). Windows yayını `.github/workflows/release.yml`
 (tag push) veya `npm run build:win` (macOS'ta da çalışır; ardından `node scripts/ensure-native.cjs`
 ile mac native modüllerini geri derle, yoksa Electron testleri düşer).
 

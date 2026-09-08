@@ -15,11 +15,10 @@ on:
   push:
     tags: ["v*"]
 
-# İki depo düzeni: bu (ÖZEL) depoda derlenir, kurulum dosyaları HERKESE AÇIK keremgenisel/eyupspor-releases
-# deposuna yüklenir (package.json build.publish). Başka depoya yazmak için GITHUB_TOKEN yetmez: RELEASES_TOKEN
-# gizli ayarı (classic PAT, yalnız "public_repo" yetkisi) gerekir — Settings > Secrets and variables > Actions.
+# Tek depo: kod ve kurulum dosyaları aynı HERKESE AÇIK depoda (electron-updater kimliksiz indirir; özel depodan
+# indiremez). Release oluşturmak ve asset yüklemek için yazma izni gerekir (GITHUB_TOKEN'a verilir).
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   release:
@@ -42,19 +41,11 @@ jobs:
             exit 1
           fi
 
-      - name: RELEASES_TOKEN var mı
-        shell: bash
-        run: |
-          if [ -z "${{ secrets.RELEASES_TOKEN }}" ]; then
-            echo "::error::RELEASES_TOKEN gizli ayarı yok. GitHub > Settings > Developer settings > Personal access tokens (classic) > public_repo yetkili token üretip bu deponun Secrets kısmına RELEASES_TOKEN adıyla ekleyin (plan §8.1)."
-            exit 1
-          fi
-
       - run: npm ci
 
       # release scripti: vite build + electron-builder --win --publish never +
-      # scripts/publish-release.cjs (idempotent yayınlayıcı; token'ı GH_TOKEN'dan okur, yayın deposu build.publish.repo).
-      - name: Derle ve eyupspor-releases deposuna yayınla
+      # scripts/publish-release.cjs (idempotent GitHub Release yayınlayıcı; token'ı GITHUB_TOKEN'dan okur).
+      - name: Derle ve GitHub Release yayınla
         run: npm run release
         env:
-          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
