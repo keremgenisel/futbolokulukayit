@@ -1,5 +1,8 @@
 # Refactor Hazırlığı ve Planı (08.09.2026)
 
+> **Durum (08.09.2026, aynı gün):** §5'teki 7 adımın tamamı uygulandı; her adım ayrı commit, her commit'te `npm test` yeşil.
+> Sonuç ölçüleri §6'da. Kalan iş: 45 farklı biçimli try/catch (finally/ek deyim) isteğe bağlı olarak `useDene`'ye geçirilebilir.
+
 Kod tabanı özellik olarak tamamlandı (Faz 1-3 + güvenlik incelemesi). Bu belge, davranışı DEĞİŞTİRMEDEN yapıyı
 iyileştirmek için taban çizgisini, sıcak noktaları, güvenlik ağını ve adım sırasını kaydeder. Her adım ayrı commit,
 her commit'te tüm testler yeşil.
@@ -107,3 +110,21 @@ Eksik güvenlik ağı (refactor'dan önce kapatıldı/kapatılacak):
 5. `OyuncuKarti` testleri + bölünmesi; `Raporlar` saf üreticiler (3.4).
 6. `useYukle`/`hataYakala` geçişi, bileşen başına (3.4).
 7. Kapsama raporunu yeniden al, bu belgeye "sonrası" sütunu ekle.
+
+## 6. Sonrası (08.09.2026, 7 adım sonunda)
+
+| Ölçü | Öncesi | Sonrası |
+|------|--------|---------|
+| Kaynak satırı (electron + src) | 7.398 (yoğun, 100+ satır >300 karakter) | 15.069 (Prettier 140 sütun; 6 satır >300 karakter, hepsi SQL/JSX dizgisi) |
+| `electron/db.cjs` | 1.118 satır, 117 fonksiyon tek dosya | 127 satırlık dış API; gövde `electron/db/` 15 modül (en büyük `sema.cjs` 340 satır) |
+| `src/components/Ayarlar.jsx` | 671 satır (biçimlendirme sonrası 1.906), 8 bölüm | 97 satırlık kabuk + `ayarlar/` 8 dosya (en büyük `KalemAyar.jsx` 448) |
+| `OyuncuKarti.jsx` | 302 satır (946), 5 sekme tek dosya | 344 satırlık kabuk + `oyuncu-karti/` 6 dosya; 4 sekme karakterizasyon testi |
+| `Raporlar.jsx` | 342 satır, rapor mantığı bileşende | 205 satır; 5 üretici `src/lib/raporlar.js` (saf, 6 test) |
+| IPC elle yönetici/oturum kontrolü | 14 yer | 2 yer (`data.cjs` login yolu, `koruma.cjs` tanımı); geri kalanı `ipc/koruma.cjs` |
+| `toast("err", hataMetni(e))` | 73 | 45 (32 tam-gövde try/catch `useDene` ile sadeleşti) |
+| Test | 53 dosya / 265 test | 56 dosya / 280 test (+ `ipc-koruma`, `raporlar`, `oyuncu-karti-sekmeler`) |
+| Kapsama (süreç içi) | `src/lib` %97,8 · `src/components` %79,5 · `electron` %18,5 | `src/lib` %98,2 · `src/components` %76,6 · `electron` %31,9 (saf modüller arttı; `electron/db` yine yalnız Electron altı testle) |
+| Komutlar | — | `npm run format`, `format:check`, `test:saf` (~19 sn), `test:coverage`; `.git-blame-ignore-revs` biçimlendirme commit'i |
+
+En büyük kalan dosyalar: `Tahsilat.jsx` 622, `Yoklama.jsx` 588, `ui.jsx` 466, `Pano.jsx` 466, `ipc/yedek.cjs` 455 satır (biçimlendirilmiş
+hâlleriyle; hepsi tek sorumlulukta, bölme gerekmedi).
