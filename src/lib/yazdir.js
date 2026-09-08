@@ -4,7 +4,12 @@ import { db, cikti, files, uygulama } from "./api.js";
 import { makbuzHtml } from "./makbuzHtml.js";
 
 export async function makbuzHtmlUret(receiptId) {
-  const [m, kalemler, logo, kulup] = await Promise.all([db("getReceipt", receiptId), db("listFeeItems"), uygulama().logo(), db("getSetting", "kulup_adi")]);
+  const [m, kalemler, logo, kulup] = await Promise.all([
+    db("getReceipt", receiptId),
+    db("listFeeItems"),
+    uygulama().logo(),
+    db("getSetting", "kulup_adi"),
+  ]);
   return makbuzHtml({ makbuz: m, kalemler, logo, kulupAdi: kulup || "EYÜPSPOR FUTBOL OKULU" });
 }
 
@@ -33,14 +38,20 @@ export async function htmlYazdir(html, pdfAdi, yatay = false) {
 
 /** @param {number} receiptId @param {string=} html hazırsa tekrar üretilmez */
 export async function makbuzYazdir(receiptId, html) {
-  const h = html || await makbuzHtmlUret(receiptId);
+  const h = html || (await makbuzHtmlUret(receiptId));
   const r = await cikti().yazdir(h);
   if (r?.ok) return { ok: true };
   const neden = HATA_TR(r?.hata);
   if (/iptal/.test(neden)) return { ok: false, mesaj: neden };
   // PDF yedek yolu: kayıtlı PDF yoksa üret, sonra sistem görüntüleyicisinde aç.
   let m = await db("getReceipt", receiptId);
-  if (!m?.pdf_yolu) { await cikti().makbuzPdf(receiptId, h); m = await db("getReceipt", receiptId); }
-  if (m?.pdf_yolu) { await files().open(m.pdf_yolu); return { ok: false, mesaj: `${neden} Makbuz PDF olarak açıldı, oradan yazdırabilirsiniz.` }; }
+  if (!m?.pdf_yolu) {
+    await cikti().makbuzPdf(receiptId, h);
+    m = await db("getReceipt", receiptId);
+  }
+  if (m?.pdf_yolu) {
+    await files().open(m.pdf_yolu);
+    return { ok: false, mesaj: `${neden} Makbuz PDF olarak açıldı, oradan yazdırabilirsiniz.` };
+  }
   return { ok: false, mesaj: neden };
 }

@@ -30,7 +30,12 @@ function pinliDispatcher(certPem) {
 function sertifikaParmakIziAl(url, timeoutMs = 5000) {
   return new Promise((resolve, reject) => {
     let u;
-    try { u = new URL(url); } catch (e) { reject(e); return; }
+    try {
+      u = new URL(url);
+    } catch (e) {
+      reject(e);
+      return;
+    }
     const port = u.port ? Number(u.port) : 443;
     // SNI (servername) yalnız DNS adı için gönderilir; IP adresinde RFC 6066 ihlali olur.
     const servername = net.isIP(u.hostname) ? undefined : u.hostname;
@@ -43,16 +48,34 @@ function sertifikaParmakIziAl(url, timeoutMs = 5000) {
       () => {
         try {
           const peer = socket.getPeerCertificate(true);
-          if (!peer || !peer.raw) { socket.destroy(); reject(new Error("Sertifika alınamadı")); return; }
+          if (!peer || !peer.raw) {
+            socket.destroy();
+            reject(new Error("Sertifika alınamadı"));
+            return;
+          }
           const x = new crypto.X509Certificate(peer.raw);
           const out = { fp: x.fingerprint256, pem: x.toString() };
           socket.end();
           resolve(out);
-        } catch (e) { try { socket.destroy(); } catch { /* zaten kapalı */ } reject(e); }
-      }
+        } catch (e) {
+          try {
+            socket.destroy();
+          } catch {
+            /* zaten kapalı */
+          }
+          reject(e);
+        }
+      },
     );
     socket.on("error", (e) => reject(e));
-    socket.on("timeout", () => { try { socket.destroy(); } catch { /* zaten kapalı */ } reject(new Error("Zaman aşımı")); });
+    socket.on("timeout", () => {
+      try {
+        socket.destroy();
+      } catch {
+        /* zaten kapalı */
+      }
+      reject(new Error("Zaman aşımı"));
+    });
   });
 }
 

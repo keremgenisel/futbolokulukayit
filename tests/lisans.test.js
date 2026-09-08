@@ -15,7 +15,10 @@ beforeAll(() => {
   leasePrivatePem = le.privateKey.export({ type: "pkcs8", format: "pem" });
   process.env.EYUPSPOR_LEASE_PUBKEY = le.publicKey.export({ type: "spki", format: "pem" });
 });
-afterAll(() => { delete process.env.EYUPSPOR_LISANS_PUBKEY; delete process.env.EYUPSPOR_LEASE_PUBKEY; });
+afterAll(() => {
+  delete process.env.EYUPSPOR_LISANS_PUBKEY;
+  delete process.env.EYUPSPOR_LEASE_PUBKEY;
+});
 
 const ornekPayload = { firma: "Test Gıda A.Ş.", bitis: "2027-01-01", maksKullanici: 5, uretimTarihi: "2026-07-13" };
 
@@ -99,7 +102,8 @@ describe("leaseImzala/leaseDogrula", () => {
   it("tahrif edilen lease reddedilir (leaseBitis uzatma)", () => {
     const lease = leaseImzala(leasePayload, leasePrivatePem);
     const [on, veri, sig] = lease.split(".");
-    const k = JSON.parse(Buffer.from(veri, "base64url").toString()); k.leaseBitis = "2099-01-01";
+    const k = JSON.parse(Buffer.from(veri, "base64url").toString());
+    k.leaseBitis = "2099-01-01";
     const sahte = `${on}.${Buffer.from(JSON.stringify(k)).toString("base64url")}.${sig}`;
     expect(leaseDogrula(sahte)).toEqual({ gecerli: false, neden: "imza" });
   });
@@ -132,7 +136,11 @@ describe("durumHesapla — aktivasyon (lease) zorunluluğu", () => {
   // anahtarUret/leaseUret imza için privatePem'i kullanır; bunlar beforeAll'da atanır → çağrılar
   // yalnız it() içinde (koşum zamanı), describe gövdesinde (toplama zamanı) DEĞİL.
   const anahtarUret = (p) => imzala({ ...ornekPayload, ...p }, privatePem);
-  const leaseUret = (p) => leaseImzala({ firma: "T", makineId: "MAK-1", leaseBitis: "2026-08-01", iptal: false, uretimTarihi: "2026-07-13", ...p }, leasePrivatePem);
+  const leaseUret = (p) =>
+    leaseImzala(
+      { firma: "T", makineId: "MAK-1", leaseBitis: "2026-08-01", iptal: false, uretimTarihi: "2026-07-13", ...p },
+      leasePrivatePem,
+    );
   const anahtar = () => anahtarUret({ bitis: "2027-01-01" });
 
   it("aktivasyonGerekli=false → lease aranmaz (B1 varsayılanı, mevcut kurulumlar bozulmaz)", () => {
@@ -148,15 +156,33 @@ describe("durumHesapla — aktivasyon (lease) zorunluluğu", () => {
     expect(d.neden).toBe("aktivasyonGerekli");
   });
   it("süresi geçmiş lease → saltOkunur", () => {
-    const d = durumHesapla({ anahtar: anahtar(), lease: leaseUret({ leaseBitis: "2026-07-10" }), makineId: "MAK-1", aktivasyonGerekli: true, simdi: "2026-07-13" });
+    const d = durumHesapla({
+      anahtar: anahtar(),
+      lease: leaseUret({ leaseBitis: "2026-07-10" }),
+      makineId: "MAK-1",
+      aktivasyonGerekli: true,
+      simdi: "2026-07-13",
+    });
     expect(d.mod).toBe("saltOkunur");
   });
   it("iptal edilmiş lease → saltOkunur (uzaktan iptal)", () => {
-    const d = durumHesapla({ anahtar: anahtar(), lease: leaseUret({ iptal: true }), makineId: "MAK-1", aktivasyonGerekli: true, simdi: "2026-07-13" });
+    const d = durumHesapla({
+      anahtar: anahtar(),
+      lease: leaseUret({ iptal: true }),
+      makineId: "MAK-1",
+      aktivasyonGerekli: true,
+      simdi: "2026-07-13",
+    });
     expect(d.mod).toBe("saltOkunur");
   });
   it("başka makineye ait lease → saltOkunur", () => {
-    const d = durumHesapla({ anahtar: anahtar(), lease: leaseUret({ makineId: "MAK-9" }), makineId: "MAK-1", aktivasyonGerekli: true, simdi: "2026-07-13" });
+    const d = durumHesapla({
+      anahtar: anahtar(),
+      lease: leaseUret({ makineId: "MAK-9" }),
+      makineId: "MAK-1",
+      aktivasyonGerekli: true,
+      simdi: "2026-07-13",
+    });
     expect(d.mod).toBe("saltOkunur");
   });
   it("aktivasyonGerekli anahtar PAYLOAD'ında ise param olmadan da lease şarttır (üretici kararı)", () => {

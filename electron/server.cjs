@@ -20,17 +20,23 @@ const { optimizeImage } = require("./imageOptimize.cjs");
 let srv = null;
 let bilgi = null; // { port, fp, adresler }
 const loginDenemeleri = new Map();
-const LOGIN_MAX = 8, LOGIN_PENCERE = 15 * 60 * 1000;
+const LOGIN_MAX = 8,
+  LOGIN_PENCERE = 15 * 60 * 1000;
 const kurtarmaDenemeleri = new Map(); // kullanıcı adı başına 5 / 15 dk
-const KURTARMA_MAX = 5, KURTARMA_PENCERE = 15 * 60 * 1000;
+const KURTARMA_MAX = 5,
+  KURTARMA_PENCERE = 15 * 60 * 1000;
 
 const yerelIpler = () => {
   const out = [];
-  for (const [ad, ifs] of Object.entries(os.networkInterfaces())) for (const i of ifs || []) if (i.family === "IPv4" && !i.internal) out.push({ ad, ip: i.address, tailscale: i.address.startsWith("100.") });
+  for (const [ad, ifs] of Object.entries(os.networkInterfaces()))
+    for (const i of ifs || [])
+      if (i.family === "IPv4" && !i.internal) out.push({ ad, ip: i.address, tailscale: i.address.startsWith("100.") });
   return out;
 };
 
-function signToken(u) { return jwt.sign({ username: u.username, tv: u.token_version ?? 1 }, getSecret(db), { expiresIn: "30d" }); }
+function signToken(u) {
+  return jwt.sign({ username: u.username, tv: u.token_version ?? 1 }, getSecret(db), { expiresIn: "30d" });
+}
 
 function requireAuth(req, res, next) {
   const h = req.headers.authorization || "";
@@ -41,11 +47,17 @@ function requireAuth(req, res, next) {
     if (!u || !u.is_active || (p.tv ?? 0) !== (u.token_version ?? 1)) return res.status(401).json({ error: "Oturum gerekli" });
     req.user = { username: u.username, ad_soyad: u.ad_soyad, role: u.role, must_change_password: !!u.must_change_password };
     next();
-  } catch { return res.status(401).json({ error: "Oturum gerekli" }); }
+  } catch {
+    return res.status(401).json({ error: "Oturum gerekli" });
+  }
 }
-const requireAdmin = (req, res, next) => (req.user?.role === "admin" ? next() : res.status(403).json({ error: "Yönetici yetkisi gerekli" }));
+const requireAdmin = (req, res, next) =>
+  req.user?.role === "admin" ? next() : res.status(403).json({ error: "Yönetici yetkisi gerekli" });
 
-const guvenliAd = (ad) => String(ad).replace(/[^\w.\-çğıöşüÇĞİÖŞÜ ]+/g, "_").slice(0, 80);
+const guvenliAd = (ad) =>
+  String(ad)
+    .replace(/[^\w.\-çğıöşüÇĞİÖŞÜ ]+/g, "_")
+    .slice(0, 80);
 const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 function uploadsIci(p) {
@@ -72,16 +84,24 @@ function buildApp({ surum = "" } = {}) {
     }
     const { username, password } = req.body || {};
     const u = db.verifyPassword(String(username || ""), String(password || ""));
-    if (!u) { rateHit(loginDenemeleri, ip, now, LOGIN_PENCERE); return res.status(401).json({ error: "Kullanıcı adı veya parola hatalı" }); }
+    if (!u) {
+      rateHit(loginDenemeleri, ip, now, LOGIN_PENCERE);
+      return res.status(401).json({ error: "Kullanıcı adı veya parola hatalı" });
+    }
     rateReset(loginDenemeleri, ip);
-    res.json({ ok: true, token: signToken(u), user: { username: u.username, ad_soyad: u.ad_soyad, role: u.role, must_change_password: !!u.must_change_password } });
+    res.json({
+      ok: true,
+      token: signToken(u),
+      user: { username: u.username, ad_soyad: u.ad_soyad, role: u.role, must_change_password: !!u.must_change_password },
+    });
   });
   app.get("/api/auth/me", requireAuth, (req, res) => res.json({ ok: true, user: req.user }));
   app.post("/api/auth/changePassword", requireAuth, (req, res) => {
     const yeni = String(req.body?.newPassword || "");
     if (yeni.length < 8) return res.status(400).json({ error: "Parola en az 8 karakter olmalı" });
     // İnceleme #14: zorunlu ilk değişim dışında mevcut parola doğrulanır
-    if (!req.user.must_change_password && !db.verifyPassword(req.user.username, String(req.body?.oldPassword || ""))) return res.status(400).json({ error: "Mevcut parola hatalı" });
+    if (!req.user.must_change_password && !db.verifyPassword(req.user.username, String(req.body?.oldPassword || "")))
+      return res.status(400).json({ error: "Mevcut parola hatalı" });
     db.changePassword(req.user.username, yeni);
     // token_version arttı → yeni jeton ver ki istemci düşmesin
     const u = db.getUserByUsername(req.user.username);
@@ -92,7 +112,8 @@ function buildApp({ surum = "" } = {}) {
     if (db.lisansSaltOkunurMu()) return res.status(403).json({ error: "Lisans salt okunur modda" });
     const hedef = db.listUsers().find((u) => u.id === Number(req.body?.userId));
     if (!hedef) return res.status(404).json({ error: "Kullanıcı bulunamadı" });
-    if (req.user.role !== "admin" && hedef.username !== req.user.username) return res.status(403).json({ error: "Yalnız kendi hesabınız için kod üretebilirsiniz" });
+    if (req.user.role !== "admin" && hedef.username !== req.user.username)
+      return res.status(403).json({ error: "Yalnız kendi hesabınız için kod üretebilirsiniz" });
     const r = db.kurtarmaKodlariUret(hedef.id);
     if (r.error) return res.status(400).json({ error: r.error });
     res.json({ ok: true, kodlar: r.kodlar });
@@ -108,7 +129,10 @@ function buildApp({ surum = "" } = {}) {
       return res.status(429).json({ error: "Çok fazla deneme, 15 dakika sonra tekrar deneyin" });
     }
     const r = db.kurtarmaIleSifirla(ad, String(kod || ""), String(yeniParola));
-    if (r.error) { rateHit(kurtarmaDenemeleri, kAnahtar, now, KURTARMA_PENCERE); return res.status(401).json({ error: r.error }); }
+    if (r.error) {
+      rateHit(kurtarmaDenemeleri, kAnahtar, now, KURTARMA_PENCERE);
+      return res.status(401).json({ error: r.error });
+    }
     rateReset(kurtarmaDenemeleri, kAnahtar);
     res.json({ ok: true, kalan: r.kalan });
   });
@@ -117,16 +141,44 @@ function buildApp({ surum = "" } = {}) {
     const { fn, args } = req.body || {};
     const y = cagriYetkisi(String(fn || ""), req.user, db.lisansSaltOkunurMu());
     if (!y.ok) return res.status(y.kod).json({ error: y.mesaj });
-    if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(args?.[0]))?.username === req.user.username) return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
-    if (fn === "cancelReceipt") { try { return res.json({ ok: true, sonuc: db.cancelReceipt(args?.[0], args?.[1], req.user.ad_soyad || req.user.username) }); } catch (e) { return res.status(400).json({ error: e.message }); } }
-    if (fn === "grupBildirimKaydet") { try { return res.json({ ok: true, sonuc: db.grupBildirimKaydet(args?.[0], req.user.ad_soyad || req.user.username) }); } catch (e) { return res.status(400).json({ error: e.message }); } }
-    if (fn === "mesajKaydet") { try { return res.json({ ok: true, sonuc: db.mesajKaydet({ ...(args?.[0] || {}), kullanici: req.user.ad_soyad || req.user.username }) }); } catch (e) { return res.status(400).json({ error: e.message }); } }
-    try { res.json({ ok: true, sonuc: db[fn](...(Array.isArray(args) ? args : [])) ?? null }); }
-    catch (e) { res.status(400).json({ error: e.message }); }
+    if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(args?.[0]))?.username === req.user.username)
+      return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });
+    if (fn === "cancelReceipt") {
+      try {
+        return res.json({ ok: true, sonuc: db.cancelReceipt(args?.[0], args?.[1], req.user.ad_soyad || req.user.username) });
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
+    }
+    if (fn === "grupBildirimKaydet") {
+      try {
+        return res.json({ ok: true, sonuc: db.grupBildirimKaydet(args?.[0], req.user.ad_soyad || req.user.username) });
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
+    }
+    if (fn === "mesajKaydet") {
+      try {
+        return res.json({ ok: true, sonuc: db.mesajKaydet({ ...(args?.[0] || {}), kullanici: req.user.ad_soyad || req.user.username }) });
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
+    }
+    try {
+      res.json({ ok: true, sonuc: db[fn](...(Array.isArray(args) ? args : [])) ?? null });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
 
   // ── Dosyalar ──
-  const yazmaKontrol = (res) => { if (db.lisansSaltOkunurMu()) { res.status(403).json({ error: "Lisans salt okunur modda" }); return false; } return true; };
+  const yazmaKontrol = (res) => {
+    if (db.lisansSaltOkunurMu()) {
+      res.status(403).json({ error: "Lisans salt okunur modda" });
+      return false;
+    }
+    return true;
+  };
   app.post("/api/files/addDocument", requireAuth, (req, res) => {
     if (!yazmaKontrol(res)) return;
     try {
@@ -141,15 +193,33 @@ function buildApp({ surum = "" } = {}) {
       fs.mkdirSync(uploadsIci(klasor), { recursive: true });
       const hedef = path.join(klasor, `${Date.now()}-${tip}-${guvenliAd(path.basename(ad))}`);
       fs.writeFileSync(uploadsIci(hedef), optimizeImage(buf, uz));
-      const { id, silinen } = db.belgeEkle(Number(playerId), { tip, dosya_yolu: hedef, orijinal_ad: path.basename(ad), gecerlilik_tarihi: gecerlilik || null });
-      for (const y of silinen) { try { fs.unlinkSync(uploadsIci(y)); } catch { /* dosya zaten yok */ } }
+      const { id, silinen } = db.belgeEkle(Number(playerId), {
+        tip,
+        dosya_yolu: hedef,
+        orijinal_ad: path.basename(ad),
+        gecerlilik_tarihi: gecerlilik || null,
+      });
+      for (const y of silinen) {
+        try {
+          fs.unlinkSync(uploadsIci(y));
+        } catch {
+          /* dosya zaten yok */
+        }
+      }
       res.json({ ok: true, id, dosya_yolu: hedef });
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
   app.post("/api/files/deleteDocument", requireAuth, (req, res) => {
     if (!yazmaKontrol(res)) return;
     const belge = db.getDocument(Number(req.body?.docId));
-    if (belge) { try { fs.unlinkSync(uploadsIci(belge.dosya_yolu)); } catch {} db.deleteDocument(belge.id); }
+    if (belge) {
+      try {
+        fs.unlinkSync(uploadsIci(belge.dosya_yolu));
+      } catch {}
+      db.deleteDocument(belge.id);
+    }
     res.json({ ok: true });
   });
   app.get("/api/files/dataUrl", requireAuth, (req, res) => {
@@ -158,11 +228,18 @@ function buildApp({ surum = "" } = {}) {
       const mime = MIME[path.extname(tam).toLowerCase()];
       if (!mime || !fs.existsSync(tam)) return res.json({ ok: true, dataUrl: null });
       res.json({ ok: true, dataUrl: `data:${mime};base64,${fs.readFileSync(tam).toString("base64")}` });
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
   app.get("/api/files/indir", requireAuth, (req, res) => {
-    try { const tam = uploadsIci(String(req.query.yol || "")); if (!fs.existsSync(tam)) return res.status(404).json({ error: "Dosya yok" }); res.sendFile(tam); }
-    catch (e) { res.status(400).json({ error: e.message }); }
+    try {
+      const tam = uploadsIci(String(req.query.yol || ""));
+      if (!fs.existsSync(tam)) return res.status(404).json({ error: "Dosya yok" });
+      res.sendFile(tam);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
   app.post("/api/cikti/makbuzPdf", requireAuth, (req, res) => {
     if (!yazmaKontrol(res)) return;
@@ -174,18 +251,29 @@ function buildApp({ surum = "" } = {}) {
       fs.writeFileSync(uploadsIci(yol), Buffer.from(String(req.body?.pdfBase64 || ""), "base64"));
       db.setReceiptPdf(r.id, yol);
       res.json({ ok: true, pdf_yolu: yol });
-    } catch (e) { res.status(400).json({ error: e.message }); }
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
   });
 
   // ── Lisans (lisans sahibi sunucu PC; istemciler okur, yönetici anahtar girebilir) ──
   app.get("/api/lisans/durum", requireAuth, (_req, res) => res.json({ ok: true, durum: db.lisansDurumu() }));
-  app.post("/api/lisans/kaydet", requireAuth, requireAdmin, (req, res) => { const r = db.lisansKaydet(req.body?.anahtar); res.json(r.error ? r : { ok: true, durum: r.durum }); });
-  app.post("/api/lisans/lease", requireAuth, requireAdmin, (req, res) => { const r = db.leaseKaydet(req.body?.lease); res.json(r.error ? r : { ok: true, durum: r.durum }); });
+  app.post("/api/lisans/kaydet", requireAuth, requireAdmin, (req, res) => {
+    const r = db.lisansKaydet(req.body?.anahtar);
+    res.json(r.error ? r : { ok: true, durum: r.durum });
+  });
+  app.post("/api/lisans/lease", requireAuth, requireAdmin, (req, res) => {
+    const r = db.leaseKaydet(req.body?.lease);
+    res.json(r.error ? r : { ok: true, durum: r.durum });
+  });
   app.post("/api/lisans/aktiflestir", requireAuth, requireAdmin, async (_req, res) => res.json(await db.lisansAktiflestir(surum)));
   app.post("/api/lisans/yenile", requireAuth, async (_req, res) => res.json(await db.lisansYenile()));
 
   app.use((_req, res) => res.status(404).json({ error: "bulunamadı" }));
-  app.use((err, _req, res, _next) => { console.error("[server]", err.message); res.status(500).json({ error: "sunucu hatası" }); });
+  app.use((err, _req, res, _next) => {
+    console.error("[server]", err.message);
+    res.status(500).json({ error: "sunucu hatası" });
+  });
   return app;
 }
 
@@ -205,7 +293,16 @@ async function baslat({ port, surum = "" }) {
   console.log(`[server] https://0.0.0.0:${bilgi.port} fp=${fp}`);
   return bilgi;
 }
-function durdur() { return new Promise((r) => { if (!srv) return r(); srv.close(() => { srv = null; bilgi = null; r(); }); }); }
+function durdur() {
+  return new Promise((r) => {
+    if (!srv) return r();
+    srv.close(() => {
+      srv = null;
+      bilgi = null;
+      r();
+    });
+  });
+}
 const durum = () => ({ calisiyor: !!srv, ...(bilgi || {}), adresler: yerelIpler() });
 
 module.exports = { baslat, durdur, durum, buildApp };

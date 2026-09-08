@@ -1,5 +1,26 @@
 import { describe, it, expect } from "vitest";
-import { aidatBaslangicDurumu, tesiseGirebilir, donemSonGunu, gecikmeGunu, paraTR, tarihTR, aidatHesapla, indirimYuzdesi, pasaportGecerliMi, pasaportNormalize, kimlikBilgisi, kimlikKisa, sayiAyikla, sayiBicimle, aidatDurumHesapla, aidatKalan, tcGecerliMi, gsmNormalize, gsmGecerliMi, yasGrubuOner } from "../src/lib/aidat.js";
+import {
+  aidatBaslangicDurumu,
+  tesiseGirebilir,
+  donemSonGunu,
+  gecikmeGunu,
+  paraTR,
+  tarihTR,
+  aidatHesapla,
+  indirimYuzdesi,
+  pasaportGecerliMi,
+  pasaportNormalize,
+  kimlikBilgisi,
+  kimlikKisa,
+  sayiAyikla,
+  sayiBicimle,
+  aidatDurumHesapla,
+  aidatKalan,
+  tcGecerliMi,
+  gsmNormalize,
+  gsmGecerliMi,
+  yasGrubuOner,
+} from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
   it("aktif + normal ücret → ödenmedi olarak açılır", () => {
@@ -142,10 +163,10 @@ describe("kısmi ödeme", () => {
 
 describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
   it("TC sağlama algoritması", () => {
-    expect(tcGecerliMi("10000000146")).toBe(true);  // bilinen geçerli test numarası
+    expect(tcGecerliMi("10000000146")).toBe(true); // bilinen geçerli test numarası
     expect(tcGecerliMi("12345678901")).toBe(false); // sağlama tutmaz
     expect(tcGecerliMi("01234567890")).toBe(false); // 0 ile başlayamaz
-    expect(tcGecerliMi("1234567890")).toBe(false);  // 10 hane
+    expect(tcGecerliMi("1234567890")).toBe(false); // 10 hane
     expect(tcGecerliMi("")).toBe(false);
   });
   it("GSM normalize ve doğrulama", () => {
@@ -156,7 +177,11 @@ describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
     expect(gsmGecerliMi("532")).toBe(false);
   });
   it("yaş grubu önerisi: sezon bitiş yılı − doğum yılı", () => {
-    const g = [{ id: 1, ad: "U11", aktif: 1 }, { id: 2, ad: "U 12", aktif: 1 }, { id: 3, ad: "U13", aktif: 0 }];
+    const g = [
+      { id: 1, ad: "U11", aktif: 1 },
+      { id: 2, ad: "U 12", aktif: 1 },
+      { id: 3, ad: "U13", aktif: 0 },
+    ];
     expect(yasGrubuOner("2016-05-05", "2026-2027", g)).toEqual({ ad: "U11", id: 1, adaylar: [{ id: 1, ad: "U11" }] });
     expect(yasGrubuOner("2015-01-01", "2026-2027", g)).toEqual({ ad: "U12", id: 2, adaylar: [{ id: 2, ad: "U 12" }] });
     expect(yasGrubuOner("2014-01-01", "2026-2027", g)).toEqual({ ad: "U13", id: null, adaylar: [] }); // pasif grup önerilmez
@@ -165,11 +190,28 @@ describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
     expect(yasGrubuOner("2016-01-01", "", g)).toBeNull();
   });
   it("yaş grubu önerisi: kalabalık yılda alt gruplar (U11 A / U11 B) aday olur, U1 → U11 karışmaz", () => {
-    const g = [{ id: 1, ad: "U11 A", aktif: 1 }, { id: 2, ad: "U11 B", aktif: 1 }, { id: 3, ad: "U11 C", aktif: 0 }, { id: 4, ad: "U1", aktif: 1 }, { id: 5, ad: "U12 Kız", aktif: 1 }];
-    expect(yasGrubuOner("2016-05-05", "2026-2027", g)).toEqual({ ad: "U11", id: null, adaylar: [{ id: 1, ad: "U11 A" }, { id: 2, ad: "U11 B" }] });
+    const g = [
+      { id: 1, ad: "U11 A", aktif: 1 },
+      { id: 2, ad: "U11 B", aktif: 1 },
+      { id: 3, ad: "U11 C", aktif: 0 },
+      { id: 4, ad: "U1", aktif: 1 },
+      { id: 5, ad: "U12 Kız", aktif: 1 },
+    ];
+    expect(yasGrubuOner("2016-05-05", "2026-2027", g)).toEqual({
+      ad: "U11",
+      id: null,
+      adaylar: [
+        { id: 1, ad: "U11 A" },
+        { id: 2, ad: "U11 B" },
+      ],
+    });
     expect(yasGrubuOner("2015-05-05", "2026-2027", g)).toEqual({ ad: "U12", id: 5, adaylar: [{ id: 5, ad: "U12 Kız" }] }); // tek alt grup → doğrudan seçilebilir
     expect(yasGrubuOner("2026-01-01", "2026-2027", g)).toBeNull(); // U1 aralık dışı
     // tam ad varsa alt gruplar yerine o gelir
-    expect(yasGrubuOner("2016-05-05", "2026-2027", [...g, { id: 9, ad: "U11", aktif: 1 }])).toEqual({ ad: "U11", id: 9, adaylar: [{ id: 9, ad: "U11" }] });
+    expect(yasGrubuOner("2016-05-05", "2026-2027", [...g, { id: 9, ad: "U11", aktif: 1 }])).toEqual({
+      ad: "U11",
+      id: 9,
+      adaylar: [{ id: 9, ad: "U11" }],
+    });
   });
 });

@@ -9,7 +9,8 @@ export const UYARI_GUN = 30;
  */
 export function belgeGecerlilik(gecerlilikIso, bugunIso, esik = UYARI_GUN) {
   if (!gecerlilikIso) return { durum: "yok", kalanGun: null };
-  const g = new Date(gecerlilikIso + "T00:00:00"), b = new Date(bugunIso + "T00:00:00");
+  const g = new Date(gecerlilikIso + "T00:00:00"),
+    b = new Date(bugunIso + "T00:00:00");
   const kalanGun = Math.round((g.getTime() - b.getTime()) / 86400000);
   if (kalanGun < 0) return { durum: "doldu", kalanGun };
   if (kalanGun <= esik) return { durum: "dolacak", kalanGun };
@@ -18,7 +19,8 @@ export function belgeGecerlilik(gecerlilikIso, bugunIso, esik = UYARI_GUN) {
 
 /** Sağlık raporu için önerilen geçerlilik: yüklendiği günden bir yıl sonrası (kulüp: sporcu sağlık raporu yıllık). @param {string} bugunIso */
 export function onerilenGecerlilik(bugunIso) {
-  const d = new Date(bugunIso + "T00:00:00"); d.setFullYear(d.getFullYear() + 1);
+  const d = new Date(bugunIso + "T00:00:00");
+  d.setFullYear(d.getFullYear() + 1);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
@@ -35,8 +37,10 @@ export function belgeEtiketi(d) {
 const ACILIYET = { doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3 };
 /** @param {{ durum: string, gecerlilik?: string|null, ad_soyad?: string }[]} uyarilar */
 export function uyariSirala(uyarilar) {
-  return [...uyarilar].sort((a, b) => (ACILIYET[a.durum] ?? 9) - (ACILIYET[b.durum] ?? 9)
-    || String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || ""))
-    || String(a.ad_soyad || "").localeCompare(String(b.ad_soyad || ""), "tr"));
+  return [...uyarilar].sort(
+    (a, b) =>
+      (ACILIYET[a.durum] ?? 9) - (ACILIYET[b.durum] ?? 9) ||
+      String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || "")) ||
+      String(a.ad_soyad || "").localeCompare(String(b.ad_soyad || ""), "tr"),
+  );
 }
-

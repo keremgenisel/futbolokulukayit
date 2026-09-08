@@ -36,7 +36,8 @@ describe("Kenar menü daralt/genişlet", () => {
     const ara = screen.getByRole("button", { name: "Oyuncu ara (Ctrl+K)" });
     expect(ara).toHaveTextContent("Oyuncu ara…");
     expect(ara.compareDocumentPosition(screen.getByRole("button", { name: "Pano" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy(); // Pano'nun üstünde
-    fireEvent.click(ara); expect(onAra).toHaveBeenCalled();
+    fireEvent.click(ara);
+    expect(onAra).toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Menüyü daralt" }));
     expect(screen.getByRole("button", { name: "Oyuncu ara (Ctrl+K)" })).not.toHaveTextContent("Oyuncu ara…");
   });
@@ -45,7 +46,9 @@ describe("Kenar menü daralt/genişlet", () => {
     const kullanici = { username: "hoca", ad_soyad: "Hoca", role: "kullanici" };
     const suz = (o) => (o.role === "admin" ? TABS : TABS.filter((t) => t.kod !== "ayarlar")); // App.jsx ile aynı kural
     const { unmount } = render(<KenarMenu sekmeler={suz(kullanici)} tab="pano" onSec={vi.fn()} oturum={kullanici} onCikis={vi.fn()} />);
-    expect(screen.queryByText("Ayarlar")).toBeNull(); expect(screen.getByText("Yoklama")).toBeInTheDocument(); expect(screen.getByText("Kullanıcı")).toBeInTheDocument();
+    expect(screen.queryByText("Ayarlar")).toBeNull();
+    expect(screen.getByText("Yoklama")).toBeInTheDocument();
+    expect(screen.getByText("Kullanıcı")).toBeInTheDocument();
     unmount();
     render(<KenarMenu sekmeler={suz(oturum)} tab="pano" onSec={vi.fn()} oturum={oturum} onCikis={vi.fn()} />);
     expect(screen.getByText("Ayarlar")).toBeInTheDocument();

@@ -60,6 +60,14 @@ export function hataMetni(e) {
     [/SQLITE_(FULL|IOERR)/i, "Diske yazılamadı (disk dolu ya da erişilemiyor)"],
     [/no such table|no such column|SQLITE_ERROR/i, "Veritabanı hatası; programı yeniden başlatın"],
   ];
-  for (const [re, tr] of ESLEME) if (re.test(m)) { try { console.error("[hata]", m); } catch { /* yoksay */ } return tr; }
+  for (const [re, tr] of ESLEME)
+    if (re.test(m)) {
+      try {
+        console.error("[hata]", m);
+      } catch {
+        /* yoksay */
+      }
+      return tr;
+    }
   return m;
 }

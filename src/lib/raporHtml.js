@@ -7,7 +7,9 @@ import { esc, guvenliLogo } from "./metin.js";
  */
 export function raporHtml({ baslik, altBaslik = "", sutunlar, satirlar, logo = "", yatay = false }) {
   const th = sutunlar.map((c) => `<th${c.sag ? ' class="sag"' : ""}>${esc(c.baslik)}</th>`).join("");
-  const tr = satirlar.map((s) => `<tr>${sutunlar.map((c) => `<td${c.sag ? ' class="sag"' : ""}>${esc(s[c.anahtar])}</td>`).join("")}</tr>`).join("");
+  const tr = satirlar
+    .map((s) => `<tr>${sutunlar.map((c) => `<td${c.sag ? ' class="sag"' : ""}>${esc(s[c.anahtar])}</td>`).join("")}</tr>`)
+    .join("");
   return `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>${esc(baslik)}</title>
 <style>
   @page { size: A4 ${yatay ? "landscape" : "portrait"}; margin: 12mm; }

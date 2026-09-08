@@ -19,9 +19,12 @@ describe("sağlık raporu geçerliliği", () => {
 
   it("uyariSirala: doldu (en eski önce) → dolacak (en yakın önce) → tarihsiz → rapor yok (ada göre)", () => {
     const l = [
-      { ad_soyad: "Zeynep", durum: "yok" }, { ad_soyad: "Ali", durum: "dolacak", gecerlilik: "2026-09-20" },
-      { ad_soyad: "Bora", durum: "doldu", gecerlilik: "2026-08-01" }, { ad_soyad: "Ceren", durum: "yok" },
-      { ad_soyad: "Deniz", durum: "doldu", gecerlilik: "2025-01-01" }, { ad_soyad: "Ece", durum: "dolacak", gecerlilik: "2026-09-10" },
+      { ad_soyad: "Zeynep", durum: "yok" },
+      { ad_soyad: "Ali", durum: "dolacak", gecerlilik: "2026-09-20" },
+      { ad_soyad: "Bora", durum: "doldu", gecerlilik: "2026-08-01" },
+      { ad_soyad: "Ceren", durum: "yok" },
+      { ad_soyad: "Deniz", durum: "doldu", gecerlilik: "2025-01-01" },
+      { ad_soyad: "Ece", durum: "dolacak", gecerlilik: "2026-09-10" },
       { ad_soyad: "Fatma", durum: "tarihsiz" },
     ];
     expect(uyariSirala(l).map((u) => u.ad_soyad)).toEqual(["Deniz", "Bora", "Ece", "Ali", "Fatma", "Ceren", "Zeynep"]);

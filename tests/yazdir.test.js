@@ -2,16 +2,32 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { makbuzYazdir } from "../src/lib/yazdir.js";
 
-const makbuz = { id: 7, makbuz_no: "2026-0007", tarih: "2026-09-06", ad_soyad: "X", toplam: 100, odeme_yontemi: "nakit", satirlar: [], pdf_yolu: "" };
+const makbuz = {
+  id: 7,
+  makbuz_no: "2026-0007",
+  tarih: "2026-09-06",
+  ad_soyad: "X",
+  toplam: 100,
+  odeme_yontemi: "nakit",
+  satirlar: [],
+  pdf_yolu: "",
+};
 
 describe("makbuzYazdir — yazıcı yoksa PDF'e düşer", () => {
   let yazdir, makbuzPdf, open;
   beforeEach(() => {
-    yazdir = vi.fn(); makbuzPdf = vi.fn(async () => { makbuz.pdf_yolu = "makbuz/2026-0007.pdf"; return { ok: true }; }); open = vi.fn(async () => "");
+    yazdir = vi.fn();
+    makbuzPdf = vi.fn(async () => {
+      makbuz.pdf_yolu = "makbuz/2026-0007.pdf";
+      return { ok: true };
+    });
+    open = vi.fn(async () => "");
     makbuz.pdf_yolu = "";
     window.okul = {
-      db: vi.fn(async (fn) => fn === "getReceipt" ? { ...makbuz } : fn === "listFeeItems" ? [] : null),
-      cikti: { yazdir, makbuzPdf }, files: { open }, app: { logo: async () => "" },
+      db: vi.fn(async (fn) => (fn === "getReceipt" ? { ...makbuz } : fn === "listFeeItems" ? [] : null)),
+      cikti: { yazdir, makbuzPdf },
+      files: { open },
+      app: { logo: async () => "" },
     };
   });
   it("yazdırma başarılıysa PDF açılmaz", async () => {
@@ -31,6 +47,7 @@ describe("makbuzYazdir — yazıcı yoksa PDF'e düşer", () => {
   it("kullanıcı iptal ettiyse PDF açılmaz", async () => {
     yazdir.mockResolvedValue({ ok: false, hata: "Print job canceled" });
     const r = await makbuzYazdir(7);
-    expect(r.mesaj).toMatch(/iptal/); expect(open).not.toHaveBeenCalled();
+    expect(r.mesaj).toMatch(/iptal/);
+    expect(open).not.toHaveBeenCalled();
   });
 });

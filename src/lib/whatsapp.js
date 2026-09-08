@@ -5,16 +5,45 @@ import { gsmNormalize, paraTR, AY_ADLARI } from "./aidat.js";
 import { uzunTarih } from "./takvim.js";
 
 /** Ayar anahtarları (settings tablosu). */
-export const SABLON_ANAHTARLARI = { aidat: "wa_sablon_aidat", genel: "wa_sablon_genel", iptal: "wa_sablon_iptal", degisiklik: "wa_sablon_degisiklik" };
-export const SABLON_ADLARI = { aidat: "Aidat hatırlatma", genel: "Genel mesaj", iptal: "Antrenman iptali", degisiklik: "Antrenman değişikliği" };
+export const SABLON_ANAHTARLARI = {
+  aidat: "wa_sablon_aidat",
+  genel: "wa_sablon_genel",
+  iptal: "wa_sablon_iptal",
+  degisiklik: "wa_sablon_degisiklik",
+};
+export const SABLON_ADLARI = {
+  aidat: "Aidat hatırlatma",
+  genel: "Genel mesaj",
+  iptal: "Antrenman iptali",
+  degisiklik: "Antrenman değişikliği",
+};
 /** @type {Record<string, string>} */
 export const VARSAYILAN_SABLONLAR = {
-  aidat: "Sayın {veli}, {oyuncu} için {ay} aidatı ({kalan}) henüz ödenmemiştir. Ödeme dönemi her ayın {donem} günleridir. Bilgilerinize sunarız.\n{kulup}",
+  aidat:
+    "Sayın {veli}, {oyuncu} için {ay} aidatı ({kalan}) henüz ödenmemiştir. Ödeme dönemi her ayın {donem} günleridir. Bilgilerinize sunarız.\n{kulup}",
   genel: "Sayın {veli}, {oyuncu} hakkında: ",
   iptal: "Sayın {veli}, {grup} grubunun {tarih} {saat} antrenmanı iptal edilmiştir. {neden}\n{kulup}",
-  degisiklik: "Sayın {veli}, {grup} grubunun {eskiTarih} {eskiSaat} antrenmanı {yeniTarih} {yeniSaat} saatine alınmıştır ({saha}).\n{kulup}",
+  degisiklik:
+    "Sayın {veli}, {grup} grubunun {eskiTarih} {eskiSaat} antrenmanı {yeniTarih} {yeniSaat} saatine alınmıştır ({saha}).\n{kulup}",
 };
-export const YER_TUTUCULAR = ["veli", "oyuncu", "ay", "tutar", "kalan", "donem", "grup", "tarih", "saat", "saha", "eskiTarih", "eskiSaat", "yeniTarih", "yeniSaat", "neden", "kulup"];
+export const YER_TUTUCULAR = [
+  "veli",
+  "oyuncu",
+  "ay",
+  "tutar",
+  "kalan",
+  "donem",
+  "grup",
+  "tarih",
+  "saat",
+  "saha",
+  "eskiTarih",
+  "eskiSaat",
+  "yeniTarih",
+  "yeniSaat",
+  "neden",
+  "kulup",
+];
 export const VARSAYILAN_KULUP = "Eyüpspor Futbol Okulu";
 
 /**
@@ -33,8 +62,12 @@ export function waNumara(no) {
  * @param {string} sablon @param {Record<string, unknown>} degerler
  */
 export function sablonDoldur(sablon, degerler = {}) {
-  return String(sablon ?? "").replace(/\{(\w+)\}/g, (_, k) => (degerler[k] === undefined || degerler[k] === null ? "" : String(degerler[k])))
-    .replace(/[ \t]+/g, " ").replace(/ \n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return String(sablon ?? "")
+    .replace(/\{(\w+)\}/g, (_, k) => (degerler[k] === undefined || degerler[k] === null ? "" : String(degerler[k])))
+    .replace(/[ \t]+/g, " ")
+    .replace(/ \n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 /**
@@ -62,7 +95,16 @@ export function hatirlatmaUygunMu(veli) {
  * @param {string} [kulup]
  */
 export function aidatDegerleri(b, kulup = VARSAYILAN_KULUP) {
-  return { veli: b.veli_ad || "Veli", oyuncu: b.ad_soyad, ay: `${AY_ADLARI[b.ay - 1]} ${b.yil}`, tutar: paraTR(b.tutar), kalan: paraTR(b.kalan ?? b.tutar), donem: b.odeme_donemi || "", grup: b.yas_grubu_ad || "", kulup };
+  return {
+    veli: b.veli_ad || "Veli",
+    oyuncu: b.ad_soyad,
+    ay: `${AY_ADLARI[b.ay - 1]} ${b.yil}`,
+    tutar: paraTR(b.tutar),
+    kalan: paraTR(b.kalan ?? b.tutar),
+    donem: b.odeme_donemi || "",
+    grup: b.yas_grubu_ad || "",
+    kulup,
+  };
 }
 
 /**
@@ -74,11 +116,23 @@ export function aidatDegerleri(b, kulup = VARSAYILAN_KULUP) {
 export function antrenmanDegerleri(t, satir, kulup = VARSAYILAN_KULUP) {
   /** @type {{ eskiTarih?: string, eskiSaat?: string }} */
   let eski = {};
-  try { eski = t.degisiklik_notu ? JSON.parse(t.degisiklik_notu) : {}; } catch { eski = {}; }
+  try {
+    eski = t.degisiklik_notu ? JSON.parse(t.degisiklik_notu) : {};
+  } catch {
+    eski = {};
+  }
   return {
-    veli: satir.veli_ad || "Veli", oyuncu: satir.ad_soyad, grup: t.yas_grubu_ad || "",
-    tarih: uzunTarih(t.tarih), saat: t.saat || "", saha: t.saha || "", neden: t.iptal_nedeni && t.iptal_nedeni !== "İptal" ? t.iptal_nedeni : "",
-    eskiTarih: eski.eskiTarih ? uzunTarih(eski.eskiTarih) : uzunTarih(t.tarih), eskiSaat: eski.eskiSaat ?? t.saat ?? "",
-    yeniTarih: uzunTarih(t.tarih), yeniSaat: t.saat || "", kulup,
+    veli: satir.veli_ad || "Veli",
+    oyuncu: satir.ad_soyad,
+    grup: t.yas_grubu_ad || "",
+    tarih: uzunTarih(t.tarih),
+    saat: t.saat || "",
+    saha: t.saha || "",
+    neden: t.iptal_nedeni && t.iptal_nedeni !== "İptal" ? t.iptal_nedeni : "",
+    eskiTarih: eski.eskiTarih ? uzunTarih(eski.eskiTarih) : uzunTarih(t.tarih),
+    eskiSaat: eski.eskiSaat ?? t.saat ?? "",
+    yeniTarih: uzunTarih(t.tarih),
+    yeniSaat: t.saat || "",
+    kulup,
   };
 }

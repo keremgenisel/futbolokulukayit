@@ -49,7 +49,9 @@ function imzala(payload, privatePem) {
 // Anahtar dizesini doğrular. Dönüş: { gecerli: true, payload } | { gecerli: false, neden }.
 function dogrula(anahtar) {
   try {
-    const parcalar = String(anahtar || "").trim().split(".");
+    const parcalar = String(anahtar || "")
+      .trim()
+      .split(".");
     if (parcalar.length !== 3 || parcalar[0] !== "EYUPSPOR") return { gecerli: false, neden: "bicim" };
     const veri = Buffer.from(parcalar[1], "base64url");
     const sig = Buffer.from(parcalar[2], "base64url");
@@ -58,7 +60,9 @@ function dogrula(anahtar) {
     if (!payload || typeof payload !== "object") return { gecerli: false, neden: "bicim" };
     if (payload.bitis != null && !/^\d{4}-\d{2}-\d{2}$/.test(payload.bitis)) return { gecerli: false, neden: "bicim" };
     return { gecerli: true, payload };
-  } catch { return { gecerli: false, neden: "bicim" }; }
+  } catch {
+    return { gecerli: false, neden: "bicim" };
+  }
 }
 
 // Lease imzalama (aktivasyon SUNUCUSU kullanır) — biçim "EYUPLEASE.<payload>.<imza>".
@@ -72,7 +76,9 @@ function leaseImzala(payload, leasePrivatePem) {
 // Lease doğrulama (UYGULAMA). Dönüş: { gecerli: true, payload } | { gecerli: false, neden }.
 function leaseDogrula(lease) {
   try {
-    const parcalar = String(lease || "").trim().split(".");
+    const parcalar = String(lease || "")
+      .trim()
+      .split(".");
     if (parcalar.length !== 3 || parcalar[0] !== "EYUPLEASE") return { gecerli: false, neden: "bicim" };
     const veri = Buffer.from(parcalar[1], "base64url");
     const sig = Buffer.from(parcalar[2], "base64url");
@@ -81,7 +87,9 @@ function leaseDogrula(lease) {
     if (!payload || typeof payload !== "object") return { gecerli: false, neden: "bicim" };
     if (payload.leaseBitis != null && !/^\d{4}-\d{2}-\d{2}$/.test(payload.leaseBitis)) return { gecerli: false, neden: "bicim" };
     return { gecerli: true, payload };
-  } catch { return { gecerli: false, neden: "bicim" }; }
+  } catch {
+    return { gecerli: false, neden: "bicim" };
+  }
 }
 
 const gunFarki = (a, b) => Math.floor((new Date(a + "T00:00:00Z") - new Date(b + "T00:00:00Z")) / 86400000);
@@ -106,9 +114,25 @@ function leaseGecerliMi(lease, makineId, simdi) {
 // lease: aktivasyon sunucusundan alınan imzalı kiralama (varsa/gerekliyse doğrulanır).
 // aktivasyonGerekli: B2 açıldığında true — geçerli anahtar TEK BAŞINA yetmez, geçerli lease de gerekir.
 //   B1'de varsayılan false → mevcut kurulumlar aynen çalışır (lease uykuda).
-function durumHesapla({ anahtar = null, kurulumTarihi = null, sonGorulen = null, simdi = bugun(), makineId = null, lease = null, aktivasyonGerekli = false } = {}) {
-  const efektif = (sonGorulen && sonGorulen > simdi) ? sonGorulen : simdi;
-  return durumCekirdek({ anahtar, kurulumTarihi, simdi: efektif, saatGeriAlindi: !!(sonGorulen && sonGorulen > simdi), makineId, lease, aktivasyonGerekli });
+function durumHesapla({
+  anahtar = null,
+  kurulumTarihi = null,
+  sonGorulen = null,
+  simdi = bugun(),
+  makineId = null,
+  lease = null,
+  aktivasyonGerekli = false,
+} = {}) {
+  const efektif = sonGorulen && sonGorulen > simdi ? sonGorulen : simdi;
+  return durumCekirdek({
+    anahtar,
+    kurulumTarihi,
+    simdi: efektif,
+    saatGeriAlindi: !!(sonGorulen && sonGorulen > simdi),
+    makineId,
+    lease,
+    aktivasyonGerekli,
+  });
 }
 
 function durumCekirdek({ anahtar, kurulumTarihi, simdi, saatGeriAlindi, makineId = null, lease = null, aktivasyonGerekli = false }) {
@@ -137,9 +161,25 @@ function durumCekirdek({ anahtar, kurulumTarihi, simdi, saatGeriAlindi, makineId
   const baslangic = kurulumTarihi || simdi;
   const gecen = Math.max(0, gunFarki(simdi, baslangic));
   if (gecen < DENEME_GUN) {
-    return { mod: "deneme", kalanGun: DENEME_GUN - gecen, bitis: null, firma: "", maksKullanici: null, ...(anahtar ? { anahtarNeden: d.neden } : {}), ...ekle };
+    return {
+      mod: "deneme",
+      kalanGun: DENEME_GUN - gecen,
+      bitis: null,
+      firma: "",
+      maksKullanici: null,
+      ...(anahtar ? { anahtarNeden: d.neden } : {}),
+      ...ekle,
+    };
   }
-  return { mod: "saltOkunur", neden: anahtar ? "lisansGecersiz" : "denemeBitti", kalanGun: 0, bitis: null, firma: "", maksKullanici: null, ...ekle };
+  return {
+    mod: "saltOkunur",
+    neden: anahtar ? "lisansGecersiz" : "denemeBitti",
+    kalanGun: 0,
+    bitis: null,
+    firma: "",
+    maksKullanici: null,
+    ...ekle,
+  };
 }
 
 module.exports = { imzala, dogrula, leaseImzala, leaseDogrula, leaseGecerliMi, durumHesapla, DENEME_GUN };

@@ -12,7 +12,11 @@ let cache = null;
 
 function oku() {
   if (cache) return cache;
-  try { cache = { ...VARSAYILAN, ...JSON.parse(fs.readFileSync(yol(), "utf8")) }; } catch { cache = { ...VARSAYILAN }; }
+  try {
+    cache = { ...VARSAYILAN, ...JSON.parse(fs.readFileSync(yol(), "utf8")) };
+  } catch {
+    cache = { ...VARSAYILAN };
+  }
   return cache;
 }
 function yaz(parca) {
@@ -21,9 +25,20 @@ function yaz(parca) {
   fs.writeFileSync(yol(), JSON.stringify(cache, null, 2));
   return cache;
 }
-const ss = () => { try { return safeStorage?.isEncryptionAvailable?.() ? safeStorage : null; } catch { return null; } };
+const ss = () => {
+  try {
+    return safeStorage?.isEncryptionAvailable?.() ? safeStorage : null;
+  } catch {
+    return null;
+  }
+};
 function tokenYaz(token) {
-  if (!token) { try { fs.rmSync(tokenYolu(), { force: true }); } catch {} return; }
+  if (!token) {
+    try {
+      fs.rmSync(tokenYolu(), { force: true });
+    } catch {}
+    return;
+  }
   const s = ss();
   fs.writeFileSync(tokenYolu(), s ? s.encryptString(token) : Buffer.from(token, "utf8"), { mode: 0o600 });
 }
@@ -33,9 +48,14 @@ function tokenOku() {
     const buf = fs.readFileSync(tokenYolu());
     const s = ss();
     return s ? s.decryptString(buf) : buf.toString("utf8");
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
-const istemciMi = () => { const c = oku(); return c.mode === "istemci" && !!c.serverUrl; };
+const istemciMi = () => {
+  const c = oku();
+  return c.mode === "istemci" && !!c.serverUrl;
+};
 const sunucuMu = () => oku().mode === "sunucu";
 
 module.exports = { oku, yaz, tokenYaz, tokenOku, istemciMi, sunucuMu, VARSAYILAN };

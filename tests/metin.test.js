@@ -24,11 +24,20 @@ describe("araNormalize: Türkçe duyarsız arama", () => {
 
   it("esc: & < > \" ' kaçırılır (tek yer, tek tırnak dahil)", () => {
     expect(esc(`<b onclick='x("y")'>&`)).toBe("&lt;b onclick=&#39;x(&quot;y&quot;)&#39;&gt;&amp;");
-    expect(esc(null)).toBe(""); expect(esc(12)).toBe("12");
+    expect(esc(null)).toBe("");
+    expect(esc(12)).toBe("12");
   });
   it("guvenliLogo: yalnız base64 PNG/JPEG data URL geçer; öznitelik kaçışı/dış adres boşa düşer", () => {
     expect(guvenliLogo("data:image/png;base64,iVBORw0KGgo=")).toBe("data:image/png;base64,iVBORw0KGgo=");
     expect(guvenliLogo("data:image/jpeg;base64,/9j/4AAQ")).toBe("data:image/jpeg;base64,/9j/4AAQ");
-    for (const k of ['"><img src=http://x/', "http://x/logo.png", "data:text/html;base64,PHNjcmlwdD4=", "data:image/svg+xml;base64,PHN2Zz4=", "", null]) expect(guvenliLogo(k)).toBe("");
+    for (const k of [
+      '"><img src=http://x/',
+      "http://x/logo.png",
+      "data:text/html;base64,PHNjcmlwdD4=",
+      "data:image/svg+xml;base64,PHN2Zz4=",
+      "",
+      null,
+    ])
+      expect(guvenliLogo(k)).toBe("");
   });
 });

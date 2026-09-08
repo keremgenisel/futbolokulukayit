@@ -8,7 +8,10 @@ import { ToastSaglayici } from "../../src/components/ui.jsx";
 afterEach(cleanup);
 
 describe("Giriş ekranı: Parolamı unuttum", () => {
-  beforeEach(() => { localStorage.clear(); window.okul = { auth: { login: vi.fn(), kurtarmaSifirla: vi.fn() } }; });
+  beforeEach(() => {
+    localStorage.clear();
+    window.okul = { auth: { login: vi.fn(), kurtarmaSifirla: vi.fn() } };
+  });
 
   it("kurtarma koduyla parola sıfırlanır, girişe dönülür ve kullanıcı adı dolu gelir", async () => {
     window.okul.auth.kurtarmaSifirla.mockResolvedValue({ ok: true, kalan: 2 });
@@ -49,17 +52,40 @@ describe("Ayarlar > Kullanıcılar: silme ve kurtarma kodları", () => {
     window.okul = {
       db: vi.fn(async (fn, ...a) => {
         if (fn === "listUsers") return liste;
-        if (fn === "deleteUser") { liste = liste.filter((u) => u.id !== a[0]); return { ok: true }; }
-        if (fn === "getSetting") return ""; if (fn === "listFeeItems") return [];
+        if (fn === "deleteUser") {
+          liste = liste.filter((u) => u.id !== a[0]);
+          return { ok: true };
+        }
+        if (fn === "getSetting") return "";
+        if (fn === "listFeeItems") return [];
         return null;
       }),
-      auth: { kurtarmaUret: vi.fn(async (id) => { liste = liste.map((u) => (u.id === id ? { ...u, kurtarma_kodu: 8 } : u)); return { ok: true, kodlar: ["AAAA-1111", "BBBB-2222", "CCCC-3333", "DDDD-4444", "EEEE-5555", "FFFF-6666", "GGGG-7777", "HHHH-8888"] }; }) },
+      auth: {
+        kurtarmaUret: vi.fn(async (id) => {
+          liste = liste.map((u) => (u.id === id ? { ...u, kurtarma_kodu: 8 } : u));
+          return {
+            ok: true,
+            kodlar: ["AAAA-1111", "BBBB-2222", "CCCC-3333", "DDDD-4444", "EEEE-5555", "FFFF-6666", "GGGG-7777", "HHHH-8888"],
+          };
+        }),
+      },
       cikti: { yazdir: vi.fn(async () => ({ ok: true })) },
-      app: { version: async () => "0.1.0" }, lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) }, mod: { oku: async () => ({ mode: "yerel" }) },
+      app: { version: async () => "0.1.0" },
+      lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) },
+      mod: { oku: async () => ({ mode: "yerel" }) },
     };
-    render(<ToastSaglayici><Ayarlar oturum={oturum} saltOkunur={false} baslangicBolum="kullanici" /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <Ayarlar oturum={oturum} saltOkunur={false} baslangicBolum="kullanici" />
+      </ToastSaglayici>,
+    );
   };
-  beforeEach(() => { liste = [{ id: 1, username: "admin", ad_soyad: "Yönetici", role: "admin", is_active: 1, kurtarma_kodu: 0 }, { id: 2, username: "hoca", ad_soyad: "Hoca", role: "admin", is_active: 1, kurtarma_kodu: 0 }]; });
+  beforeEach(() => {
+    liste = [
+      { id: 1, username: "admin", ad_soyad: "Yönetici", role: "admin", is_active: 1, kurtarma_kodu: 0 },
+      { id: 2, username: "hoca", ad_soyad: "Hoca", role: "admin", is_active: 1, kurtarma_kodu: 0 },
+    ];
+  });
 
   it("yeni yönetici ilk admin'i silebilir; kendi satırında Sil yok", async () => {
     kur({ username: "hoca", role: "admin" });

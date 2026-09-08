@@ -12,15 +12,19 @@ async function istek(yol, govde) {
   const zaman = setTimeout(() => ctrl.abort(), 10000);
   try {
     const r = await fetch(AKTIVASYON_URL + yol, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify(govde), signal: ctrl.signal,
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(govde),
+      signal: ctrl.signal,
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok) return { error: j.error || `Aktivasyon sunucusu hatası (${r.status})` };
     return j; // { ok:true, lease }
   } catch {
     return { error: "Aktivasyon sunucusuna ulaşılamadı (internet/adres kontrol edin)" };
-  } finally { clearTimeout(zaman); }
+  } finally {
+    clearTimeout(zaman);
+  }
 }
 
 const aktive = (anahtar, makineId, surum) => istek("/aktivasyon", { anahtar, makineId, surum });

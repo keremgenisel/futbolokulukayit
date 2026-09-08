@@ -21,7 +21,8 @@ describe("takvim yardımcıları", () => {
     expect(s[1]).toMatchObject({ iso: "2026-09-01", gunAdi: "Sal", ay: "EYL", ayEtiketi: true });
     expect(s[2].ayEtiketi).toBe(false);
     expect(s[7]).toMatchObject({ iso: "2026-09-07", bugunMu: true, haftaSonu: false });
-    expect(s[5].haftaSonu).toBe(true); expect(s[6].haftaSonu).toBe(true);
+    expect(s[5].haftaSonu).toBe(true);
+    expect(s[6].haftaSonu).toBe(true);
   });
   it("varsayılan başlangıç bugünü ikinci haftaya koyar", () => {
     expect(varsayilanBaslangic("2026-09-10")).toBe("2026-08-31");
@@ -31,8 +32,14 @@ describe("takvim yardımcıları", () => {
     expect(uzunTarih("2026-09-08")).toBe("8 Eylül 2026 Salı");
   });
   it("gün noktaları: iptal kırmızı, işaretsiz gri, tamam yeşil, kısmen mor", () => {
-    expect(gunNoktalari([{ iptal: 1, oyuncu: 10, isaretli: 10 }, { iptal: 0, oyuncu: 10, isaretli: 0 }, { iptal: 0, oyuncu: 10, isaretli: 10 }, { iptal: 0, oyuncu: 10, isaretli: 3 }]))
-      .toEqual(["kirmizi", "gri", "yesil", "mor"]);
+    expect(
+      gunNoktalari([
+        { iptal: 1, oyuncu: 10, isaretli: 10 },
+        { iptal: 0, oyuncu: 10, isaretli: 0 },
+        { iptal: 0, oyuncu: 10, isaretli: 10 },
+        { iptal: 0, oyuncu: 10, isaretli: 3 },
+      ]),
+    ).toEqual(["kirmizi", "gri", "yesil", "mor"]);
     expect(gunNoktalari([])).toEqual([]);
   });
 });

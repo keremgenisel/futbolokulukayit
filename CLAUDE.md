@@ -22,6 +22,7 @@ npm run test:saf     # yalnız süreç içi testler (~19 sn) — refactor döng�
 npm run test:coverage # test:saf + kapsama raporu (coverage/); Electron alt süreç kodu (db.cjs, ipc/*) ölçülmez
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
 npm run lint         # ESLint 9 (hata sayısı 0 tutulur)
+npm run format       # Prettier (140 sütun, .prettierrc); format:check CI için. Biçimlendirme commit'i .git-blame-ignore-revs'te
 npm run typecheck    # tsc --noEmit (// @ts-check işaretli dosyalar)
 npm run scan:secrets # gitleaks
 npm run audit        # npm audit --audit-level=high

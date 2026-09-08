@@ -28,10 +28,11 @@ const probeFor = (m) => {
   return `try { const D = require(${req}); ${govde} process.exit(0); } catch (e) { console.error(e.message); process.exit(1); }`;
 };
 
-const check = (m) => spawnSync(electronBin, ["-e", probeFor(m)], {
-  env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
-  encoding: "utf-8",
-}).status === 0;
+const check = (m) =>
+  spawnSync(electronBin, ["-e", probeFor(m)], {
+    env: { ...process.env, ELECTRON_RUN_AS_NODE: "1" },
+    encoding: "utf-8",
+  }).status === 0;
 
 let onarilacak = MODULES.filter((m) => !check(m));
 if (onarilacak.length === 0) {
@@ -44,7 +45,9 @@ const args = ["electron-rebuild", "-f"];
 for (const m of onarilacak) args.push("-w", m.ad);
 const rebuild = spawnSync("npx", args, { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
 if (rebuild.status !== 0 || MODULES.some((m) => !check(m))) {
-  console.error("[ensure-native] Yeniden derleme başarısız — uygulama JSON moduna düşebilir. Elle: npx electron-rebuild -f -w better-sqlite3-multiple-ciphers -w better-sqlite3");
+  console.error(
+    "[ensure-native] Yeniden derleme başarısız — uygulama JSON moduna düşebilir. Elle: npx electron-rebuild -f -w better-sqlite3-multiple-ciphers -w better-sqlite3",
+  );
   process.exit(0); // dev'i engelleme, uygulama JSON fallback ile yine açılır
 }
 console.log("[ensure-native] Onarıldı.");

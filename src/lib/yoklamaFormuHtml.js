@@ -10,8 +10,10 @@ export const EK_BOS_SATIR = 3;
 /** @type {Record<string, string>} */
 const ETIKET = { deneme: "deneme", sakat: "sakat" };
 const KUTU_IC = {
-  geldi: '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1B1530" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>',
-  gelmedi: '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#1B1530" stroke-width="2.6" stroke-linecap="round"><path d="M2.5 2.5l9 9M11.5 2.5l-9 9"/></svg>',
+  geldi:
+    '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="#1B1530" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8.5l3.2 3L13 4.5"/></svg>',
+  gelmedi:
+    '<svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="#1B1530" stroke-width="2.6" stroke-linecap="round"><path d="M2.5 2.5l9 9M11.5 2.5l-9 9"/></svg>',
   izinli: '<span class="izin">İ</span>',
 };
 
@@ -19,7 +21,8 @@ const KUTU_IC = {
  * @param {"geldi"|"gelmedi"|"izinli"} sutun
  * @param {string|undefined} isaret oyuncunun programdaki durumu
  */
-const kutu = (sutun, isaret) => `<td class="k"><div class="kutu${isaret === sutun ? " dolu" : ""}">${isaret === sutun ? KUTU_IC[sutun] : ""}</div></td>`;
+const kutu = (sutun, isaret) =>
+  `<td class="k"><div class="kutu${isaret === sutun ? " dolu" : ""}">${isaret === sutun ? KUTU_IC[sutun] : ""}</div></td>`;
 
 /**
  * @param {{ grup: string, tarih: string, saat?: string, saha?: string, oyuncular: { ad_soyad: string, durum?: string, isaret?: string }[], logo?: string, kulup?: string }} p

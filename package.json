@@ -20,7 +20,9 @@
     "scan:secrets": "gitleaks git . --config .gitleaks.toml --redact --verbose",
     "audit": "npm audit --audit-level=high",
     "test:saf": "vitest run --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e}.test.js'",
-    "test:coverage": "vitest run --coverage --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e}.test.js'"
+    "test:coverage": "vitest run --coverage --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e}.test.js'",
+    "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"electron/**/*.cjs\" \"scripts/**/*.cjs\" \"tests/**/*.{js,jsx}\" \"aktivasyon-sunucu/src/*.js\"",
+    "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"electron/**/*.cjs\" \"scripts/**/*.cjs\" \"tests/**/*.{js,jsx}\" \"aktivasyon-sunucu/src/*.js\""
   },
   "dependencies": {
     "@fontsource/barlow-condensed": "^5.3.0",
@@ -60,6 +62,7 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "globals": "^17.7.0",
     "jsdom": "^29.1.1",
+    "prettier": "^3.9.6",
     "typescript": "^7.0.2",
     "vite": "^8.1.5",
     "vitest": "^4.1.10",

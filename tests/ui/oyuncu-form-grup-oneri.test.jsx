@@ -8,13 +8,24 @@ afterEach(cleanup);
 
 describe("Oyuncu formu: yaş grubu ipucu, kalabalık yılda alt gruplar", () => {
   beforeEach(() => {
-    window.okul = { db: vi.fn(async (fn) => {
-      if (fn === "aidatAyarlari") return { taban: 0, indirimler: {}, sezon: "2026-2027" };
-      throw new Error("beklenmeyen " + fn);
-    }) };
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "aidatAyarlari") return { taban: 0, indirimler: {}, sezon: "2026-2027" };
+        throw new Error("beklenmeyen " + fn);
+      }),
+    };
   });
-  const gruplar = [{ id: 1, ad: "U11 A", aktif: 1 }, { id: 2, ad: "U11 B", aktif: 1 }, { id: 3, ad: "U12", aktif: 1 }];
-  const kur = () => render(<ToastSaglayici><OyuncuForm gruplar={gruplar} onKaydedildi={vi.fn()} onKapat={vi.fn()} /></ToastSaglayici>);
+  const gruplar = [
+    { id: 1, ad: "U11 A", aktif: 1 },
+    { id: 2, ad: "U11 B", aktif: 1 },
+    { id: 3, ad: "U12", aktif: 1 },
+  ];
+  const kur = () =>
+    render(
+      <ToastSaglayici>
+        <OyuncuForm gruplar={gruplar} onKaydedildi={vi.fn()} onKapat={vi.fn()} />
+      </ToastSaglayici>,
+    );
 
   it("U11 yoksa 'U11 A seç' ve 'U11 B seç' bağlantıları çıkar; seçilen bağlantı kaybolur", async () => {
     kur();

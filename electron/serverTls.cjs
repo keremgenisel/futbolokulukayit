@@ -12,9 +12,15 @@ const crypto = require("crypto");
 const os = require("os");
 const selfsigned = require("selfsigned");
 
-function certPath(app)     { return path.join(app.getPath("userData"), "tls-cert.pem"); }
-function keyEncPath(app)   { return path.join(app.getPath("userData"), "tls-key.enc"); }
-function keyPlainPath(app) { return path.join(app.getPath("userData"), "tls-key.pem"); }
+function certPath(app) {
+  return path.join(app.getPath("userData"), "tls-cert.pem");
+}
+function keyEncPath(app) {
+  return path.join(app.getPath("userData"), "tls-key.enc");
+}
+function keyPlainPath(app) {
+  return path.join(app.getPath("userData"), "tls-key.pem");
+}
 
 // Sertifikanın SHA-256 parmak izi ("AB:CD:..."). TLS peer cert'in fingerprint256'sıyla
 // birebir aynı biçim — istemci pinning bu değeri karşılaştırır.
@@ -35,11 +41,7 @@ function localIps() {
 // selfsigned v5 generate() bir Promise döndürür → async.
 async function uret() {
   const attrs = [{ name: "commonName", value: "Eyüpspor Futbol Okulu Server" }];
-  const altNames = [
-    { type: 2, value: "localhost" },
-    { type: 7, ip: "127.0.0.1" },
-    ...localIps().map((ip) => ({ type: 7, ip })),
-  ];
+  const altNames = [{ type: 2, value: "localhost" }, { type: 7, ip: "127.0.0.1" }, ...localIps().map((ip) => ({ type: 7, ip }))];
   const pems = await selfsigned.generate(attrs, {
     keySize: 2048,
     days: 3650, // 10 yıl — pin fp bazlı olduğu için süre kritik değil
@@ -54,10 +56,16 @@ function anahtarKaydet(app, keyPem) {
     const { safeStorage } = require("electron");
     if (safeStorage?.isEncryptionAvailable?.()) {
       fs.writeFileSync(keyEncPath(app), safeStorage.encryptString(keyPem));
-      try { fs.rmSync(keyPlainPath(app), { force: true }); } catch { /* yoktu */ }
+      try {
+        fs.rmSync(keyPlainPath(app), { force: true });
+      } catch {
+        /* yoktu */
+      }
       return;
     }
-  } catch { /* safeStorage yok — düz dosyaya düş */ }
+  } catch {
+    /* safeStorage yok — düz dosyaya düş */
+  }
   fs.writeFileSync(keyPlainPath(app), keyPem, { mode: 0o600 });
 }
 
@@ -68,21 +76,37 @@ function anahtarYukle(app) {
     if (safeStorage?.isEncryptionAvailable?.() && fs.existsSync(p)) {
       return safeStorage.decryptString(fs.readFileSync(p));
     }
-  } catch { /* çözülemedi — düz dosyayı dene */ }
-  try { const p = keyPlainPath(app); if (fs.existsSync(p)) return fs.readFileSync(p, "utf-8"); } catch { /* yok */ }
+  } catch {
+    /* çözülemedi — düz dosyayı dene */
+  }
+  try {
+    const p = keyPlainPath(app);
+    if (fs.existsSync(p)) return fs.readFileSync(p, "utf-8");
+  } catch {
+    /* yok */
+  }
   return null;
 }
 
 // Var olan sertifikayı yükle; yoksa üret ve sakla. { key, cert, fp } döndürür (async).
 async function sertifikaUretVeyaYukle(app) {
   let cert = null;
-  try { if (fs.existsSync(certPath(app))) cert = fs.readFileSync(certPath(app), "utf-8"); } catch { /* bozuk → yeniden üret */ }
+  try {
+    if (fs.existsSync(certPath(app))) cert = fs.readFileSync(certPath(app), "utf-8");
+  } catch {
+    /* bozuk → yeniden üret */
+  }
   let key = anahtarYukle(app);
   if (!cert || !key) {
     const g = await uret();
-    cert = g.cert; key = g.key;
-    try { fs.writeFileSync(certPath(app), cert); anahtarKaydet(app, key); }
-    catch (e) { console.error("[tls] sertifika kaydedilemedi:", e.message); }
+    cert = g.cert;
+    key = g.key;
+    try {
+      fs.writeFileSync(certPath(app), cert);
+      anahtarKaydet(app, key);
+    } catch (e) {
+      console.error("[tls] sertifika kaydedilemedi:", e.message);
+    }
   }
   return { key, cert, fp: fingerprintOf(cert) };
 }
@@ -90,7 +114,11 @@ async function sertifikaUretVeyaYukle(app) {
 // Sertifikayı sil ve yeniden üret (parmak izi değişir; istemciler yeniden güven ister).
 async function yenile(app) {
   for (const p of [certPath(app), keyEncPath(app), keyPlainPath(app)]) {
-    try { fs.rmSync(p, { force: true }); } catch { /* yoktu */ }
+    try {
+      fs.rmSync(p, { force: true });
+    } catch {
+      /* yoktu */
+    }
   }
   return sertifikaUretVeyaYukle(app);
 }

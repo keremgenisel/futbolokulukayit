@@ -46,9 +46,13 @@ export function gunSeridi(baslangic, adet, bugun) {
     const d = parcala(iso);
     const hg = haftaGunu(iso);
     out.push({
-      iso, gunAdi: GUN_KISA[hg], gun: d.getDate(), ay: AY_KISA[d.getMonth()],
+      iso,
+      gunAdi: GUN_KISA[hg],
+      gun: d.getDate(),
+      ay: AY_KISA[d.getMonth()],
       ayEtiketi: i === 0 || d.getDate() === 1, // şeridin ilk hücresi ve her ay başı ay adını taşır
-      bugunMu: iso === bugun, haftaSonu: hg >= 5,
+      bugunMu: iso === bugun,
+      haftaSonu: hg >= 5,
     });
   }
   return out;

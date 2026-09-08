@@ -28,22 +28,33 @@ async function htmlPencere(html) {
   return w;
 }
 
-
 async function htmlToPdf(html, opts = {}) {
   const w = await htmlPencere(html);
   try {
-    return await w.webContents.printToPDF({ pageSize: "A4", printBackground: true, margins: { marginType: "none" }, landscape: !!opts.yatay });
-  } finally { w.close(); }
+    return await w.webContents.printToPDF({
+      pageSize: "A4",
+      printBackground: true,
+      margins: { marginType: "none" },
+      landscape: !!opts.yatay,
+    });
+  } finally {
+    w.close();
+  }
 }
 
 function registerCiktiHandlers(getSession) {
-  const yetki = () => { if (!getSession()) throw new Error("Oturum gerekli"); };
+  const yetki = () => {
+    if (!getSession()) throw new Error("Oturum gerekli");
+  };
 
   ipcMain.handle("cikti:yazdir", async (_e, html) => {
     yetki();
     const w = await htmlPencere(html);
     return new Promise((resolve) => {
-      w.webContents.print({ silent: false, printBackground: true }, (ok, hata) => { w.close(); resolve({ ok, hata }); });
+      w.webContents.print({ silent: false, printBackground: true }, (ok, hata) => {
+        w.close();
+        resolve({ ok, hata });
+      });
     });
   });
 
@@ -52,7 +63,11 @@ function registerCiktiHandlers(getSession) {
     yetki();
     if (config.istemciMi()) {
       const pdf = await htmlToPdf(html);
-      return istemci.istek("/api/cikti/makbuzPdf", { method: "POST", timeoutMs: 120000, body: { receiptId: Number(receiptId), pdfBase64: pdf.toString("base64") } });
+      return istemci.istek("/api/cikti/makbuzPdf", {
+        method: "POST",
+        timeoutMs: 120000,
+        body: { receiptId: Number(receiptId), pdfBase64: pdf.toString("base64") },
+      });
     }
     const r = db.getReceipt(Number(receiptId));
     const izin = makbuzPdfIzni(getSession(), r, db.lisansSaltOkunurMu());
@@ -68,7 +83,10 @@ function registerCiktiHandlers(getSession) {
   // Yazıcı yokken yedek yol: HTML'i geçici PDF yapıp sistem görüntüleyicisinde açar (oradan yazdırılır).
   ipcMain.handle("cikti:pdfAc", async (_e, html, ad, yatay) => {
     yetki();
-    const dosya = String(ad || "cikti").replace(/[^\w.-]+/g, "_").replace(/\.pdf$/i, "") + ".pdf";
+    const dosya =
+      String(ad || "cikti")
+        .replace(/[^\w.-]+/g, "_")
+        .replace(/\.pdf$/i, "") + ".pdf";
     const yol = path.join(app.getPath("temp"), "eyupspor-" + Date.now() + "-" + dosya);
     fs.writeFileSync(yol, await htmlToPdf(html, { yatay }));
     const hata = await shell.openPath(yol);
@@ -90,7 +108,10 @@ function registerCiktiHandlers(getSession) {
   ipcMain.handle("cikti:excelKaydet", async (e, veri, oneriAd) => {
     yetki();
     const win = BrowserWindow.fromWebContents(e.sender);
-    const r = await dialog.showSaveDialog(win, { defaultPath: oneriAd || "rapor.xlsx", filters: [{ name: "Excel", extensions: ["xlsx"] }] });
+    const r = await dialog.showSaveDialog(win, {
+      defaultPath: oneriAd || "rapor.xlsx",
+      filters: [{ name: "Excel", extensions: ["xlsx"] }],
+    });
     if (r.canceled || !r.filePath) return { iptal: true };
     const wb = new ExcelJS.Workbook();
     wb.creator = "Eyüpspor Futbol Okulu";

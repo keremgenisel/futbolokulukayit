@@ -65,7 +65,12 @@ contextBridge.exposeInMainWorld("okul", {
     download: () => ipcRenderer.invoke("updater:download"),
     install: () => ipcRenderer.invoke("updater:install"),
     // Olaylar: geri çağrı döndürür; bileşen unmount'ta çağırıp dinlemeyi bırakır
-    on: (olay, cb) => { const kanal = "updater:" + olay; const h = (_e, v) => cb(v); ipcRenderer.on(kanal, h); return () => ipcRenderer.removeListener(kanal, h); },
+    on: (olay, cb) => {
+      const kanal = "updater:" + olay;
+      const h = (_e, v) => cb(v);
+      ipcRenderer.on(kanal, h);
+      return () => ipcRenderer.removeListener(kanal, h);
+    },
   },
   app: {
     version: () => ipcRenderer.invoke("app:version"),

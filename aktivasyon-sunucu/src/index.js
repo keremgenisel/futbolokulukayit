@@ -8,8 +8,17 @@
 // Secrets: LISANS_PUBLIC_PEM (pub1), LEASE_PRIVATE_PEM (priv2), ADMIN_TOKEN. Var: LEASE_GUN (vars.).
 import { acikAnahtarYukle, ozelAnahtarYukle, lisansDogrula, leaseImzala, sha256hex } from "./kripto.js";
 import {
-  bugun, tariheGunEkle, enKucukTarih,
-  lisansBul, lisansUpsert, kurulumBul, aktifKurulumSay, kurulumEkle, kurulumDokun, kurulumlariListele, tumLisanslar,
+  bugun,
+  tariheGunEkle,
+  enKucukTarih,
+  lisansBul,
+  lisansUpsert,
+  kurulumBul,
+  aktifKurulumSay,
+  kurulumEkle,
+  kurulumDokun,
+  kurulumlariListele,
+  tumLisanslar,
 } from "./db.js";
 
 const json = (obj, status = 200) =>
@@ -72,8 +81,12 @@ async function adminLisans(request, env) {
   const d = await lisansDogrula(anahtar || "", pub);
   if (!d.gecerli) return json({ error: "anahtar geçersiz" }, 400);
   await lisansUpsert(env, {
-    anahtarHash: await sha256hex(anahtar), firma: d.payload.firma, bitis: d.payload.bitis,
-    maksKullanici: d.payload.maksKullanici, maksKurulum: maksKurulum ?? null, iptal: iptal ? 1 : 0,
+    anahtarHash: await sha256hex(anahtar),
+    firma: d.payload.firma,
+    bitis: d.payload.bitis,
+    maksKullanici: d.payload.maksKullanici,
+    maksKurulum: maksKurulum ?? null,
+    iptal: iptal ? 1 : 0,
   });
   return json({ ok: true });
 }
@@ -91,23 +104,34 @@ async function adminListe(request, env) {
   const lisans = await lisansBul(env, await sha256hex(anahtar));
   if (!lisans) return json({ error: "lisans kayıtlı değil" }, 404);
   const k = await kurulumlariListele(env, lisans.id);
-  return json({ ok: true, lisans: { firma: lisans.firma, bitis: lisans.bitis, maksKurulum: lisans.maksKurulum, iptal: !!lisans.iptal }, kurulumlar: k.results || [] });
+  return json({
+    ok: true,
+    lisans: { firma: lisans.firma, bitis: lisans.bitis, maksKurulum: lisans.maksKurulum, iptal: !!lisans.iptal },
+    kurulumlar: k.results || [],
+  });
 }
 
 // İnceleme #25: admin token sabit zamanlı karşılaştırma; /aktivasyon ve /yenile için IP başına basit hız sınırı
 // (isolate belleğinde; tam koruma için Cloudflare "Rate limiting rules" de eklenmeli — plan §8.1).
 function tokenEsit(a, b) {
-  const x = new TextEncoder().encode(String(a || "")), y = new TextEncoder().encode(String(b || ""));
+  const x = new TextEncoder().encode(String(a || "")),
+    y = new TextEncoder().encode(String(b || ""));
   if (x.length !== y.length) return false;
-  let fark = 0; for (let i = 0; i < x.length; i++) fark |= x[i] ^ y[i];
+  let fark = 0;
+  for (let i = 0; i < x.length; i++) fark |= x[i] ^ y[i];
   return fark === 0;
 }
 const hizSayac = new Map(); // ip → { n, t }
-const HIZ_MAX = 30, HIZ_PENCERE = 60 * 1000;
+const HIZ_MAX = 30,
+  HIZ_PENCERE = 60 * 1000;
 function hizAsildi(ip, now = Date.now()) {
   const r = hizSayac.get(ip);
-  if (!r || now - r.t > HIZ_PENCERE) { hizSayac.set(ip, { n: 1, t: now }); return false; }
-  r.n += 1; return r.n > HIZ_MAX;
+  if (!r || now - r.t > HIZ_PENCERE) {
+    hizSayac.set(ip, { n: 1, t: now });
+    return false;
+  }
+  r.n += 1;
+  return r.n > HIZ_MAX;
 }
 export { tokenEsit, hizAsildi };
 
@@ -116,7 +140,8 @@ export default {
     const yol = new URL(request.url).pathname;
     const m = request.method;
     try {
-      if (m === "POST" && (yol === "/aktivasyon" || yol === "/yenile") && hizAsildi(request.headers.get("cf-connecting-ip") || "?")) return json({ error: "çok fazla istek" }, 429);
+      if (m === "POST" && (yol === "/aktivasyon" || yol === "/yenile") && hizAsildi(request.headers.get("cf-connecting-ip") || "?"))
+        return json({ error: "çok fazla istek" }, 429);
       if (m === "GET" && yol === "/saglik") return json({ ok: true });
       if (m === "POST" && yol === "/aktivasyon") return await aktivasyon(request, env);
       if (m === "POST" && yol === "/yenile") return await yenile(request, env);

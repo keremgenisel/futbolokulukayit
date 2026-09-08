@@ -11,6 +11,12 @@ export default defineConfig({
     fileParallelism: false,
     // Kapsama: yalnız süreç içi (saf + jsdom) testler ölçülür; Electron alt süreçlerinde koşan kod (db.cjs vb.)
     // buraya yansımaz. Bkz. docs/refactor-plan.md.
-    coverage: { provider: "v8", include: ["src/**/*.{js,jsx}", "electron/**/*.cjs"], exclude: ["src/main.jsx"], reporter: ["text-summary", "text", "html"], reportsDirectory: "coverage" },
+    coverage: {
+      provider: "v8",
+      include: ["src/**/*.{js,jsx}", "electron/**/*.cjs"],
+      exclude: ["src/main.jsx"],
+      reporter: ["text-summary", "text", "html"],
+      reportsDirectory: "coverage",
+    },
   },
 });

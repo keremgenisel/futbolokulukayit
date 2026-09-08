@@ -19,7 +19,9 @@ try {
   autoUpdater = require("electron-updater").autoUpdater;
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
-} catch { /* geliştirme modu */ }
+} catch {
+  /* geliştirme modu */
+}
 
 app.commandLine.appendSwitch("lang", "tr");
 
@@ -27,8 +29,12 @@ let mainWin = null;
 
 function createWindow() {
   mainWin = new BrowserWindow({
-    width: 1440, height: 900, minWidth: 1100, minHeight: 700,
-    show: false, autoHideMenuBar: true,
+    width: 1440,
+    height: 900,
+    minWidth: 1100,
+    minHeight: 700,
+    show: false,
+    autoHideMenuBar: true,
     title: "Eyüpspor Futbol Okulu",
     backgroundColor: "#F6F4FA",
     icon: path.join(__dirname, "../build/icon.png"),
@@ -45,16 +51,26 @@ function createWindow() {
   // başka file:// adresleri dahil her şey engellenir. Yeni pencere yok.
   const devUrl = process.env.VITE_DEV_SERVER_URL;
   const kendiSayfasi = pathToFileURL(path.join(__dirname, "../dist/index.html")).href;
-  const izinliMi = (url) => url === kendiSayfasi || url.startsWith(kendiSayfasi + "#") || url.startsWith(kendiSayfasi + "?") || (!!devUrl && url.startsWith(devUrl));
-  mainWin.webContents.on("will-navigate", (e, url) => { if (!izinliMi(url)) e.preventDefault(); });
-  mainWin.webContents.on("will-redirect", (e, url) => { if (!izinliMi(url)) e.preventDefault(); });
+  const izinliMi = (url) =>
+    url === kendiSayfasi ||
+    url.startsWith(kendiSayfasi + "#") ||
+    url.startsWith(kendiSayfasi + "?") ||
+    (!!devUrl && url.startsWith(devUrl));
+  mainWin.webContents.on("will-navigate", (e, url) => {
+    if (!izinliMi(url)) e.preventDefault();
+  });
+  mainWin.webContents.on("will-redirect", (e, url) => {
+    if (!izinliMi(url)) e.preventDefault();
+  });
   mainWin.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
 
   if (process.env.VITE_DEV_SERVER_URL) mainWin.loadURL(process.env.VITE_DEV_SERVER_URL);
   else mainWin.loadFile(path.join(__dirname, "../dist/index.html"));
 
   mainWin.once("ready-to-show", () => mainWin.show());
-  mainWin.on("closed", () => { mainWin = null; });
+  mainWin.on("closed", () => {
+    mainWin = null;
+  });
 }
 
 // Tek örnek: ikinci kez açılırsa mevcut pencereyi öne getir.
@@ -62,7 +78,10 @@ if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    if (mainWin) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus(); }
+    if (mainWin) {
+      if (mainWin.isMinimized()) mainWin.restore();
+      mainWin.focus();
+    }
   });
 
   app.whenReady().then(() => {
@@ -74,7 +93,14 @@ if (!app.requestSingleInstanceLock()) {
     db.init();
     // Bu ayın aidat kayıtlarını aç: açılışta, sonra saatte bir ve pencere öne gelince (uygulama ay sonunda
     // açık kalırsa yeni ayın borçları yeniden başlatma beklemeden görünsün). INSERT OR IGNORE → tekrar güvenli.
-    const aidatKontrol = () => { try { const t = new Date(); db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1); } catch (e) { console.error("[aidat]", e.message); } };
+    const aidatKontrol = () => {
+      try {
+        const t = new Date();
+        db.ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1);
+      } catch (e) {
+        console.error("[aidat]", e.message);
+      }
+    };
     aidatKontrol();
     setInterval(aidatKontrol, 60 * 60 * 1000).unref?.();
     app.on("browser-window-focus", aidatKontrol);
@@ -96,12 +122,21 @@ if (!app.requestSingleInstanceLock()) {
       if (n && !/^90\d{10}$/.test(n)) return { error: "Geçersiz WhatsApp numarası" };
       // n boş → WhatsApp "sohbet seç" ekranı (veli grubuna tek mesaj); dolu → o kişiye
       const url = `https://wa.me/${n}?text=${encodeURIComponent(String(metin || "").slice(0, 4000))}`;
-      try { await shell.openExternal(url); return { ok: true }; } catch (e) { return { error: "WhatsApp açılamadı: " + e.message }; }
+      try {
+        await shell.openExternal(url);
+        return { ok: true };
+      } catch (e) {
+        return { error: "WhatsApp açılamadı: " + e.message };
+      }
     });
     let logoCache = null;
     ipcMain.handle("app:logo", () => {
       if (!logoCache) {
-        try { logoCache = "data:image/png;base64," + fs.readFileSync(path.join(__dirname, "../build/icon.png")).toString("base64"); } catch { logoCache = ""; }
+        try {
+          logoCache = "data:image/png;base64," + fs.readFileSync(path.join(__dirname, "../build/icon.png")).toString("base64");
+        } catch {
+          logoCache = "";
+        }
       }
       return logoCache;
     });
@@ -109,7 +144,8 @@ if (!app.requestSingleInstanceLock()) {
     createWindow();
 
     // Sunucu modunda gömülü HTTPS sunucusunu aç (istemci PC'ler bağlanabilsin).
-    if (config.sunucuMu()) server.baslat({ port: config.oku().port, surum: app.getVersion() }).catch((e) => console.error("[server] başlatılamadı:", e.message));
+    if (config.sunucuMu())
+      server.baslat({ port: config.oku().port, surum: app.getVersion() }).catch((e) => console.error("[server] başlatılamadı:", e.message));
 
     if (autoUpdater && app.isPackaged) {
       autoUpdater.checkForUpdates().catch(() => {});

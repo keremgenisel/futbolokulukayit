@@ -15,7 +15,10 @@ fs.mkdirSync(dizin, { recursive: true });
 // yalnız kısa ömürlü lease basılmasını sağlar; kalıcı lisans üretilemez.
 function ciftUret(dosya, gomulecek) {
   const yol = path.join(dizin, dosya);
-  if (fs.existsSync(yol)) { console.error(`Zaten var: ${yol} — üzerine yazılmadı (yenileme tüm eski anahtarları geçersiz kılar).`); return null; }
+  if (fs.existsSync(yol)) {
+    console.error(`Zaten var: ${yol} — üzerine yazılmadı (yenileme tüm eski anahtarları geçersiz kılar).`);
+    return null;
+  }
   const { publicKey, privateKey } = crypto.generateKeyPairSync("ed25519");
   fs.writeFileSync(yol, privateKey.export({ type: "pkcs8", format: "pem" }), { mode: 0o600 });
   console.log(`\nÖzel anahtar yazıldı: ${yol} (güvenli bir yere YEDEKLEYİN)`);

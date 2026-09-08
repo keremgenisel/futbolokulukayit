@@ -7,11 +7,35 @@ afterEach(cleanup);
 
 describe("Hızlı arama (Ctrl+K)", () => {
   it("yazınca arar, ok tuşlarıyla seçer, Enter kartı açar, Makbuz düğmesi tahsilata götürür, Esc kapatır", async () => {
-    window.okul = { db: vi.fn(async (fn, a) => (fn === "listPlayersWithDue" && a.q ? [
-      { id: 1, ad_soyad: "Kerem Yılmaz", uyruk: "tc", tc_no: "10000000001", yas_grubu_ad: "U12", durum: "aktif", aidat_durum: "odendi" },
-      { id: 2, ad_soyad: "Kaan Yıldız", uyruk: "tc", tc_no: "10000000002", yas_grubu_ad: "U11", durum: "aktif", aidat_durum: "odenmedi" },
-    ] : [])) };
-    const onKapat = vi.fn(), onOyuncu = vi.fn(), onMakbuz = vi.fn();
+    window.okul = {
+      db: vi.fn(async (fn, a) =>
+        fn === "listPlayersWithDue" && a.q
+          ? [
+              {
+                id: 1,
+                ad_soyad: "Kerem Yılmaz",
+                uyruk: "tc",
+                tc_no: "10000000001",
+                yas_grubu_ad: "U12",
+                durum: "aktif",
+                aidat_durum: "odendi",
+              },
+              {
+                id: 2,
+                ad_soyad: "Kaan Yıldız",
+                uyruk: "tc",
+                tc_no: "10000000002",
+                yas_grubu_ad: "U11",
+                durum: "aktif",
+                aidat_durum: "odenmedi",
+              },
+            ]
+          : [],
+      ),
+    };
+    const onKapat = vi.fn(),
+      onOyuncu = vi.fn(),
+      onMakbuz = vi.fn();
     render(<HizliArama acik onKapat={onKapat} onOyuncu={onOyuncu} onMakbuz={onMakbuz} />);
     const g = screen.getByLabelText("Oyuncu ara");
     fireEvent.change(g, { target: { value: "K" } });

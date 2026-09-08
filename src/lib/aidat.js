@@ -7,13 +7,20 @@ export const AIDAT_ODENEN_DURUMLAR = new Set(["aktif", "deneme", "sakat"]);
 export const MUAF_UCRET_TIPLERI = new Set(["ucretsiz"]);
 
 export const DURUMLAR = [
-  { kod: "aktif", ad: "Aktif" }, { kod: "deneme", ad: "Deneme" }, { kod: "pasif", ad: "Pasif" },
-  { kod: "ayrildi", ad: "Ayrıldı" }, { kod: "sakat", ad: "Sakat" }, { kod: "dondurma", ad: "Dondurma" },
+  { kod: "aktif", ad: "Aktif" },
+  { kod: "deneme", ad: "Deneme" },
+  { kod: "pasif", ad: "Pasif" },
+  { kod: "ayrildi", ad: "Ayrıldı" },
+  { kod: "sakat", ad: "Sakat" },
+  { kod: "dondurma", ad: "Dondurma" },
 ];
 /** Varsayılan ücret tipleri (tohum). Asıl liste veritabanında `fee_types`; arayüz `useUcretTipleri()` ile alır. */
 export const UCRET_TIPLERI = [
-  { kod: "normal", ad: "Normal" }, { kod: "burslu", ad: "Burslu" }, { kod: "indirimli", ad: "İndirimli" },
-  { kod: "kardes", ad: "Kardeş İndirimi" }, { kod: "ucretsiz", ad: "Ücretsiz" },
+  { kod: "normal", ad: "Normal" },
+  { kod: "burslu", ad: "Burslu" },
+  { kod: "indirimli", ad: "İndirimli" },
+  { kod: "kardes", ad: "Kardeş İndirimi" },
+  { kod: "ucretsiz", ad: "Ücretsiz" },
 ];
 /** Ücret tipi başına varsayılan indirim yüzdesi (Ayarlar > Aidat Kalemleri'nden değiştirilir). */
 /** @type {Record<string, number>} */
@@ -47,8 +54,10 @@ export function aidatHesapla(taban, ucretTipi, indirimler = {}) {
 }
 
 export const ODEME_YONTEMLERI = [
-  { kod: "nakit", ad: "Nakit" }, { kod: "havale", ad: "Havale / EFT" },
-  { kod: "kredi_karti", ad: "Kredi Kartı" }, { kod: "online", ad: "Online Ödeme" },
+  { kod: "nakit", ad: "Nakit" },
+  { kod: "havale", ad: "Havale / EFT" },
+  { kod: "kredi_karti", ad: "Kredi Kartı" },
+  { kod: "online", ad: "Online Ödeme" },
 ];
 export const ODEME_DONEMLERI = ["1-10", "11-20", "21-31"];
 
@@ -71,7 +80,8 @@ export function aidatBaslangicDurumu(oyuncu) {
  */
 export function aidatDurumHesapla(tutar, odenen, mevcut = "odenmedi") {
   if (mevcut === "muaf") return "muaf";
-  const t = Number(tutar) || 0, o = Number(odenen) || 0;
+  const t = Number(tutar) || 0,
+    o = Number(odenen) || 0;
   if (o <= 0) return "odenmedi";
   return o >= t ? "odendi" : "kismi";
 }
@@ -137,14 +147,23 @@ export function tarihTR(iso) {
   return d && m && y ? `${d}.${m}.${y}` : String(iso);
 }
 
-export const AY_ADLARI = ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"];
+export const AY_ADLARI = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 
 // ── Kimlik: TC vatandaşı → TC kimlik no; yabancı uyruklu → pasaport no ──
-export const UYRUKLAR = [{ kod: "tc", ad: "T.C. vatandaşı" }, { kod: "yabanci", ad: "Yabancı uyruklu" }];
+export const UYRUKLAR = [
+  { kod: "tc", ad: "T.C. vatandaşı" },
+  { kod: "yabanci", ad: "Yabancı uyruklu" },
+];
 /** Pasaport no: 5-15 harf/rakam, büyük harfe çevrilmiş. @param {string} p */
-export function pasaportGecerliMi(p) { return /^[A-Z0-9]{5,15}$/.test(String(p || "").toLocaleUpperCase("tr-TR")); }
+export function pasaportGecerliMi(p) {
+  return /^[A-Z0-9]{5,15}$/.test(String(p || "").toLocaleUpperCase("tr-TR"));
+}
 /** @param {string} p */
-export const pasaportNormalize = (p) => String(p || "").trim().toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
+export const pasaportNormalize = (p) =>
+  String(p || "")
+    .trim()
+    .toLocaleUpperCase("tr-TR")
+    .replace(/\s+/g, "");
 /**
  * Listelerde/kartta gösterilecek kimlik satırı.
  * @param {{ uyruk?: string, tc_no?: string|null, pasaport_no?: string|null }} o
@@ -163,7 +182,10 @@ export function kimlikKisa(o) {
 
 // ── Para girişi: "5000" ↔ "5.000" (tam lira; binlik ayırıcı nokta) ──
 /** Metindeki rakamları bırakır ("5.000 ₺" → "5000"). @param {unknown} metin */
-export const sayiAyikla = (metin) => String(metin ?? "").replace(/\D/g, "").replace(/^0+(?=\d)/, "");
+export const sayiAyikla = (metin) =>
+  String(metin ?? "")
+    .replace(/\D/g, "")
+    .replace(/^0+(?=\d)/, "");
 /** Rakam dizisini binlik noktayla biçimler ("5000" → "5.000"; boş → ""). @param {unknown} deger */
 export function sayiBicimle(deger) {
   const r = sayiAyikla(deger);
@@ -176,8 +198,9 @@ export function tcGecerliMi(tc) {
   const t = String(tc ?? "").trim();
   if (!/^[1-9]\d{10}$/.test(t)) return false;
   const d = t.split("").map(Number);
-  const tek = d[0] + d[2] + d[4] + d[6] + d[8], cift = d[1] + d[3] + d[5] + d[7];
-  if (d[9] !== ((tek * 7 - cift) % 10 + 10) % 10) return false;
+  const tek = d[0] + d[2] + d[4] + d[6] + d[8],
+    cift = d[1] + d[3] + d[5] + d[7];
+  if (d[9] !== (((tek * 7 - cift) % 10) + 10) % 10) return false;
   return d[10] === d.slice(0, 10).reduce((a, b) => a + b, 0) % 10;
 }
 /** GSM'i 05xxxxxxxxx biçimine indirger (boşluk, +90, 90 önekleri temizlenir). @param {unknown} v */
@@ -198,7 +221,8 @@ export const gsmGecerliMi = (v) => /^05\d{9}$/.test(gsmNormalize(v));
  * @returns {{ ad: string, id: number|null, adaylar: {id:number, ad:string}[] } | null}
  */
 export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
-  const yil = Number(String(dogumIso || "").slice(0, 4)); const bitis = Number(String(sezon || "").slice(5, 9));
+  const yil = Number(String(dogumIso || "").slice(0, 4));
+  const bitis = Number(String(sezon || "").slice(5, 9));
   if (!yil || !bitis || bitis <= yil) return null;
   const n = bitis - yil;
   if (n < 5 || n > 20) return null;

@@ -5,7 +5,8 @@ export const VARSAYILAN_SEZON_AYI = 9;
 
 /** Verilen tarihin içinde bulunduğu sezon. @param {string} iso yyyy-mm-dd @param {number} baslangicAyi 1-12 */
 export function guncelSezon(iso, baslangicAyi = VARSAYILAN_SEZON_AYI) {
-  const yil = Number(iso.slice(0, 4)), ay = Number(iso.slice(5, 7));
+  const yil = Number(iso.slice(0, 4)),
+    ay = Number(iso.slice(5, 7));
   const bas = ay >= baslangicAyi ? yil : yil - 1;
   return `${bas}-${bas + 1}`;
 }
@@ -19,7 +20,10 @@ export function sonrakiSezon(sezon) {
 }
 
 /** @param {string} sezon */
-export const sezonGecerliMi = (sezon) => { const m = /^(\d{4})-(\d{4})$/.exec(String(sezon || "")); return !!m && Number(m[2]) === Number(m[1]) + 1; };
+export const sezonGecerliMi = (sezon) => {
+  const m = /^(\d{4})-(\d{4})$/.exec(String(sezon || ""));
+  return !!m && Number(m[2]) === Number(m[1]) + 1;
+};
 
 /**
  * Sezon sonu geldi mi? Kayıtlı aktif sezon, bugünün sezonundan eskiyse evet (yeni sezon başladı, geçiş yapılmadı).

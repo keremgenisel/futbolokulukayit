@@ -5,9 +5,23 @@ import { TakvimSeridi } from "../../src/components/TakvimSeridi.jsx";
 
 afterEach(cleanup);
 const kur = (ek = {}) => {
-  const p = { secili: "2026-09-08", bugun: "2026-09-07", baslangic: "2026-08-31", onSec: vi.fn(), onBaslangic: vi.fn(),
-    gunOzetleri: { "2026-09-02": [{ iptal: 0, oyuncu: 10, isaretli: 10 }, { iptal: 1, oyuncu: 10, isaretli: 0 }], "2026-09-08": [{ iptal: 0, oyuncu: 12, isaretli: 0 }] }, ...ek };
-  render(<TakvimSeridi {...p} />); return p;
+  const p = {
+    secili: "2026-09-08",
+    bugun: "2026-09-07",
+    baslangic: "2026-08-31",
+    onSec: vi.fn(),
+    onBaslangic: vi.fn(),
+    gunOzetleri: {
+      "2026-09-02": [
+        { iptal: 0, oyuncu: 10, isaretli: 10 },
+        { iptal: 1, oyuncu: 10, isaretli: 0 },
+      ],
+      "2026-09-08": [{ iptal: 0, oyuncu: 12, isaretli: 0 }],
+    },
+    ...ek,
+  };
+  render(<TakvimSeridi {...p} />);
+  return p;
 };
 
 describe("Takvim şeridi", () => {
@@ -15,10 +29,13 @@ describe("Takvim şeridi", () => {
     kur();
     const gunler = document.querySelectorAll("button[data-iso]");
     expect(gunler).toHaveLength(14);
-    expect(gunler[0].dataset.iso).toBe("2026-08-31"); expect(gunler[13].dataset.iso).toBe("2026-09-13");
+    expect(gunler[0].dataset.iso).toBe("2026-08-31");
+    expect(gunler[13].dataset.iso).toBe("2026-09-13");
     expect(screen.getByRole("button", { name: /^8 EYL · 1 antrenman/ })).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("button", { name: /7 EYL \(bugün\)/ })).toBeInTheDocument();
-    expect(gunler[0].textContent).toContain("AĞU"); expect(gunler[1].textContent).toContain("EYL"); expect(gunler[2].textContent).not.toContain("EYL");
+    expect(gunler[0].textContent).toContain("AĞU");
+    expect(gunler[1].textContent).toContain("EYL");
+    expect(gunler[2].textContent).not.toContain("EYL");
   });
   it("noktalar antrenman durumunu gösterir", () => {
     kur();
@@ -43,9 +60,12 @@ describe("Takvim şeridi", () => {
   it("klavye: ← → gün değiştirir, Home bugüne döner", () => {
     const p = kur();
     const serit = screen.getByLabelText("Gün şeridi");
-    fireEvent.keyDown(serit, { key: "ArrowRight" }); expect(p.onSec).toHaveBeenCalledWith("2026-09-09");
-    fireEvent.keyDown(serit, { key: "ArrowLeft" }); expect(p.onSec).toHaveBeenCalledWith("2026-09-07");
-    fireEvent.keyDown(serit, { key: "Home" }); expect(p.onBaslangic).toHaveBeenCalledWith("2026-08-31");
+    fireEvent.keyDown(serit, { key: "ArrowRight" });
+    expect(p.onSec).toHaveBeenCalledWith("2026-09-09");
+    fireEvent.keyDown(serit, { key: "ArrowLeft" });
+    expect(p.onSec).toHaveBeenCalledWith("2026-09-07");
+    fireEvent.keyDown(serit, { key: "Home" });
+    expect(p.onBaslangic).toHaveBeenCalledWith("2026-08-31");
   });
   it("seçili gün şeridin dışına çıkınca şerit onu içerecek şekilde kayar", () => {
     const p = kur({ secili: "2026-10-20" });

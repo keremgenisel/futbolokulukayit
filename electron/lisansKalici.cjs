@@ -7,11 +7,18 @@
 //   sonGorulen    = GÖRÜLEN EN İLERİ tarih (monotonik saat işareti; geri alma tespiti durumHesapla'da).
 //   makineId      = ilk üretildiğinde sabit kalır; kaynaklardan biri taşıyorsa yenisi üretilmez.
 // dosya / meta biçimi: { makineId?, kurulumTarihi?, sonGorulen? } (her alan null olabilir).
-function enErken(a, b) { const v = [a, b].filter(Boolean); return v.length ? v.sort()[0] : null; }
-function enIleri(a, b) { const v = [a, b].filter(Boolean); return v.length ? v.sort().slice(-1)[0] : null; }
+function enErken(a, b) {
+  const v = [a, b].filter(Boolean);
+  return v.length ? v.sort()[0] : null;
+}
+function enIleri(a, b) {
+  const v = [a, b].filter(Boolean);
+  return v.length ? v.sort().slice(-1)[0] : null;
+}
 
 function birlestir({ dosya = null, meta = null, bugun, yeniMakineId }) {
-  const d = dosya || {}, m = meta || {};
+  const d = dosya || {},
+    m = meta || {};
   const makineId = d.makineId || m.makineId || yeniMakineId;
   const clamp = (t) => (t && t > bugun ? bugun : t); // gelecekteki tarih → bugüne çek
   const kurulumTarihi = enErken(clamp(d.kurulumTarihi), clamp(m.kurulumTarihi)) || bugun;

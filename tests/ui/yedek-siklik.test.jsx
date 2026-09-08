@@ -9,13 +9,30 @@ afterEach(cleanup);
 describe("Ayarlar > Yedekleme: sıklık seçimi", () => {
   it("mevcut sıklık seçili gelir, değiştirince kaydedilir", async () => {
     let siklik = "gunluk";
-    const sikliklar = [{ kod: "acilis", ad: "Her açılışta" }, { kod: "gunluk", ad: "Günde bir (varsayılan)" }, { kod: "haftalik", ad: "Haftada bir" }, { kod: "kapali", ad: "Otomatik yedek kapalı (yalnız elle)" }];
+    const sikliklar = [
+      { kod: "acilis", ad: "Her açılışta" },
+      { kod: "gunluk", ad: "Günde bir (varsayılan)" },
+      { kod: "haftalik", ad: "Haftada bir" },
+      { kod: "kapali", ad: "Otomatik yedek kapalı (yalnız elle)" },
+    ];
     window.okul = {
       db: vi.fn(async () => null),
-      yedek: { durum: vi.fn(async () => ({ klasor: "/yedek", son: null, siklik, sikliklar })), siklik: vi.fn(async (k) => { siklik = k; return { ok: true, siklik: k }; }) },
-      app: { version: async () => "0.1.0" }, lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) }, mod: { oku: async () => ({ mode: "yerel" }) },
+      yedek: {
+        durum: vi.fn(async () => ({ klasor: "/yedek", son: null, siklik, sikliklar })),
+        siklik: vi.fn(async (k) => {
+          siklik = k;
+          return { ok: true, siklik: k };
+        }),
+      },
+      app: { version: async () => "0.1.0" },
+      lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) },
+      mod: { oku: async () => ({ mode: "yerel" }) },
     };
-    render(<ToastSaglayici><Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="yedek" /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="yedek" />
+      </ToastSaglayici>,
+    );
     const secim = await screen.findByLabelText("Otomatik yedekleme sıklığı");
     expect(secim).toHaveValue("gunluk");
     fireEvent.change(secim, { target: { value: "haftalik" } });
@@ -26,18 +43,33 @@ describe("Ayarlar > Yedekleme: sıklık seçimi", () => {
   it("taşıma paketi: parola doğrulaması, oluşturma; paket seç → parola → özet onayı → geri yükleme", async () => {
     window.okul = {
       db: vi.fn(async () => null),
-      yedek: { durum: vi.fn(async () => ({ klasor: "/yedek", son: null, siklik: "gunluk", sikliklar: [{ kod: "gunluk", ad: "Günde bir" }] })),
-        tasimaOlustur: vi.fn(async () => ({ ok: true, yol: "/x/eyupspor-tasima-1.eyupspor" })), tasimaSec: vi.fn(async () => ({ ok: true, yol: "/x/paket.eyupspor" })),
-        tasimaBilgi: vi.fn(async (_y, p) => (p === "dogru-parola1" ? { ok: true, yol: "/x/paket.eyupspor", oyuncu: 42, makbuz: 7, sonMakbuz: "2026-09-05" } : { error: "Parola yanlış ya da paket bozuk" })),
-        tasimaGeriYukle: vi.fn(async () => ({ ok: true })) },
-      app: { version: async () => "0.1.0" }, lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) }, mod: { oku: async () => ({ mode: "yerel" }) },
+      yedek: {
+        durum: vi.fn(async () => ({ klasor: "/yedek", son: null, siklik: "gunluk", sikliklar: [{ kod: "gunluk", ad: "Günde bir" }] })),
+        tasimaOlustur: vi.fn(async () => ({ ok: true, yol: "/x/eyupspor-tasima-1.eyupspor" })),
+        tasimaSec: vi.fn(async () => ({ ok: true, yol: "/x/paket.eyupspor" })),
+        tasimaBilgi: vi.fn(async (_y, p) =>
+          p === "dogru-parola1"
+            ? { ok: true, yol: "/x/paket.eyupspor", oyuncu: 42, makbuz: 7, sonMakbuz: "2026-09-05" }
+            : { error: "Parola yanlış ya da paket bozuk" },
+        ),
+        tasimaGeriYukle: vi.fn(async () => ({ ok: true })),
+      },
+      app: { version: async () => "0.1.0" },
+      lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) },
+      mod: { oku: async () => ({ mode: "yerel" }) },
     };
-    render(<ToastSaglayici><Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="yedek" /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="yedek" />
+      </ToastSaglayici>,
+    );
     const p1 = await screen.findByLabelText("Paket parolası");
-    fireEvent.change(p1, { target: { value: "kisa" } }); fireEvent.change(screen.getByLabelText("Paket parolası tekrar"), { target: { value: "kisa" } });
+    fireEvent.change(p1, { target: { value: "kisa" } });
+    fireEvent.change(screen.getByLabelText("Paket parolası tekrar"), { target: { value: "kisa" } });
     fireEvent.click(screen.getByRole("button", { name: "Taşıma Paketi Oluştur" }));
     expect(await screen.findByText("Parola en az 10 karakter olmalı")).toBeInTheDocument();
-    fireEvent.change(p1, { target: { value: "cok-gizli-1" } }); fireEvent.change(screen.getByLabelText("Paket parolası tekrar"), { target: { value: "cok-gizli-2" } });
+    fireEvent.change(p1, { target: { value: "cok-gizli-1" } });
+    fireEvent.change(screen.getByLabelText("Paket parolası tekrar"), { target: { value: "cok-gizli-2" } });
     fireEvent.click(screen.getByRole("button", { name: "Taşıma Paketi Oluştur" }));
     expect(await screen.findByText("Parolalar aynı değil")).toBeInTheDocument();
     expect(window.okul.yedek.tasimaOlustur).not.toHaveBeenCalled();

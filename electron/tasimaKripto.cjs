@@ -14,22 +14,31 @@ const anahtar = (parola, salt) => crypto.scryptSync(Buffer.from(String(parola), 
 /** @param {Buffer} veri @param {string} parola @param {{ magic?: Buffer }} [sec] */
 function sifrele(veri, parola, { magic = MAGIC } = {}) {
   if (!parolaGecerliMi(parola)) throw new Error(`Parola en az ${PAROLA_MIN} karakter olmalı`);
-  const salt = crypto.randomBytes(16), iv = crypto.randomBytes(12);
+  const salt = crypto.randomBytes(16),
+    iv = crypto.randomBytes(12);
   const c = crypto.createCipheriv("aes-256-gcm", anahtar(parola, salt), iv);
   const sifreli = Buffer.concat([c.update(veri), c.final()]);
   return Buffer.concat([magic, salt, iv, c.getAuthTag(), sifreli]);
 }
-const paketMi = (buf, magic = MAGIC) => Buffer.isBuffer(buf) && buf.length >= magic.length + 44 && buf.subarray(0, magic.length).equals(magic);
+const paketMi = (buf, magic = MAGIC) =>
+  Buffer.isBuffer(buf) && buf.length >= magic.length + 44 && buf.subarray(0, magic.length).equals(magic);
 /** @param {Buffer} paket @param {string} parola @param {{ magic?: Buffer }} [sec] */
 function coz(paket, parola, { magic = MAGIC } = {}) {
-  if (!paketMi(paket, magic)) throw new Error(magic.equals(YEDEK_MAGIC) ? "Bu bir Eyüpspor yedeği değil" : "Bu bir Eyüpspor taşıma paketi değil");
+  if (!paketMi(paket, magic))
+    throw new Error(magic.equals(YEDEK_MAGIC) ? "Bu bir Eyüpspor yedeği değil" : "Bu bir Eyüpspor taşıma paketi değil");
   let o = magic.length;
-  const salt = paket.subarray(o, o + 16); o += 16;
-  const iv = paket.subarray(o, o + 12); o += 12;
-  const tag = paket.subarray(o, o + 16); o += 16;
+  const salt = paket.subarray(o, o + 16);
+  o += 16;
+  const iv = paket.subarray(o, o + 12);
+  o += 12;
+  const tag = paket.subarray(o, o + 16);
+  o += 16;
   const d = crypto.createDecipheriv("aes-256-gcm", anahtar(parola, salt), iv);
   d.setAuthTag(tag);
-  try { return Buffer.concat([d.update(paket.subarray(o)), d.final()]); }
-  catch { throw new Error("Parola yanlış ya da paket bozuk"); }
+  try {
+    return Buffer.concat([d.update(paket.subarray(o)), d.final()]);
+  } catch {
+    throw new Error("Parola yanlış ya da paket bozuk");
+  }
 }
 module.exports = { sifrele, coz, paketMi, parolaGecerliMi, PAROLA_MIN, MAGIC, YEDEK_MAGIC };

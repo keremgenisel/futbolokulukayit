@@ -10,8 +10,7 @@ export function tariheGunEkle(tarih, gun) {
 // İki YYYY-MM-DD tarihinin küçüğü (lexikografik = kronolojik). b null ise a döner.
 export const enKucukTarih = (a, b) => (b == null ? a : a < b ? a : b);
 
-export const lisansBul = (env, anahtarHash) =>
-  env.DB.prepare("SELECT * FROM lisanslar WHERE anahtarHash = ?").bind(anahtarHash).first();
+export const lisansBul = (env, anahtarHash) => env.DB.prepare("SELECT * FROM lisanslar WHERE anahtarHash = ?").bind(anahtarHash).first();
 
 export function lisansUpsert(env, { anahtarHash, firma, bitis, maksKullanici, maksKurulum, iptal }) {
   return env.DB.prepare(
@@ -19,8 +18,10 @@ export function lisansUpsert(env, { anahtarHash, firma, bitis, maksKullanici, ma
      VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(anahtarHash) DO UPDATE SET
        firma=excluded.firma, bitis=excluded.bitis, maksKullanici=excluded.maksKullanici,
-       maksKurulum=excluded.maksKurulum, iptal=excluded.iptal`
-  ).bind(anahtarHash, firma ?? null, bitis ?? null, maksKullanici ?? null, maksKurulum ?? null, iptal ? 1 : 0, bugun()).run();
+       maksKurulum=excluded.maksKurulum, iptal=excluded.iptal`,
+  )
+    .bind(anahtarHash, firma ?? null, bitis ?? null, maksKullanici ?? null, maksKurulum ?? null, iptal ? 1 : 0, bugun())
+    .run();
 }
 
 export const kurulumBul = (env, lisansId, makineId) =>
@@ -32,12 +33,14 @@ export async function aktifKurulumSay(env, lisansId) {
 }
 
 export const kurulumEkle = (env, lisansId, makineId, surum) =>
-  env.DB.prepare(
-    "INSERT INTO kurulumlar (lisansId, makineId, ilkGoruldu, sonGoruldu, surum, aktif) VALUES (?, ?, ?, ?, ?, 1)"
-  ).bind(lisansId, makineId, bugun(), bugun(), surum ?? null).run();
+  env.DB.prepare("INSERT INTO kurulumlar (lisansId, makineId, ilkGoruldu, sonGoruldu, surum, aktif) VALUES (?, ?, ?, ?, ?, 1)")
+    .bind(lisansId, makineId, bugun(), bugun(), surum ?? null)
+    .run();
 
 export const kurulumDokun = (env, id, surum) =>
-  env.DB.prepare("UPDATE kurulumlar SET sonGoruldu = ?, surum = ?, aktif = 1 WHERE id = ?").bind(bugun(), surum ?? null, id).run();
+  env.DB.prepare("UPDATE kurulumlar SET sonGoruldu = ?, surum = ?, aktif = 1 WHERE id = ?")
+    .bind(bugun(), surum ?? null, id)
+    .run();
 
 export const kurulumlariListele = (env, lisansId) =>
   env.DB.prepare("SELECT makineId, ilkGoruldu, sonGoruldu, surum, aktif FROM kurulumlar WHERE lisansId = ?").bind(lisansId).all();
@@ -47,5 +50,5 @@ export const tumLisanslar = (env) =>
   env.DB.prepare(
     `SELECT l.firma, l.bitis, l.maksKullanici, l.maksKurulum, l.iptal, l.olusturuldu,
        (SELECT COUNT(*) FROM kurulumlar k WHERE k.lisansId = l.id AND k.aktif = 1) AS kurulumSayisi
-     FROM lisanslar l ORDER BY l.olusturuldu DESC`
+     FROM lisanslar l ORDER BY l.olusturuldu DESC`,
   ).all();

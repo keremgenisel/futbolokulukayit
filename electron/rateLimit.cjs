@@ -6,7 +6,7 @@
 // windowMs imza simetrisi için var ama burada kullanılmaz (pencere resetAt ile tutulur).
 function rateAllow(state, key, now, max, _windowMs) {
   const rec = state.get(key);
-  if (!rec || now > rec.resetAt) return true;   // pencere yok/dolmuş → serbest
+  if (!rec || now > rec.resetAt) return true; // pencere yok/dolmuş → serbest
   return rec.count < max;
 }
 
@@ -23,16 +23,22 @@ function rateRetryAfter(state, key, now) {
   return rec && now <= rec.resetAt ? Math.max(0, rec.resetAt - now) : 0;
 }
 
-function rateReset(state, key) { state.delete(key); }
+function rateReset(state, key) {
+  state.delete(key);
+}
 
 // ── Kalıcı sayaç çekirdeği (rec üzerinde saf) ────────────────────────────────
 // Login brute-force sayacı SQLite'ta saklanır (sunucu yeniden başlasa da kilit korunsun).
 // Bu fonksiyonlar bir DB satırı rec = { count, reset_at } | null üzerinde çalışır.
-function bucketAllow(rec, now, max) { return !rec || now > rec.reset_at || rec.count < max; }
-function bucketNext(rec, now, windowMs) {
-  return (!rec || now > rec.reset_at) ? { count: 1, reset_at: now + windowMs } : { count: rec.count + 1, reset_at: rec.reset_at };
+function bucketAllow(rec, now, max) {
+  return !rec || now > rec.reset_at || rec.count < max;
 }
-function bucketRetryAfter(rec, now) { return rec && now <= rec.reset_at ? Math.max(0, rec.reset_at - now) : 0; }
+function bucketNext(rec, now, windowMs) {
+  return !rec || now > rec.reset_at ? { count: 1, reset_at: now + windowMs } : { count: rec.count + 1, reset_at: rec.reset_at };
+}
+function bucketRetryAfter(rec, now) {
+  return rec && now <= rec.reset_at ? Math.max(0, rec.reset_at - now) : 0;
+}
 
 // ── Kademeli (artan) kilit — app-lock mantığının kalıcı sürümü ────────────────
 // Sabit-pencere yerine kümülatif sayaç: her başarısız denemede kilit süresi artar
@@ -40,12 +46,24 @@ function bucketRetryAfter(rec, now) { return rec && now <= rec.reset_at ? Math.m
 // reset_at = mevcut kilidin bittiği an. Kilitliyken blockedMs > 0. forgiveMs kadar
 // hareketsizlikten sonra sayaç sıfırlanır (dürüst kullanıcı kalıcı kilitlenmesin);
 // başarılı giriş sayacı tamamen siler (bunu çağıran yapar).
-function escalatingBlockedMs(rec, now) { return rec && now < rec.reset_at ? rec.reset_at - now : 0; }
+function escalatingBlockedMs(rec, now) {
+  return rec && now < rec.reset_at ? rec.reset_at - now : 0;
+}
 function escalatingNext(rec, now, lockoutFn, forgiveMs) {
   // Kilit bitiminden bu yana forgiveMs'ten fazla geçtiyse (uzun süre denenmediyse) baştan başla.
-  const forgiven = !rec || (now - rec.reset_at) > forgiveMs;
+  const forgiven = !rec || now - rec.reset_at > forgiveMs;
   const count = forgiven ? 1 : rec.count + 1;
   return { count, reset_at: now + lockoutFn(count) };
 }
 
-module.exports = { rateAllow, rateHit, rateRetryAfter, rateReset, bucketAllow, bucketNext, bucketRetryAfter, escalatingBlockedMs, escalatingNext };
+module.exports = {
+  rateAllow,
+  rateHit,
+  rateRetryAfter,
+  rateReset,
+  bucketAllow,
+  bucketNext,
+  bucketRetryAfter,
+  escalatingBlockedMs,
+  escalatingNext,
+};

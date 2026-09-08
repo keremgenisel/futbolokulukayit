@@ -19,7 +19,12 @@ describe("birlestir — kurulum tarihi (deneme-sıfırlama sertleştirmesi)", ()
     expect(r.kurulumTarihi, "deneme sıfırlanmamalı").toBe("2026-06-01");
   });
   it("iki kaynak da varsa en ERKEN seçilir", () => {
-    const r = birlestir({ dosya: { kurulumTarihi: "2026-07-10" }, meta: { kurulumTarihi: "2026-06-15" }, bugun: "2026-07-19", yeniMakineId: "y" });
+    const r = birlestir({
+      dosya: { kurulumTarihi: "2026-07-10" },
+      meta: { kurulumTarihi: "2026-06-15" },
+      bugun: "2026-07-19",
+      yeniMakineId: "y",
+    });
     expect(r.kurulumTarihi).toBe("2026-06-15");
   });
   it("gelecekteki kurulum tarihi bugüne çekilir (saati ileri alma denemesi)", () => {
@@ -33,7 +38,12 @@ describe("birlestir — kurulum tarihi (deneme-sıfırlama sertleştirmesi)", ()
 
 describe("birlestir — sonGorulen (saat-geri-alma işareti)", () => {
   it("en İLERİ tarih korunur (dosya vs meta)", () => {
-    const r = birlestir({ dosya: { sonGorulen: "2026-07-25" }, meta: { sonGorulen: "2026-07-10" }, bugun: "2026-07-05", yeniMakineId: "y" });
+    const r = birlestir({
+      dosya: { sonGorulen: "2026-07-25" },
+      meta: { sonGorulen: "2026-07-10" },
+      bugun: "2026-07-05",
+      yeniMakineId: "y",
+    });
     expect(r.sonGorulen).toBe("2026-07-25");
   });
   it("hiç işaret yoksa null (durumHesapla bugünü kullanır)", () => {

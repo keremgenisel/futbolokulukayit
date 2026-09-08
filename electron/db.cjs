@@ -33,15 +33,26 @@ function getDbKey() {
   if (cachedDbKey !== undefined) return cachedDbKey;
   if (!dbEncryptable) return (cachedDbKey = null);
   let canEncrypt = false;
-  try { canEncrypt = !!safeStorage?.isEncryptionAvailable?.(); } catch { canEncrypt = false; }
+  try {
+    canEncrypt = !!safeStorage?.isEncryptionAvailable?.();
+  } catch {
+    canEncrypt = false;
+  }
   if (!canEncrypt) return (cachedDbKey = null);
   const p = getDbKeyPath();
   try {
     if (fs.existsSync(p)) return (cachedDbKey = safeStorage.decryptString(fs.readFileSync(p)));
-  } catch (e) { console.error("[db] anahtar okunamadı:", e.message); }
+  } catch (e) {
+    console.error("[db] anahtar okunamadı:", e.message);
+  }
   const key = crypto.randomBytes(32).toString("hex");
-  try { fs.writeFileSync(p, safeStorage.encryptString(key), { mode: 0o600 }); cachedDbKey = key; }
-  catch (e) { console.error("[db] anahtar kaydedilemedi, şifreleme kapalı:", e.message); cachedDbKey = null; }
+  try {
+    fs.writeFileSync(p, safeStorage.encryptString(key), { mode: 0o600 });
+    cachedDbKey = key;
+  } catch (e) {
+    console.error("[db] anahtar kaydedilemedi, şifreleme kapalı:", e.message);
+    cachedDbKey = null;
+  }
   return cachedDbKey;
 }
 const isEncrypted = () => !!getDbKey();
@@ -239,15 +250,25 @@ CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
 `;
 
 const FEE_ITEMS = [
-  ["aidat", "Aidat"], ["forma", "Forma"], ["yagmurluk", "Yağmurluk"], ["esofman", "Eşofman Takımı"],
-  ["mont", "Mont"], ["ayakkabi", "Ayakkabı"], ["canta", "Çanta"], ["top", "Top"],
-  ["corap", "Çorap"], ["eldiven_bere", "Eldiven & Bere"],
+  ["aidat", "Aidat"],
+  ["forma", "Forma"],
+  ["yagmurluk", "Yağmurluk"],
+  ["esofman", "Eşofman Takımı"],
+  ["mont", "Mont"],
+  ["ayakkabi", "Ayakkabı"],
+  ["canta", "Çanta"],
+  ["top", "Top"],
+  ["corap", "Çorap"],
+  ["eldiven_bere", "Eldiven & Bere"],
 ];
 
 // Varsayılan ücret tipleri: [kod, ad, indirim %, sabit]. Kalanlar Ayarlar'dan eklenir/silinir.
 const FEE_TYPES = [
-  ["normal", "Normal", 0, 1], ["burslu", "Burslu", 100, 0], ["indirimli", "İndirimli", 0, 0],
-  ["kardes", "Kardeş İndirimi", 0, 0], ["ucretsiz", "Ücretsiz", 100, 1],
+  ["normal", "Normal", 0, 1],
+  ["burslu", "Burslu", 100, 0],
+  ["indirimli", "İndirimli", 0, 0],
+  ["kardes", "Kardeş İndirimi", 0, 0],
+  ["ucretsiz", "Ücretsiz", 100, 1],
 ];
 const { kodUret, KOD_GECERLI } = require("./kodUret.cjs");
 const { araNormalize } = require("./metin.cjs");
@@ -279,36 +300,82 @@ function init() {
 function migrate() {
   const cur = Number(getMetaValue("schema_version") || 0);
   // 3: yabancı uyruklu oyuncular için pasaport no (eski DB'lerde sütun yoksa ekle; CREATE TABLE yenilerde zaten içerir)
-  const kolonlar = new Set(db.prepare("PRAGMA table_info(players)").all().map((c) => c.name));
+  const kolonlar = new Set(
+    db
+      .prepare("PRAGMA table_info(players)")
+      .all()
+      .map((c) => c.name),
+  );
   if (!kolonlar.has("uyruk")) db.exec("ALTER TABLE players ADD COLUMN uyruk TEXT NOT NULL DEFAULT 'tc'");
   if (!kolonlar.has("pasaport_no")) db.exec("ALTER TABLE players ADD COLUMN pasaport_no TEXT");
   if (!kolonlar.has("sezon")) db.exec("ALTER TABLE players ADD COLUMN sezon TEXT NOT NULL DEFAULT ''");
-  const grupKolon = new Set(db.prepare("PRAGMA table_info(age_groups)").all().map((c) => c.name));
+  const grupKolon = new Set(
+    db
+      .prepare("PRAGMA table_info(age_groups)")
+      .all()
+      .map((c) => c.name),
+  );
   if (!grupKolon.has("program")) db.exec("ALTER TABLE age_groups ADD COLUMN program TEXT NOT NULL DEFAULT '[]'");
-  const makbuzKolon = new Set(db.prepare("PRAGMA table_info(receipts)").all().map((c) => c.name));
+  const makbuzKolon = new Set(
+    db
+      .prepare("PRAGMA table_info(receipts)")
+      .all()
+      .map((c) => c.name),
+  );
   if (!makbuzKolon.has("iptal_nedeni")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_nedeni TEXT DEFAULT ''");
   if (!makbuzKolon.has("iptal_eden")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_eden TEXT DEFAULT ''");
   if (!makbuzKolon.has("iptal_zamani")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_zamani TEXT");
-  const dueKolon = new Set(db.prepare("PRAGMA table_info(monthly_dues)").all().map((c) => c.name));
-  if (!dueKolon.has("odenen")) { db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0"); db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'"); }
+  const dueKolon = new Set(
+    db
+      .prepare("PRAGMA table_info(monthly_dues)")
+      .all()
+      .map((c) => c.name),
+  );
+  if (!dueKolon.has("odenen")) {
+    db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0");
+    db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'");
+  }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
   // 9: WhatsApp — veli mesaj onayı (mevcut veliler onaylı: kulüp kararı 07.09.2026), antrenman bildirim alanları
-  const veliKolon = new Set(db.prepare("PRAGMA table_info(guardians)").all().map((c) => c.name));
+  const veliKolon = new Set(
+    db
+      .prepare("PRAGMA table_info(guardians)")
+      .all()
+      .map((c) => c.name),
+  );
   if (!veliKolon.has("mesaj_onayi")) db.exec("ALTER TABLE guardians ADD COLUMN mesaj_onayi INTEGER NOT NULL DEFAULT 1");
-  const antKolon = new Set(db.prepare("PRAGMA table_info(trainings)").all().map((c) => c.name));
+  const antKolon = new Set(
+    db
+      .prepare("PRAGMA table_info(trainings)")
+      .all()
+      .map((c) => c.name),
+  );
   if (!antKolon.has("bildirim_gerekli")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_gerekli INTEGER NOT NULL DEFAULT 0");
   if (!antKolon.has("degisiklik_notu")) db.exec("ALTER TABLE trainings ADD COLUMN degisiklik_notu TEXT DEFAULT ''");
   if (!antKolon.has("grup_bildirim")) db.exec("ALTER TABLE trainings ADD COLUMN grup_bildirim TEXT DEFAULT ''"); // 10
   if (!antKolon.has("bildirim_olay")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_olay TEXT DEFAULT ''"); // 11
-  const mlKolon = new Set(db.prepare("PRAGMA table_info(message_log)").all().map((c) => c.name));
-  if (mlKolon.size && !mlKolon.has("tur")) { // ilk iskeletin kullanılmayan message_log'u
+  const mlKolon = new Set(
+    db
+      .prepare("PRAGMA table_info(message_log)")
+      .all()
+      .map((c) => c.name),
+  );
+  if (mlKolon.size && !mlKolon.has("tur")) {
+    // ilk iskeletin kullanılmayan message_log'u
     const dolu = db.prepare("SELECT count(*) AS n FROM message_log").get().n > 0;
     db.exec(dolu ? "ALTER TABLE message_log RENAME TO message_log_eski_v1" : "DROP TABLE message_log");
     db.exec(MESSAGE_LOG_SQL);
   }
-  const mlKolon2 = new Set(db.prepare("PRAGMA table_info(message_log)").all().map((c) => c.name));
+  const mlKolon2 = new Set(
+    db
+      .prepare("PRAGMA table_info(message_log)")
+      .all()
+      .map((c) => c.name),
+  );
   if (!mlKolon2.has("olay")) db.exec("ALTER TABLE message_log ADD COLUMN olay TEXT DEFAULT ''"); // 11
-  db.exec("CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay); CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id)");
+  db.exec(
+    "CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay); CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id)",
+  );
   // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
   // Varsayılan tipler YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
   if (!getMetaValue("tohum_fee_types")) {
@@ -339,12 +406,24 @@ function seed() {
   }
 }
 
-function close() { if (db) { db.close(); db = null; } }
-const checkpoint = () => { try { db?.pragma("wal_checkpoint(TRUNCATE)"); } catch { /* yoksay */ } };
+function close() {
+  if (db) {
+    db.close();
+    db = null;
+  }
+}
+const checkpoint = () => {
+  try {
+    db?.pragma("wal_checkpoint(TRUNCATE)");
+  } catch {
+    /* yoksay */
+  }
+};
 
 // ── meta / settings ──
 const getMetaValue = (k) => db.prepare("SELECT value FROM meta WHERE key=?").get(k)?.value ?? null;
-const setMetaValue = (k, v) => db.prepare("INSERT INTO meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
+const setMetaValue = (k, v) =>
+  db.prepare("INSERT INTO meta (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
 // Ayarlar > Aidat Kalemleri: taban aidat + ücret tipi indirimleri (tek çağrıda, oyuncu formu için).
 function aidatAyarlari() {
   const taban = db.prepare("SELECT varsayilan_fiyat FROM fee_items WHERE kod='aidat'").get()?.varsayilan_fiyat ?? 0;
@@ -354,13 +433,15 @@ function aidatAyarlari() {
 }
 const listFeeTypes = () => db.prepare("SELECT kod, ad, indirim, sira, aktif, sabit FROM fee_types ORDER BY sira, kod").all();
 const getSetting = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value ?? null;
-const setSetting = (k, v) => db.prepare("INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
+const setSetting = (k, v) =>
+  db.prepare("INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(k, v);
 
 // ── users ──
 const getUserByUsername = (u) => db.prepare("SELECT * FROM users WHERE username=?").get(u) || null;
 function createUser({ username, password, ad_soyad = "", role = "admin", must_change_password = 0 }) {
   const hash = bcrypt.hashSync(password, 10);
-  const r = db.prepare("INSERT INTO users (username,password_hash,ad_soyad,role,must_change_password) VALUES (?,?,?,?,?)")
+  const r = db
+    .prepare("INSERT INTO users (username,password_hash,ad_soyad,role,must_change_password) VALUES (?,?,?,?,?)")
     .run(username, hash, ad_soyad, role, must_change_password);
   return { id: Number(r.lastInsertRowid), username, ad_soyad, role };
 }
@@ -373,7 +454,10 @@ function verifyPassword(username, password) {
 }
 function changePassword(username, newPassword) {
   const hash = bcrypt.hashSync(newPassword, 10);
-  db.prepare("UPDATE users SET password_hash=?, must_change_password=0, token_version=token_version+1 WHERE username=?").run(hash, username);
+  db.prepare("UPDATE users SET password_hash=?, must_change_password=0, token_version=token_version+1 WHERE username=?").run(
+    hash,
+    username,
+  );
 }
 
 // ── age groups ──
@@ -383,30 +467,57 @@ function createAgeGroup({ ad, sezon = "", sira = 0 }) {
   return { id: Number(r.lastInsertRowid), ad, sezon, sira, aktif: 1 };
 }
 const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }) =>
-  db.prepare("UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif), program=COALESCE(?,program) WHERE id=?")
+  db
+    .prepare(
+      "UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif), program=COALESCE(?,program) WHERE id=?",
+    )
     .run(ad, sezon, sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
 // Program girdisini süz: [{gun 1..7, saat HH:MM, saha}]
 function programDogrula(p) {
-  const l = typeof p === "string" ? (() => { try { return JSON.parse(p || "[]"); } catch { return []; } })() : p;
+  const l =
+    typeof p === "string"
+      ? (() => {
+          try {
+            return JSON.parse(p || "[]");
+          } catch {
+            return [];
+          }
+        })()
+      : p;
   if (!Array.isArray(l)) return [];
-  return l.filter((x) => x && Number.isInteger(Number(x.gun)) && Number(x.gun) >= 1 && Number(x.gun) <= 7 && /^\d{2}:\d{2}$/.test(String(x.saat || "")))
+  return l
+    .filter(
+      (x) => x && Number.isInteger(Number(x.gun)) && Number(x.gun) >= 1 && Number(x.gun) <= 7 && /^\d{2}:\d{2}$/.test(String(x.saat || "")),
+    )
     .map((x) => ({ gun: Number(x.gun), saat: String(x.saat), saha: String(x.saha || "").trim() }));
 }
 // Haftayı programdan doldur: aktif grupların programındaki gün/saatler için o haftada antrenman yoksa açar (var olan atlanır).
 function haftayiProgramdanDoldur(haftaBasiIso) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(haftaBasiIso || ""))) throw new Error("Hafta başlangıcı yyyy-aa-gg olmalı");
   const [y, m, d] = haftaBasiIso.split("-").map(Number);
-  const gunIso = (ek) => { const t = new Date(y, m - 1, d + ek); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`; };
+  const gunIso = (ek) => {
+    const t = new Date(y, m - 1, d + ek);
+    return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+  };
   const var_ = db.prepare("SELECT 1 FROM trainings WHERE age_group_id=? AND tarih=? AND saat=? AND iptal=0");
-  let eklenen = 0, atlanan = 0, programsiz = 0;
+  let eklenen = 0,
+    atlanan = 0,
+    programsiz = 0;
   const tx = db.transaction(() => {
     for (const g of db.prepare("SELECT id, program FROM age_groups WHERE aktif=1").all()) {
       const prog = programDogrula(g.program);
-      if (!prog.length) { programsiz++; continue; }
+      if (!prog.length) {
+        programsiz++;
+        continue;
+      }
       for (const p of prog) {
         const tarih = gunIso(p.gun - 1);
-        if (var_.get(g.id, tarih, p.saat)) { atlanan++; continue; }
-        createTraining({ age_group_id: g.id, tarih, saat: p.saat, saha: p.saha }); eklenen++;
+        if (var_.get(g.id, tarih, p.saat)) {
+          atlanan++;
+          continue;
+        }
+        createTraining({ age_group_id: g.id, tarih, saat: p.saat, saha: p.saha });
+        eklenen++;
       }
     }
   });
@@ -415,7 +526,27 @@ function haftayiProgramdanDoldur(haftaBasiIso) {
 }
 
 // ── players ──
-const PLAYER_FIELDS = ["tc_no","uyruk","pasaport_no","sezon","ad_soyad","dogum_tarihi","dogum_yeri","okul","gsm","adres","kan_grubu","foto_yolu","yas_grubu_id","durum","ucret_tipi","aylik_aidat","odeme_donemi","kayit_tarihi","notlar"];
+const PLAYER_FIELDS = [
+  "tc_no",
+  "uyruk",
+  "pasaport_no",
+  "sezon",
+  "ad_soyad",
+  "dogum_tarihi",
+  "dogum_yeri",
+  "okul",
+  "gsm",
+  "adres",
+  "kan_grubu",
+  "foto_yolu",
+  "yas_grubu_id",
+  "durum",
+  "ucret_tipi",
+  "aylik_aidat",
+  "odeme_donemi",
+  "kayit_tarihi",
+  "notlar",
+];
 function ucretTipiDogrula(kod) {
   if (kod === undefined) return;
   if (!db.prepare("SELECT 1 FROM fee_types WHERE kod=?").get(String(kod))) throw new Error("Tanımsız ücret tipi: " + kod);
@@ -428,22 +559,41 @@ function createPlayer(p) {
   return getPlayer(Number(r.lastInsertRowid));
 }
 // Bu ayın aidat kaydını tek oyuncu için aç (kayıt/durum değişimi sonrası; yeniden başlatma beklenmez).
-function buAyAidatAc(pid) { const t = new Date(); return ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1, pid); }
+function buAyAidatAc(pid) {
+  const t = new Date();
+  return ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1, pid);
+}
 function updatePlayer(id, p) {
   ucretTipiDogrula(p.ucret_tipi);
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   if (!cols.length) return getPlayer(id);
-  db.prepare(`UPDATE players SET ${cols.map((c) => `${c}=?`).join(",")}, updated_at=datetime('now') WHERE id=?`).run(...cols.map((c) => p[c]), id);
+  db.prepare(`UPDATE players SET ${cols.map((c) => `${c}=?`).join(",")}, updated_at=datetime('now') WHERE id=?`).run(
+    ...cols.map((c) => p[c]),
+    id,
+  );
   if (p.durum !== undefined || p.ucret_tipi !== undefined || p.aylik_aidat !== undefined) buAyAidatAc(id); // pasif→aktif vb.
   return getPlayer(id);
 }
-const getPlayer = (id) => db.prepare("SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.id=?").get(id) || null;
+const getPlayer = (id) =>
+  db.prepare("SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.id=?").get(id) || null;
 function listPlayers({ q = "", yas_grubu_id = null, durum = null } = {}) {
-  const where = []; const args = [];
-  if (q) { const a = `%${likeKacir(araNormalize(q))}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')"); args.push(a, `%${likeKacir(q)}%`, a); }
-  if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
-  if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
-  else if (durum) { where.push("p.durum=?"); args.push(durum); }
+  const where = [];
+  const args = [];
+  if (q) {
+    const a = `%${likeKacir(araNormalize(q))}%`;
+    where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')");
+    args.push(a, `%${likeKacir(q)}%`, a);
+  }
+  if (yas_grubu_id) {
+    where.push("p.yas_grubu_id=?");
+    args.push(yas_grubu_id);
+  }
+  if (durum === "aktifler")
+    where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
+  else if (durum) {
+    where.push("p.durum=?");
+    args.push(durum);
+  }
   const sql = `SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
   return db.prepare(sql).all(...args);
 }
@@ -452,15 +602,32 @@ const deletePlayer = (id) => db.prepare("DELETE FROM players WHERE id=?").run(id
 // ── guardians / emergency ──
 const listGuardians = (pid) => db.prepare("SELECT * FROM guardians WHERE player_id=? ORDER BY veli_mi DESC, id").all(pid);
 function addGuardian(pid, g) {
-  const r = db.prepare("INSERT INTO guardians (player_id,tip,ad_soyad,gsm,whatsapp_no,veli_mi,mesaj_onayi) VALUES (?,?,?,?,?,?,?)")
-    .run(pid, g.tip || "veli", g.ad_soyad, g.gsm || "", g.whatsapp_no || "", g.veli_mi ? 1 : 0, g.mesaj_onayi === undefined ? 1 : (g.mesaj_onayi ? 1 : 0));
+  const r = db
+    .prepare("INSERT INTO guardians (player_id,tip,ad_soyad,gsm,whatsapp_no,veli_mi,mesaj_onayi) VALUES (?,?,?,?,?,?,?)")
+    .run(
+      pid,
+      g.tip || "veli",
+      g.ad_soyad,
+      g.gsm || "",
+      g.whatsapp_no || "",
+      g.veli_mi ? 1 : 0,
+      g.mesaj_onayi === undefined ? 1 : g.mesaj_onayi ? 1 : 0,
+    );
   return Number(r.lastInsertRowid);
 }
 const deleteGuardian = (id) => db.prepare("DELETE FROM guardians WHERE id=?").run(id);
 // Veli: WhatsApp bilgilendirme onayı ve numaralar (oyuncu kartı > Aile)
 const updateGuardian = (id, { mesaj_onayi, gsm, whatsapp_no }) =>
-  db.prepare("UPDATE guardians SET mesaj_onayi=COALESCE(?,mesaj_onayi), gsm=COALESCE(?,gsm), whatsapp_no=COALESCE(?,whatsapp_no) WHERE id=?")
-    .run(mesaj_onayi === undefined ? null : (mesaj_onayi ? 1 : 0), gsm === undefined ? null : String(gsm), whatsapp_no === undefined ? null : String(whatsapp_no), id);
+  db
+    .prepare(
+      "UPDATE guardians SET mesaj_onayi=COALESCE(?,mesaj_onayi), gsm=COALESCE(?,gsm), whatsapp_no=COALESCE(?,whatsapp_no) WHERE id=?",
+    )
+    .run(
+      mesaj_onayi === undefined ? null : mesaj_onayi ? 1 : 0,
+      gsm === undefined ? null : String(gsm),
+      whatsapp_no === undefined ? null : String(whatsapp_no),
+      id,
+    );
 
 // ── WhatsApp mesaj kayıtları (plan §13): "WhatsApp'ta Aç" tıklandığında yazılır; gönderimi program göremez ──
 const MESAJ_TURLERI = new Set(["aidat", "genel", "iptal", "degisiklik"]);
@@ -468,23 +635,48 @@ function mesajKaydet({ player_id, guardian_id = null, tur, yil = null, ay = null
   if (!MESAJ_TURLERI.has(tur)) throw new Error("Geçersiz mesaj türü: " + tur);
   if (!db.prepare("SELECT 1 FROM players WHERE id=?").get(Number(player_id))) throw new Error("Oyuncu bulunamadı");
   // İptal/değişiklik bildirimi antrenmanın O ANKİ olayına bağlanır: sonraki iptal/değişiklik yeni olay, eski bildirim sayılmaz
-  const olay = training_id ? (db.prepare("SELECT bildirim_olay FROM trainings WHERE id=?").get(Number(training_id))?.bildirim_olay || "") : "";
-  const r = db.prepare("INSERT INTO message_log (player_id,guardian_id,tur,yil,ay,training_id,metin,kullanici,olay) VALUES (?,?,?,?,?,?,?,?,?)")
-    .run(Number(player_id), guardian_id ? Number(guardian_id) : null, tur, yil, ay, training_id ? Number(training_id) : null, String(metin || "").slice(0, 2000), String(kullanici || ""), olay);
+  const olay = training_id
+    ? db.prepare("SELECT bildirim_olay FROM trainings WHERE id=?").get(Number(training_id))?.bildirim_olay || ""
+    : "";
+  const r = db
+    .prepare("INSERT INTO message_log (player_id,guardian_id,tur,yil,ay,training_id,metin,kullanici,olay) VALUES (?,?,?,?,?,?,?,?,?)")
+    .run(
+      Number(player_id),
+      guardian_id ? Number(guardian_id) : null,
+      tur,
+      yil,
+      ay,
+      training_id ? Number(training_id) : null,
+      String(metin || "").slice(0, 2000),
+      String(kullanici || ""),
+      olay,
+    );
   return { id: Number(r.lastInsertRowid) };
 }
 const mesajSil = (id) => db.prepare("DELETE FROM message_log WHERE id=?").run(Number(id));
-const sonMesajlar = (pid, n = 12) => db.prepare("SELECT m.*, g.ad_soyad AS veli_ad FROM message_log m LEFT JOIN guardians g ON g.id=m.guardian_id WHERE m.player_id=? ORDER BY m.id DESC LIMIT ?").all(pid, Number(n));
+const sonMesajlar = (pid, n = 12) =>
+  db
+    .prepare(
+      "SELECT m.*, g.ad_soyad AS veli_ad FROM message_log m LEFT JOIN guardians g ON g.id=m.guardian_id WHERE m.player_id=? ORDER BY m.id DESC LIMIT ?",
+    )
+    .all(pid, Number(n));
 // Antrenmanın velileri (grubun aktif oyuncuları + birincil veli + onay/numara) ve bu antrenman için açılmış bildirim.
-const antrenmanVelileri = (tid) => db.prepare(`SELECT p.id AS player_id, p.ad_soyad, p.durum, gu.id AS guardian_id, gu.ad_soyad AS veli_ad,
+const antrenmanVelileri = (tid) =>
+  db
+    .prepare(
+      `SELECT p.id AS player_id, p.ad_soyad, p.durum, gu.id AS guardian_id, gu.ad_soyad AS veli_ad,
     COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') AS veli_wa, gu.mesaj_onayi AS veli_onay,
     (SELECT m.id FROM message_log m WHERE m.training_id=t.id AND m.player_id=p.id AND m.olay=t.bildirim_olay ORDER BY m.id DESC LIMIT 1) AS mesaj_id
   FROM trainings t JOIN players p ON p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')
   LEFT JOIN guardians gu ON gu.id=(SELECT g2.id FROM guardians g2 WHERE g2.player_id=p.id ORDER BY g2.veli_mi DESC, g2.id LIMIT 1)
-  WHERE t.id=? ORDER BY p.ad_soyad`).all(Number(tid));
+  WHERE t.id=? ORDER BY p.ad_soyad`,
+    )
+    .all(Number(tid));
 const listEmergency = (pid) => db.prepare("SELECT * FROM emergency_contacts WHERE player_id=? ORDER BY id").all(pid);
 function addEmergency(pid, e) {
-  const r = db.prepare("INSERT INTO emergency_contacts (player_id,ad_soyad,yakinlik,telefon) VALUES (?,?,?,?)").run(pid, e.ad_soyad, e.yakinlik || "", e.telefon || "");
+  const r = db
+    .prepare("INSERT INTO emergency_contacts (player_id,ad_soyad,yakinlik,telefon) VALUES (?,?,?,?)")
+    .run(pid, e.ad_soyad, e.yakinlik || "", e.telefon || "");
   return Number(r.lastInsertRowid);
 }
 const deleteEmergency = (id) => db.prepare("DELETE FROM emergency_contacts WHERE id=?").run(id);
@@ -499,7 +691,8 @@ const tekilBelgeMi = (tip) => TEKIL_BELGE_TIPLERI.has(tip);
 function belgeEkle(pid, d) {
   const eskiler = tekilBelgeMi(d.tip) ? db.prepare("SELECT id, dosya_yolu FROM documents WHERE player_id=? AND tip=?").all(pid, d.tip) : [];
   const id = db.transaction(() => {
-    const r = db.prepare("INSERT INTO documents (player_id,tip,dosya_yolu,orijinal_ad,gecerlilik_tarihi) VALUES (?,?,?,?,?)")
+    const r = db
+      .prepare("INSERT INTO documents (player_id,tip,dosya_yolu,orijinal_ad,gecerlilik_tarihi) VALUES (?,?,?,?,?)")
       .run(pid, d.tip, d.dosya_yolu, d.orijinal_ad || "", d.gecerlilik_tarihi || null);
     for (const e of eskiler) deleteDocument(e.id);
     if (d.tip === "foto") updatePlayer(pid, { foto_yolu: d.dosya_yolu });
@@ -522,34 +715,73 @@ const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get
 // Sağlık raporu uyarıları: aktif oyuncuların EN SON sağlık raporu; yoksa, süresi dolduysa ya da esik gün içinde dolacaksa listelenir.
 // Sağlık raporu satırları: aktif/deneme/sakat oyuncular, son raporun geçerliliği ve durum (gecerli|dolacak|doldu|tarihsiz|yok).
 function saglikSatirlari(bugun, esikGun = 30, age_group_id = null) {
-  const rows = db.prepare(`SELECT p.id, p.ad_soyad, p.durum AS oyuncu_durum, g.ad AS yas_grubu_ad, g.sira,
+  const rows = db
+    .prepare(
+      `SELECT p.id, p.ad_soyad, p.durum AS oyuncu_durum, g.ad AS yas_grubu_ad, g.sira,
       (SELECT d.gecerlilik_tarihi FROM documents d WHERE d.player_id=p.id AND d.tip='saglik' ORDER BY COALESCE(d.gecerlilik_tarihi,'') DESC, d.id DESC LIMIT 1) AS gecerlilik,
       (SELECT count(*) FROM documents d WHERE d.player_id=p.id AND d.tip='saglik') AS rapor_adet,
       (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel
-    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY g.sira, p.ad_soyad`).all(age_group_id, age_group_id);
-  const esik = new Date(bugun + "T00:00:00"); esik.setDate(esik.getDate() + esikGun);
+    FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY g.sira, p.ad_soyad`,
+    )
+    .all(age_group_id, age_group_id);
+  const esik = new Date(bugun + "T00:00:00");
+  esik.setDate(esik.getDate() + esikGun);
   const esikIso = esik.toISOString().slice(0, 10);
   const b = new Date(bugun + "T00:00:00").getTime();
   return rows.map((r) => {
-    const durum = r.rapor_adet === 0 ? "yok" : !r.gecerlilik ? "tarihsiz" : r.gecerlilik < bugun ? "doldu" : r.gecerlilik <= esikIso ? "dolacak" : "gecerli";
+    const durum =
+      r.rapor_adet === 0
+        ? "yok"
+        : !r.gecerlilik
+          ? "tarihsiz"
+          : r.gecerlilik < bugun
+            ? "doldu"
+            : r.gecerlilik <= esikIso
+              ? "dolacak"
+              : "gecerli";
     const kalanGun = r.gecerlilik ? Math.round((new Date(r.gecerlilik + "T00:00:00").getTime() - b) / 86400000) : null;
-    return { player_id: r.id, ad_soyad: r.ad_soyad, yas_grubu_ad: r.yas_grubu_ad, oyuncu_durum: r.oyuncu_durum, veli_tel: r.veli_tel || "", gecerlilik: r.gecerlilik || null, durum, kalanGun };
+    return {
+      player_id: r.id,
+      ad_soyad: r.ad_soyad,
+      yas_grubu_ad: r.yas_grubu_ad,
+      oyuncu_durum: r.oyuncu_durum,
+      veli_tel: r.veli_tel || "",
+      gecerlilik: r.gecerlilik || null,
+      durum,
+      kalanGun,
+    };
   });
 }
 function saglikRaporuDurumu(bugun, esikGun = 30) {
   const rows = saglikSatirlari(bugun, esikGun);
-  const uyarilar = rows.filter((r) => r.durum !== "gecerli").map(({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }) => ({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }));
-  return { toplam: rows.length, uyarilar, doldu: uyarilar.filter((u) => u.durum === "doldu").length, dolacak: uyarilar.filter((u) => u.durum === "dolacak").length, yok: uyarilar.filter((u) => u.durum === "yok").length, tarihsiz: uyarilar.filter((u) => u.durum === "tarihsiz").length };
+  const uyarilar = rows
+    .filter((r) => r.durum !== "gecerli")
+    .map(({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }) => ({ player_id, ad_soyad, yas_grubu_ad, gecerlilik, durum }));
+  return {
+    toplam: rows.length,
+    uyarilar,
+    doldu: uyarilar.filter((u) => u.durum === "doldu").length,
+    dolacak: uyarilar.filter((u) => u.durum === "dolacak").length,
+    yok: uyarilar.filter((u) => u.durum === "yok").length,
+    tarihsiz: uyarilar.filter((u) => u.durum === "tarihsiz").length,
+  };
 }
 // Raporlar > Sağlık Raporu Durumu: tüm satırlar (geçerliler dahil), en acil önce.
 const ACILIYET_SIRA = { doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3, gecerli: 4 };
-const saglikRaporuListesi = (bugun, age_group_id = null, esikGun = 30) => saglikSatirlari(bugun, esikGun, age_group_id ? Number(age_group_id) : null)
-  .sort((a, b) => ACILIYET_SIRA[a.durum] - ACILIYET_SIRA[b.durum] || String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || "")) || a.ad_soyad.localeCompare(b.ad_soyad, "tr"));
+const saglikRaporuListesi = (bugun, age_group_id = null, esikGun = 30) =>
+  saglikSatirlari(bugun, esikGun, age_group_id ? Number(age_group_id) : null).sort(
+    (a, b) =>
+      ACILIYET_SIRA[a.durum] - ACILIYET_SIRA[b.durum] ||
+      String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || "")) ||
+      a.ad_soyad.localeCompare(b.ad_soyad, "tr"),
+  );
 
 // ── fee items ──
 const listFeeItems = () => db.prepare("SELECT * FROM fee_items ORDER BY sira, id").all();
 const updateFeeItem = (id, { ad, varsayilan_fiyat, aktif }) =>
-  db.prepare("UPDATE fee_items SET ad=COALESCE(?,ad), varsayilan_fiyat=COALESCE(?,varsayilan_fiyat), aktif=COALESCE(?,aktif) WHERE id=?").run(ad, varsayilan_fiyat, aktif, id);
+  db
+    .prepare("UPDATE fee_items SET ad=COALESCE(?,ad), varsayilan_fiyat=COALESCE(?,varsayilan_fiyat), aktif=COALESCE(?,aktif) WHERE id=?")
+    .run(ad, varsayilan_fiyat, aktif, id);
 // Ayarlar > Aidat Kalemleri: kalemler (güncelle / yeni / sil) + ücret tipleri (güncelle / yeni / sil) + indirim
 // yüzdeleri TEK işlemde (biri hata verirse hiçbiri yazılmaz).
 //   kalemler:     [{ id, ad?, varsayilan_fiyat?, aktif? } | { yeni: true, ad, varsayilan_fiyat? } | { id, sil: true }]
@@ -563,14 +795,28 @@ function yuzdeDogrula(yuzde) {
 }
 function aidatAyarlariKaydet({ kalemler = [], indirimler = {}, ucretTipleri = [] } = {}) {
   const tx = db.transaction(() => {
-    let kalemSayisi = 0, tipSayisi = 0;
+    let kalemSayisi = 0,
+      tipSayisi = 0;
     for (const k of kalemler) {
       kalemSayisi++;
       if (k.yeni) {
-        const ad = String(k.ad || "").trim(); if (!ad) throw new Error("Kalem adı boş olamaz");
-        const kod = kodUret(ad, db.prepare("SELECT kod FROM fee_items").all().map((x) => x.kod), "kalem");
+        const ad = String(k.ad || "").trim();
+        if (!ad) throw new Error("Kalem adı boş olamaz");
+        const kod = kodUret(
+          ad,
+          db
+            .prepare("SELECT kod FROM fee_items")
+            .all()
+            .map((x) => x.kod),
+          "kalem",
+        );
         const sira = (db.prepare("SELECT MAX(sira) AS m FROM fee_items").get().m ?? 0) + 1;
-        db.prepare("INSERT INTO fee_items (kod, ad, varsayilan_fiyat, sira, aktif) VALUES (?,?,?,?,1)").run(kod, ad, Math.max(0, Number(k.varsayilan_fiyat) || 0), sira);
+        db.prepare("INSERT INTO fee_items (kod, ad, varsayilan_fiyat, sira, aktif) VALUES (?,?,?,?,1)").run(
+          kod,
+          ad,
+          Math.max(0, Number(k.varsayilan_fiyat) || 0),
+          sira,
+        );
         continue;
       }
       const mevcut = db.prepare("SELECT * FROM fee_items WHERE id=?").get(Number(k.id));
@@ -585,7 +831,7 @@ function aidatAyarlariKaydet({ kalemler = [], indirimler = {}, ucretTipleri = []
       const ad = k.ad === undefined ? null : String(k.ad).trim();
       if (ad !== null && !ad) throw new Error("Kalem adı boş olamaz");
       const fiyat = k.varsayilan_fiyat === undefined ? null : Math.max(0, Number(k.varsayilan_fiyat) || 0);
-      const aktif = k.aktif === undefined ? null : (k.aktif ? 1 : 0);
+      const aktif = k.aktif === undefined ? null : k.aktif ? 1 : 0;
       if (mevcut.kod === "aidat" && aktif === 0) throw new Error("Aidat kalemi pasife alınamaz");
       updateFeeItem(mevcut.id, { ad, varsayilan_fiyat: fiyat, aktif });
     }
@@ -593,10 +839,20 @@ function aidatAyarlariKaydet({ kalemler = [], indirimler = {}, ucretTipleri = []
     for (const t of tipListesi) {
       tipSayisi++;
       if (t.yeni) {
-        const ad = String(t.ad || "").trim(); if (!ad) throw new Error("Ücret tipi adı boş olamaz");
-        const kod = kodUret(ad, listFeeTypes().map((x) => x.kod), "tip");
+        const ad = String(t.ad || "").trim();
+        if (!ad) throw new Error("Ücret tipi adı boş olamaz");
+        const kod = kodUret(
+          ad,
+          listFeeTypes().map((x) => x.kod),
+          "tip",
+        );
         const sira = (db.prepare("SELECT MAX(sira) AS m FROM fee_types").get().m ?? 0) + 1;
-        db.prepare("INSERT INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,0)").run(kod, ad, yuzdeDogrula(t.indirim ?? 0), sira);
+        db.prepare("INSERT INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,0)").run(
+          kod,
+          ad,
+          yuzdeDogrula(t.indirim ?? 0),
+          sira,
+        );
         continue;
       }
       if (!KOD_GECERLI.test(String(t.kod || ""))) throw new Error("Geçersiz ücret tipi: " + t.kod);
@@ -612,8 +868,13 @@ function aidatAyarlariKaydet({ kalemler = [], indirimler = {}, ucretTipleri = []
       const ad = t.ad === undefined ? null : String(t.ad).trim();
       if (ad !== null && !ad) throw new Error("Ücret tipi adı boş olamaz");
       const indirim = t.indirim === undefined || mevcut.sabit ? null : yuzdeDogrula(t.indirim);
-      const aktif = t.aktif === undefined || mevcut.sabit ? null : (t.aktif ? 1 : 0);
-      db.prepare("UPDATE fee_types SET ad=COALESCE(?,ad), indirim=COALESCE(?,indirim), aktif=COALESCE(?,aktif) WHERE kod=?").run(ad, indirim, aktif, mevcut.kod);
+      const aktif = t.aktif === undefined || mevcut.sabit ? null : t.aktif ? 1 : 0;
+      db.prepare("UPDATE fee_types SET ad=COALESCE(?,ad), indirim=COALESCE(?,indirim), aktif=COALESCE(?,aktif) WHERE kod=?").run(
+        ad,
+        indirim,
+        aktif,
+        mevcut.kod,
+      );
     }
     return { ok: true, kalem: kalemSayisi, indirim: tipSayisi };
   });
@@ -644,12 +905,16 @@ function ensureMonthlyDues(yil, ay, pid = null) {
 }
 const getDue = (pid, yil, ay) => db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay) || null;
 // limit verilirse yalnız son N dönem (oyuncu kartı); verilmezse tümü.
-const listDues = (pid, limit = null) => limit
-  ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
-  : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
-const listUnpaid = (yil, ay) => db.prepare(
-  "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad"
-).all(yil, ay);
+const listDues = (pid, limit = null) =>
+  limit
+    ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
+    : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
+const listUnpaid = (yil, ay) =>
+  db
+    .prepare(
+      "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad",
+    )
+    .all(yil, ay);
 
 // ── receipts ──
 function nextReceiptNo(yil) {
@@ -670,7 +935,8 @@ function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden 
   const toplam = satirlar.reduce((s, l) => s + Number(l.tutar || 0), 0);
   const tx = db.transaction(() => {
     const makbuz_no = nextReceiptNo(yil);
-    const r = db.prepare("INSERT INTO receipts (makbuz_no,player_id,tarih,toplam,odeme_yontemi,tahsil_eden,not_) VALUES (?,?,?,?,?,?,?)")
+    const r = db
+      .prepare("INSERT INTO receipts (makbuz_no,player_id,tarih,toplam,odeme_yontemi,tahsil_eden,not_) VALUES (?,?,?,?,?,?,?)")
       .run(makbuz_no, player_id, tarih, toplam, odeme_yontemi, tahsil_eden, not_);
     const rid = Number(r.lastInsertRowid);
     const insLine = db.prepare("INSERT INTO receipt_lines (receipt_id,fee_item_id,aciklama,tutar,yil,ay) VALUES (?,?,?,?,?,?)");
@@ -680,8 +946,9 @@ function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden 
       if (l.fee_item_id === aidatId && l.yil && l.ay) {
         // Kısmi ödeme: ödenen birikir; beklenen tutara ulaşınca 'odendi', eksikse 'kismi'. Kayıt yoksa (ileri ay) tutar = ödenen.
         const tut = Number(l.tutar || 0);
-        db.prepare("INSERT INTO monthly_dues (player_id,yil,ay,tutar,odenen,durum,receipt_id) VALUES (?,?,?,?,?,'odendi',?) ON CONFLICT(player_id,yil,ay) DO UPDATE SET odenen=odenen+excluded.odenen, receipt_id=excluded.receipt_id")
-          .run(player_id, l.yil, l.ay, tut, tut, rid);
+        db.prepare(
+          "INSERT INTO monthly_dues (player_id,yil,ay,tutar,odenen,durum,receipt_id) VALUES (?,?,?,?,?,'odendi',?) ON CONFLICT(player_id,yil,ay) DO UPDATE SET odenen=odenen+excluded.odenen, receipt_id=excluded.receipt_id",
+        ).run(player_id, l.yil, l.ay, tut, tut, rid);
         aidatDurumGuncelle(player_id, l.yil, l.ay);
       }
     }
@@ -690,16 +957,35 @@ function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden 
   return tx();
 }
 function getReceipt(id) {
-  const r = db.prepare("SELECT r.*, p.ad_soyad, p.dogum_tarihi, g.ad AS yas_grubu_ad FROM receipts r JOIN players p ON p.id=r.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE r.id=?").get(id);
+  const r = db
+    .prepare(
+      "SELECT r.*, p.ad_soyad, p.dogum_tarihi, g.ad AS yas_grubu_ad FROM receipts r JOIN players p ON p.id=r.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE r.id=?",
+    )
+    .get(id);
   if (!r) return null;
-  r.satirlar = db.prepare("SELECT l.*, f.ad AS kalem_ad, f.kod AS kalem_kod FROM receipt_lines l LEFT JOIN fee_items f ON f.id=l.fee_item_id WHERE l.receipt_id=? ORDER BY l.id").all(id);
+  r.satirlar = db
+    .prepare(
+      "SELECT l.*, f.ad AS kalem_ad, f.kod AS kalem_kod FROM receipt_lines l LEFT JOIN fee_items f ON f.id=l.fee_item_id WHERE l.receipt_id=? ORDER BY l.id",
+    )
+    .all(id);
   return r;
 }
-const listReceipts = (pid, limit = null) => limit
-  ? db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC LIMIT ?").all(pid, Number(limit))
-  : db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
-const listCancelledReceipts = (from, to) => db.prepare("SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 ORDER BY r.tarih, r.id").all(from, to);
-const listReceiptsByDate = (from, to) => db.prepare("SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 ORDER BY r.tarih, r.id").all(from, to);
+const listReceipts = (pid, limit = null) =>
+  limit
+    ? db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC LIMIT ?").all(pid, Number(limit))
+    : db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
+const listCancelledReceipts = (from, to) =>
+  db
+    .prepare(
+      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 ORDER BY r.tarih, r.id",
+    )
+    .all(from, to);
+const listReceiptsByDate = (from, to) =>
+  db
+    .prepare(
+      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 ORDER BY r.tarih, r.id",
+    )
+    .all(from, to);
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);
 
 // ── trainings / attendance ──
@@ -708,23 +994,40 @@ function createTraining({ age_group_id, tarih, saat = "", saha = "" }) {
   return { id: Number(r.lastInsertRowid), age_group_id, tarih, saat, saha };
 }
 // Takvim şeridi: aralıktaki antrenmanlar, grup adı ve yoklama ilerlemesiyle (oyuncu/işaretli/geldi).
-const trainingCalendar = (from, to) => db.prepare(`SELECT t.*, g.ad AS yas_grubu_ad,
+const trainingCalendar = (from, to) =>
+  db
+    .prepare(
+      `SELECT t.*, g.ad AS yas_grubu_ad,
     (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
     (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
     (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi,
     (SELECT count(DISTINCT m.player_id) FROM message_log m WHERE m.training_id=t.id AND m.olay=t.bildirim_olay) AS bildirilen
-  FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat`).all(from, to);
-const listTrainings = (from, to) => db.prepare("SELECT t.*, g.ad AS yas_grubu_ad FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat").all(from, to);
+  FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat`,
+    )
+    .all(from, to);
+const listTrainings = (from, to) =>
+  db
+    .prepare(
+      "SELECT t.*, g.ad AS yas_grubu_ad FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih BETWEEN ? AND ? ORDER BY t.tarih, t.saat",
+    )
+    .all(from, to);
 // Elle iptal: veliler bilgilendirilene kadar bildirim_gerekli=1 (programdan otomatik dolan antrenmanlar bu yoldan geçmez).
 // Olay damgası: zaman + rastgele ek (aynı milisaniyede iki olay bile ayrışsın)
 const yeniOlay = () => new Date().toISOString() + "-" + require("crypto").randomBytes(3).toString("hex");
-const cancelTraining = (id, neden = "") => db.prepare("UPDATE trainings SET iptal=1, iptal_nedeni=?, bildirim_gerekli=1, bildirim_olay=?, grup_bildirim='' WHERE id=?").run(neden, yeniOlay(), id);
+const cancelTraining = (id, neden = "") =>
+  db
+    .prepare("UPDATE trainings SET iptal=1, iptal_nedeni=?, bildirim_gerekli=1, bildirim_olay=?, grup_bildirim='' WHERE id=?")
+    .run(neden, yeniOlay(), id);
 // Antrenman düzenleme (tarih/saat/saha): yoklaması alınmış antrenmanda tarih değişmez; eski değerler degisiklik_notu'na.
 function updateTraining(id, { tarih, saat, saha } = {}) {
   const t = db.prepare("SELECT * FROM trainings WHERE id=?").get(Number(id));
   if (!t) throw new Error("Antrenman bulunamadı");
   if (t.iptal) throw new Error("İptal edilmiş antrenman düzenlenemez");
-  const yeni = { tarih: tarih === undefined ? t.tarih : String(tarih), saat: saat === undefined ? t.saat : String(saat || ""), saha: saha === undefined ? t.saha : String(saha || "") };
+  const yeni = {
+    tarih: tarih === undefined ? t.tarih : String(tarih),
+    saat: saat === undefined ? t.saat : String(saat || ""),
+    saha: saha === undefined ? t.saha : String(saha || ""),
+  };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(yeni.tarih)) throw new Error("Tarih geçersiz");
   const degisti = yeni.tarih !== t.tarih || yeni.saat !== t.saat || yeni.saha !== t.saha;
   if (!degisti) return { ...t, degisti: false };
@@ -732,10 +1035,13 @@ function updateTraining(id, { tarih, saat, saha } = {}) {
   if (yoklamaVar && yeni.tarih !== t.tarih) throw new Error("Yoklaması alınmış antrenmanın tarihi değiştirilemez; yalnız saat ve saha");
   const not_ = JSON.stringify({ eskiTarih: t.tarih, eskiSaat: t.saat, eskiSaha: t.saha, zaman: new Date().toISOString() });
   const olay = yeniOlay();
-  db.prepare("UPDATE trainings SET tarih=?, saat=?, saha=?, bildirim_gerekli=1, degisiklik_notu=?, bildirim_olay=?, grup_bildirim='' WHERE id=?").run(yeni.tarih, yeni.saat, yeni.saha, not_, olay, t.id);
+  db.prepare(
+    "UPDATE trainings SET tarih=?, saat=?, saha=?, bildirim_gerekli=1, degisiklik_notu=?, bildirim_olay=?, grup_bildirim='' WHERE id=?",
+  ).run(yeni.tarih, yeni.saat, yeni.saha, not_, olay, t.id);
   return { ...t, ...yeni, bildirim_gerekli: 1, degisiklik_notu: not_, bildirim_olay: olay, grup_bildirim: "", degisti: true };
 }
-const bildirimGerekliAyarla = (id, deger) => db.prepare("UPDATE trainings SET bildirim_gerekli=? WHERE id=?").run(deger ? 1 : 0, Number(id));
+const bildirimGerekliAyarla = (id, deger) =>
+  db.prepare("UPDATE trainings SET bildirim_gerekli=? WHERE id=?").run(deger ? 1 : 0, Number(id));
 // Veli WhatsApp grubuna tek mesaj açıldı (plan §13.7): bildirim gereği iner, kim/ne zaman kaydedilir.
 function grupBildirimKaydet(id, kullanici = "") {
   if (!db.prepare("SELECT 1 FROM trainings WHERE id=?").get(Number(id))) throw new Error("Antrenman bulunamadı");
@@ -745,12 +1051,29 @@ function grupBildirimKaydet(id, kullanici = "") {
 }
 // Geri al: grup kaydı silinir; bildirim gereği yeniden açılır (tek tek bildirilenler pencere kapanışında yeniden değerlendirilir)
 const grupBildirimSil = (id) => db.prepare("UPDATE trainings SET grup_bildirim='', bildirim_gerekli=1 WHERE id=?").run(Number(id));
-const setAttendance = (tid, pid, durum) => db.prepare("INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum").run(tid, pid, durum);
-const listAttendance = (tid) => db.prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad").all(tid);
+const setAttendance = (tid, pid, durum) =>
+  db
+    .prepare(
+      "INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum",
+    )
+    .run(tid, pid, durum);
+const listAttendance = (tid) =>
+  db
+    .prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad")
+    .all(tid);
 // Son N yoklama (yeniden eskiye) — oyuncu kartı; tam liste için playerAttendance.
-const playerAttendanceSon = (pid, n = 40) => db.prepare("SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? ORDER BY t.tarih DESC, t.saat DESC LIMIT ?").all(pid, Number(n));
-const playerAttendance = (pid, from, to) => db.prepare("SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? ORDER BY t.tarih").all(pid, from, to);
-
+const playerAttendanceSon = (pid, n = 40) =>
+  db
+    .prepare(
+      "SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? ORDER BY t.tarih DESC, t.saat DESC LIMIT ?",
+    )
+    .all(pid, Number(n));
+const playerAttendance = (pid, from, to) =>
+  db
+    .prepare(
+      "SELECT a.durum, t.tarih, t.saat FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? ORDER BY t.tarih",
+    )
+    .all(pid, from, to);
 
 // ── Ek sorgular (ekranlar) ──
 const deleteAgeGroup = (id) => {
@@ -762,21 +1085,48 @@ const deleteAgeGroup = (id) => {
 
 // Oyuncu listesi + verilen ayın aidat durumu (liste ekranı ve tesise giriş kontrolü).
 // Oyuncu listesi + seçilen ayın aidat durumu: ortak WHERE (liste, sayfa ve sayım aynı filtreyi kullanır).
-function playersWhere({ q = "", yas_grubu_id = null, durum = null, yil, ay, sadeceOdemeyen = false, saglikSorunlu = false, bugun = null } = {}) {
-  const where = []; const args = [yil, ay];
-  if (q) { const a = `%${likeKacir(araNormalize(q))}%`; where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')"); args.push(a, `%${likeKacir(q)}%`, a); }
-  if (yas_grubu_id) { where.push("p.yas_grubu_id=?"); args.push(yas_grubu_id); }
-  if (durum === "aktifler") where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
-  else if (durum) { where.push("p.durum=?"); args.push(durum); }
+function playersWhere({
+  q = "",
+  yas_grubu_id = null,
+  durum = null,
+  yil,
+  ay,
+  sadeceOdemeyen = false,
+  saglikSorunlu = false,
+  bugun = null,
+} = {}) {
+  const where = [];
+  const args = [yil, ay];
+  if (q) {
+    const a = `%${likeKacir(araNormalize(q))}%`;
+    where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')");
+    args.push(a, `%${likeKacir(q)}%`, a);
+  }
+  if (yas_grubu_id) {
+    where.push("p.yas_grubu_id=?");
+    args.push(yas_grubu_id);
+  }
+  if (durum === "aktifler")
+    where.push("p.durum IN ('aktif','deneme','sakat')"); // Oyuncular listesi varsayılanı: sahadaki herkes (pasif/ayrıldı/dondurma gizli)
+  else if (durum) {
+    where.push("p.durum=?");
+    args.push(durum);
+  }
   if (sadeceOdemeyen) where.push("d.durum IN ('odenmedi','kismi')");
   // Sağlık raporu olmayanlar: hiç rapor yok, tarihsiz rapor ya da son raporun süresi dolmuş (panodaki "yok/doldu" ile aynı kural)
-  if (saglikSorunlu) { where.push(`((SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') = 0 OR COALESCE((SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1), '') < ?)`); args.push(String(bugun || new Date().toISOString().slice(0, 10))); }
+  if (saglikSorunlu) {
+    where.push(
+      `((SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') = 0 OR COALESCE((SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1), '') < ?)`,
+    );
+    args.push(String(bugun || new Date().toISOString().slice(0, 10)));
+  }
   const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
     ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
   return { govde, args };
 }
-const PLAYER_SELECT = "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
+const PLAYER_SELECT =
+  "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
 function listPlayersWithDue(opts = {}) {
   const { govde, args } = playersWhere(opts);
   return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
@@ -795,10 +1145,15 @@ function playersPage({ sayfa = 1, sayfaBoyu = 50, ...opts } = {}) {
 // ── Yeni sezon geçişi (docs/plan.md §10) ──
 const SEZON_DURUMLARI = ["aktif", "deneme", "sakat"];
 // Sihirbaz listesi: sezonda aktif sayılan oyuncular + geçmiş ödenmemiş aidat sayısı/tutarı.
-const sezonAdayListesi = () => db.prepare(`SELECT p.id, p.ad_soyad, p.durum, p.yas_grubu_id, p.sezon, p.aylik_aidat, p.ucret_tipi, g.ad AS yas_grubu_ad,
+const sezonAdayListesi = () =>
+  db
+    .prepare(
+      `SELECT p.id, p.ad_soyad, p.durum, p.yas_grubu_id, p.sezon, p.aylik_aidat, p.ucret_tipi, g.ad AS yas_grubu_ad,
     (SELECT count(*) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum IN ('odenmedi','kismi')) AS borc_adet,
     (SELECT COALESCE(sum(MAX(0, tutar-odenen)),0) FROM monthly_dues d WHERE d.player_id=p.id AND d.durum IN ('odenmedi','kismi')) AS borc_tutar
-  FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`).all();
+  FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`,
+    )
+    .all();
 function sezonDurumu() {
   return {
     aktifSezon: getSetting("aktif_sezon") || "",
@@ -814,7 +1169,10 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
   const tx = db.transaction(() => {
     const adaylar = db.prepare("SELECT id, notlar, yas_grubu_id FROM players WHERE durum IN ('aktif','deneme','sakat')").all();
     const yenile = new Map(yenileyenler.map((y) => [Number(y.id), y]));
-    let yenilenen = 0, pasif = 0, grupDegisen = 0, borcSilinen = 0;
+    let yenilenen = 0,
+      pasif = 0,
+      grupDegisen = 0,
+      borcSilinen = 0;
     for (const p of adaylar) {
       const y = yenile.get(p.id);
       if (y) {
@@ -827,7 +1185,10 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
         const notlar = p.notlar ? `${p.notlar}\n${notEk}` : notEk;
         db.prepare("UPDATE players SET durum='pasif', notlar=?, updated_at=datetime('now') WHERE id=?").run(notlar, p.id);
         pasif++;
-        if (eskiBorcSil) borcSilinen += db.prepare("UPDATE monthly_dues SET durum='muaf' WHERE player_id=? AND durum IN ('odenmedi','kismi')").run(p.id).changes;
+        if (eskiBorcSil)
+          borcSilinen += db
+            .prepare("UPDATE monthly_dues SET durum='muaf' WHERE player_id=? AND durum IN ('odenmedi','kismi')")
+            .run(p.id).changes;
       }
     }
     db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1").run(sezon);
@@ -844,11 +1205,15 @@ function panoOzet({ yil, ay, bugun }) {
   const grup = db.prepare("SELECT count(*) AS n FROM age_groups WHERE aktif=1").get().n;
   const odeyen = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum='odendi'").get(yil, ay).n;
   const borclu = db.prepare("SELECT count(*) AS n FROM monthly_dues WHERE yil=? AND ay=? AND durum IN ('odenmedi','kismi')").get(yil, ay).n;
-  const antrenmanlar = db.prepare(`SELECT t.*, g.ad AS yas_grubu_ad,
+  const antrenmanlar = db
+    .prepare(
+      `SELECT t.*, g.ad AS yas_grubu_ad,
       (SELECT count(*) FROM players p WHERE p.yas_grubu_id=t.age_group_id AND p.durum IN ('aktif','deneme','sakat')) AS oyuncu,
       (SELECT count(*) FROM attendance a WHERE a.training_id=t.id) AS isaretli,
       (SELECT count(*) FROM attendance a WHERE a.training_id=t.id AND a.durum='geldi') AS geldi
-    FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih=? ORDER BY t.saat`).all(bugun);
+    FROM trainings t JOIN age_groups g ON g.id=t.age_group_id WHERE t.tarih=? ORDER BY t.saat`,
+    )
+    .all(bugun);
   const bugunTahsilat = db.prepare("SELECT COALESCE(sum(toplam),0) AS t FROM receipts WHERE tarih=? AND iptal=0").get(bugun).t;
   return { aktif, grup, odeyen, borclu, antrenmanlar, bugunTahsilat };
 }
@@ -861,10 +1226,21 @@ const cancelReceipt = (id, neden = "", kullanici = "") => {
     const r = db.prepare("SELECT player_id, iptal FROM receipts WHERE id=?").get(id);
     if (!r) throw new Error("Makbuz bulunamadı");
     if (r.iptal) return;
-    db.prepare("UPDATE receipts SET iptal=1, iptal_nedeni=?, iptal_eden=?, iptal_zamani=datetime('now') WHERE id=?").run(n, String(kullanici || ""), id);
+    db.prepare("UPDATE receipts SET iptal=1, iptal_nedeni=?, iptal_eden=?, iptal_zamani=datetime('now') WHERE id=?").run(
+      n,
+      String(kullanici || ""),
+      id,
+    );
     // Makbuzun aidat satırları ödenenden düşülür; başka makbuzla kısmen ödenmişse 'kismi' kalır
-    for (const l of db.prepare("SELECT tutar, yil, ay FROM receipt_lines WHERE receipt_id=? AND yil IS NOT NULL AND ay IS NOT NULL").all(id)) {
-      db.prepare("UPDATE monthly_dues SET odenen=MAX(0, odenen-?), receipt_id=NULL WHERE player_id=? AND yil=? AND ay=?").run(Number(l.tutar || 0), r.player_id, l.yil, l.ay);
+    for (const l of db
+      .prepare("SELECT tutar, yil, ay FROM receipt_lines WHERE receipt_id=? AND yil IS NOT NULL AND ay IS NOT NULL")
+      .all(id)) {
+      db.prepare("UPDATE monthly_dues SET odenen=MAX(0, odenen-?), receipt_id=NULL WHERE player_id=? AND yil=? AND ay=?").run(
+        Number(l.tutar || 0),
+        r.player_id,
+        l.yil,
+        l.ay,
+      );
       aidatDurumGuncelle(r.player_id, l.yil, l.ay);
     }
   });
@@ -873,12 +1249,18 @@ const cancelReceipt = (id, neden = "", kullanici = "") => {
 };
 
 // Bir oyuncunun son N ay yoklama özeti.
-const attendanceSummary = (pid, from, to) => db.prepare(
-  "SELECT a.durum, count(*) AS n FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? AND t.iptal=0 GROUP BY a.durum"
-).all(pid, from, to);
+const attendanceSummary = (pid, from, to) =>
+  db
+    .prepare(
+      "SELECT a.durum, count(*) AS n FROM attendance a JOIN trainings t ON t.id=a.training_id WHERE a.player_id=? AND t.tarih BETWEEN ? AND ? AND t.iptal=0 GROUP BY a.durum",
+    )
+    .all(pid, from, to);
 
 // Yoklama raporu: tarih aralığında oyuncu bazında geldi/gelmedi/izinli sayıları.
-const attendanceReport = (from, to, age_group_id = null) => db.prepare(`
+const attendanceReport = (from, to, age_group_id = null) =>
+  db
+    .prepare(
+      `
   SELECT p.id, p.ad_soyad, g.ad AS yas_grubu_ad,
     sum(CASE WHEN a.durum='geldi' THEN 1 ELSE 0 END) AS geldi,
     sum(CASE WHEN a.durum='gelmedi' THEN 1 ELSE 0 END) AS gelmedi,
@@ -887,18 +1269,34 @@ const attendanceReport = (from, to, age_group_id = null) => db.prepare(`
   LEFT JOIN attendance a ON a.player_id=p.id
   LEFT JOIN trainings t ON t.id=a.training_id AND t.tarih BETWEEN ? AND ? AND t.iptal=0
   WHERE (? IS NULL OR p.yas_grubu_id=?) AND p.durum IN ('aktif','deneme','sakat')
-  GROUP BY p.id ORDER BY g.sira, p.ad_soyad`).all(from, to, age_group_id, age_group_id);
+  GROUP BY p.id ORDER BY g.sira, p.ad_soyad`,
+    )
+    .all(from, to, age_group_id, age_group_id);
 
-const listUsers = () => db.prepare(`SELECT id, username, ad_soyad, role, is_active, must_change_password,
+const listUsers = () =>
+  db
+    .prepare(
+      `SELECT id, username, ad_soyad, role, is_active, must_change_password,
     (SELECT count(*) FROM recovery_codes r WHERE r.user_id=u.id AND r.used_at IS NULL) AS kurtarma_kodu
-  FROM users u ORDER BY username`).all();
+  FROM users u ORDER BY username`,
+    )
+    .all();
 const setUserActive = (id, aktif) => db.prepare("UPDATE users SET is_active=? WHERE id=?").run(aktif ? 1 : 0, id);
 // Parola sıfırlama: yeni parola verilmezse ana süreçte kriptografik rastgele üretilir (inceleme #18) ve döndürülür;
 // kullanıcı ilk girişte değiştirir (must_change_password=1).
 function resetUserPassword(id, yeni) {
-  const parola = yeni ? String(yeni) : "ey-" + crypto.randomBytes(6).toString("base64url").replace(/[^A-Za-z0-9]/g, "x").slice(0, 8);
+  const parola = yeni
+    ? String(yeni)
+    : "ey-" +
+      crypto
+        .randomBytes(6)
+        .toString("base64url")
+        .replace(/[^A-Za-z0-9]/g, "x")
+        .slice(0, 8);
   if (parola.length < 8) throw new Error("Parola en az 8 karakter olmalı");
-  const r = db.prepare("UPDATE users SET password_hash=?, must_change_password=1, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(parola, 10), id);
+  const r = db
+    .prepare("UPDATE users SET password_hash=?, must_change_password=1, token_version=token_version+1 WHERE id=?")
+    .run(bcrypt.hashSync(parola, 10), id);
   if (r.changes === 0) throw new Error("Kullanıcı bulunamadı");
   return { ok: true, parola };
 }
@@ -918,13 +1316,18 @@ function deleteUser(id) {
 // 8 adet XXXX-XXXX kod (karışan harfler yok), yalnız üretim anında düz metin döner; DB'de bcrypt.
 const KOD_ALFABE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const KURTARMA_KOD_ADET = 8;
-function kurtarmaKoduNormalize(kod) { return String(kod || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+function kurtarmaKoduNormalize(kod) {
+  return String(kod || "")
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
+}
 function kurtarmaKodlariUret(userId) {
   const u = db.prepare("SELECT id FROM users WHERE id=?").get(userId);
   if (!u) return { error: "Kullanıcı bulunamadı" };
   const kodlar = [];
   for (let i = 0; i < KURTARMA_KOD_ADET; i++) {
-    const b = crypto.randomBytes(8); let k = "";
+    const b = crypto.randomBytes(8);
+    let k = "";
     for (let j = 0; j < 8; j++) k += KOD_ALFABE[b[j] % KOD_ALFABE.length];
     kodlar.push(k.slice(0, 4) + "-" + k.slice(4));
   }
@@ -935,7 +1338,8 @@ function kurtarmaKodlariUret(userId) {
   })();
   return { ok: true, kodlar };
 }
-const kurtarmaKoduSayisi = (userId) => db.prepare("SELECT count(*) AS n FROM recovery_codes WHERE user_id=? AND used_at IS NULL").get(userId).n;
+const kurtarmaKoduSayisi = (userId) =>
+  db.prepare("SELECT count(*) AS n FROM recovery_codes WHERE user_id=? AND used_at IS NULL").get(userId).n;
 // Kod doğruysa parolayı değiştirir, kodu kullanılmış işaretler, eski oturum jetonlarını düşürür.
 function kurtarmaIleSifirla(username, kod, yeniParola) {
   const u = getUserByUsername(String(username || ""));
@@ -946,7 +1350,10 @@ function kurtarmaIleSifirla(username, kod, yeniParola) {
   if (!eslesen) return { error: "Kullanıcı adı veya kurtarma kodu hatalı" };
   db.transaction(() => {
     db.prepare("UPDATE recovery_codes SET used_at=datetime('now') WHERE id=?").run(eslesen.id);
-    db.prepare("UPDATE users SET password_hash=?, must_change_password=0, token_version=token_version+1 WHERE id=?").run(bcrypt.hashSync(yeniParola, 10), u.id);
+    db.prepare("UPDATE users SET password_hash=?, must_change_password=0, token_version=token_version+1 WHERE id=?").run(
+      bcrypt.hashSync(yeniParola, 10),
+      u.id,
+    );
   })();
   return { ok: true, kalan: kurtarmaKoduSayisi(u.id) };
 }
@@ -954,29 +1361,46 @@ function kurtarmaIleSifirla(username, kod, yeniParola) {
 // ── Lisans (GenCRM modeli; docs/plan.md §7) ──
 const lisansM = require("./lisans.cjs");
 const lisansKalici = require("./lisansKalici.cjs");
-let lisansCache = null;     // { anahtar, makineId, kurulumTarihi, lease }
+let lisansCache = null; // { anahtar, makineId, kurulumTarihi, lease }
 let sonGorulenCache = null; // bellek içi saat işareti (yalnız gün değişince diske yazılır)
 const busimdi = () => new Date().toISOString().slice(0, 10);
 const getLisansMetaPath = () => path.join(app.getPath("userData"), "lisans-meta.enc");
 function getSafeStorage() {
-  try { return safeStorage?.isEncryptionAvailable?.() ? safeStorage : null; } catch { return null; }
+  try {
+    return safeStorage?.isEncryptionAvailable?.() ? safeStorage : null;
+  } catch {
+    return null;
+  }
 }
 function kaliciMetaOku() {
   const ss = getSafeStorage();
-  try { if (ss && fs.existsSync(getLisansMetaPath())) return JSON.parse(ss.decryptString(fs.readFileSync(getLisansMetaPath()))); } catch { /* bozuk → yok say */ }
+  try {
+    if (ss && fs.existsSync(getLisansMetaPath())) return JSON.parse(ss.decryptString(fs.readFileSync(getLisansMetaPath())));
+  } catch {
+    /* bozuk → yok say */
+  }
   return null;
 }
 function kaliciMetaYaz(obj) {
   const ss = getSafeStorage();
   if (!ss) return;
-  try { fs.writeFileSync(getLisansMetaPath(), ss.encryptString(JSON.stringify(obj)), { mode: 0o600 }); } catch { /* sessiz, DB meta yedek */ }
+  try {
+    fs.writeFileSync(getLisansMetaPath(), ss.encryptString(JSON.stringify(obj)), { mode: 0o600 });
+  } catch {
+    /* sessiz, DB meta yedek */
+  }
 }
 function lisansDurumu() {
   if (!db) return lisansM.durumHesapla({});
   const bugun = busimdi();
   if (!lisansCache) {
     const dosya = kaliciMetaOku();
-    const meta = { makineId: getMetaValue("makineId"), kurulumTarihi: getMetaValue("kurulumTarihi"), sonGorulen: getMetaValue("sonGorulenTarih"), lease: getMetaValue("lisansLease") || null };
+    const meta = {
+      makineId: getMetaValue("makineId"),
+      kurulumTarihi: getMetaValue("kurulumTarihi"),
+      sonGorulen: getMetaValue("sonGorulenTarih"),
+      lease: getMetaValue("lisansLease") || null,
+    };
     const m = lisansKalici.birlestir({ dosya, meta, bugun, yeniMakineId: crypto.randomUUID() });
     setMetaValue("makineId", m.makineId);
     setMetaValue("kurulumTarihi", m.kurulumTarihi);
@@ -985,14 +1409,23 @@ function lisansDurumu() {
     kaliciMetaYaz({ makineId: m.makineId, kurulumTarihi: m.kurulumTarihi, sonGorulen: sonGorulenCache, lease: m.lease });
   }
   const durum = lisansM.durumHesapla({
-    anahtar: lisansCache.anahtar, kurulumTarihi: lisansCache.kurulumTarihi,
-    makineId: lisansCache.makineId, sonGorulen: sonGorulenCache, lease: lisansCache.lease, simdi: bugun,
+    anahtar: lisansCache.anahtar,
+    kurulumTarihi: lisansCache.kurulumTarihi,
+    makineId: lisansCache.makineId,
+    sonGorulen: sonGorulenCache,
+    lease: lisansCache.lease,
+    simdi: bugun,
   });
   const ileri = lisansKalici.enIleri(sonGorulenCache, bugun);
   if (ileri !== sonGorulenCache) {
     sonGorulenCache = ileri;
     setMetaValue("sonGorulenTarih", ileri);
-    kaliciMetaYaz({ makineId: lisansCache.makineId, kurulumTarihi: lisansCache.kurulumTarihi, sonGorulen: ileri, lease: lisansCache.lease });
+    kaliciMetaYaz({
+      makineId: lisansCache.makineId,
+      kurulumTarihi: lisansCache.kurulumTarihi,
+      sonGorulen: ileri,
+      lease: lisansCache.lease,
+    });
   }
   return { ...durum, makineId: lisansCache.makineId };
 }
@@ -1032,7 +1465,6 @@ async function lisansYenile() {
 }
 const lisansSaltOkunurMu = () => lisansDurumu().mod === "saltOkunur";
 
-
 // ── Yedek doğrulama (geri yükleme öncesi) ──
 // Verilen data.db dosyasını BU makinenin anahtarıyla açmayı dener; açılırsa özet döner.
 // Başka bir PC'de alınmış (farklı anahtarla şifreli) yedek burada açılamaz → { error }.
@@ -1040,13 +1472,22 @@ const lisansSaltOkunurMu = () => lisansDurumu().mod === "saltOkunur";
 // kopya aynı anahtarla açılıp `rekey=''` ile düz hale getirilir. Kopya yalnız parola korumalı pakete girer, sonra silinir.
 function duzKopyaOlustur(hedefYol) {
   checkpoint();
-  try { fs.rmSync(hedefYol, { force: true }); } catch {}
+  try {
+    fs.rmSync(hedefYol, { force: true });
+  } catch {}
   db.exec(`VACUUM INTO '${String(hedefYol).replace(/'/g, "''")}'`);
   const key = getDbKey();
-  if (key) { const c = new Database(hedefYol); c.pragma(`key='${key}'`); c.pragma("rekey=''"); c.close(); }
+  if (key) {
+    const c = new Database(hedefYol);
+    c.pragma(`key='${key}'`);
+    c.pragma("rekey=''");
+    c.close();
+  }
   // Güvenlik (inceleme 08.09.2026 #1): makine kimliği ve lease pakete GİRMEZ; yoksa makineye kilitli lisans her PC'de
   // geçerli olurdu. Lisans anahtarı kalır (yeni PC kendi makineId'sini üretir, gerekirse yeniden aktive edilir).
-  const c2 = new Database(hedefYol); c2.prepare("DELETE FROM meta WHERE key IN ('makineId','lisansLease')").run(); c2.close();
+  const c2 = new Database(hedefYol);
+  c2.prepare("DELETE FROM meta WHERE key IN ('makineId','lisansLease')").run();
+  c2.close();
   return hedefYol;
 }
 // Yedek/paket özeti bellek içinden (düz data.db baytları) — diske düz kopya yazmadan (inceleme #8).
@@ -1058,15 +1499,28 @@ function yedekBilgisiBuffer(buf) {
     const sv = Number(conn.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 0);
     if (!sv) return { error: "Bu dosya bir Eyüpspor veritabanı değil" };
     if (sv > SCHEMA_VERSION) return { error: `Yedek daha yeni bir program sürümünden (şema ${sv}); önce programı güncelleyin` };
-    return { ok: true, oyuncu: conn.prepare("SELECT count(*) AS n FROM players").get().n, makbuz: conn.prepare("SELECT count(*) AS n FROM receipts").get().n, sonMakbuz: conn.prepare("SELECT max(tarih) AS t FROM receipts").get().t, schema: sv };
-  } catch (e) { return { error: "Paket açılamadı: " + String(e.message || e) }; }
-  finally { try { conn?.close(); } catch {} }
+    return {
+      ok: true,
+      oyuncu: conn.prepare("SELECT count(*) AS n FROM players").get().n,
+      makbuz: conn.prepare("SELECT count(*) AS n FROM receipts").get().n,
+      sonMakbuz: conn.prepare("SELECT max(tarih) AS t FROM receipts").get().t,
+      schema: sv,
+    };
+  } catch (e) {
+    return { error: "Paket açılamadı: " + String(e.message || e) };
+  } finally {
+    try {
+      conn?.close();
+    } catch {}
+  }
 }
 // Düz (şifresiz) bir veritabanı dosyasını bu makinenin anahtarıyla şifreler (taşıma paketinden geri yükleme).
 function duzVeritabaniniSifrele(yol) {
   const key = getDbKey();
   if (!key) return false;
-  const c = new Database(yol); c.pragma(`rekey='${key}'`); c.close();
+  const c = new Database(yol);
+  c.pragma(`rekey='${key}'`);
+  c.close();
   return true;
 }
 // duz=true: dosya şifresiz (taşıma paketinden); yoksa bu makinenin anahtarıyla açılır.
@@ -1087,9 +1541,14 @@ function yedekBilgisi(dbPath, { duz = false } = {}) {
     return { ok: true, oyuncu, makbuz, sonMakbuz, schema: sv };
   } catch (e) {
     const m = String(e.message || e);
-    if (/not a database|file is encrypted|malformed/i.test(m)) return { error: "Yedek açılamadı: başka bir bilgisayarda alınmış olabilir (şifreleme anahtarı farklı) ya da dosya bozuk" };
+    if (/not a database|file is encrypted|malformed/i.test(m))
+      return { error: "Yedek açılamadı: başka bir bilgisayarda alınmış olabilir (şifreleme anahtarı farklı) ya da dosya bozuk" };
     return { error: "Yedek açılamadı: " + m };
-  } finally { try { conn?.close(); } catch {} }
+  } finally {
+    try {
+      conn?.close();
+    } catch {}
+  }
 }
 
 // Dış modüller için işlem sarmalayıcı (aktarım gibi çok adımlı yazımlar tek işlemde olsun).
@@ -1097,22 +1556,105 @@ const islem = (fn) => db.transaction(fn);
 
 module.exports = {
   islem,
-  init, close, checkpoint, isEncrypted, getDbKey, getUploadsDir, getDbPath, yedekBilgisi, yedekBilgisiBuffer, duzKopyaOlustur, duzVeritabaniniSifrele,
+  init,
+  close,
+  checkpoint,
+  isEncrypted,
+  getDbKey,
+  getUploadsDir,
+  getDbPath,
+  yedekBilgisi,
+  yedekBilgisiBuffer,
+  duzKopyaOlustur,
+  duzVeritabaniniSifrele,
   hamBaglanti: () => db, // YALNIZ testler: göç senaryoları için ham SQL
-  getMetaValue, setMetaValue, getSetting, setSetting, aidatAyarlari, aidatAyarlariKaydet,
-  sezonAdayListesi, sezonDurumu, yeniSezonaGec, SEZON_DURUMLARI,
-  getUserByUsername, createUser, verifyPassword, changePassword,
-  listAgeGroups, createAgeGroup, updateAgeGroup, haftayiProgramdanDoldur,
-  createPlayer, updatePlayer, getPlayer, listPlayers, deletePlayer,
-  listGuardians, addGuardian, updateGuardian, deleteGuardian, listEmergency, addEmergency, deleteEmergency,
-  mesajKaydet, mesajSil, sonMesajlar, antrenmanVelileri, updateTraining, bildirimGerekliAyarla, grupBildirimKaydet, grupBildirimSil,
-  listDocuments, addDocument, belgeEkle, tekilBelgeMi, deleteDocument, updateDocument, getDocument, saglikRaporuDurumu, saglikRaporuListesi,
-  listFeeItems, updateFeeItem, listFeeTypes,
-  ensureMonthlyDues, getDue, listDues, listUnpaid,
-  createReceipt, getReceipt, listReceipts, listReceiptsByDate, listCancelledReceipts, setReceiptPdf,
-  createTraining, listTrainings, trainingCalendar, cancelTraining, setAttendance, listAttendance, playerAttendance, playerAttendanceSon,
-  deleteAgeGroup, listPlayersWithDue, playersPage, panoOzet, cancelReceipt, attendanceSummary, attendanceReport,
-  listUsers, setUserActive, resetUserPassword, deleteUser,
-  kurtarmaKodlariUret, kurtarmaKoduSayisi, kurtarmaIleSifirla, kurtarmaKoduNormalize,
-  lisansDurumu, lisansKaydet, leaseKaydet, lisansAktiflestir, lisansYenile, lisansSaltOkunurMu,
+  getMetaValue,
+  setMetaValue,
+  getSetting,
+  setSetting,
+  aidatAyarlari,
+  aidatAyarlariKaydet,
+  sezonAdayListesi,
+  sezonDurumu,
+  yeniSezonaGec,
+  SEZON_DURUMLARI,
+  getUserByUsername,
+  createUser,
+  verifyPassword,
+  changePassword,
+  listAgeGroups,
+  createAgeGroup,
+  updateAgeGroup,
+  haftayiProgramdanDoldur,
+  createPlayer,
+  updatePlayer,
+  getPlayer,
+  listPlayers,
+  deletePlayer,
+  listGuardians,
+  addGuardian,
+  updateGuardian,
+  deleteGuardian,
+  listEmergency,
+  addEmergency,
+  deleteEmergency,
+  mesajKaydet,
+  mesajSil,
+  sonMesajlar,
+  antrenmanVelileri,
+  updateTraining,
+  bildirimGerekliAyarla,
+  grupBildirimKaydet,
+  grupBildirimSil,
+  listDocuments,
+  addDocument,
+  belgeEkle,
+  tekilBelgeMi,
+  deleteDocument,
+  updateDocument,
+  getDocument,
+  saglikRaporuDurumu,
+  saglikRaporuListesi,
+  listFeeItems,
+  updateFeeItem,
+  listFeeTypes,
+  ensureMonthlyDues,
+  getDue,
+  listDues,
+  listUnpaid,
+  createReceipt,
+  getReceipt,
+  listReceipts,
+  listReceiptsByDate,
+  listCancelledReceipts,
+  setReceiptPdf,
+  createTraining,
+  listTrainings,
+  trainingCalendar,
+  cancelTraining,
+  setAttendance,
+  listAttendance,
+  playerAttendance,
+  playerAttendanceSon,
+  deleteAgeGroup,
+  listPlayersWithDue,
+  playersPage,
+  panoOzet,
+  cancelReceipt,
+  attendanceSummary,
+  attendanceReport,
+  listUsers,
+  setUserActive,
+  resetUserPassword,
+  deleteUser,
+  kurtarmaKodlariUret,
+  kurtarmaKoduSayisi,
+  kurtarmaIleSifirla,
+  kurtarmaKoduNormalize,
+  lisansDurumu,
+  lisansKaydet,
+  leaseKaydet,
+  lisansAktiflestir,
+  lisansYenile,
+  lisansSaltOkunurMu,
 };

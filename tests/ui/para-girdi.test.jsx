@@ -8,7 +8,16 @@ afterEach(cleanup);
 
 function Deneme({ onDegis }) {
   const [v, setV] = useState("3500");
-  return <ParaGirdi value={v} onDegis={(x) => { setV(x); onDegis(x); }} aria-label="Tutar" />;
+  return (
+    <ParaGirdi
+      value={v}
+      onDegis={(x) => {
+        setV(x);
+        onDegis(x);
+      }}
+      aria-label="Tutar"
+    />
+  );
 }
 
 describe("ParaGirdi", () => {

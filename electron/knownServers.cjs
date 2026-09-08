@@ -5,13 +5,20 @@
 const fs = require("fs");
 const path = require("path");
 
-function dosyaYolu(app) { return path.join(app.getPath("userData"), "known-servers.json"); }
+function dosyaYolu(app) {
+  return path.join(app.getPath("userData"), "known-servers.json");
+}
 
 function yukle(app) {
   try {
     const p = dosyaYolu(app);
-    if (fs.existsSync(p)) { const m = JSON.parse(fs.readFileSync(p, "utf-8")); if (m && typeof m === "object") return m; }
-  } catch { /* bozuk/yok → boş */ }
+    if (fs.existsSync(p)) {
+      const m = JSON.parse(fs.readFileSync(p, "utf-8"));
+      if (m && typeof m === "object") return m;
+    }
+  } catch {
+    /* bozuk/yok → boş */
+  }
   return {};
 }
 
@@ -25,11 +32,17 @@ function kaydet(app, host, fp) {
     const p = dosyaYolu(app);
     fs.writeFileSync(p + ".tmp", JSON.stringify(m, null, 2), "utf-8");
     fs.renameSync(p + ".tmp", p);
-  } catch (e) { console.error("[known-servers] yazılamadı:", e.message); }
+  } catch (e) {
+    console.error("[known-servers] yazılamadı:", e.message);
+  }
 }
 
-function hostFp(app, host) { return (host && yukle(app)[host]) || null; }            // bu host için kayıtlı fp
-function fpBilinir(app, fp) { return !!fp && Object.values(yukle(app)).includes(fp); } // fp herhangi bir host'ta biliniyor mu
+function hostFp(app, host) {
+  return (host && yukle(app)[host]) || null;
+} // bu host için kayıtlı fp
+function fpBilinir(app, fp) {
+  return !!fp && Object.values(yukle(app)).includes(fp);
+} // fp herhangi bir host'ta biliniyor mu
 
 // Saf güven kararı (test edilebilir). Dönüş: "trusted" | "mismatch" | "needTrust".
 // - force: kullanıcı kimlik-değişti uyarısına rağmen kabul etti → güven.

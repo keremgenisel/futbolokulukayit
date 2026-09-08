@@ -11,18 +11,40 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
   let antrenmanlar;
   beforeEach(() => {
     const t = bugun().iso;
-    antrenmanlar = [{ id: 5, age_group_id: 1, tarih: t, saat: "17:00", saha: "Saha 1", iptal: 0, yas_grubu_ad: "U11", oyuncu: 2, isaretli: 0, geldi: 0 }];
-    window.okul = { app: { logo: vi.fn(async () => "data:image/png;base64,LOGO") }, cikti: { yazdir: vi.fn(async () => ({ ok: true })), pdfKaydet: vi.fn(async () => ({ ok: true })) }, db: vi.fn(async (fn, ...args) => {
-      if (fn === "listAgeGroups") return [{ id: 1, ad: "U11", aktif: 1 }];
-      if (fn === "trainingCalendar") return antrenmanlar;
-      if (fn === "listPlayersWithDue") return [{ id: 10, ad_soyad: "Ada Kaya", durum: "aktif", aidat_durum: "odendi" }, { id: 11, ad_soyad: "Barış Güneş", durum: "aktif", aidat_durum: "odenmedi" }];
-      if (fn === "listAttendance") return [];
-      if (fn === "setAttendance") { antrenmanlar[0].isaretli += 1; return {}; }
-      if (fn === "createTraining") { const y = { id: 6, ...args[0], iptal: 0, yas_grubu_ad: "U11", oyuncu: 2, isaretli: 0, geldi: 0 }; antrenmanlar.push(y); return y; }
-      throw new Error("beklenmeyen çağrı " + fn);
-    }) };
+    antrenmanlar = [
+      { id: 5, age_group_id: 1, tarih: t, saat: "17:00", saha: "Saha 1", iptal: 0, yas_grubu_ad: "U11", oyuncu: 2, isaretli: 0, geldi: 0 },
+    ];
+    window.okul = {
+      app: { logo: vi.fn(async () => "data:image/png;base64,LOGO") },
+      cikti: { yazdir: vi.fn(async () => ({ ok: true })), pdfKaydet: vi.fn(async () => ({ ok: true })) },
+      db: vi.fn(async (fn, ...args) => {
+        if (fn === "listAgeGroups") return [{ id: 1, ad: "U11", aktif: 1 }];
+        if (fn === "trainingCalendar") return antrenmanlar;
+        if (fn === "listPlayersWithDue")
+          return [
+            { id: 10, ad_soyad: "Ada Kaya", durum: "aktif", aidat_durum: "odendi" },
+            { id: 11, ad_soyad: "Barış Güneş", durum: "aktif", aidat_durum: "odenmedi" },
+          ];
+        if (fn === "listAttendance") return [];
+        if (fn === "setAttendance") {
+          antrenmanlar[0].isaretli += 1;
+          return {};
+        }
+        if (fn === "createTraining") {
+          const y = { id: 6, ...args[0], iptal: 0, yas_grubu_ad: "U11", oyuncu: 2, isaretli: 0, geldi: 0 };
+          antrenmanlar.push(y);
+          return y;
+        }
+        throw new Error("beklenmeyen çağrı " + fn);
+      }),
+    };
   });
-  const kur = () => render(<ToastSaglayici><Yoklama saltOkunur={false} /></ToastSaglayici>);
+  const kur = () =>
+    render(
+      <ToastSaglayici>
+        <Yoklama saltOkunur={false} />
+      </ToastSaglayici>,
+    );
 
   it("bugünün antrenmanı kart olarak gelir; seçince oyuncu listesi ve işaretleme çalışır, kart sayacı güncellenir", async () => {
     kur();
@@ -46,13 +68,19 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.change(screen.getByLabelText("Yaş grubu"), { target: { value: "1" } });
     fireEvent.change(screen.getByLabelText("Saat"), { target: { value: "18:30" } });
     fireEvent.click(screen.getByRole("button", { name: "Ekle" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("createTraining", expect.objectContaining({ age_group_id: 1, saat: "18:30" })));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("createTraining", expect.objectContaining({ age_group_id: 1, saat: "18:30" })),
+    );
     const yeni = await screen.findByRole("button", { name: /U11 · 18:30/ });
     await waitFor(() => expect(yeni).toHaveAttribute("aria-pressed", "true"));
   });
 
   it("salt okunur modda ekleme düğmesi yok", async () => {
-    render(<ToastSaglayici><Yoklama saltOkunur /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <Yoklama saltOkunur />
+      </ToastSaglayici>,
+    );
     await screen.findByRole("button", { name: /U11 · 17:00/ });
     expect(screen.queryByRole("button", { name: "Antrenman Ekle" })).toBeNull();
   });
@@ -66,14 +94,23 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Formu Yazdır" }));
     await waitFor(() => expect(window.okul.cikti.yazdir).toHaveBeenCalledTimes(1));
     const html = window.okul.cikti.yazdir.mock.calls[0][0];
-    expect(html).toContain("YOKLAMA FORMU"); expect(html).toContain('<span class="grup">U11</span>'); expect(html).toContain("17:00"); expect(html).toContain("Saha 1");
+    expect(html).toContain("YOKLAMA FORMU");
+    expect(html).toContain('<span class="grup">U11</span>');
+    expect(html).toContain("17:00");
+    expect(html).toContain("Saha 1");
     expect(html).toContain('src="data:image/png;base64,LOGO"');
     const satir = (ad) => html.split("<tr>").find((s) => s.includes(ad));
     expect(satir("Ada Kaya")).toMatch(/<div class="kutu dolu">/); // programda geldi → dolu
-    expect(satir("Barış Güneş")).not.toContain("kutu dolu");       // işaretsiz → üç boş kutu
-    expect(html.toLowerCase()).not.toMatch(/aidat|borç/);          // borç bilgisi forma girmez
+    expect(satir("Barış Güneş")).not.toContain("kutu dolu"); // işaretsiz → üç boş kutu
+    expect(html.toLowerCase()).not.toMatch(/aidat|borç/); // borç bilgisi forma girmez
     fireEvent.click(screen.getByRole("button", { name: "PDF" }));
-    await waitFor(() => expect(window.okul.cikti.pdfKaydet).toHaveBeenCalledWith(expect.stringContaining("YOKLAMA FORMU"), `yoklama-U11-${bugun().iso}.pdf`, false));
+    await waitFor(() =>
+      expect(window.okul.cikti.pdfKaydet).toHaveBeenCalledWith(
+        expect.stringContaining("YOKLAMA FORMU"),
+        `yoklama-U11-${bugun().iso}.pdf`,
+        false,
+      ),
+    );
   });
 
   it("yazıcı yoksa Formu Yazdır sessiz kalmaz: uyarı verir ve formu PDF olarak açar; iptalde PDF açılmaz", async () => {
@@ -83,7 +120,9 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
     await screen.findByText("Ada Kaya");
     fireEvent.click(screen.getByRole("button", { name: "Formu Yazdır" }));
-    await waitFor(() => expect(window.okul.cikti.pdfAc).toHaveBeenCalledWith(expect.stringContaining("YOKLAMA FORMU"), `yoklama-U11-${bugun().iso}`, false));
+    await waitFor(() =>
+      expect(window.okul.cikti.pdfAc).toHaveBeenCalledWith(expect.stringContaining("YOKLAMA FORMU"), `yoklama-U11-${bugun().iso}`, false),
+    );
     expect(await screen.findByText(/tanımlı yazıcı yok.*PDF olarak açıldı/)).toBeInTheDocument();
     window.okul.cikti.yazdir = vi.fn(async () => ({ ok: false, hata: "Print job canceled" }));
     window.okul.cikti.pdfAc.mockClear();
@@ -93,14 +132,32 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
   });
 
   it("Düzenle: saat/saha değişince güncellenir, 'Velilere bildirilsin mi?' sorulur, Evet → grubun velileriyle bildirim penceresi; kartta rozet", async () => {
-    let veliler = [{ player_id: 10, ad_soyad: "Ada Kaya", guardian_id: 50, veli_ad: "Selin Kaya", veli_wa: "05421234567", veli_onay: 1, mesaj_id: null }, { player_id: 11, ad_soyad: "Barış Güneş", guardian_id: 51, veli_ad: "Hakan Güneş", veli_wa: "", veli_onay: 1, mesaj_id: null }];
+    let veliler = [
+      { player_id: 10, ad_soyad: "Ada Kaya", guardian_id: 50, veli_ad: "Selin Kaya", veli_wa: "05421234567", veli_onay: 1, mesaj_id: null },
+      { player_id: 11, ad_soyad: "Barış Güneş", guardian_id: 51, veli_ad: "Hakan Güneş", veli_wa: "", veli_onay: 1, mesaj_id: null },
+    ];
     window.okul.app = { whatsappAc: vi.fn(async () => ({ ok: true })) };
     const eskiDb = window.okul.db.getMockImplementation();
     window.okul.db.mockImplementation(async (fn, ...args) => {
-      if (fn === "updateTraining") { Object.assign(antrenmanlar[0], { saat: args[1].saat, saha: args[1].saha, bildirim_gerekli: 1, degisiklik_notu: JSON.stringify({ eskiTarih: antrenmanlar[0].tarih, eskiSaat: "17:00" }) }); return { ...antrenmanlar[0], degisti: true }; }
+      if (fn === "updateTraining") {
+        Object.assign(antrenmanlar[0], {
+          saat: args[1].saat,
+          saha: args[1].saha,
+          bildirim_gerekli: 1,
+          degisiklik_notu: JSON.stringify({ eskiTarih: antrenmanlar[0].tarih, eskiSaat: "17:00" }),
+        });
+        return { ...antrenmanlar[0], degisti: true };
+      }
       if (fn === "antrenmanVelileri") return veliler;
-      if (fn === "mesajKaydet") { veliler = veliler.map((v) => (v.player_id === args[0].player_id ? { ...v, mesaj_id: 9 } : v)); antrenmanlar[0].bildirilen = 1; return { id: 9 }; }
-      if (fn === "bildirimGerekliAyarla") { antrenmanlar[0].bildirim_gerekli = args[1]; return {}; }
+      if (fn === "mesajKaydet") {
+        veliler = veliler.map((v) => (v.player_id === args[0].player_id ? { ...v, mesaj_id: 9 } : v));
+        antrenmanlar[0].bildirilen = 1;
+        return { id: 9 };
+      }
+      if (fn === "bildirimGerekliAyarla") {
+        antrenmanlar[0].bildirim_gerekli = args[1];
+        return {};
+      }
       if (fn === "getSetting") return "";
       return eskiDb(fn, ...args);
     });
@@ -111,7 +168,9 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.change(screen.getByLabelText("Antrenman saati"), { target: { value: "18:30" } });
     fireEvent.change(screen.getByLabelText("Antrenman sahası"), { target: { value: "Saha 2" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("updateTraining", 5, { tarih: bugun().iso, saat: "18:30", saha: "Saha 2" }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("updateTraining", 5, { tarih: bugun().iso, saat: "18:30", saha: "Saha 2" }),
+    );
     await screen.findByText(/velilerine WhatsApp ile değişiklik bildirilsin mi\?/);
     const soru = screen.getByRole("dialog");
     fireEvent.click(within(soru).getByRole("button", { name: "Evet" }));
@@ -119,10 +178,16 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     const dlg = screen.getByRole("dialog");
     expect(within(dlg).getByText("Veli numarası yok")).toBeInTheDocument(); // Barış'ın velisinde numara yok
     const on = await within(dlg).findByTestId("wa-onizleme");
-    expect(on).toHaveTextContent("17:00 antrenmanı"); expect(on).toHaveTextContent("18:30 saatine alınmıştır (Saha 2)");
+    expect(on).toHaveTextContent("17:00 antrenmanı");
+    expect(on).toHaveTextContent("18:30 saatine alınmıştır (Saha 2)");
     expect(within(dlg).getByTestId("wa-grup")).toHaveTextContent("U11 veli WhatsApp grubuna tek mesaj"); // toplu seçenek de var
     fireEvent.click(within(dlg).getByRole("button", { name: "Selin Kaya WhatsApp'ta aç" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("mesajKaydet", expect.objectContaining({ player_id: 10, guardian_id: 50, tur: "degisiklik", training_id: 5 })));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith(
+        "mesajKaydet",
+        expect.objectContaining({ player_id: 10, guardian_id: 50, tur: "degisiklik", training_id: 5 }),
+      ),
+    );
     fireEvent.click(within(dlg).getByRole("button", { name: "Kapat" }));
     // Tek uygun veliye açıldı → bayrak iner
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("bildirimGerekliAyarla", 5, 0));
@@ -131,7 +196,10 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
   it("İptal Et sonrası bildirim sorusu; Hayır denirse kartta 'Velilere bildirilmedi' ve başlıkta 'Velilere Bildir'", async () => {
     const eskiDb = window.okul.db.getMockImplementation();
     window.okul.db.mockImplementation(async (fn, ...args) => {
-      if (fn === "cancelTraining") { Object.assign(antrenmanlar[0], { iptal: 1, bildirim_gerekli: 1, bildirilen: 0 }); return {}; }
+      if (fn === "cancelTraining") {
+        Object.assign(antrenmanlar[0], { iptal: 1, bildirim_gerekli: 1, bildirilen: 0 });
+        return {};
+      }
       return eskiDb(fn, ...args);
     });
     kur();
@@ -149,10 +217,17 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
   });
 
   it("veli grubuna bildirilmiş antrenmanın başlığında 'Geri al' vardır (iptal ve değişiklik); tıklayınca kayıt silinir ve 'Velilere Bildir' geri gelir", async () => {
-    Object.assign(antrenmanlar[0], { iptal: 1, bildirim_gerekli: 0, grup_bildirim: JSON.stringify({ zaman: "2026-09-07T10:00:00Z", kullanici: "Y" }) });
+    Object.assign(antrenmanlar[0], {
+      iptal: 1,
+      bildirim_gerekli: 0,
+      grup_bildirim: JSON.stringify({ zaman: "2026-09-07T10:00:00Z", kullanici: "Y" }),
+    });
     const eskiDb = window.okul.db.getMockImplementation();
     window.okul.db.mockImplementation(async (fn, ...args) => {
-      if (fn === "grupBildirimSil") { Object.assign(antrenmanlar[0], { grup_bildirim: "", bildirim_gerekli: 1 }); return {}; }
+      if (fn === "grupBildirimSil") {
+        Object.assign(antrenmanlar[0], { grup_bildirim: "", bildirim_gerekli: 1 });
+        return {};
+      }
       return eskiDb(fn, ...args);
     });
     kur();

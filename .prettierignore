@@ -1,0 +1,7 @@
+dist/
+release/
+coverage/
+node_modules/
+design/
+package-lock.json
+aktivasyon-sunucu/node_modules/

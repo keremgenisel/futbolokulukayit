@@ -10,24 +10,41 @@ describe("Yaş Grupları ekranı", () => {
   let gruplar;
   beforeEach(() => {
     gruplar = [{ id: 1, ad: "U11", sezon: "2026-2027", sira: 1, aktif: 1 }];
-    window.okul = { db: vi.fn(async (fn, ...args) => {
-      if (fn === "listAgeGroups") return gruplar;
-      if (fn === "listPlayers") return [{ id: 9, yas_grubu_id: 1, durum: "aktif" }, { id: 10, yas_grubu_id: 1, durum: "ayrildi" }];
-      if (fn === "createAgeGroup") { gruplar = [...gruplar, { id: 2, ...args[0], aktif: 1 }]; return gruplar[1]; }
-      if (fn === "deleteAgeGroup") return { error: "Bu grupta 1 oyuncu var, önce oyuncuları taşıyın" };
-      return null;
-    }) };
+    window.okul = {
+      db: vi.fn(async (fn, ...args) => {
+        if (fn === "listAgeGroups") return gruplar;
+        if (fn === "listPlayers")
+          return [
+            { id: 9, yas_grubu_id: 1, durum: "aktif" },
+            { id: 10, yas_grubu_id: 1, durum: "ayrildi" },
+          ];
+        if (fn === "createAgeGroup") {
+          gruplar = [...gruplar, { id: 2, ...args[0], aktif: 1 }];
+          return gruplar[1];
+        }
+        if (fn === "deleteAgeGroup") return { error: "Bu grupta 1 oyuncu var, önce oyuncuları taşıyın" };
+        return null;
+      }),
+    };
   });
 
   it("grupları ve yalnız aktif oyuncu sayısını listeler", async () => {
-    render(<ToastSaglayici><YasGruplari /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
     await waitFor(() => expect(screen.getByText("U11")).toBeInTheDocument());
     // 2 oyuncudan biri ayrıldı → 1 aktif
     expect(screen.getAllByRole("cell").map((c) => c.textContent)).toContain("1");
   });
 
   it("yeni grup ekler", async () => {
-    render(<ToastSaglayici><YasGruplari /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
     await waitFor(() => screen.getByText("U11"));
     fireEvent.change(screen.getByPlaceholderText("U11"), { target: { value: "U12" } });
     fireEvent.click(screen.getByRole("button", { name: "Grup Ekle" }));
@@ -36,7 +53,11 @@ describe("Yaş Grupları ekranı", () => {
   });
 
   it("oyuncusu olan grubu silmeye çalışınca hatayı gösterir", async () => {
-    render(<ToastSaglayici><YasGruplari /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
     await waitFor(() => screen.getByText("U11"));
     fireEvent.click(screen.getByRole("button", { name: "Sil" }));
     fireEvent.click(screen.getByRole("button", { name: "Evet" }));
@@ -44,7 +65,11 @@ describe("Yaş Grupları ekranı", () => {
   });
 
   it("salt okunur modda ekleme ve silme düğmeleri görünmez", async () => {
-    render(<ToastSaglayici><YasGruplari saltOkunur /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <YasGruplari saltOkunur />
+      </ToastSaglayici>,
+    );
     await waitFor(() => screen.getByText("U11"));
     expect(screen.queryByRole("button", { name: "Grup Ekle" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Sil" })).toBeNull();

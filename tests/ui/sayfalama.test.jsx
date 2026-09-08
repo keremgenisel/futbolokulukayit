@@ -16,8 +16,10 @@ describe("Sayfalama bileşeni", () => {
     render(<Sayfalama sayfa={2} toplam={312} sayfaBoyu={50} onSayfa={onSayfa} birim="oyuncu" />);
     expect(screen.getByText("51–100 / 312 oyuncu")).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Sayfalama" })).toHaveTextContent("Sayfa 2 / 7");
-    fireEvent.click(screen.getByRole("button", { name: "Sonraki sayfa" })); expect(onSayfa).toHaveBeenCalledWith(3);
-    fireEvent.click(screen.getByRole("button", { name: "Önceki sayfa" })); expect(onSayfa).toHaveBeenCalledWith(1);
+    fireEvent.click(screen.getByRole("button", { name: "Sonraki sayfa" }));
+    expect(onSayfa).toHaveBeenCalledWith(3);
+    fireEvent.click(screen.getByRole("button", { name: "Önceki sayfa" }));
+    expect(onSayfa).toHaveBeenCalledWith(1);
     cleanup();
     render(<Sayfalama sayfa={7} toplam={312} sayfaBoyu={50} onSayfa={onSayfa} />);
     expect(screen.getByRole("button", { name: "Sonraki sayfa" })).toBeDisabled();
@@ -27,18 +29,39 @@ describe("Sayfalama bileşeni", () => {
 
 describe("Oyuncular: sayfalı liste", () => {
   it("ilk 50 gösterilir, sonraki sayfaya geçilir, filtre değişince 1. sayfaya dönülür, dışa aktarım tam listeyi alır", async () => {
-    const hepsi = Array.from({ length: 120 }, (_, i) => ({ id: i + 1, ad_soyad: `Oyuncu ${String(i + 1).padStart(3, "0")}`, uyruk: "tc", tc_no: null, dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi" }));
+    const hepsi = Array.from({ length: 120 }, (_, i) => ({
+      id: i + 1,
+      ad_soyad: `Oyuncu ${String(i + 1).padStart(3, "0")}`,
+      uyruk: "tc",
+      tc_no: null,
+      dogum_tarihi: "2015-01-01",
+      durum: "aktif",
+      ucret_tipi: "normal",
+      aylik_aidat: 1,
+      aidat_durum: "odendi",
+    }));
     const cagrilar = [];
     window.okul = {
       db: vi.fn(async (fn, a) => {
         if (fn === "listAgeGroups") return [];
-        if (fn === "playersPage") { cagrilar.push(a); const boy = a.sayfaBoyu, s = a.sayfa; const f = a.q ? hepsi.filter((o) => o.ad_soyad.includes(a.q)) : hepsi; return { liste: f.slice((s - 1) * boy, s * boy), toplam: f.length, sayfa: s, sayfaBoyu: boy }; }
+        if (fn === "playersPage") {
+          cagrilar.push(a);
+          const boy = a.sayfaBoyu,
+            s = a.sayfa;
+          const f = a.q ? hepsi.filter((o) => o.ad_soyad.includes(a.q)) : hepsi;
+          return { liste: f.slice((s - 1) * boy, s * boy), toplam: f.length, sayfa: s, sayfaBoyu: boy };
+        }
         if (fn === "listPlayersWithDue") return hepsi;
         return null;
       }),
-      cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) }, app: { logo: async () => "" },
+      cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) },
+      app: { logo: async () => "" },
     };
-    render(<ToastSaglayici><Oyuncular oturum={{ role: "admin" }} saltOkunur={false} /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <Oyuncular oturum={{ role: "admin" }} saltOkunur={false} />
+      </ToastSaglayici>,
+    );
     await screen.findByText("Oyuncu 001");
     expect(screen.queryByText("Oyuncu 051")).toBeNull();
     expect(screen.getByText("120 oyuncu")).toBeInTheDocument();
@@ -56,9 +79,26 @@ describe("Oyuncular: sayfalı liste", () => {
 
 describe("Raporlar: önizleme sayfalı", () => {
   it("250 satırlık rapor önizlemede 100'er gösterilir, Excel tamamını alır", async () => {
-    const l = Array.from({ length: 250 }, (_, i) => ({ id: i + 1, ad_soyad: `Rapor Oyuncu ${String(i + 1).padStart(3, "0")}`, uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi" }));
-    window.okul = { db: vi.fn(async (fn) => (fn === "listAgeGroups" ? [] : fn === "listPlayersWithDue" ? l : null)), cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) }, app: { logo: async () => "" } };
-    render(<ToastSaglayici><Raporlar /></ToastSaglayici>);
+    const l = Array.from({ length: 250 }, (_, i) => ({
+      id: i + 1,
+      ad_soyad: `Rapor Oyuncu ${String(i + 1).padStart(3, "0")}`,
+      uyruk: "tc",
+      dogum_tarihi: "2015-01-01",
+      durum: "aktif",
+      ucret_tipi: "normal",
+      aylik_aidat: 1,
+      aidat_durum: "odendi",
+    }));
+    window.okul = {
+      db: vi.fn(async (fn) => (fn === "listAgeGroups" ? [] : fn === "listPlayersWithDue" ? l : null)),
+      cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Raporlar />
+      </ToastSaglayici>,
+    );
     fireEvent.click(screen.getByRole("button", { name: "Önizle" }));
     await screen.findByText("Rapor Oyuncu 001");
     expect(screen.queryByText("Rapor Oyuncu 101")).toBeNull();
@@ -75,39 +115,140 @@ describe("Raporlar: önizleme sayfalı", () => {
 
   it("Sağlık Raporu Durumu raporu: bugüne göre, grup filtresi, en acil önce, özet satırı", async () => {
     const l = [
-      { player_id: 1, ad_soyad: "Ada Kaya", yas_grubu_ad: "U11", veli_tel: "05321112233", gecerlilik: "2026-08-01", durum: "doldu", kalanGun: -37 },
-      { player_id: 2, ad_soyad: "Barış Güneş", yas_grubu_ad: "U11", veli_tel: "", gecerlilik: "2026-09-20", durum: "dolacak", kalanGun: 13 },
+      {
+        player_id: 1,
+        ad_soyad: "Ada Kaya",
+        yas_grubu_ad: "U11",
+        veli_tel: "05321112233",
+        gecerlilik: "2026-08-01",
+        durum: "doldu",
+        kalanGun: -37,
+      },
+      {
+        player_id: 2,
+        ad_soyad: "Barış Güneş",
+        yas_grubu_ad: "U11",
+        veli_tel: "",
+        gecerlilik: "2026-09-20",
+        durum: "dolacak",
+        kalanGun: 13,
+      },
       { player_id: 3, ad_soyad: "Cem Polat", yas_grubu_ad: "U12", veli_tel: "", gecerlilik: null, durum: "yok", kalanGun: null },
-      { player_id: 4, ad_soyad: "Deniz Aksoy", yas_grubu_ad: "U12", veli_tel: "", gecerlilik: "2027-05-05", durum: "gecerli", kalanGun: 240 },
+      {
+        player_id: 4,
+        ad_soyad: "Deniz Aksoy",
+        yas_grubu_ad: "U12",
+        veli_tel: "",
+        gecerlilik: "2027-05-05",
+        durum: "gecerli",
+        kalanGun: 240,
+      },
     ];
-    window.okul = { db: vi.fn(async (fn, ...a) => (fn === "listAgeGroups" ? [{ id: 1, ad: "U11" }, { id: 2, ad: "U12" }] : fn === "saglikRaporuListesi" ? l.filter((x) => !a[1] || (a[1] === 1 ? x.yas_grubu_ad === "U11" : x.yas_grubu_ad === "U12")) : null)), cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) }, app: { logo: async () => "" } };
-    render(<ToastSaglayici><Raporlar /></ToastSaglayici>);
+    window.okul = {
+      db: vi.fn(async (fn, ...a) =>
+        fn === "listAgeGroups"
+          ? [
+              { id: 1, ad: "U11" },
+              { id: 2, ad: "U12" },
+            ]
+          : fn === "saglikRaporuListesi"
+            ? l.filter((x) => !a[1] || (a[1] === 1 ? x.yas_grubu_ad === "U11" : x.yas_grubu_ad === "U12"))
+            : null,
+      ),
+      cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Raporlar />
+      </ToastSaglayici>,
+    );
     fireEvent.click(await screen.findByText("Sağlık Raporu Durumu"));
     expect(screen.getByText(/Bugünün tarihine göre hesaplanır/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Önizle" }));
     await screen.findByText("Süresi doldu");
     expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/), null);
-    const satirlar = screen.getAllByRole("row").slice(1).map((r) => r.textContent);
-    expect(satirlar[0]).toContain("Ada Kaya"); expect(satirlar[0]).toContain("01.08.2026"); expect(satirlar[0]).toContain("-37");
-    expect(satirlar[3]).toContain("Deniz Aksoy"); expect(satirlar[3]).toContain("Geçerli");
+    const satirlar = screen
+      .getAllByRole("row")
+      .slice(1)
+      .map((r) => r.textContent);
+    expect(satirlar[0]).toContain("Ada Kaya");
+    expect(satirlar[0]).toContain("01.08.2026");
+    expect(satirlar[0]).toContain("-37");
+    expect(satirlar[3]).toContain("Deniz Aksoy");
+    expect(satirlar[3]).toContain("Geçerli");
     expect(screen.getByText(/1 doldu · 1 dolacak · 1 yok · 1 geçerli/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Yaş grubu"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Önizle" }));
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", expect.any(String), 2));
     await waitFor(() => expect(screen.queryByText("Ada Kaya")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Excel" }));
-    await waitFor(() => expect(window.okul.cikti.excelKaydet).toHaveBeenCalledWith(expect.objectContaining({ sayfa: "Sağlık Raporu Durumu" }), expect.any(String)));
+    await waitFor(() =>
+      expect(window.okul.cikti.excelKaydet).toHaveBeenCalledWith(
+        expect.objectContaining({ sayfa: "Sağlık Raporu Durumu" }),
+        expect.any(String),
+      ),
+    );
   });
 
   it("Oyuncular: 'Sağlık raporu olmayanlar' filtresi bugünün tarihiyle sorguya gider; satırda rapor rozeti", async () => {
     const cagrilar = [];
     const l = [
-      { id: 1, ad_soyad: "Raporsuz Oyuncu", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi", saglik_adet: 0, saglik_gecerlilik: null },
-      { id: 2, ad_soyad: "Dolmuş Oyuncu", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi", saglik_adet: 1, saglik_gecerlilik: "2020-01-01" },
-      { id: 3, ad_soyad: "Geçerli Oyuncu", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 1, aidat_durum: "odendi", saglik_adet: 1, saglik_gecerlilik: "2099-01-01" },
+      {
+        id: 1,
+        ad_soyad: "Raporsuz Oyuncu",
+        uyruk: "tc",
+        dogum_tarihi: "2015-01-01",
+        durum: "aktif",
+        ucret_tipi: "normal",
+        aylik_aidat: 1,
+        aidat_durum: "odendi",
+        saglik_adet: 0,
+        saglik_gecerlilik: null,
+      },
+      {
+        id: 2,
+        ad_soyad: "Dolmuş Oyuncu",
+        uyruk: "tc",
+        dogum_tarihi: "2015-01-01",
+        durum: "aktif",
+        ucret_tipi: "normal",
+        aylik_aidat: 1,
+        aidat_durum: "odendi",
+        saglik_adet: 1,
+        saglik_gecerlilik: "2020-01-01",
+      },
+      {
+        id: 3,
+        ad_soyad: "Geçerli Oyuncu",
+        uyruk: "tc",
+        dogum_tarihi: "2015-01-01",
+        durum: "aktif",
+        ucret_tipi: "normal",
+        aylik_aidat: 1,
+        aidat_durum: "odendi",
+        saglik_adet: 1,
+        saglik_gecerlilik: "2099-01-01",
+      },
     ];
-    window.okul = { db: vi.fn(async (fn, a) => { if (fn === "listAgeGroups") return []; if (fn === "playersPage") { cagrilar.push(a); const f = a.saglikSorunlu ? l.filter((o) => o.id !== 3) : l; return { liste: f, toplam: f.length, sayfa: 1, sayfaBoyu: 50 }; } return null; }), cikti: {}, app: { logo: async () => "" } };
-    render(<ToastSaglayici><Oyuncular oturum={{ role: "admin" }} saltOkunur={false} /></ToastSaglayici>);
+    window.okul = {
+      db: vi.fn(async (fn, a) => {
+        if (fn === "listAgeGroups") return [];
+        if (fn === "playersPage") {
+          cagrilar.push(a);
+          const f = a.saglikSorunlu ? l.filter((o) => o.id !== 3) : l;
+          return { liste: f, toplam: f.length, sayfa: 1, sayfaBoyu: 50 };
+        }
+        return null;
+      }),
+      cikti: {},
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Oyuncular oturum={{ role: "admin" }} saltOkunur={false} />
+      </ToastSaglayici>,
+    );
     await screen.findByText("Geçerli Oyuncu");
     expect(screen.getByText("Sağlık raporu yok")).toBeInTheDocument();
     expect(screen.getByText(/Süresi doldu/)).toBeInTheDocument();

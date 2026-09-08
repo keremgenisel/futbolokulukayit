@@ -16,7 +16,12 @@ function dispatcher() {
   return dispatcherCache.d;
 }
 
-class IstemciHata extends Error { constructor(m, kod) { super(m); this.kod = kod; } }
+class IstemciHata extends Error {
+  constructor(m, kod) {
+    super(m);
+    this.kod = kod;
+  }
+}
 
 async function istek(yol, { method = "GET", body, auth = true, timeoutMs = 20000, raw = false, urlOverride = null } = {}) {
   const c = config.oku();
@@ -27,15 +32,27 @@ async function istek(yol, { method = "GET", body, auth = true, timeoutMs = 20000
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   const headers = { "content-type": "application/json" };
-  if (auth) { const tok = config.tokenOku(); if (tok) headers.authorization = "Bearer " + tok; }
+  if (auth) {
+    const tok = config.tokenOku();
+    if (tok) headers.authorization = "Bearer " + tok;
+  }
   let r;
   try {
-    r = await pinliFetch(base + yol, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined, signal: ctrl.signal, dispatcher: d });
+    r = await pinliFetch(base + yol, {
+      method,
+      headers,
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal,
+      dispatcher: d,
+    });
   } catch (e) {
     const m = String(e?.cause?.code || e?.message || e);
-    if (/CERT|certificate|self signed|altname/i.test(m)) throw new IstemciHata("Sunucu kimliği doğrulanamadı (sertifika değişmiş olabilir). Ayarlar > Sunucu'dan yeniden bağlanın.", 0);
+    if (/CERT|certificate|self signed|altname/i.test(m))
+      throw new IstemciHata("Sunucu kimliği doğrulanamadı (sertifika değişmiş olabilir). Ayarlar > Sunucu'dan yeniden bağlanın.", 0);
     throw new IstemciHata("Sunucuya ulaşılamadı: " + m, 0);
-  } finally { clearTimeout(t); }
+  } finally {
+    clearTimeout(t);
+  }
   if (raw) return r;
   const j = await r.json().catch(() => ({}));
   if (!r.ok) throw new IstemciHata(j.error || `Sunucu hatası (${r.status})`, r.status);
@@ -49,7 +66,14 @@ async function baglan(url, { trust = false, force = false } = {}) {
   if (u.protocol !== "https:") throw new IstemciHata("Adres https:// ile başlamalı", 0);
   const host = u.host;
   const { fp, pem } = await sertifikaParmakIziAl(u.origin);
-  const karar = knownServers.guvenKarari({ certFp: fp, hostFp: knownServers.hostFp(app, host), configFp: config.oku().serverCertFp, fpKnown: knownServers.fpBilinir(app, fp), trust, force });
+  const karar = knownServers.guvenKarari({
+    certFp: fp,
+    hostFp: knownServers.hostFp(app, host),
+    configFp: config.oku().serverCertFp,
+    fpKnown: knownServers.fpBilinir(app, fp),
+    trust,
+    force,
+  });
   if (karar === "mismatch") return { mismatch: true, fp, eskiFp: knownServers.hostFp(app, host) };
   if (karar === "needTrust") return { needTrust: true, fp };
   // Güvenildi: pini yaz, sağlık kontrolü yap
@@ -67,7 +91,12 @@ async function login(username, password) {
 }
 async function oturum() {
   if (!config.tokenOku()) return null;
-  try { return (await istek("/api/auth/me")).user; } catch (e) { if (e.kod === 401) config.tokenYaz(null); return null; }
+  try {
+    return (await istek("/api/auth/me")).user;
+  } catch (e) {
+    if (e.kod === 401) config.tokenYaz(null);
+    return null;
+  }
 }
 async function parolaDegistir(newPassword, oldPassword) {
   const r = await istek("/api/auth/changePassword", { method: "POST", body: { newPassword, oldPassword } });
@@ -75,18 +104,23 @@ async function parolaDegistir(newPassword, oldPassword) {
   return r;
 }
 const kurtarmaUret = (userId) => istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId } });
-const kurtarmaSifirla = (username, kod, yeniParola) => istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username, kod, yeniParola }, auth: false });
+const kurtarmaSifirla = (username, kod, yeniParola) =>
+  istek("/api/auth/kurtarmaSifirla", { method: "POST", body: { username, kod, yeniParola }, auth: false });
 const dbCall = async (fn, args) => (await istek("/api/db", { method: "POST", body: { fn, args } })).sonuc;
 
 async function dosyaIndir(yol) {
   const r = await istek("/api/files/indir?yol=" + encodeURIComponent(yol), { raw: true, timeoutMs: 120000 });
   if (!r.ok) throw new IstemciHata("Dosya indirilemedi", r.status);
-  const dir = path.join(os.tmpdir(), "eyupspor-belge"); fs.mkdirSync(dir, { recursive: true });
+  const dir = path.join(os.tmpdir(), "eyupspor-belge");
+  fs.mkdirSync(dir, { recursive: true });
   const hedef = path.join(dir, path.basename(yol));
   fs.writeFileSync(hedef, Buffer.from(await r.arrayBuffer()));
   return hedef;
 }
 
-function kopar() { config.tokenYaz(null); config.yaz({ mode: "yerel", serverUrl: "", serverCertFp: "", serverCertPem: "" }); }
+function kopar() {
+  config.tokenYaz(null);
+  config.yaz({ mode: "yerel", serverUrl: "", serverCertFp: "", serverCertPem: "" });
+}
 
 module.exports = { istek, baglan, login, oturum, parolaDegistir, kurtarmaUret, kurtarmaSifirla, dbCall, dosyaIndir, kopar, IstemciHata };

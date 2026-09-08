@@ -21,11 +21,33 @@ const SUTUNLAR = [
   { anahtar: "veli_onay", basliklar: ["mesaj onayı", "mesaj onayi", "whatsapp onayı", "whatsapp onayi", "bilgilendirme onayı"] },
   { anahtar: "notlar", basliklar: ["not", "notlar", "açıklama"] },
 ];
-const DURUM = { aktif: "aktif", deneme: "deneme", pasif: "pasif", ayrıldı: "ayrildi", ayrildi: "ayrildi", sakat: "sakat", dondurma: "dondurma" };
-const UCRET = { normal: "normal", burslu: "burslu", indirimli: "indirimli", kardeş: "kardes", kardes: "kardes", "kardeş indirimi": "kardes", ücretsiz: "ucretsiz", ucretsiz: "ucretsiz" };
+const DURUM = {
+  aktif: "aktif",
+  deneme: "deneme",
+  pasif: "pasif",
+  ayrıldı: "ayrildi",
+  ayrildi: "ayrildi",
+  sakat: "sakat",
+  dondurma: "dondurma",
+};
+const UCRET = {
+  normal: "normal",
+  burslu: "burslu",
+  indirimli: "indirimli",
+  kardeş: "kardes",
+  kardes: "kardes",
+  "kardeş indirimi": "kardes",
+  ücretsiz: "ucretsiz",
+  ucretsiz: "ucretsiz",
+};
 const DONEM = new Set(["1-10", "11-20", "21-31"]);
 
-const norm = (s) => String(s ?? "").trim().toLocaleLowerCase("tr-TR").replace(/[.:_-]+/g, " ").replace(/\s+/g, " ");
+const norm = (s) =>
+  String(s ?? "")
+    .trim()
+    .toLocaleLowerCase("tr-TR")
+    .replace(/[.:_-]+/g, " ")
+    .replace(/\s+/g, " ");
 
 /** Başlık satırından sütun eşlemesi: { anahtar: sütunIndeksi } */
 function basliklariEsle(baslikSatiri) {
@@ -43,8 +65,10 @@ function basliklariEsle(baslikSatiri) {
 function tarihCoz(v) {
   if (v === null || v === undefined || v === "") return null;
   if (v instanceof Date && !Number.isNaN(v.getTime())) return v.toISOString().slice(0, 10);
-  if (typeof v === "number" && v > 20000 && v < 80000) { // Excel seri günü (1900 sistemi)
-    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400000); return d.toISOString().slice(0, 10);
+  if (typeof v === "number" && v > 20000 && v < 80000) {
+    // Excel seri günü (1900 sistemi)
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400000);
+    return d.toISOString().slice(0, 10);
   }
   const s = String(v).trim();
   let m = /^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s);
@@ -54,7 +78,12 @@ function tarihCoz(v) {
   return null;
 }
 const rakamlar = (v) => String(v ?? "").replace(/\D/g, "");
-const gsmCoz = (v) => { let r = rakamlar(v); if (r.startsWith("90") && r.length === 12) r = r.slice(2); if (r.length === 10 && r.startsWith("5")) r = "0" + r; return r; };
+const gsmCoz = (v) => {
+  let r = rakamlar(v);
+  if (r.startsWith("90") && r.length === 12) r = r.slice(2);
+  if (r.length === 10 && r.startsWith("5")) r = "0" + r;
+  return r;
+};
 
 /**
  * @param {any[][]} satirlar İlk satır başlık. Hücreler ham (string/number/Date).
@@ -64,51 +93,130 @@ const gsmCoz = (v) => { let r = rakamlar(v); if (r.startsWith("90") && r.length 
 function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasaport = new Set(), ucretTipleri = [] } = {}) {
   // Ücret tipi: varsayılan sözlük + veritabanındaki tipler (ad ve kod ile; Ayarlar'dan eklenenler de tanınır)
   const ucretSozluk = { ...UCRET };
-  for (const t of ucretTipleri) { ucretSozluk[norm(t.kod)] = t.kod; ucretSozluk[norm(t.ad)] = t.kod; }
-  const hatalar = [], uyarilar = [], kayitlar = [], yeniGruplar = new Set();
+  for (const t of ucretTipleri) {
+    ucretSozluk[norm(t.kod)] = t.kod;
+    ucretSozluk[norm(t.ad)] = t.kod;
+  }
+  const hatalar = [],
+    uyarilar = [],
+    kayitlar = [],
+    yeniGruplar = new Set();
   if (!satirlar.length) return { kayitlar, hatalar: [{ satir: 0, mesaj: "Dosya boş" }], uyarilar, yeniGruplar: [], eslesme: {} };
   const es = basliklariEsle(satirlar[0]);
-  for (const c of SUTUNLAR) if (c.zorunlu && es[c.anahtar] === undefined) hatalar.push({ satir: 1, mesaj: `Başlık satırında "${c.basliklar[0]}" sütunu bulunamadı` });
+  for (const c of SUTUNLAR)
+    if (c.zorunlu && es[c.anahtar] === undefined)
+      hatalar.push({ satir: 1, mesaj: `Başlık satırında "${c.basliklar[0]}" sütunu bulunamadı` });
   if (hatalar.length) return { kayitlar, hatalar, uyarilar, yeniGruplar: [], eslesme: es };
   const grupAdlari = new Map(gruplar.map((g) => [norm(g.ad).replace(/\s/g, ""), g.id]));
-  const gorulenTc = new Set(), gorulenPas = new Set();
+  const gorulenTc = new Set(),
+    gorulenPas = new Set();
   const al = (row, k) => (es[k] === undefined ? undefined : row[es[k]]);
   for (let i = 1; i < satirlar.length; i++) {
-    const row = satirlar[i] || []; const no = i + 1;
+    const row = satirlar[i] || [];
+    const no = i + 1;
     if (row.every((h) => h === null || h === undefined || String(h).trim() === "")) continue;
     const ad = String(al(row, "ad_soyad") ?? "").trim();
-    if (!ad) { hatalar.push({ satir: no, mesaj: "Ad soyad boş" }); continue; }
-    const dogum = tarihCoz(al(row, "dogum_tarihi"));
-    if (!dogum) { hatalar.push({ satir: no, mesaj: `${ad}: doğum tarihi okunamadı (gg.aa.yyyy bekleniyor)` }); continue; }
-    const k = { ad_soyad: ad, dogum_tarihi: dogum, uyruk: "tc", tc_no: null, pasaport_no: null, durum: "aktif", ucret_tipi: "normal", odeme_donemi: "1-10", aylik_aidat: 0 };
-    const tc = rakamlar(al(row, "tc_no")); const pas = String(al(row, "pasaport_no") ?? "").trim().toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
-    if (tc) {
-      if (tc.length !== 11) { hatalar.push({ satir: no, mesaj: `${ad}: TC 11 haneli değil (${tc})` }); continue; }
-      if (mevcutTc.has(tc)) { uyarilar.push({ satir: no, mesaj: `${ad}: bu TC zaten kayıtlı, atlandı` }); continue; }
-      if (gorulenTc.has(tc)) { uyarilar.push({ satir: no, mesaj: `${ad}: aynı TC dosyada iki kez, ikincisi atlandı` }); continue; }
-      gorulenTc.add(tc); k.tc_no = tc;
-    } else if (pas) {
-      if (!/^[A-Z0-9]{5,15}$/.test(pas)) { hatalar.push({ satir: no, mesaj: `${ad}: pasaport no geçersiz (${pas})` }); continue; }
-      if (mevcutPasaport.has(pas) || gorulenPas.has(pas)) { uyarilar.push({ satir: no, mesaj: `${ad}: bu pasaport zaten kayıtlı, atlandı` }); continue; }
-      gorulenPas.add(pas); k.uyruk = "yabanci"; k.pasaport_no = pas;
+    if (!ad) {
+      hatalar.push({ satir: no, mesaj: "Ad soyad boş" });
+      continue;
     }
-    for (const alan of ["dogum_yeri", "okul", "adres", "kan_grubu", "notlar"]) { const v = al(row, alan); if (v !== undefined && v !== null && String(v).trim()) k[alan] = String(v).trim(); }
-    const gsm = al(row, "gsm"); if (gsm) k.gsm = gsmCoz(gsm);
+    const dogum = tarihCoz(al(row, "dogum_tarihi"));
+    if (!dogum) {
+      hatalar.push({ satir: no, mesaj: `${ad}: doğum tarihi okunamadı (gg.aa.yyyy bekleniyor)` });
+      continue;
+    }
+    const k = {
+      ad_soyad: ad,
+      dogum_tarihi: dogum,
+      uyruk: "tc",
+      tc_no: null,
+      pasaport_no: null,
+      durum: "aktif",
+      ucret_tipi: "normal",
+      odeme_donemi: "1-10",
+      aylik_aidat: 0,
+    };
+    const tc = rakamlar(al(row, "tc_no"));
+    const pas = String(al(row, "pasaport_no") ?? "")
+      .trim()
+      .toLocaleUpperCase("tr-TR")
+      .replace(/\s+/g, "");
+    if (tc) {
+      if (tc.length !== 11) {
+        hatalar.push({ satir: no, mesaj: `${ad}: TC 11 haneli değil (${tc})` });
+        continue;
+      }
+      if (mevcutTc.has(tc)) {
+        uyarilar.push({ satir: no, mesaj: `${ad}: bu TC zaten kayıtlı, atlandı` });
+        continue;
+      }
+      if (gorulenTc.has(tc)) {
+        uyarilar.push({ satir: no, mesaj: `${ad}: aynı TC dosyada iki kez, ikincisi atlandı` });
+        continue;
+      }
+      gorulenTc.add(tc);
+      k.tc_no = tc;
+    } else if (pas) {
+      if (!/^[A-Z0-9]{5,15}$/.test(pas)) {
+        hatalar.push({ satir: no, mesaj: `${ad}: pasaport no geçersiz (${pas})` });
+        continue;
+      }
+      if (mevcutPasaport.has(pas) || gorulenPas.has(pas)) {
+        uyarilar.push({ satir: no, mesaj: `${ad}: bu pasaport zaten kayıtlı, atlandı` });
+        continue;
+      }
+      gorulenPas.add(pas);
+      k.uyruk = "yabanci";
+      k.pasaport_no = pas;
+    }
+    for (const alan of ["dogum_yeri", "okul", "adres", "kan_grubu", "notlar"]) {
+      const v = al(row, alan);
+      if (v !== undefined && v !== null && String(v).trim()) k[alan] = String(v).trim();
+    }
+    const gsm = al(row, "gsm");
+    if (gsm) k.gsm = gsmCoz(gsm);
     const grupHam = String(al(row, "yas_grubu") ?? "").trim();
     if (grupHam) {
       const anahtar = norm(grupHam).replace(/\s/g, "");
       if (grupAdlari.has(anahtar)) k.yas_grubu_id = grupAdlari.get(anahtar);
-      else { k.yeni_grup = grupHam.toLocaleUpperCase("tr-TR").replace(/\s+/g, ""); yeniGruplar.add(k.yeni_grup); }
+      else {
+        k.yeni_grup = grupHam.toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
+        yeniGruplar.add(k.yeni_grup);
+      }
     }
-    const durumHam = norm(al(row, "durum")); if (durumHam) { if (DURUM[durumHam]) k.durum = DURUM[durumHam]; else uyarilar.push({ satir: no, mesaj: `${ad}: durum "${durumHam}" tanınmadı, Aktif yazıldı` }); }
-    const ucretHam = norm(al(row, "ucret_tipi")); if (ucretHam) { if (ucretSozluk[ucretHam]) k.ucret_tipi = ucretSozluk[ucretHam]; else uyarilar.push({ satir: no, mesaj: `${ad}: ücret tipi "${ucretHam}" tanınmadı, Normal yazıldı` }); }
-    const aidatHam = al(row, "aylik_aidat"); if (aidatHam !== undefined && aidatHam !== null && String(aidatHam).trim() !== "") { const n = Number(rakamlar(aidatHam)); k.aylik_aidat = Number.isFinite(n) ? n : 0; }
-    const donemHam = String(al(row, "odeme_donemi") ?? "").trim().replace(/\s/g, ""); if (donemHam) { if (DONEM.has(donemHam)) k.odeme_donemi = donemHam; else uyarilar.push({ satir: no, mesaj: `${ad}: ödeme dönemi "${donemHam}" tanınmadı (1-10, 11-20, 21-31), 1-10 yazıldı` }); }
-    const kayit = tarihCoz(al(row, "kayit_tarihi")); if (kayit) k.kayit_tarihi = kayit;
-    const veliAd = String(al(row, "veli_ad") ?? "").trim(); const veliTel = al(row, "veli_tel");
+    const durumHam = norm(al(row, "durum"));
+    if (durumHam) {
+      if (DURUM[durumHam]) k.durum = DURUM[durumHam];
+      else uyarilar.push({ satir: no, mesaj: `${ad}: durum "${durumHam}" tanınmadı, Aktif yazıldı` });
+    }
+    const ucretHam = norm(al(row, "ucret_tipi"));
+    if (ucretHam) {
+      if (ucretSozluk[ucretHam]) k.ucret_tipi = ucretSozluk[ucretHam];
+      else uyarilar.push({ satir: no, mesaj: `${ad}: ücret tipi "${ucretHam}" tanınmadı, Normal yazıldı` });
+    }
+    const aidatHam = al(row, "aylik_aidat");
+    if (aidatHam !== undefined && aidatHam !== null && String(aidatHam).trim() !== "") {
+      const n = Number(rakamlar(aidatHam));
+      k.aylik_aidat = Number.isFinite(n) ? n : 0;
+    }
+    const donemHam = String(al(row, "odeme_donemi") ?? "")
+      .trim()
+      .replace(/\s/g, "");
+    if (donemHam) {
+      if (DONEM.has(donemHam)) k.odeme_donemi = donemHam;
+      else uyarilar.push({ satir: no, mesaj: `${ad}: ödeme dönemi "${donemHam}" tanınmadı (1-10, 11-20, 21-31), 1-10 yazıldı` });
+    }
+    const kayit = tarihCoz(al(row, "kayit_tarihi"));
+    if (kayit) k.kayit_tarihi = kayit;
+    const veliAd = String(al(row, "veli_ad") ?? "").trim();
+    const veliTel = al(row, "veli_tel");
     if (veliAd || veliTel) {
       const onayHam = norm(al(row, "veli_onay")); // boş → onaylı (kulüp kararı); hayır/0/yok → onaysız
-      k.veli = { ad_soyad: veliAd || "Veli", gsm: veliTel ? gsmCoz(veliTel) : "", mesaj_onayi: ["hayır", "hayir", "h", "0", "yok", "no"].includes(onayHam) ? 0 : 1 };
+      k.veli = {
+        ad_soyad: veliAd || "Veli",
+        gsm: veliTel ? gsmCoz(veliTel) : "",
+        mesaj_onayi: ["hayır", "hayir", "h", "0", "yok", "no"].includes(onayHam) ? 0 : 1,
+      };
     }
     k.satir = no;
     kayitlar.push(k);
@@ -117,7 +225,47 @@ function satirlariCoz(satirlar, { gruplar = [], mevcutTc = new Set(), mevcutPasa
 }
 
 /** Şablon başlıkları ve örnek satır (şablon indirme için). */
-const SABLON_BASLIKLAR = ["Ad Soyad", "TC Kimlik No", "Pasaport No", "Doğum Tarihi", "Yaş Grubu", "Durum", "Ücret Tipi", "Aylık Aidat", "Ödeme Dönemi", "GSM", "Veli Adı", "Veli Telefonu", "Mesaj Onayı", "Okul", "Doğum Yeri", "Adres", "Kan Grubu", "Kayıt Tarihi", "Notlar"];
-const SABLON_ORNEK = ["Kaan Yıldız", "12345678901", "", "02.11.2015", "U11", "Aktif", "Normal", "3500", "1-10", "05321234567", "Ayşe Yıldız", "05329876543", "Evet", "Eyüp İlkokulu", "İstanbul", "", "A Rh+", "01.09.2026", ""];
+const SABLON_BASLIKLAR = [
+  "Ad Soyad",
+  "TC Kimlik No",
+  "Pasaport No",
+  "Doğum Tarihi",
+  "Yaş Grubu",
+  "Durum",
+  "Ücret Tipi",
+  "Aylık Aidat",
+  "Ödeme Dönemi",
+  "GSM",
+  "Veli Adı",
+  "Veli Telefonu",
+  "Mesaj Onayı",
+  "Okul",
+  "Doğum Yeri",
+  "Adres",
+  "Kan Grubu",
+  "Kayıt Tarihi",
+  "Notlar",
+];
+const SABLON_ORNEK = [
+  "Kaan Yıldız",
+  "12345678901",
+  "",
+  "02.11.2015",
+  "U11",
+  "Aktif",
+  "Normal",
+  "3500",
+  "1-10",
+  "05321234567",
+  "Ayşe Yıldız",
+  "05329876543",
+  "Evet",
+  "Eyüp İlkokulu",
+  "İstanbul",
+  "",
+  "A Rh+",
+  "01.09.2026",
+  "",
+];
 
 module.exports = { satirlariCoz, basliklariEsle, tarihCoz, gsmCoz, SUTUNLAR, SABLON_BASLIKLAR, SABLON_ORNEK };

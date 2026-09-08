@@ -9,14 +9,20 @@ afterEach(cleanup);
 
 describe("Oyuncu formu: ücret tipine göre aidat", () => {
   beforeEach(() => {
-    window.okul = { db: vi.fn(async (fn) => {
-      if (fn === "aidatAyarlari") return { taban: 3500, indirimler: { indirimli: 25, kardes: 15 } };
-      if (fn === "createPlayer") return { id: 1 };
-      throw new Error("beklenmeyen " + fn);
-    }) };
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "aidatAyarlari") return { taban: 3500, indirimler: { indirimli: 25, kardes: 15 } };
+        if (fn === "createPlayer") return { id: 1 };
+        throw new Error("beklenmeyen " + fn);
+      }),
+    };
   });
   it("yeni kayıtta aidat taban fiyatla dolar; ücret tipi değişince indirim düşülür; ücretsizde alan kilitlenir", async () => {
-    render(<ToastSaglayici><OyuncuForm gruplar={[]} onKaydedildi={vi.fn()} onKapat={vi.fn()} /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <OyuncuForm gruplar={[]} onKaydedildi={vi.fn()} onKapat={vi.fn()} />
+      </ToastSaglayici>,
+    );
     const aidat = screen.getByLabelText("Aylık aidat");
     await waitFor(() => expect(aidat).toHaveValue("3.500"));
     expect(screen.getByText(/Taban 3\.500 ₺/)).toBeInTheDocument();
@@ -26,16 +32,27 @@ describe("Oyuncu formu: ücret tipine göre aidat", () => {
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "kardes" } });
     expect(aidat).toHaveValue("2.975");
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "burslu" } });
-    expect(aidat).toHaveValue("0"); expect(aidat).not.toBeDisabled();
+    expect(aidat).toHaveValue("0");
+    expect(aidat).not.toBeDisabled();
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "ucretsiz" } });
-    expect(aidat).toHaveValue("0"); expect(aidat).toBeDisabled();
+    expect(aidat).toHaveValue("0");
+    expect(aidat).toBeDisabled();
     // Elle değiştirilebilir
     fireEvent.change(screen.getByLabelText("Ücret Tipi"), { target: { value: "normal" } });
     fireEvent.change(aidat, { target: { value: "3000" } });
     expect(aidat).toHaveValue("3.000");
   });
   it("düzenlemede mevcut aidat korunur, ücret tipi değişmedikçe yeniden hesaplanmaz", async () => {
-    render(<ToastSaglayici><OyuncuForm oyuncu={{ id: 7, ad_soyad: "Ada", dogum_tarihi: "2015-01-01", ucret_tipi: "normal", aylik_aidat: 3000 }} gruplar={[]} onKaydedildi={vi.fn()} onKapat={vi.fn()} /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <OyuncuForm
+          oyuncu={{ id: 7, ad_soyad: "Ada", dogum_tarihi: "2015-01-01", ucret_tipi: "normal", aylik_aidat: 3000 }}
+          gruplar={[]}
+          onKaydedildi={vi.fn()}
+          onKapat={vi.fn()}
+        />
+      </ToastSaglayici>,
+    );
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlari"));
     expect(screen.getByLabelText("Aylık aidat")).toHaveValue("3.000");
   });
@@ -43,30 +60,58 @@ describe("Oyuncu formu: ücret tipine göre aidat", () => {
 
 describe("Ayarlar > Aidat Kalemleri: tek Kaydet", () => {
   const kur = () => {
-    let kalemler = [{ id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 3500, aktif: 1 }, { id: 2, kod: "forma", ad: "Forma", varsayilan_fiyat: 1200, aktif: 1 }, { id: 3, kod: "mont", ad: "Mont", varsayilan_fiyat: 0, aktif: 1 }];
-    let tipler = [{ kod: "normal", ad: "Normal", indirim: 0, aktif: 1, sabit: 1 }, { kod: "burslu", ad: "Burslu", indirim: 100, aktif: 1, sabit: 0 }, { kod: "indirimli", ad: "İndirimli", indirim: 0, aktif: 1, sabit: 0 }, { kod: "kardes", ad: "Kardeş İndirimi", indirim: 0, aktif: 1, sabit: 0 }, { kod: "ucretsiz", ad: "Ücretsiz", indirim: 100, aktif: 1, sabit: 1 }];
-    window.okul = { db: vi.fn(async (fn, ...a) => {
-      if (fn === "listFeeItems") return kalemler.map((k) => ({ ...k }));
-      if (fn === "listFeeTypes") return tipler.map((t) => ({ ...t }));
-      if (fn === "aidatAyarlari") return { taban: kalemler[0].varsayilan_fiyat, indirimler: Object.fromEntries(tipler.map((t) => [t.kod, t.indirim])), ucretTipleri: tipler.map((t) => ({ ...t })) };
-      if (fn === "aidatAyarlariKaydet") {
-        let id = 100;
-        for (const k of a[0].kalemler || []) {
-          if (k.yeni) kalemler = [...kalemler, { id: ++id, kod: k.ad.toLowerCase(), ad: k.ad, varsayilan_fiyat: k.varsayilan_fiyat, aktif: 1 }];
-          else if (k.sil) { if (k.id === 2) throw new Error('"Forma" 3 makbuz satırında kullanılmış; silmek yerine pasife alın'); kalemler = kalemler.filter((x) => x.id !== k.id); }
-          else kalemler = kalemler.map((x) => (x.id === k.id ? { ...x, ...k } : x));
+    let kalemler = [
+      { id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 3500, aktif: 1 },
+      { id: 2, kod: "forma", ad: "Forma", varsayilan_fiyat: 1200, aktif: 1 },
+      { id: 3, kod: "mont", ad: "Mont", varsayilan_fiyat: 0, aktif: 1 },
+    ];
+    let tipler = [
+      { kod: "normal", ad: "Normal", indirim: 0, aktif: 1, sabit: 1 },
+      { kod: "burslu", ad: "Burslu", indirim: 100, aktif: 1, sabit: 0 },
+      { kod: "indirimli", ad: "İndirimli", indirim: 0, aktif: 1, sabit: 0 },
+      { kod: "kardes", ad: "Kardeş İndirimi", indirim: 0, aktif: 1, sabit: 0 },
+      { kod: "ucretsiz", ad: "Ücretsiz", indirim: 100, aktif: 1, sabit: 1 },
+    ];
+    window.okul = {
+      db: vi.fn(async (fn, ...a) => {
+        if (fn === "listFeeItems") return kalemler.map((k) => ({ ...k }));
+        if (fn === "listFeeTypes") return tipler.map((t) => ({ ...t }));
+        if (fn === "aidatAyarlari")
+          return {
+            taban: kalemler[0].varsayilan_fiyat,
+            indirimler: Object.fromEntries(tipler.map((t) => [t.kod, t.indirim])),
+            ucretTipleri: tipler.map((t) => ({ ...t })),
+          };
+        if (fn === "aidatAyarlariKaydet") {
+          let id = 100;
+          for (const k of a[0].kalemler || []) {
+            if (k.yeni)
+              kalemler = [...kalemler, { id: ++id, kod: k.ad.toLowerCase(), ad: k.ad, varsayilan_fiyat: k.varsayilan_fiyat, aktif: 1 }];
+            else if (k.sil) {
+              if (k.id === 2) throw new Error('"Forma" 3 makbuz satırında kullanılmış; silmek yerine pasife alın');
+              kalemler = kalemler.filter((x) => x.id !== k.id);
+            } else kalemler = kalemler.map((x) => (x.id === k.id ? { ...x, ...k } : x));
+          }
+          for (const t of a[0].ucretTipleri || []) {
+            if (t.yeni) tipler = [...tipler, { kod: t.ad.toLowerCase(), ad: t.ad, indirim: t.indirim, aktif: 1, sabit: 0 }];
+            else if (t.sil) tipler = tipler.filter((x) => x.kod !== t.kod);
+            else tipler = tipler.map((x) => (x.kod === t.kod ? { ...x, ...t } : x));
+          }
+          return { ok: true };
         }
-        for (const t of a[0].ucretTipleri || []) {
-          if (t.yeni) tipler = [...tipler, { kod: t.ad.toLowerCase(), ad: t.ad, indirim: t.indirim, aktif: 1, sabit: 0 }];
-          else if (t.sil) tipler = tipler.filter((x) => x.kod !== t.kod);
-          else tipler = tipler.map((x) => (x.kod === t.kod ? { ...x, ...t } : x));
-        }
-        return { ok: true };
-      }
-      if (fn === "getSetting") return ""; if (fn === "listUsers") return [];
-      return null;
-    }), app: { version: async () => "0.1.0" }, lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) }, mod: { oku: async () => ({ mode: "yerel" }) } };
-    render(<ToastSaglayici><Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="kalem" /></ToastSaglayici>);
+        if (fn === "getSetting") return "";
+        if (fn === "listUsers") return [];
+        return null;
+      }),
+      app: { version: async () => "0.1.0" },
+      lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) },
+      mod: { oku: async () => ({ mode: "yerel" }) },
+    };
+    render(
+      <ToastSaglayici>
+        <Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="kalem" />
+      </ToastSaglayici>,
+    );
   };
 
   it("iki satıra fiyat girilip Kaydet'e basılınca ikisi de tek çağrıda kaydedilir, hiçbiri kaybolmaz", async () => {
@@ -79,10 +124,15 @@ describe("Ayarlar > Aidat Kalemleri: tek Kaydet", () => {
     expect(screen.getByText(/3 değişiklik kaydedilmedi/)).toBeInTheDocument();
     expect(screen.getByLabelText("İndirimli indirimi").closest("tr")).toHaveTextContent("2.625 ₺");
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", {
-      kalemler: [{ id: 2, ad: "Forma", varsayilan_fiyat: 9000, aktif: 1 }, { id: 3, ad: "Mont", varsayilan_fiyat: 8000, aktif: 1 }],
-      ucretTipleri: [{ kod: "indirimli", ad: "İndirimli", indirim: 25, aktif: 1 }],
-    }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", {
+        kalemler: [
+          { id: 2, ad: "Forma", varsayilan_fiyat: 9000, aktif: 1 },
+          { id: 3, ad: "Mont", varsayilan_fiyat: 8000, aktif: 1 },
+        ],
+        ucretTipleri: [{ kod: "indirimli", ad: "İndirimli", indirim: 25, aktif: 1 }],
+      }),
+    );
     await waitFor(() => expect(screen.queryByText(/değişiklik kaydedilmedi/)).toBeNull()); // toast da role=status taşır; metne bak
     expect(screen.getByLabelText("Forma fiyatı")).toHaveValue("9.000");
     expect(screen.getByLabelText("Mont fiyatı")).toHaveValue("8.000");
@@ -103,10 +153,12 @@ describe("Ayarlar > Aidat Kalemleri: tek Kaydet", () => {
     expect(screen.getByText("Şampiyon Bursu").closest("tr")).toHaveTextContent("1.750 ₺"); // 3500 − %50
     expect(screen.getByText(/2 değişiklik kaydedilmedi/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", {
-      kalemler: [{ yeni: true, ad: "Kamp Ücreti", varsayilan_fiyat: 2500 }],
-      ucretTipleri: [{ yeni: true, ad: "Şampiyon Bursu", indirim: 50 }],
-    }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", {
+        kalemler: [{ yeni: true, ad: "Kamp Ücreti", varsayilan_fiyat: 2500 }],
+        ucretTipleri: [{ yeni: true, ad: "Şampiyon Bursu", indirim: 50 }],
+      }),
+    );
     await waitFor(() => expect(screen.queryByText(/değişiklik kaydedilmedi/)).toBeNull());
     expect(await screen.findByLabelText("Kamp Ücreti fiyatı")).toHaveValue("2.500");
     expect(screen.getByLabelText("Şampiyon Bursu indirimi")).toHaveValue(50);
@@ -126,10 +178,15 @@ describe("Ayarlar > Aidat Kalemleri: tek Kaydet", () => {
     fireEvent.change(screen.getByLabelText("Burslu adı"), { target: { value: "Tam Burslu" } });
     expect(screen.getByText(/3 değişiklik kaydedilmedi/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", {
-      kalemler: [{ id: 3, sil: true }],
-      ucretTipleri: [{ kod: "burslu", ad: "Tam Burslu", indirim: 100, aktif: 1 }, { kod: "kardes", sil: true }],
-    }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", {
+        kalemler: [{ id: 3, sil: true }],
+        ucretTipleri: [
+          { kod: "burslu", ad: "Tam Burslu", indirim: 100, aktif: 1 },
+          { kod: "kardes", sil: true },
+        ],
+      }),
+    );
     await waitFor(() => expect(screen.queryByLabelText("Mont fiyatı")).toBeNull());
     expect(screen.queryByLabelText("Kardeş İndirimi indirimi")).toBeNull();
     expect(screen.getByLabelText("Tam Burslu adı")).toHaveValue("Tam Burslu");

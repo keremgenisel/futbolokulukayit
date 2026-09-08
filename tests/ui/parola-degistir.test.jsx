@@ -7,9 +7,15 @@ import { ToastSaglayici } from "../../src/components/ui.jsx";
 afterEach(cleanup);
 
 describe("Parola değiştir (inceleme #14, parola min 8)", () => {
-  beforeEach(() => { window.okul = { auth: { changePassword: vi.fn(async () => ({ ok: true })) } }; });
+  beforeEach(() => {
+    window.okul = { auth: { changePassword: vi.fn(async () => ({ ok: true })) } };
+  });
   it("normal değişimde mevcut parola zorunlu ve köprüye gider; kısa parola reddedilir", async () => {
-    render(<ToastSaglayici><ParolaDegistir oturum={{ username: "admin" }} onTamam={vi.fn()} onKapat={vi.fn()} /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <ParolaDegistir oturum={{ username: "admin" }} onTamam={vi.fn()} onKapat={vi.fn()} />
+      </ToastSaglayici>,
+    );
     fireEvent.change(screen.getByLabelText("Yeni parola"), { target: { value: "yeni-parola-9" } });
     fireEvent.change(screen.getByLabelText("Yeni parola (tekrar)"), { target: { value: "yeni-parola-9" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
@@ -25,7 +31,11 @@ describe("Parola değiştir (inceleme #14, parola min 8)", () => {
     await waitFor(() => expect(window.okul.auth.changePassword).toHaveBeenCalledWith("admin", "yeni-parola-9", "eski-parola"));
   });
   it("zorunlu ilk değişimde mevcut parola sorulmaz", async () => {
-    render(<ToastSaglayici><ParolaDegistir oturum={{ username: "admin" }} zorunlu onTamam={vi.fn()} /></ToastSaglayici>);
+    render(
+      <ToastSaglayici>
+        <ParolaDegistir oturum={{ username: "admin" }} zorunlu onTamam={vi.fn()} />
+      </ToastSaglayici>,
+    );
     expect(screen.queryByLabelText("Mevcut parola")).toBeNull();
     fireEvent.change(screen.getByLabelText("Yeni parola"), { target: { value: "ilk-parola-8" } });
     fireEvent.change(screen.getByLabelText("Yeni parola (tekrar)"), { target: { value: "ilk-parola-8" } });

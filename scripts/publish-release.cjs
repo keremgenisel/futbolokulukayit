@@ -81,10 +81,14 @@ function ghRequest({ method, host, path: reqPath, token, headers = {}, body = nu
           const buf = Buffer.concat(chunks);
           const text = buf.toString("utf8");
           let json = null;
-          try { json = text ? JSON.parse(text) : null; } catch { /* asset upload dışı bekleniyordu */ }
+          try {
+            json = text ? JSON.parse(text) : null;
+          } catch {
+            /* asset upload dışı bekleniyordu */
+          }
           resolve({ status: res.statusCode, json, text });
         });
-      }
+      },
     );
     req.on("error", reject);
     if (body) req.write(body);
@@ -101,7 +105,14 @@ async function getReleaseByTag(token) {
 // dala göre tag üretir (main push edilmemişse böyle olur — yayını engellemez).
 async function resolveTargetCommitish(token) {
   let sha = "";
-  try { sha = require("child_process").execSync("git rev-parse HEAD", { cwd: path.join(__dirname, "..") }).toString().trim(); } catch { return null; }
+  try {
+    sha = require("child_process")
+      .execSync("git rev-parse HEAD", { cwd: path.join(__dirname, "..") })
+      .toString()
+      .trim();
+  } catch {
+    return null;
+  }
   if (!sha) return null;
   const r = await ghRequest({ method: "GET", host: "api.github.com", path: `/repos/${OWNER}/${REPO}/commits/${sha}`, token });
   return r.status === 200 ? sha : null;
@@ -117,8 +128,12 @@ async function createRelease(token) {
     ...(target ? { target_commitish: target } : {}),
   });
   const r = await ghRequest({
-    method: "POST", host: "api.github.com", path: `/repos/${OWNER}/${REPO}/releases`, token,
-    headers: { "Content-Type": "application/json" }, body,
+    method: "POST",
+    host: "api.github.com",
+    path: `/repos/${OWNER}/${REPO}/releases`,
+    token,
+    headers: { "Content-Type": "application/json" },
+    body,
   });
   if (r.status === 201) return { release: r.json, target };
   // Yarışta biri önce yaratmış olabilir → tag'ten çek.
@@ -136,9 +151,12 @@ async function deleteAssetIfExists(token, release, assetName) {
 function uploadAsset(token, releaseId, assetName, filePath, contentType) {
   const data = fs.readFileSync(filePath);
   return ghRequest({
-    method: "POST", host: "uploads.github.com",
+    method: "POST",
+    host: "uploads.github.com",
     path: `/repos/${OWNER}/${REPO}/releases/${releaseId}/assets?name=${encodeURIComponent(assetName)}`,
-    token, headers: { "Content-Type": contentType, "Content-Length": data.length }, body: data,
+    token,
+    headers: { "Content-Type": contentType, "Content-Length": data.length },
+    body: data,
   });
 }
 
@@ -150,7 +168,10 @@ async function main() {
   const depo = await ghRequest({ method: "GET", host: "api.github.com", path: `/repos/${OWNER}/${REPO}`, token });
   if (depo.status === 404) throw new Error(`Depo bulunamadı: ${OWNER}/${REPO} (plan §8.1: gh repo create … --public).`);
   if (depo.status !== 200) throw new Error(`Depoya erişilemedi (HTTP ${depo.status}); token yetkisi?`);
-  if (depo.json && depo.json.private) throw new Error(`${OWNER}/${REPO} ÖZEL; kurulu uygulama güncellemeyi indiremez. Depoyu herkese açık yapın (Settings > General > Change visibility).`);
+  if (depo.json && depo.json.private)
+    throw new Error(
+      `${OWNER}/${REPO} ÖZEL; kurulu uygulama güncellemeyi indiremez. Depoyu herkese açık yapın (Settings > General > Change visibility).`,
+    );
   if (!OWNER || !REPO) throw new Error("package.json build.publish owner/repo eksik.");
 
   const exeLocal = path.join(RELEASE_DIR, `${PRODUCT} Setup ${VERSION}.exe`);
@@ -159,14 +180,17 @@ async function main() {
     if (!fs.existsSync(f)) throw new Error(`Beklenen build dosyası yok: ${f}\nÖnce "electron-builder --win --publish never" ile derleyin.`);
   }
 
-  const exeAsset = assetNameFromLocal(path.basename(exeLocal));          // Altunmak-CRM-Setup-<v>.exe
+  const exeAsset = assetNameFromLocal(path.basename(exeLocal)); // Altunmak-CRM-Setup-<v>.exe
   const blockmapAsset = assetNameFromLocal(path.basename(blockmapLocal)); // ...exe.blockmap
   const size = fs.statSync(exeLocal).size;
   const sha512 = await sha512Base64(exeLocal);
 
   // latest.yml'yi .exe'den taze üret (bayat electron-builder çıktısına güvenme).
   const latestYmlPath = path.join(RELEASE_DIR, "latest.yml");
-  fs.writeFileSync(latestYmlPath, buildLatestYml({ version: VERSION, exeAssetName: exeAsset, sha512, size, releaseDate: new Date().toISOString() }));
+  fs.writeFileSync(
+    latestYmlPath,
+    buildLatestYml({ version: VERSION, exeAssetName: exeAsset, sha512, size, releaseDate: new Date().toISOString() }),
+  );
 
   console.log(`→ ${TAG} yayınlanıyor (${OWNER}/${REPO})`);
   const { release, target } = await createRelease(token);
@@ -196,5 +220,8 @@ async function main() {
 module.exports = { assetNameFromLocal, buildLatestYml };
 
 if (require.main === module) {
-  main().catch((err) => { console.error("✗ Yayın hatası:", err.message); process.exit(1); });
+  main().catch((err) => {
+    console.error("✗ Yayın hatası:", err.message);
+    process.exit(1);
+  });
 }
