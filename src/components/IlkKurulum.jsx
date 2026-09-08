@@ -113,6 +113,9 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
             </div>
             <div style={{ display: "flex", gap: 8, alignItems: "center" }}><Girdi value={ekGrup} onChange={(e) => setEkGrup(e.target.value)} placeholder="Başka grup (ör. U16, Minikler)" aria-label="Başka grup" style={{ width: 260, height: 40 }} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), ekGrupEkle())} /><Btn kucuk tur="ghost" onClick={ekGrupEkle}>Ekle</Btn></div>
             <div style={{ fontSize: 13 }}>Açılacak gruplar: <b>{[...gruplar].join(", ") || "—"}</b></div>
+            <div data-testid="kalabalik-grup-ipucu" style={{ fontSize: 13, color: "var(--mor-koyu)", background: "var(--sari-acik)", border: "1px solid var(--sari)", borderRadius: 10, padding: "10px 14px", lineHeight: 1.45 }}>
+              <b>Bir yaşta çok oyuncu varsa</b> (örnek: iki U11 grubu): o yaşı "U11 A" ve "U11 B" gibi iki ayrı grup olarak açın; programda ek bir alt grup alanı yoktur. Her grubun kendi haftalık programı ve yoklaması olur; oyuncu kaydında doğum yılı ipucu "U11 A seç / U11 B seç" gösterir. Yeni sezonda "U11 A" için "U12 A" önerilir, yoksa "U12". Kalabalık yıl geçince grubu silmeyin, pasife alın: silinen grubun antrenman ve yoklama kayıtları da silinir. Bu grupları şimdi "Başka grup" kutusundan ya da sonra Yaş Grupları sekmesinden ekleyebilirsiniz.
+            </div>
           </div>
         )}
 

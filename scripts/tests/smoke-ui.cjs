@@ -95,6 +95,7 @@ app.whenReady().then(async () => {
     await js(`[...document.querySelectorAll("button")].find((b) => b.textContent.includes("Sağlık Raporu Durumu"))?.click()`); await bekle(300); await tikla("Önizle"); await bekle(600); await shot("12b-saglik-raporu");
     await tikla("Yaş Grupları"); await bekle(400); await shot("13-gruplar");
     await tikla("Ayarlar"); await bekle(400); await tikla("Kurulum Sihirbazını Aç"); await bekle(500); await shot("13a-kurulum-sihirbazi");
+    await tikla("Kaydet ve Devam"); await bekle(400); await tikla("Kaydet ve Devam"); await bekle(400); await shot("13a2-sihirbaz-yas-gruplari"); // kalabalık grup ipucu bu adımda
     await js(`[...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "Şimdi değil")?.click()`); await bekle(400);
     await tikla("Ayarlar"); await bekle(400); await tikla("Aidat Kalemleri"); await bekle(500);
     await js(`(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; for (const [sel, v] of [["input[aria-label='Forma fiyatı']", "9000"], ["input[aria-label='Mont fiyatı']", "8000"]]) { const i = document.querySelector(sel); set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); } })()`); await bekle(300); await shot("13b-aidat-kalemleri");

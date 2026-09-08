@@ -35,6 +35,7 @@ describe("İlk kurulum sihirbazı", () => {
     const taban = await screen.findByLabelText("Aidat taban fiyatı");
     fireEvent.change(taban, { target: { value: "3500" } });
     fireEvent.change(screen.getByLabelText("Kardeş İndirimi indirimi"), { target: { value: "15" } });
+    expect(screen.queryByTestId("kalabalik-grup-ipucu")).toBeNull(); // ipucu yalnız yaş grupları adımında
     expect(screen.getByLabelText("Kardeş İndirimi indirimi").closest("tr")).toHaveTextContent("2.975 ₺");
     fireEvent.click(screen.getByRole("button", { name: "Kaydet ve Devam" }));
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatAyarlariKaydet", { kalemler: [{ id: 1, varsayilan_fiyat: 3500 }], indirimler: { burslu: 100, indirimli: 0, kardes: 15 } }));
@@ -45,6 +46,7 @@ describe("İlk kurulum sihirbazı", () => {
     fireEvent.change(screen.getByLabelText("Başka grup"), { target: { value: "u16" } });
     fireEvent.click(screen.getByRole("button", { name: "Ekle" }));
     fireEvent.change(screen.getByLabelText("Aktif sezon"), { target: { value: "2026-2027" } });
+    expect(screen.getByTestId("kalabalik-grup-ipucu")).toHaveTextContent('"U11 A" ve "U11 B" gibi iki ayrı grup');
     fireEvent.click(screen.getByRole("button", { name: "Kaydet ve Devam" }));
     await waitFor(() => expect(gruplar).toEqual(["U10", "U11", "U12", "U13", "U16"]));
     expect(ayarlar.aktif_sezon).toBe("2026-2027");
