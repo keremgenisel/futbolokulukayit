@@ -621,7 +621,7 @@ function Hakkinda({ admin }) {
   );
 }
 
-// Uygulama güncellemesi (GitHub Releases: keremgenisel/eyupspor-releases). Akış: Denetle → "Yeni sürüm X" → İndir (ilerleme)
+// Uygulama güncellemesi (GitHub Releases: keremgenisel/eyupspor, herkese açık tek depo). Akış: Denetle → "Yeni sürüm X" → İndir (ilerleme)
 // → Yeniden Başlat ve Kur. Yalnız paketli (Setup ile kurulmuş) sürümde çalışır; geliştirme modunda bilgi verir.
 export function Guncelleme({ admin }) {
   const [durum, setDurum] = useState({ asama: "bos" }); // bos|denetleniyor|guncel|var|indiriliyor|indirildi|hata|dev

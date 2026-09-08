@@ -1,4 +1,4 @@
-// Otomatik güncelleme köprüsü (electron-updater; GitHub Releases: keremgenisel/eyupspor-releases — herkese açık yayın deposu).
+// Otomatik güncelleme köprüsü (electron-updater; GitHub Releases: keremgenisel/eyupspor — herkese açık tek depo).
 // Yalnız paketli (Setup ile kurulmuş) sürümde iş yapar; geliştirme/test ortamında autoUpdater null → devMode.
 // İndirme ve kurma yalnız yönetici; denetleme her oturum. Olaylar ana pencereye "updater:*" kanallarıyla gider.
 const { ipcMain, app } = require("electron");
