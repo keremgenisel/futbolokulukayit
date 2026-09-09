@@ -3,6 +3,9 @@
 // hazırlar, kulübün WhatsApp'ı açılır, kullanıcı Gönder'e basar. Şablon doldurma, numara dönüşümü, uygunluk kararı.
 import { gsmNormalize, paraTR, AY_ADLARI } from "./aidat.js";
 import { uzunTarih } from "./takvim.js";
+import { VARSAYILAN_KULUP } from "./marka.js";
+
+export { VARSAYILAN_KULUP };
 
 /** Ayar anahtarları (settings tablosu). */
 export const SABLON_ANAHTARLARI = {
@@ -44,8 +47,6 @@ export const YER_TUTUCULAR = [
   "neden",
   "kulup",
 ];
-export const VARSAYILAN_KULUP = "Eyüpspor Futbol Okulu";
-
 /**
  * WhatsApp numarası: 05XXXXXXXXX / +90 5XX … / 90 5XX … → "905XXXXXXXXX"; geçersizse "".
  * @param {unknown} no

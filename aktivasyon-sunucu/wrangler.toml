@@ -1,12 +1,12 @@
-name = "eyupspor-aktivasyon"
+name = "futbol-okulu-aktivasyon"
 main = "src/index.js"
 compatibility_date = "2024-09-23"
 
-# D1: `wrangler d1 create eyupspor-lisans` çıktısındaki database_id aşağıya yazılır.
+# D1: `wrangler d1 create futbol-okulu-lisans` çıktısındaki database_id aşağıya yazılır.
 [[d1_databases]]
 binding = "DB"
-database_name = "eyupspor-lisans"
-database_id = "DEPLOY-SONRASI-DOLDUR"
+database_name = "futbol-okulu-lisans"
+database_id = "0a4fdcc0-d546-429d-9d57-a0da6108f79f"
 
 [vars]
 LEASE_GUN = "14"   # lease penceresi (gün). Uzun = internetsiz dayanıklı, iptal daha geç etkili.

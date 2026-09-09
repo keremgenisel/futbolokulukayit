@@ -4,11 +4,12 @@
 import { paraTR, tarihTR, AY_ADLARI, ODEME_YONTEMLERI } from "./aidat.js";
 
 import { esc, guvenliLogo } from "./metin.js";
+import { VARSAYILAN_KULUP } from "./marka.js";
 
 /**
  * @param {{ makbuz: any, kalemler: any[], logo: string, kulupAdi?: string }} p
  */
-export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBOL OKULU" }) {
+export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = VARSAYILAN_KULUP }) {
   /** @type {any[]} */
   const satirlar_ = makbuz.satirlar || [];
   const satirMap = new Map(satirlar_.filter((l) => l.kalem_kod !== "aidat").map((l) => [l.fee_item_id, l]));

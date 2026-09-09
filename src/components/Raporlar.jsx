@@ -4,6 +4,7 @@ import { db, cikti, uygulama, bugun, ayAraligi } from "../lib/api.js";
 import { paraTR, tarihTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
+import { VARSAYILAN_KULUP } from "../lib/marka.js";
 import { sezonAyYili, guncelSezon, sezonAraligi, ayinSonGunu } from "../lib/sezon.js";
 import { RaporFiltre } from "./RaporFiltre.jsx";
 
@@ -141,6 +142,7 @@ export function Raporlar() {
     if (!v) return;
     return dene(async () => {
       const logo = await uygulama().logo();
+      const kulup = (await db("getSetting", "kulup_adi")) || VARSAYILAN_KULUP;
       await cikti().pdfKaydet(
         raporHtml({
           baslik: v.baslik,
@@ -148,6 +150,7 @@ export function Raporlar() {
           sutunlar: v.disaSutunlar || v.sutunlar,
           satirlar: v.satirlar,
           logo,
+          kulup,
           yatay: !!v.yatay,
         }),
         `${rapor}.pdf`,

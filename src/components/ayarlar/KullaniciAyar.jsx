@@ -5,6 +5,7 @@ import { db, hataMetni, hataHam } from "../../lib/api.js";
 import { ParolaDegistir } from "../ParolaDegistir.jsx";
 import { esc as htmlEsc } from "../../lib/metin.js";
 import { Ikon } from "../Ikon.jsx";
+import { VARSAYILAN_KULUP } from "../../lib/marka.js";
 
 export function KullaniciAyar({ oturum, admin, saltOkunur }) {
   const [liste, setListe] = useState([]);
@@ -212,7 +213,13 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
 
 export function KurtarmaKodlari({ username, kodlar, onKapat, kapatMetni = "Kaydettim, Kapat" }) {
   const toast = useToast();
-  const metin = `Eyüpspor Futbol Okulu — ${username} parola kurtarma kodları\n${kodlar.join("\n")}\nHer kod bir kez kullanılır.`;
+  const [kulup, setKulup] = useState(VARSAYILAN_KULUP);
+  useEffect(() => {
+    db("getSetting", "kulup_adi")
+      .then((k) => k && setKulup(k))
+      .catch(() => {});
+  }, []);
+  const metin = `${kulup} — ${username} parola kurtarma kodları\n${kodlar.join("\n")}\nHer kod bir kez kullanılır.`;
   const kopyala = async () => {
     try {
       await navigator.clipboard.writeText(metin);
@@ -223,7 +230,7 @@ export function KurtarmaKodlari({ username, kodlar, onKapat, kapatMetni = "Kayde
   };
   const yazdir = async () => {
     const esc = htmlEsc;
-    const html = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Kurtarma kodları</title><style>body{font-family:sans-serif;padding:32px}h1{font-size:18px}code{display:block;font-size:18px;letter-spacing:.1em;margin:6px 0}</style></head><body><h1>Eyüpspor Futbol Okulu — ${esc(username)} parola kurtarma kodları</h1>${kodlar.map((k) => `<code>${esc(k)}</code>`).join("")}<p>Her kod bir kez kullanılır. Güvenli bir yerde saklayın.</p></body></html>`;
+    const html = `<!doctype html><html lang="tr"><head><meta charset="utf-8"><title>Kurtarma kodları</title><style>body{font-family:sans-serif;padding:32px}h1{font-size:18px}code{display:block;font-size:18px;letter-spacing:.1em;margin:6px 0}</style></head><body><h1>${esc(kulup)} — ${esc(username)} parola kurtarma kodları</h1>${kodlar.map((k) => `<code>${esc(k)}</code>`).join("")}<p>Her kod bir kez kullanılır. Güvenli bir yerde saklayın.</p></body></html>`;
     const r = await window.okul.cikti.yazdir(html);
     if (!r?.ok) toast("err", r?.hata || "Yazdırılamadı");
   };

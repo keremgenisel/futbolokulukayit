@@ -113,7 +113,7 @@ function registerCiktiHandlers(getSession) {
     });
     if (r.canceled || !r.filePath) return { iptal: true };
     const wb = new ExcelJS.Workbook();
-    wb.creator = "Eyüpspor Futbol Okulu";
+    wb.creator = db.getSetting("kulup_adi") || "Futbol Okulu";
     const ws = wb.addWorksheet(String(veri.sayfa || "Rapor").slice(0, 30));
     ws.columns = veri.sutunlar.map((c) => ({ header: c.baslik, key: c.anahtar, width: c.genislik || 18 }));
     ws.getRow(1).font = { bold: true };

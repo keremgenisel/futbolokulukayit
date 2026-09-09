@@ -1,4 +1,4 @@
-# Eyüpspor Futbol Okulu Aktivasyon Sunucusu (B2)
+# Futbol Okulu Kayıt Programı Aktivasyon Sunucusu (B2)
 
 Uygulamanın kısa ömürlü, imzalı **lease** aldığı online aktivasyon servisi. Cloudflare Workers + D1.
 Kazanç: **kurulum sayımı** (tek anahtarın filoya dağıtılmasını durdurur), **uzaktan iptal**, tam
@@ -21,7 +21,7 @@ npm install
 #    ve gömülecek iki AÇIK anahtarı yazdırır. AÇIK lease anahtarını ana uygulamaya (VARSAYILAN_LEASE_PUBLIC_PEM) göm.
 
 # 2) D1 oluştur ve şemayı yükle:
-wrangler d1 create eyupspor-lisans          # çıkan database_id'yi wrangler.toml'a yapıştır
+wrangler d1 create futbol-okulu-lisans      # çıkan database_id'yi wrangler.toml'a yapıştır
 npm run db:init
 
 # 3) Secrets:
@@ -30,7 +30,7 @@ wrangler secret put LEASE_PRIVATE_PEM     # priv2 (lisans-lease-private.pem içe
 wrangler secret put ADMIN_TOKEN           # /admin/* için rastgele uzun gizli
 
 # 4) Deploy:
-npm run deploy                            # https://eyupspor-aktivasyon.<hesap>.workers.dev
+npm run deploy                            # https://futbol-okulu-aktivasyon.<hesap>.workers.dev
 ```
 
 ## Bir lisansı satışa hazırlama

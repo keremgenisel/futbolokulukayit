@@ -1,4 +1,4 @@
-// Eyüpspor Futbol Okulu aktivasyon sunucusu (Cloudflare Worker + D1). Uygulama buradan kısa ömürlü imzalı LEASE alır.
+// Futbol Okulu Kayıt Programı aktivasyon sunucusu (Cloudflare Worker + D1). Uygulama buradan kısa ömürlü imzalı LEASE alır.
 // Uçlar:
 //   POST /aktivasyon {anahtar, makineId, surum} → lease | 403(neden)
 //   POST /yenile     {anahtar, makineId}        → lease | 403(neden)   (iptal buradan yayılır)

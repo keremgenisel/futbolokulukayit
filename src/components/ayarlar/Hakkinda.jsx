@@ -25,7 +25,7 @@ export function Hakkinda({ admin }) {
   );
 }
 
-// Uygulama güncellemesi (GitHub Releases: keremgenisel/eyupspor, herkese açık tek depo). Akış: Denetle → "Yeni sürüm X" → İndir (ilerleme)
+// Uygulama güncellemesi (GitHub Releases: keremgenisel/futbolokulukayit, herkese açık tek depo). Akış: Denetle → "Yeni sürüm X" → İndir (ilerleme)
 
 // → Yeniden Başlat ve Kur. Yalnız paketli (Setup ile kurulmuş) sürümde çalışır; geliştirme modunda bilgi verir.
 

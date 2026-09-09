@@ -58,3 +58,21 @@ describe("exeLocalName", () => {
     expect(assetNameFromLocal(ad)).toBe(ad); // yüklenen ad yerel adla aynı
   });
 });
+
+// Regresyon: .github/workflows/release.yml `npm run release` çağırır ama package.json'da bu script
+// hiç tanımlı değildi (10.09.2026'da fark edildi) — etiket push edilince CI "Missing script" ile düşerdi.
+describe("release.yml ↔ package.json script tutarlılığı", () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf-8"));
+  const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "release.yml"), "utf-8");
+
+  it("release.yml'in çağırdığı `npm run release` script'i package.json'da tanımlı", () => {
+    expect(workflow).toContain("npm run release");
+    expect(pkg.scripts.release).toBeTruthy();
+  });
+
+  it("`release` script'i build + electron-builder --win + publish-release.cjs'i sırayla çalıştırır", () => {
+    expect(pkg.scripts.release).toContain("vite build");
+    expect(pkg.scripts.release).toContain("electron-builder --win");
+    expect(pkg.scripts.release).toContain("scripts/publish-release.cjs");
+  });
+});

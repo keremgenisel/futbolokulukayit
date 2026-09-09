@@ -1,15 +1,15 @@
 {
-  "name": "eyupspor-aktivasyon",
+  "name": "futbol-okulu-aktivasyon",
   "private": true,
   "type": "module",
-  "description": "Eyüpspor Futbol Okulu lisans aktivasyon sunucusu (Cloudflare Worker + D1)",
+  "description": "Futbol Okulu Kayıt Programı lisans aktivasyon sunucusu (Cloudflare Worker + D1)",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "db:init": "wrangler d1 execute eyupspor-lisans --remote --file=schema.sql",
-    "db:init:local": "wrangler d1 execute eyupspor-lisans --local --file=schema.sql"
+    "db:init": "wrangler d1 execute futbol-okulu-lisans --remote --file=schema.sql",
+    "db:init:local": "wrangler d1 execute futbol-okulu-lisans --local --file=schema.sql"
   },
   "devDependencies": {
-    "wrangler": "^3.80.0"
+    "wrangler": "^4.130.0"
   }
 }

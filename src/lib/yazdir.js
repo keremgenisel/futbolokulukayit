@@ -2,6 +2,7 @@
 // kullanıcı sistem görüntüleyicisinden yazdırabilir. Dönüş: { ok, mesaj }.
 import { db, cikti, files, uygulama } from "./api.js";
 import { makbuzHtml } from "./makbuzHtml.js";
+import { VARSAYILAN_KULUP } from "./marka.js";
 
 export async function makbuzHtmlUret(receiptId) {
   const [m, kalemler, logo, kulup] = await Promise.all([
@@ -10,7 +11,7 @@ export async function makbuzHtmlUret(receiptId) {
     uygulama().logo(),
     db("getSetting", "kulup_adi"),
   ]);
-  return makbuzHtml({ makbuz: m, kalemler, logo, kulupAdi: kulup || "EYÜPSPOR FUTBOL OKULU" });
+  return makbuzHtml({ makbuz: m, kalemler, logo, kulupAdi: kulup || VARSAYILAN_KULUP });
 }
 
 const HATA_TR = (h) => {

@@ -1,7 +1,7 @@
-# Eyüpspor Futbol Okulu — Kurulum ve Kullanım Rehberi
+# Futbol Okulu Kayıt Programı — Kurulum ve Kullanım Rehberi
 
 ## 1. Kurulum (tek bilgisayar)
-1. `Eyüpspor Futbol Okulu Setup x.y.z.exe` dosyasını çalıştırın, "Kur" deyin.
+1. `Futbol-Okulu-Kayit-Programi-Setup-x.y.z.exe` dosyasını çalıştırın, "Kur" deyin.
 2. Masaüstündeki simgeyle açın. İlk giriş: kullanıcı adı **admin**, parola **admin**.
 3. Program sizden hemen yeni bir parola isteyecek. En az 8 karakter girin. (Sonraki parola değişimlerinde
    mevcut parolanız da sorulur. Üst üste 8 yanlış girişte kullanıcı 15 dakika kilitlenir.)

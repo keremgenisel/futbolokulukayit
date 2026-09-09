@@ -1,11 +1,12 @@
 // @ts-check
 // Basit tablo raporu HTML'i (PDF çıktısı için). Başlık, alt başlık, sütunlar ve satırlar.
 import { esc, guvenliLogo } from "./metin.js";
+import { VARSAYILAN_KULUP } from "./marka.js";
 
 /**
- * @param {{ baslik: string, altBaslik?: string, sutunlar: {baslik: string, anahtar: string, sag?: boolean}[], satirlar: Record<string, unknown>[], logo?: string, yatay?: boolean }} p
+ * @param {{ baslik: string, altBaslik?: string, sutunlar: {baslik: string, anahtar: string, sag?: boolean}[], satirlar: Record<string, unknown>[], logo?: string, yatay?: boolean, kulup?: string }} p
  */
-export function raporHtml({ baslik, altBaslik = "", sutunlar, satirlar, logo = "", yatay = false }) {
+export function raporHtml({ baslik, altBaslik = "", sutunlar, satirlar, logo = "", yatay = false, kulup = VARSAYILAN_KULUP }) {
   const th = sutunlar.map((c) => `<th${c.sag ? ' class="sag"' : ""}>${esc(c.baslik)}</th>`).join("");
   const tr = satirlar
     .map((s) => `<tr>${sutunlar.map((c) => `<td${c.sag ? ' class="sag"' : ""}>${esc(s[c.anahtar])}</td>`).join("")}</tr>`)
@@ -27,6 +28,6 @@ export function raporHtml({ baslik, altBaslik = "", sutunlar, satirlar, logo = "
 </style></head><body>
 <div class="ust">${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}<div><h1>${esc(baslik)}</h1>${altBaslik ? `<div class="alt">${esc(altBaslik)}</div>` : ""}</div></div>
 <table><thead><tr>${th}</tr></thead><tbody>${tr}</tbody></table>
-<div class="dip">${satirlar.length} kayıt · Eyüpspor Futbol Okulu</div>
+<div class="dip">${satirlar.length} kayıt · ${esc(kulup)}</div>
 </body></html>`;
 }

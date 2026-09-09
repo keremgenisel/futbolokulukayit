@@ -40,7 +40,7 @@ function localIps() {
 
 // selfsigned v5 generate() bir Promise döndürür → async.
 async function uret() {
-  const attrs = [{ name: "commonName", value: "Eyüpspor Futbol Okulu Server" }];
+  const attrs = [{ name: "commonName", value: "Futbol Okulu Kayıt Programı Server" }];
   const altNames = [{ type: 2, value: "localhost" }, { type: 7, ip: "127.0.0.1" }, ...localIps().map((ip) => ({ type: 7, ip }))];
   const pems = await selfsigned.generate(attrs, {
     keySize: 2048,

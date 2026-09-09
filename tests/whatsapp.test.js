@@ -47,7 +47,7 @@ describe("WhatsApp saf mantık", () => {
       ),
     );
     expect(sablonDoldur(VARSAYILAN_SABLONLAR.iptal, d)).toBe(
-      "Sayın Veliler, U11 grubunun 8 Eylül 2026 Salı 18:30 antrenmanı iptal edilmiştir.\nEyüpspor Futbol Okulu",
+      "Sayın Veliler, U11 grubunun 8 Eylül 2026 Salı 18:30 antrenmanı iptal edilmiştir.\nFutbol Okulu",
     );
   });
   it("hatirlatmaUygunMu: numara yok / onay yok / uygun", () => {
@@ -74,12 +74,12 @@ describe("WhatsApp saf mantık", () => {
       kalan: "2.500 ₺",
       donem: "1-10",
       grup: "U11",
-      kulup: "Eyüpspor Futbol Okulu",
+      kulup: "Futbol Okulu",
     });
     const m = sablonDoldur(VARSAYILAN_SABLONLAR.aidat, d);
     expect(m).toContain("Kaan Yıldız için Eylül 2026 aidatı (2.500 ₺)");
     expect(m).toContain("her ayın 1-10 günleridir");
-    expect(m.endsWith("Eyüpspor Futbol Okulu")).toBe(true);
+    expect(m.endsWith("Futbol Okulu")).toBe(true);
   });
   it("antrenmanDegerleri: değişiklik notundan eski tarih/saat, iptal nedeni 'İptal' ise boş", () => {
     const t = {
@@ -99,11 +99,11 @@ describe("WhatsApp saf mantık", () => {
       grup: "U11",
     });
     expect(sablonDoldur(VARSAYILAN_SABLONLAR.degisiklik, d)).toBe(
-      "Sayın Ayşe, U11 grubunun 7 Eylül 2026 Pazartesi 17:00 antrenmanı 8 Eylül 2026 Salı 18:30 saatine alınmıştır (Saha 2).\nEyüpspor Futbol Okulu",
+      "Sayın Ayşe, U11 grubunun 7 Eylül 2026 Pazartesi 17:00 antrenmanı 8 Eylül 2026 Salı 18:30 saatine alınmıştır (Saha 2).\nFutbol Okulu",
     );
     const ip = antrenmanDegerleri({ tarih: "2026-09-08", saat: "18:30", yas_grubu_ad: "U11", iptal_nedeni: "İptal" }, { ad_soyad: "Kaan" });
     expect(sablonDoldur(VARSAYILAN_SABLONLAR.iptal, ip)).toBe(
-      "Sayın Veli, U11 grubunun 8 Eylül 2026 Salı 18:30 antrenmanı iptal edilmiştir.\nEyüpspor Futbol Okulu",
+      "Sayın Veli, U11 grubunun 8 Eylül 2026 Salı 18:30 antrenmanı iptal edilmiştir.\nFutbol Okulu",
     );
     expect(antrenmanDegerleri({ tarih: "2026-09-08", degisiklik_notu: "bozuk{", yas_grubu_ad: "U9" }, { ad_soyad: "A" }).eskiTarih).toBe(
       "8 Eylül 2026 Salı",

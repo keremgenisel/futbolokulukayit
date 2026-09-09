@@ -299,7 +299,7 @@ Veri asla silinmez, kilit yeni anahtar girilince anında kalkar.
 ### 8.1 Kerem'in yapacakları (bu makineden) — tek HERKESE AÇIK depo (08.09.2026)
 Otomatik güncelleme GitHub Releases'ten kimliksiz indirir; depo özel olursa kurulu uygulama güncelleme alamaz (iki
 depo düzeninden vazgeçildi, 08.09.2026). Depoda kod ve kurulum dosyaları olur; kulüp verisi ve lisans özel anahtarları
-ASLA olmaz (gitignore + gitleaks). Altyapı hazır (build.publish → `keremgenisel/eyupspor`, release.yml GITHUB_TOKEN ile
+ASLA olmaz (gitignore + gitleaks). Altyapı hazır (build.publish → `keremgenisel/futbolokulukayit`, release.yml GITHUB_TOKEN ile
 yayınlar, publish-release.cjs depo özelse durur, Ayarlar > Hakkında > Uygulama güncellemesi akışı). Sıra:
 
 Sıra bağımlılığa göredir (08.09.2026): her adım bir sonrakinin ön koşulu. 1–4 hesap ve depo işi (~yarım saat), 5–8 yayın
@@ -307,14 +307,14 @@ Sıra bağımlılığa göredir (08.09.2026): her adım bir sonrakinin ön koşu
 
 | # | İş | Nasıl | Neden bu sırada | Durum |
 |---|----|-------|-----------------|-------|
-| 1 | Lisans özel anahtarlarını yedekle | `scripts/keys/lisans-private.pem` ve `lisans-lease-private.pem` dosyalarını şifreli USB veya parola yöneticisine kopyala. | Sonraki her adım bu anahtarlara dayanır; kaybı geri alınamaz, dağıtılan tüm lisanslar geçersiz olur. | Bekliyor |
-| 2 | GitHub hesabında 2FA aç (güvenlik #9) | github.com > Settings > Password and authentication. | Herkese açık depo ve otomatik güncelleme bu hesabın güvenliğine dayanır; önce hesap, sonra depo. | Bekliyor |
-| 3 | Depoyu HERKESE AÇIK oluştur ve push et | `gh repo create keremgenisel/eyupspor --public --source . --remote origin --push` | Etiket kuralı ve sürüm yayını depo olmadan yapılamaz. | Bekliyor |
-| 4 | Korumalı etiket kuralı ekle (güvenlik #9) | Depoda Settings > Tags > "Protected tags", desen `v*` (yalnız sen etiket atabilirsin). | İlk etiket atılmadan önce; yayın kanalı ilk günden korunur. | Bekliyor |
-| 5 | Wrangler'ı 4.x'e yükselt | `aktivasyon-sunucu` içinde `npm install --save-dev wrangler@4` (3.x uyarı veriyor). | Deploy'u temiz araçla yapmak için, deploy'dan hemen önce. | Bekliyor |
-| 6 | Aktivasyon sunucusunu deploy et | `cd aktivasyon-sunucu && npx wrangler login && ./deploy.sh`. Çıkan adresi `electron/aktivasyonIstemci.cjs` → `AKTIVASYON_URL` alanına yaz, commit et. | `--aktivasyon` bayraklı lisans bu sunucuya bağlanır; adres uygulamaya gömülü olduğu için ilk sürümden ÖNCE commit'te olmalı. | Bekliyor |
-| 7 | Kulübe lisans anahtarı üret | `node scripts/lisans-uret.cjs --firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon` ve `node scripts/lisans-yonet.cjs kaydet --anahtar "…" --kurulum 2`. Aktivasyon sunucusu yoksa `--aktivasyon` bayrağını KOYMA. | Sunucu ayakta olunca; kurulum sayısı sınırı burada tanımlanır. | Bekliyor |
-| 8 | İlk sürümü yayınla | `package.json` version `1.0.0`, commit, `git tag v1.0.0 && git push --follow-tags` → GitHub Actions ~10 dk → Release v1.0.0 (.exe + latest.yml). Kontrol: `gh release view v1.0.0 --repo keremgenisel/eyupspor`. | Aktivasyon adresi gömülü ve etiketler korumalı olduktan sonra. | Bekliyor |
+| 1 | Lisans özel anahtarlarını yedekle | `scripts/keys/lisans-private.pem` ve `lisans-lease-private.pem` dosyalarını şifreli USB veya parola yöneticisine kopyala. | Sonraki her adım bu anahtarlara dayanır; kaybı geri alınamaz, dağıtılan tüm lisanslar geçersiz olur. | **Yapıldı** (Kerem, 10.09.2026) |
+| 2 | GitHub hesabında 2FA aç (güvenlik #9) | github.com > Settings > Password and authentication. | Herkese açık depo ve otomatik güncelleme bu hesabın güvenliğine dayanır; önce hesap, sonra depo. | **Yapıldı** (Kerem, 10.09.2026) |
+| 3 | Depoyu HERKESE AÇIK oluştur ve push et | `gh repo create keremgenisel/eyupspor --public --source . --remote origin --push` | Etiket kuralı ve sürüm yayını depo olmadan yapılamaz. | **Yapıldı 10.09.2026** — sonra `keremgenisel/futbolokulukayit`'e yeniden adlandırıldı (Kerem: "eyupspor olarak değil"); `gh repo rename`, yerel `origin` ve kod içi referanslar güncellendi. Push sırasında `GH_TOKEN`'ın `workflow` kapsamı yoktu, kayıtlı ikinci token (`workflow` dahil) kullanıldı. |
+| 4 | Korumalı etiket kuralı ekle (güvenlik #9) | Depoda Settings > Tags > "Protected tags", desen `v*` (yalnız sen etiket atabilirsin). | İlk etiket atılmadan önce; yayın kanalı ilk günden korunur. | **Yapıldı 10.09.2026** — klasik "tag protection" API'si kaldırılmış (404); yerine Rulesets API ile `refs/tags/v*` için `creation`/`update`/`deletion` kısıtlı ruleset oluşturuldu, bypass rolü `admin` (`current_user_can_bypass: "always"` — yalnız sen etiket atabilirsin, doğrulandı). GitHub'da Settings > Rules > Rulesets'te görünür. |
+| 5 | Wrangler'ı 4.x'e yükselt | `aktivasyon-sunucu` içinde `npm install --save-dev wrangler@4` (3.x uyarı veriyor). | Deploy'u temiz araçla yapmak için, deploy'dan hemen önce. | **Yapıldı 10.09.2026** — 4.130.0, `wrangler deploy --dry-run` ile yeni `wrangler.toml` adları (`futbol-okulu-lisans`) doğrulandı. |
+| 6 | Aktivasyon sunucusunu deploy et | `cd aktivasyon-sunucu && npx wrangler login && ./deploy.sh`. Çıkan adresi `electron/aktivasyonIstemci.cjs` → `AKTIVASYON_URL` alanına yaz, commit et. | `--aktivasyon` bayraklı lisans bu sunucuya bağlanır; adres uygulamaya gömülü olduğu için ilk sürümden ÖNCE commit'te olmalı. | **Yapıldı 10.09.2026** — `https://futbol-okulu-aktivasyon.keremgenisel.workers.dev` deploy edildi (D1 `futbol-okulu-lisans`, 3 secret yüklendi); `/saglik` ve `lisans-yonet.cjs tumu` ile uçtan uca doğrulandı; `AKTIVASYON_URL` gömüldü. |
+| 7 | Kulübe lisans anahtarı üret | `node scripts/lisans-uret.cjs --firma "Eyüpspor Kulübü" --bitis <sözleşme bitişi> --aktivasyon` ve `node scripts/lisans-yonet.cjs kaydet --anahtar "…" --kurulum 2`. Aktivasyon sunucusu yoksa `--aktivasyon` bayrağını KOYMA. | Sunucu ayakta olunca; kurulum sayısı sınırı burada tanımlanır. | **Yapıldı 10.09.2026** (Kerem: "süresiz 5 kullanıcı 1 kurulum") — `--firma "Eyüpspor Kulübü" --suresiz --kullanici 5 --aktivasyon`, sunucuya `--kurulum 1` ile kaydedildi, `liste`/`tumu` ile doğrulandı. Anahtarın kendisi güvenlik nedeniyle buraya yazılmadı, yalnız oturum geçmişinde. |
+| 8 | İlk sürümü yayınla | `package.json` version `1.0.0`, commit, `git tag v1.0.0 && git push --follow-tags` → GitHub Actions ~10 dk → Release v1.0.0 (.exe + latest.yml). Kontrol: `gh release view v1.0.0 --repo keremgenisel/futbolokulukayit`. | Aktivasyon adresi gömülü ve etiketler korumalı olduktan sonra. | Bekliyor |
 | 9 | Kulüp bilgisayarında kurulum ve Windows doğrulamaları | §8.2 kurulum adımları + gerçek yazıcı testi (makbuz, kağıt boyutu, kenar boşlukları) + güvenlik raporundaki doğrulanamayan 4 madde: WAL dosyası (`data.db-wal`) şifreli mi, `db-key.enc` yalnız o Windows kullanıcısına açık mı, GitHub 2FA/korumalı etiket gerçekten açık mı, yazdırma penceresinden `file://` erişimi engelli mi. | Kurulum dosyası hazır olunca tek ziyarette. | Bekliyor |
 | 10 | Kod imzası sertifikası (güvenlik #9) | Windows kod imzası sertifikası (yıllık ücret) alınırsa `electron-builder` ayarında imza ve `verifyUpdateCodeSignature: true`; yeni sürüm yayınla. | Hiçbir şey buna bağlı değil; bütçe kararı, en sona. | Bekliyor |
 
@@ -1041,6 +1041,11 @@ Kerem: uygulamanın adı "Futbol Okulu Kayıt Programı" olsun; kulüpten bağı
   (`paket.json tur = futbolokulu-tasima`), geçici klasör önekleri `futbolokulu-tasima-`/`futbolokulu-geri-` (açılış temizliği),
   sunucu-istemci el sıkışma adı `/saglik ad = futbol-okulu-kayit-programi`, `package.json license = UNLICENSED`. Eski
   `EYUPSPOR.` anahtarları ve `.eyupyedek`/`.eyupspor` dosyaları artık tanınmaz (dağıtılmış yoktu).
+  **Düzeltme 10.09.2026** (GenCRM ile lisans kodu karşılaştırmasında bulundu): `aktivasyon-sunucu/` klasörü bu geçişte
+  atlanmıştı — Cloudflare Worker adı, D1 veritabanı adı, `package.json`/`README.md`/`deploy.sh`/`src/index.js`/`schema.sql`
+  içindeki başlıklar hâlâ `eyupspor-*` idi (henüz deploy edilmediği için `wrangler.toml`'daki `database_id` yer tutucu
+  kalmıştı, düzeltmek risksizdi). Hepsi `futbol-okulu-aktivasyon` / `futbol-okulu-lisans`'a çevrildi;
+  `aktivasyon-sunucu/package-lock.json` `npm install --package-lock-only` ile yeniden üretildi.
 
 ### 23.0 Ad değişikliğinin yan etkisi (09.09.2026, Kerem: "uygulamaya giriş yapamıyorum")
 productName değişince (1) Electron userData klasörü yeni ada taşındı → boş veritabanı açıldı; (2) macOS safeStorage keychain kaydı
@@ -1054,14 +1059,21 @@ taşınır (kurulu kullanıcı yok).
 ### 23.1 Sonraya bırakılanlar (Kerem, 09.09.2026: "planlara ekle")
 1. **Giriş ekranı ve kenar menü markası:** "EYÜPSPOR / Futbol Okulu" yazısı ve `build/icon.png` logosu sabit. Öneri: Ayarlar >
    Kulüp'teki `kulup_adi` (ve yüklenebilir kulüp logosu) gösterilsin; ayar boşsa "Futbol Okulu Kayıt Programı".
-2. **Varsayılan kulüp adı sabitleri:** `src/lib/whatsapp.js VARSAYILAN_KULUP`, `makbuzHtml.js`/`yoklamaFormuHtml.js`/`yazdir.js`
+2. ~~**Varsayılan kulüp adı sabitleri:** `src/lib/whatsapp.js VARSAYILAN_KULUP`, `makbuzHtml.js`/`yoklamaFormuHtml.js`/`yazdir.js`
    "EYÜPSPOR FUTBOL OKULU", `raporHtml.js` altbilgi "Eyüpspor Futbol Okulu", Kulüp ayarı ve İlk Kurulum yer tutucuları
    "EYÜPSPOR FUTBOL OKULU", Excel `wb.creator`, kurtarma kodları çıktısı başlığı, `serverTls.cjs` sertifika adı, `istemci.cjs`
-   "Eyüpspor programı değil" hata metni. Öneri: tek kaynak `src/lib/marka.js` (`UYGULAMA_ADI`, `varsayilanKulup`), hepsi
-   `kulup_adi` ayarına düşsün. Testler (`whatsapp.test.js`, `rapor-html.test.js`, kalıcılık yer tutucusu) birlikte güncellenir.
+   "Eyüpspor programı değil" hata metni.~~ — YAPILDI 10.09.2026: tek kaynak `src/lib/marka.js` (`UYGULAMA_ADI`,
+   `VARSAYILAN_KULUP = "Futbol Okulu"`); `whatsapp.js`/`makbuzHtml.js`/`yoklamaFormuHtml.js`/`yazdir.js` oradan alır,
+   `raporHtml.js` artık `kulup` parametresi kabul eder (`Raporlar.jsx`/`Oyuncular.jsx` çağrılarında `getSetting("kulup_adi")`
+   geçilir), kurtarma kodları çıktısı (`KullaniciAyar.jsx`) ayarı okur, Excel `wb.creator` ana süreçte `db.getSetting`
+   ile kulüp adına düşer, `serverTls.cjs` sertifika adı jenerik "Futbol Okulu Kayıt Programı Server" oldu (`istemci.cjs`
+   hata metni zaten 09.09.2026'da değişmişti). Kulüp ayarı/İlk Kurulum placeholder'ı "Kulübünüzün adı"na döndü. Testler
+   (`whatsapp.test.js`, `rapor-html.test.js`, kalıcılık placeholder seçici) birlikte güncellendi. Giriş ekranı/kenar
+   menüdeki sabit "EYÜPSPOR" marka yazısı ve logo (§23.1 madde 1) bu turun dışında bırakıldı.
 3. ~~Teknik önekler~~ — 09.09.2026'da yeniden adlandırıldı (yukarıda).
-4. **Belgeler:** `README.md` ve `docs/kurulum.md` başlıkları "Eyüpspor Futbol Okulu"; kurulum rehberindeki exe adı artık
-   `Futbol-Okulu-Kayit-Programi-Setup-x.y.z.exe`.
+4. ~~**Belgeler:** `README.md` ve `docs/kurulum.md` başlıkları "Eyüpspor Futbol Okulu"; kurulum rehberindeki exe adı artık
+   `Futbol-Okulu-Kayit-Programi-Setup-x.y.z.exe`.~~ — YAPILDI 10.09.2026: iki dosyanın başlığı "Futbol Okulu Kayıt
+   Programı"na çevrildi, kurulum rehberindeki örnek exe adı `Futbol-Okulu-Kayit-Programi-Setup-x.y.z.exe` yapıldı.
 6. ~~Kurulum lisans sözleşmesi sayfası~~ — 09.09.2026 yapıldı: `build/license.txt` (Türkçe son kullanıcı lisans sözleşmesi; UTF-8
    BOM + CRLF, `nsis.license`). Metin hukuki danışmanlık değildir; dağıtımdan önce bir hukukçuya gösterilmesi önerilir.
 5. **Sürüm ve yayın:** `version 0.1.0` → ilk dağıtımda `1.0.0` + `v1.0.0` etiketi (release.yml uyumu denetler). Kod imzalama

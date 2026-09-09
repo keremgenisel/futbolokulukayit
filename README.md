@@ -1,4 +1,4 @@
-# Eyüpspor Futbol Okulu — Kayıt Programı
+# Futbol Okulu Kayıt Programı
 
 Oyuncu kayıt, aylık aidat, tahsilat makbuzu ve antrenman yoklaması için masaüstü uygulaması.
 

@@ -202,7 +202,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
               <Girdi
                 value={kulup.kulup_adi}
                 onChange={(e) => setKulup({ ...kulup, kulup_adi: e.target.value })}
-                placeholder="EYÜPSPOR FUTBOL OKULU"
+                placeholder="Kulübünüzün adı"
                 aria-label="Kulüp adı"
                 autoFocus
               />

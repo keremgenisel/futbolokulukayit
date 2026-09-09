@@ -1,4 +1,4 @@
--- Eyüpspor Futbol Okulu aktivasyon sunucusu D1 şeması.
+-- Futbol Okulu Kayıt Programı aktivasyon sunucusu D1 şeması.
 -- lisanslar: satıcının kaydettiği lisanslar. Ham anahtar TUTULMAZ; yalnız SHA-256 özeti (KVKK).
 --   maksKullanici/bitis imzalı anahtardan gelir (referans); maksKurulum/iptal satıcı tarafından yönetilir.
 CREATE TABLE IF NOT EXISTS lisanslar (

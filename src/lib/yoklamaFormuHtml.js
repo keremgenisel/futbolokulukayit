@@ -4,6 +4,7 @@
 import { uzunTarih } from "./takvim.js";
 
 import { esc, guvenliLogo } from "./metin.js";
+import { VARSAYILAN_KULUP } from "./marka.js";
 
 /** Boş satır sayısı: sonradan gelen/deneme oyuncular elle yazılır. */
 export const EK_BOS_SATIR = 0; // 09.09.2026: sonda boş satır istenmedi (plan §17.3)
@@ -27,7 +28,7 @@ const kutu = (sutun, isaret) =>
 /**
  * @param {{ grup: string, tarih: string, saat?: string, saha?: string, oyuncular: { ad_soyad: string, durum?: string, isaret?: string }[], logo?: string, kulup?: string }} p
  */
-export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular, logo = "", kulup = "EYÜPSPOR FUTBOL OKULU" }) {
+export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular, logo = "", kulup = VARSAYILAN_KULUP }) {
   /** @param {number} no @param {{ ad_soyad: string, durum?: string, isaret?: string } | null} o */
   const satir = (no, o) => {
     const et = o && ETIKET[o.durum || ""] ? ` <span class="etiket">(${ETIKET[o.durum || ""]})</span>` : "";

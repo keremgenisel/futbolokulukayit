@@ -21,7 +21,7 @@ describe("raporHtml", () => {
     expect(h).toContain('<th class="sag">Tutar</th>');
     expect(h).toContain("<td>Kaan Yıldız</td>");
     expect(h).toContain('<td class="sag">3.500 ₺</td>');
-    expect(h).toContain("2 kayıt · Eyüpspor Futbol Okulu");
+    expect(h).toContain("2 kayıt · Futbol Okulu");
     expect(h).toContain("size: A4 portrait");
   });
   it("hücre içeriği kaçırılır (HTML enjeksiyonu yok)", () => {

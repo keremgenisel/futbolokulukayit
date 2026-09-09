@@ -16,6 +16,7 @@ import {
   Telefon,
 } from "./ui.jsx";
 import { db, cikti, uygulama, bugun } from "../lib/api.js";
+import { VARSAYILAN_KULUP } from "../lib/marka.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
@@ -154,6 +155,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     dene(async () => {
       const v = await raporVerisi();
       const logo = await uygulama().logo();
+      const kulup = (await db("getSetting", "kulup_adi")) || VARSAYILAN_KULUP;
       await cikti().pdfKaydet(
         raporHtml({
           baslik: "Oyuncu Listesi",
@@ -161,6 +163,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
           sutunlar: v.sutunlar,
           satirlar: v.satirlar,
           logo,
+          kulup,
           yatay: true,
         }),
         "oyuncular.pdf",

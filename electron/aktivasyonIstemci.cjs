@@ -1,8 +1,7 @@
 // Aktivasyon sunucusuyla konuşan istemci (main süreç). Faz 2'de aktivasyon-sunucu/ deploy edilince
 // AKTIVASYON_URL doldurulur. Boşken online aktivasyon KAPALI: uygulama yalnız elle "Lease yapıştır"
 // ile aktive olur. Dış host'a standart public-CA TLS ile fetch (Node 18+ global fetch).
-// ⚙️ DEPLOY SONRASI DOLDUR. Sonuna / KOYMA.
-const AKTIVASYON_URL = "";
+const AKTIVASYON_URL = "https://futbol-okulu-aktivasyon.keremgenisel.workers.dev";
 
 const ayarli = () => !!AKTIVASYON_URL;
 

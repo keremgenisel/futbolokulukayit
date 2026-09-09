@@ -117,7 +117,7 @@ app.on("browser-window-created", async (_e, win) => {
       await bekle(300);
       await tikla("Ayarlar");
       await bekle(400);
-      await setInput('input[placeholder="EYÜPSPOR FUTBOL OKULU"]', "TEST KULÜBÜ");
+      await setInput('input[placeholder="Kulübünüzün adı"]', "TEST KULÜBÜ");
       await tikla("Kaydet");
       await bekle(400);
       // Aidat Kalemleri: iki satıra binlik ayraçlı fiyat + indirim, tek Kaydet (07.09.2026 akışı)

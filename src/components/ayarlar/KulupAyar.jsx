@@ -23,7 +23,7 @@ export function KulupAyar({ saltOkunur }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 style={{ fontSize: 22 }}>Kulüp ve Makbuz</h3>
       <Alan etiket="Makbuzda görünen kulüp adı">
-        <Girdi value={a.kulup_adi} onChange={(e) => setA({ ...a, kulup_adi: e.target.value })} placeholder="EYÜPSPOR FUTBOL OKULU" />
+        <Girdi value={a.kulup_adi} onChange={(e) => setA({ ...a, kulup_adi: e.target.value })} placeholder="Kulübünüzün adı" />
       </Alan>
       <Alan etiket="Varsayılan tahsil eden (makbuzda; boşsa giriş yapan kullanıcı)">
         <Girdi value={a.tahsil_eden} onChange={(e) => setA({ ...a, tahsil_eden: e.target.value })} />
