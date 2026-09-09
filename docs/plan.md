@@ -1042,6 +1042,15 @@ Kerem: uygulamanın adı "Futbol Okulu Kayıt Programı" olsun; kulüpten bağı
   sunucu-istemci el sıkışma adı `/saglik ad = futbol-okulu-kayit-programi`, `package.json license = UNLICENSED`. Eski
   `EYUPSPOR.` anahtarları ve `.eyupyedek`/`.eyupspor` dosyaları artık tanınmaz (dağıtılmış yoktu).
 
+### 23.0 Ad değişikliğinin yan etkisi (09.09.2026, Kerem: "uygulamaya giriş yapamıyorum")
+productName değişince (1) Electron userData klasörü yeni ada taşındı → boş veritabanı açıldı; (2) macOS safeStorage keychain kaydı
+uygulama adına bağlı olduğundan eski `db-key.enc` çözülemedi; (3) ESKİ kod çözemeyince anahtar dosyasının ÜZERİNE yeni anahtar
+yazıyordu (veriyi kalıcı okunamaz kılar). Yapılan: eski klasördeki data.db/uploads/config/lisans yeni klasöre kopyalandı, anahtar
+eski adla çözülüp yeni adla yeniden şifrelendi; `baglanti.getDbKey` artık mevcut dosyayı asla üzerine yazmaz ve açık hata verir,
+`main.cjs` açılışta hata kutusu gösterip çıkar; kalıcı araç `scripts/anahtar-yeniden-sifrele.cjs`; test `scripts/tests/anahtar-koruma.cjs`
+(+ vitest sarmalayıcı). Windows'ta DPAPI kullanıcı hesabına bağlıdır, ad değişikliği anahtarı etkilemez; yalnız `%APPDATA%` klasörü
+taşınır (kurulu kullanıcı yok).
+
 ### 23.1 Sonraya bırakılanlar (Kerem, 09.09.2026: "planlara ekle")
 1. **Giriş ekranı ve kenar menü markası:** "EYÜPSPOR / Futbol Okulu" yazısı ve `build/icon.png` logosu sabit. Öneri: Ayarlar >
    Kulüp'teki `kulup_adi` (ve yüklenebilir kulüp logosu) gösterilsin; ayar boşsa "Futbol Okulu Kayıt Programı".

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell, Menu, session } = require("electron");
+const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog } = require("electron");
 const { pathToFileURL } = require("url");
 const path = require("path");
 const fs = require("fs");
@@ -93,7 +93,15 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === PANO_YAZMA));
     session.defaultSession.setPermissionCheckHandler((_wc, perm) => perm === PANO_YAZMA);
     geciciArtiklariTemizle(); // inceleme #8: kaba kapanıştan kalan düz (şifresiz) geçici kopyalar
-    db.init();
+    try {
+      db.init();
+    } catch (e) {
+      // Anahtar çözülemedi / dosya bozuk: sessizce boş pencere açmak yerine nedeni göster ve çık (veriye dokunulmaz)
+      console.error("[db] açılamadı:", e.message);
+      dialog.showErrorBox("Veritabanı açılamadı", e.message);
+      app.exit(1);
+      return;
+    }
     // Bu ayın aidat kayıtlarını aç: açılışta, sonra saatte bir ve pencere öne gelince (uygulama ay sonunda
     // açık kalırsa yeni ayın borçları yeniden başlatma beklemeden görünsün). INSERT OR IGNORE → tekrar güvenli.
     const aidatKontrol = () => {

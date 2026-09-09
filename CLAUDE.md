@@ -63,7 +63,10 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   (bağlantı Proxy `db`, anahtar, yollar, `islem`), `sema` (şema/göç/tohum, `init`), `meta`, `kullanicilar`, `gruplar`, `oyuncular`,
   `mesaj`, `belgeler`, `aidat`, `makbuz`, `antrenman`, `sezon`, `pano`, `lisansDurum`, `yedek`. Yeni sorgu ilgili modüle yazılır,
   db.cjs export listesine ve `yetki.cjs` beyaz listesine eklenir. Şema `docs/plan.md §3`.
-  Anahtar `safeStorage` ile OS anahtarlığında.
+  Anahtar `safeStorage` ile OS anahtarlığında. macOS'ta keychain kaydı UYGULAMA ADINA bağlıdır ("<ad> Safe Storage"): productName
+  değişince eski `db-key.enc` çözülmez → `getDbKey` dosyayı ASLA üzerine yazmaz, açık hata verir, `main.cjs` hata kutusu gösterip çıkar;
+  kurtarma `npx electron scripts/anahtar-yeniden-sifrele.cjs "<eski ad>" "<yeni ad>" "<db-key.enc>"` (test `scripts/tests/anahtar-koruma.cjs`).
+  Geliştirme verisi `~/Library/Application Support/<productName>/` (09.09.2026'da "Futbol Okulu Kayıt Programı"na taşındı).
   Şema sürümü 17: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
   6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani · 8 fee_types (ücret tipleri
   tabloda; `players.ucret_tipi` = kod; normal/ucretsiz sabit; kod `electron/kodUret.cjs` ile addan üretilir) · 9 WhatsApp

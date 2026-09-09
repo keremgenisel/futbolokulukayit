@@ -53,10 +53,18 @@ function getDbKey() {
   }
   if (!canEncrypt) return (cachedDbKey = null);
   const p = getDbKeyPath();
-  try {
-    if (fs.existsSync(p)) return (cachedDbKey = safeStorage.decryptString(fs.readFileSync(p)));
-  } catch (e) {
-    console.error("[db] anahtar okunamadı:", e.message);
+  if (fs.existsSync(p)) {
+    // Mevcut anahtar dosyası ASLA üzerine yazılmaz: çözülemiyorsa (macOS'ta anahtar zinciri kaydı uygulama adına bağlıdır; ad
+    // değişince ya da kullanıcı profili değişince çözülmez) yeni anahtar üretmek veritabanını kalıcı olarak okunamaz kılar.
+    // 09.09.2026: uygulama adı değişince yaşandı; kurtarma `scripts/anahtar-yeniden-sifrele.cjs`.
+    try {
+      return (cachedDbKey = safeStorage.decryptString(fs.readFileSync(p)));
+    } catch (e) {
+      throw new Error(
+        `Veritabanı anahtarı çözülemedi (${p}). Dosya korunuyor, üzerine yazılmadı. Uygulama adı, işletim sistemi kullanıcısı ya da anahtar ` +
+          `zinciri değişmiş olabilir; eski adla yeniden şifrelemek için scripts/anahtar-yeniden-sifrele.cjs. Ayrıntı: ${e.message}`,
+      );
+    }
   }
   const key = crypto.randomBytes(32).toString("hex");
   try {
