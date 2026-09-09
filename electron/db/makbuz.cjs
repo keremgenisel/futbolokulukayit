@@ -64,18 +64,19 @@ const listReceipts = (pid, limit = null) =>
     ? db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC LIMIT ?").all(pid, Number(limit))
     : db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
 // sezon verilirse yalnız o sezona damgalı makbuzlar (Tahsilat > Bugün Kesilen Makbuzlar: aktif sezon; plan §17.2)
-const listCancelledReceipts = (from, to, sezon = null) =>
+// grup verilirse oyuncusu o yaş grubunda olan makbuzlar (Raporlar > Tahsilat, ortak filtre; plan §20)
+const listCancelledReceipts = (from, to, sezon = null, grup = null) =>
   db
     .prepare(
-      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 AND (? IS NULL OR r.sezon=?) ORDER BY r.tarih, r.id",
+      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
     )
-    .all(from, to, sezon, sezon);
-const listReceiptsByDate = (from, to, sezon = null) =>
+    .all(from, to, sezon, sezon, grup, grup);
+const listReceiptsByDate = (from, to, sezon = null, grup = null) =>
   db
     .prepare(
-      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 AND (? IS NULL OR r.sezon=?) ORDER BY r.tarih, r.id",
+      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
     )
-    .all(from, to, sezon, sezon);
+    .all(from, to, sezon, sezon, grup, grup);
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);
 
 // İptal: neden zorunlu; iptal eden ve zaman kaydedilir (muhasebe izi). Aidat ödenenleri düşer.

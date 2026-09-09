@@ -751,6 +751,26 @@ app.whenReady().then(async () => {
           .map((r) => r.player_id)
           .includes(yenilemeyen.id),
     );
+    // Plan §20: ay aralığı özeti/borçluları ve yaş grubu süzgeci (her raporda aynı filtreler)
+    check(
+      "aidatOzeti ay aralığı: 202709–202808 sezon özetiyle aynı",
+      JSON.stringify(db.aidatOzeti(202709, 202808)) === JSON.stringify(db.sezonAidatOzeti("2027-2028", 9)),
+    );
+    check(
+      "listUnpaidAralik yaş grubu süzer (yenileyen U12'de; olmayan grupta boş)",
+      db.listUnpaidAralik(202709, 202808, null, u12.id).some((b) => b.player_id === yenileyen.id) &&
+        db.listUnpaidAralik(202709, 202808, null, -1).length === 0,
+    );
+    check(
+      "listUnpaid yaş grubu süzer",
+      db.listUnpaid(2027, 9, "2027-2028", u12.id).some((b) => b.player_id === yenileyen.id) &&
+        db.listUnpaid(2027, 9, "2027-2028", -1).length === 0,
+    );
+    check(
+      "makbuz listeleri yaş grubu süzer",
+      db.listReceiptsByDate("2000-01-01", "2099-12-31", null, -1).length === 0 &&
+        db.listReceiptsByDate("2000-01-01", "2099-12-31", null, null).length > 0,
+    );
     // Göç 16: tablo boşaltılıp yeniden açılınca aidat kayıtlarından geçmiş üyelik türetilir
     db.hamBaglanti().prepare("DELETE FROM player_seasons").run();
     db.setMetaValue("schema_version", "15");

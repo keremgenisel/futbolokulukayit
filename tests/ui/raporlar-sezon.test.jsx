@@ -18,14 +18,19 @@ describe("Raporlar sezon + ay filtresi", () => {
         if (fn === "sezonDurumu") return { aktifSezon: "2027-2028", baslangicAyi: 9, sonGecis: null, adaySayisi: 0 };
         if (fn === "sezonListesi") return ["2027-2028", "2026-2027"];
         if (
-          fn === "listPlayersWithDue" ||
-          fn === "listUnpaid" ||
-          fn === "listUnpaidSezon" ||
-          fn === "attendanceReport" ||
-          fn === "saglikRaporuListesi"
+          [
+            "listPlayersWithDue",
+            "listUnpaid",
+            "listUnpaidSezon",
+            "listUnpaidAralik",
+            "attendanceReport",
+            "saglikRaporuListesi",
+            "listReceiptsByDate",
+            "listCancelledReceipts",
+          ].includes(fn)
         )
           return [];
-        if (fn === "sezonAidatOzeti") return {};
+        if (fn === "sezonAidatOzeti" || fn === "aidatOzeti") return {};
         return null;
       }),
       cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) },
@@ -70,15 +75,15 @@ describe("Raporlar sezon + ay filtresi", () => {
     await waitFor(() => expect(screen.getByLabelText("Sezon")).toHaveValue("2027-2028"));
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "" } });
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("sezonAidatOzeti", "2027-2028", 9));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatOzeti", 202709, 202808));
     expect(await screen.findByText("2027-2028 sezonu (tüm aylar)")).toBeInTheDocument();
     rapor("Borçlu Listesi");
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "" } });
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listUnpaidSezon", "2027-2028", 9));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listUnpaidAralik", 202709, 202808, "2027-2028", null));
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listUnpaid", 2027, 10, "2027-2028"));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listUnpaid", 2027, 10, "2027-2028", null));
   });
 
   it("yoklama özeti: sezon + ay varsayılan (Tümü → sezon aralığı, ay → o ay), tarih aralığı seçeneği duruyor", async () => {
@@ -95,7 +100,9 @@ describe("Raporlar sezon + ay filtresi", () => {
     fireEvent.change(screen.getByLabelText("Dönem seçimi"), { target: { value: "tarih" } });
     expect(screen.queryByLabelText("Sezon")).toBeNull();
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", expect.any(String), expect.any(String), null));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", expect.any(String), expect.any(String), null, null),
+    );
   });
 
   it("sağlık raporu: Tümü → bugün, ay → ayın son günü; sezon oyuncu kümesi", async () => {
@@ -119,35 +126,51 @@ describe("Raporlar sezon + ay filtresi", () => {
     expect(await screen.findByText(/31\.10\.2027 itibarıyla · 2027-2028 sezonu/)).toBeInTheDocument();
   });
 
-  it("tek filtre çubuğu (plan §20): sekmeye göre kutular gizlenir, seçimler sekmeler arasında korunur, filtre değişince not çıkar", async () => {
+  it("her sekmede aynı filtreler (plan §20): dönem seçimi, sezon/ay, yaş grubu; seçimler sekmeler arasında korunur; filtre değişince not", async () => {
     ac();
     await waitFor(() => expect(screen.getByLabelText("Sezon")).toHaveValue("2027-2028"));
-    // Oyuncu Listesi: Sezon, Ay, Yaş grubu var; tarih ve dönem seçimi yok
-    expect(screen.getByLabelText("Yaş grubu")).toBeInTheDocument();
-    expect(screen.queryByLabelText("Başlangıç")).toBeNull();
-    expect(screen.queryByLabelText("Dönem seçimi")).toBeNull();
+    for (const ad of ["Borçlu Listesi", "Tahsilat Raporu", "Yoklama Özeti", "Sağlık Raporu Durumu", "Oyuncu Listesi"]) {
+      rapor(ad);
+      expect(screen.getByLabelText("Dönem seçimi")).toBeInTheDocument();
+      expect(screen.getByLabelText("Sezon")).toBeInTheDocument();
+      expect(screen.getByLabelText("Ay")).toBeInTheDocument();
+      expect(screen.getByLabelText("Yaş grubu")).toBeInTheDocument();
+      expect(screen.queryByLabelText("Başlangıç")).toBeNull();
+    }
     fireEvent.change(screen.getByLabelText("Sezon"), { target: { value: "2026-2027" } });
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
-    // Borçlu Listesi: yaş grubu yok, sezon/ay korunur
-    rapor("Borçlu Listesi");
-    expect(screen.queryByLabelText("Yaş grubu")).toBeNull();
+    rapor("Tahsilat Raporu");
     expect(screen.getByLabelText("Sezon")).toHaveValue("2026-2027");
     expect(screen.getByLabelText("Ay")).toHaveValue("10");
-    // Tahsilat: yalnız tarih aralığı
-    rapor("Tahsilat Raporu");
-    expect(screen.queryByLabelText("Sezon")).toBeNull();
-    expect(screen.getByLabelText("Başlangıç")).toBeInTheDocument();
-    expect(screen.getByLabelText("Bitiş")).toBeInTheDocument();
-    // Geri dönünce seçim yine korunmuş; önizleme sonrası filtre değişince "Filtre değişti"
-    rapor("Oyuncu Listesi");
-    expect(screen.getByLabelText("Sezon")).toHaveValue("2026-2027");
     onizle();
-    expect(await screen.findByText("Ekim 2026 · 2026-2027 sezonu")).toBeInTheDocument();
-    expect(screen.queryByText("Filtre değişti")).toBeNull();
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listReceiptsByDate", "2026-10-01", "2026-10-31", null, null));
+    expect(await screen.findByText(/Ekim 2026 · 2026-2027 sezonu/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "11" } });
     expect(screen.getByText("Filtre değişti")).toBeInTheDocument();
+  });
+
+  it("tarih aralığı modu her raporda: oyuncu listesi ay aralığı özeti, borçlu listesi aralık borçluları, yoklama aralık, sağlık bitiş tarihi", async () => {
+    ac();
+    await waitFor(() => expect(screen.getByLabelText("Sezon")).toHaveValue("2027-2028"));
+    fireEvent.change(screen.getByLabelText("Dönem seçimi"), { target: { value: "tarih" } });
+    expect(screen.queryByLabelText("Sezon")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Başlangıç"), { target: { value: "2026-09-01" } });
+    fireEvent.change(screen.getByLabelText("Bitiş"), { target: { value: "2026-10-31" } });
     onizle();
-    await screen.findByText("Kasım 2026 · 2026-2027 sezonu");
-    expect(screen.queryByText("Filtre değişti")).toBeNull();
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("aidatOzeti", 202609, 202610));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("listPlayersWithDue", { yil: 0, ay: 0, yas_grubu_id: null, sezon: null }),
+    );
+    expect(await screen.findByText("01.09.2026 – 31.10.2026")).toBeInTheDocument();
+    rapor("Borçlu Listesi");
+    expect(screen.getByLabelText("Dönem seçimi")).toHaveValue("tarih"); // mod sekmeler arasında korunur
+    onizle();
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listUnpaidAralik", 202609, 202610, null, null));
+    rapor("Yoklama Özeti");
+    onizle();
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2026-09-01", "2026-10-31", null, null));
+    rapor("Sağlık Raporu Durumu");
+    onizle();
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2026-10-31", null, 30, null));
   });
 });

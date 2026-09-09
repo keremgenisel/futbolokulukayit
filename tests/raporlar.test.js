@@ -10,6 +10,7 @@ import {
   sezonAidatMetni,
   borcluAylarMetni,
   raporFiltreleri,
+  tarihAyAraligi,
 } from "../src/lib/raporlar.js";
 
 describe("rapor üreticileri (saf)", () => {
@@ -237,13 +238,13 @@ describe("rapor üreticileri (saf)", () => {
     expect(yoklamaOzetiRaporu({ liste: [], from: "2026-09-01", to: "2026-09-30" }).alt).toBe("01.09.2026 – 30.09.2026");
   });
 
-  it("rapora göre görünen filtreler (plan §20.3)", () => {
-    expect(raporFiltreleri("oyuncu")).toEqual(["sezon", "grup"]);
-    expect(raporFiltreleri("borclu")).toEqual(["sezon"]);
-    expect(raporFiltreleri("tahsilat")).toEqual(["tarih"]);
-    expect(raporFiltreleri("yoklama")).toEqual(["mod", "sezon", "grup"]);
-    expect(raporFiltreleri("yoklama", { mod: "tarih" })).toEqual(["mod", "tarih", "grup"]);
-    expect(raporFiltreleri("saglik")).toEqual(["sezon", "grup"]);
+  it("her raporda aynı filtreler: dönem seçimi + (sezon/ay | tarih) + yaş grubu (plan §20)", () => {
+    for (const k of ["oyuncu", "borclu", "tahsilat", "yoklama", "saglik"]) {
+      expect(raporFiltreleri(k)).toEqual(["mod", "sezon", "grup"]);
+      expect(raporFiltreleri(k, { mod: "tarih" })).toEqual(["mod", "tarih", "grup"]);
+    }
     expect(raporFiltreleri("yok")).toEqual([]);
+    expect(tarihAyAraligi("2026-09-01", "2026-10-31")).toEqual([202609, 202610]);
+    expect(tarihAyAraligi("2026-12-15", "2027-01-03")).toEqual([202612, 202701]);
   });
 });

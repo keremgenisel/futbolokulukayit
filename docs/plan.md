@@ -931,3 +931,16 @@ Sekme: Sağlık Raporu Durumu → filtre çubuğu:
 Sekmeler yatay tek satır (`Sekmeler` bileşeni); sekme değişince önizleme kalır, Önizle düğmesi sarıya döner ve yanında
 "Filtre değişti" notu çıkar (düğme metni sabit "Önizle": testler ve smoke buna bağlı). Filtre çubuğu `RaporFiltre.jsx`,
 görünürlük tablosu saf `raporFiltreleri()`.
+
+### 20.6 Değişiklik (Kerem, 09.09.2026 — "bütün filtreler Yoklama Özeti'ndeki gibi olsun")
+Rapora göre gizlenen kutular kafa karıştırdı; artık **her sekmede aynı filtreler**: Dönem seçimi ("Sezon ve ay" | "Tarih
+aralığı"), ona göre Sezon + Ay (Tümü) ya da Başlangıç + Bitiş, ve Yaş grubu. Hiçbir kutu gizlenmez; seçimler (mod dahil)
+sekmeler arasında korunur. Her rapor iki modu da destekler:
+- Oyuncu Listesi: tarih modunda oyuncu kümesi sezona bağlanmaz; aralıktaki ayların aidat özeti ("Dönem aidatı").
+- Borçlu Listesi: tarih modunda aralıktaki ayların borçluları (`listUnpaidAralik`); yaş grubu süzer.
+- Tahsilat: sezon modunda ay → o ay, Tümü → sezon aralığı; yaş grubu süzer (oyuncusunun grubu).
+- Yoklama Özeti: eskisi gibi.
+- Sağlık Raporu: tarih modunda bitiş tarihi itibarıyla.
+DB: `aidatOzeti(bas, son)`, `listUnpaidAralik(bas, son, sezon, grup)`; `listUnpaid`, `listReceiptsByDate`, `listCancelledReceipts`
+yaş grubu parametresi. Saf `raporFiltreleri` her rapor için aynı listeyi döner; `tarihAyAraligi`.
+

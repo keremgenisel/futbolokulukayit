@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Kart, Sekmeler, Sayfalama, useDene } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, ayAraligi } from "../lib/api.js";
-import { paraTR } from "../lib/aidat.js";
+import { paraTR, tarihTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
 import { sezonAyYili, guncelSezon, sezonAraligi, ayinSonGunu } from "../lib/sezon.js";
@@ -16,6 +16,7 @@ import {
   yoklamaOzetiRaporu,
   donemEtiketi,
   raporFiltreleri,
+  tarihAyAraligi,
 } from "../lib/raporlar.js";
 
 export function Raporlar() {
@@ -27,7 +28,7 @@ export function Raporlar() {
   const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi }
   const [sezonlar, setSezonlar] = useState([]);
   const [sezonS, setSezonS] = useState("");
-  const [yoklamaMod, setYoklamaMod] = useState("sezon"); // Yoklama Özeti: "sezon" (sezon + ay) | "tarih" (aralık)
+  const [yoklamaMod, setYoklamaMod] = useState("sezon"); // Dönem seçimi (her raporda): "sezon" (sezon + ay) | "tarih" (aralık)
   const baslangicAyi = sezonDurum?.baslangicAyi || 9;
   const seciliSezon = sezonS || sezonDurum?.aktifSezon || guncelSezon(bugun().iso, baslangicAyi);
   const yilS = ayS ? (sezonAyYili(seciliSezon, ayS, baslangicAyi) ?? yil) : null;
@@ -54,52 +55,66 @@ export function Raporlar() {
   }, []);
 
   const grupEk = grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : "";
+  const grupId = grup ? Number(grup) : null;
+  // Dönem (plan §20, her raporda aynı): "sezon" modunda sezon + ay (Tümü = sezon), "tarih" modunda Başlangıç – Bitiş.
+  // Rapor sorguları hep aralık + (sezon | null) alır; tarih modunda oyuncu kümesi sezona bağlanmaz.
+  const donem = () => {
+    if (yoklamaMod === "tarih") {
+      const [bas, son] = tarihAyAraligi(from, to);
+      return { from, to, bas, son, sezon: null, ay: null, yil: null, etiket: `${tarihTR(from)} – ${tarihTR(to)}`, referans: to };
+    }
+    const a = donemAraligi();
+    const [bas, son] = tarihAyAraligi(a.from, a.to);
+    return {
+      ...a,
+      bas,
+      son,
+      sezon: seciliSezon,
+      ay: ayS,
+      yil: yilS,
+      etiket: donemEtiketi({ yil: yilS, ay: ayS, sezon: seciliSezon }),
+      referans: ayS ? ayinSonGunu(yilS, ayS) : bugun().iso,
+    };
+  };
   const hazirla = () =>
     dene(async () => {
+      const d = donem();
       if (rapor === "oyuncu") {
-        const liste = await db("listPlayersWithDue", {
-          yil: yilS ?? 0,
-          ay: ayS ?? 0,
-          yas_grubu_id: grup ? Number(grup) : null,
-          sezon: seciliSezon,
+        const liste = await db("listPlayersWithDue", { yil: d.yil ?? 0, ay: d.ay ?? 0, yas_grubu_id: grupId, sezon: d.sezon });
+        const ozet = d.ay ? {} : (await db("aidatOzeti", d.bas, d.son)) || {};
+        return oyuncuListesiRaporu({
+          liste,
+          yil: d.yil,
+          ay: d.ay,
+          grupEk,
+          ucretAd,
+          sezon: d.sezon || "",
+          ozet,
+          donem: d.sezon ? "" : d.etiket,
         });
-        const ozet = ayS ? {} : (await db("sezonAidatOzeti", seciliSezon, baslangicAyi)) || {};
-        return oyuncuListesiRaporu({ liste, yil: yilS, ay: ayS, grupEk, ucretAd, sezon: seciliSezon, ozet });
       }
       if (rapor === "borclu") {
-        if (!ayS) {
-          const liste = (await db("listUnpaidSezon", seciliSezon, baslangicAyi)) || [];
-          return borcluListesiRaporu({ liste, ay: null, sezon: seciliSezon });
+        if (!d.ay) {
+          const liste = (await db("listUnpaidAralik", d.bas, d.son, d.sezon, grupId)) || [];
+          return borcluListesiRaporu({ liste, ay: null, sezon: d.sezon || "", donem: d.sezon ? "" : d.etiket, grupEk });
         }
-        const liste = await db("listUnpaid", yilS, ayS, seciliSezon);
+        const liste = await db("listUnpaid", d.yil, d.ay, d.sezon, grupId);
         const veliler = {};
         for (const b of liste) veliler[b.player_id] = await db("listGuardians", b.player_id);
-        return borcluListesiRaporu({ liste, veliler, yil: yilS, ay: ayS, sezon: seciliSezon });
+        return borcluListesiRaporu({ liste, veliler, yil: d.yil, ay: d.ay, sezon: d.sezon || "", grupEk });
       }
       if (rapor === "tahsilat") {
-        const makbuzlar = await db("listReceiptsByDate", from, to);
-        const iptaller = await db("listCancelledReceipts", from, to);
-        return tahsilatRaporu({ makbuzlar, iptaller, from, to });
+        const makbuzlar = await db("listReceiptsByDate", d.from, d.to, null, grupId);
+        const iptaller = await db("listCancelledReceipts", d.from, d.to, null, grupId);
+        return tahsilatRaporu({ makbuzlar, iptaller, from: d.from, to: d.to, donem: d.sezon ? d.etiket : "", grupEk });
       }
       if (rapor === "saglik") {
-        // Ay seçiliyse o ayın son günü itibarıyla ("Ekim sonunda kimin raporu dolmuş olacak"), Tümü ise bugün (plan §19.5)
-        const referans = ayS ? ayinSonGunu(yilS, ayS) : bugun().iso;
-        const liste = await db("saglikRaporuListesi", referans, grup ? Number(grup) : null, 30, seciliSezon);
-        return saglikRaporu({ liste, bugunIso: referans, grupEk, sezon: seciliSezon });
+        // Sezon modunda ay seçiliyse ayın son günü, Tümü ise bugün; tarih modunda bitiş tarihi itibarıyla (plan §19.5)
+        const liste = await db("saglikRaporuListesi", d.referans, grupId, 30, d.sezon);
+        return saglikRaporu({ liste, bugunIso: d.referans, grupEk, sezon: d.sezon || "" });
       }
-      if (yoklamaMod === "sezon") {
-        const a = donemAraligi();
-        const liste = await db("attendanceReport", a.from, a.to, grup ? Number(grup) : null, seciliSezon);
-        return yoklamaOzetiRaporu({
-          liste,
-          from: a.from,
-          to: a.to,
-          grupEk,
-          donem: donemEtiketi({ yil: yilS, ay: ayS, sezon: seciliSezon }),
-        });
-      }
-      const liste = await db("attendanceReport", from, to, grup ? Number(grup) : null);
-      return yoklamaOzetiRaporu({ liste, from, to, grupEk });
+      const liste = await db("attendanceReport", d.from, d.to, grupId, d.sezon);
+      return yoklamaOzetiRaporu({ liste, from: d.from, to: d.to, grupEk, donem: d.sezon ? d.etiket : "" });
     });
 
   const onizle = async () => {
