@@ -36,7 +36,7 @@ aktivasyon sunucusu kodu hazır (deploy bekliyor: `aktivasyon-sunucu/deploy.sh`)
 `docs/kurulum.md`. Yazı tipleri @fontsource ile gömülü. TEK HERKESE AÇIK depo `keremgenisel/eyupspor` (kod + GitHub Releases; electron-updater
 kimliksiz indirir, özel depo olmaz; publish-release.cjs özelse durur). Güncelleme arayüzü Ayarlar > Hakkında (`Guncelleme`,
 IPC `updater:*`, `electron/ipc/guncelleme.cjs`) + `GuncellemeSeridi` (App'te `main`in EN ÜSTÜNDE, başlığın üzerinde, kenar menüyü
-etkilemez, içerikle kaydırılmaz; `updater:available` gelince yöneticiye: İndir → ilerleme → Yeniden Başlat ve Kur, hata kırmızı, Kapat oturumluk). Windows yayını `.github/workflows/release.yml`
+etkilemez, içerikle kaydırılmaz; `updater:available` gelince yöneticiye: İndir → ilerleme → Yeniden Başlat ve Kur; sarı zemin ("Makbuz Kes" sarısı), hata kırmızı, Kapat oturumluk). Windows yayını `.github/workflows/release.yml`
 (tag push) veya `npm run build:win` (macOS'ta da çalışır; ardından `node scripts/ensure-native.cjs`
 ile mac native modüllerini geri derle, yoksa Electron testleri düşer).
 

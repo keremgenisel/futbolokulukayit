@@ -58,8 +58,8 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
     padding: "0 14px",
     borderRadius: 8,
     border: 0,
-    background: "var(--sari)",
-    color: "var(--mor-koyu)",
+    background: hata ? "#fff" : "var(--mor)",
+    color: hata ? "var(--kirmizi)" : "#fff",
     fontWeight: 700,
     fontSize: 13,
     cursor: "pointer",
@@ -67,7 +67,7 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
   const baglanti = {
     background: "none",
     border: 0,
-    color: "#fff",
+    color: hata ? "#fff" : "var(--mor-koyu)",
     cursor: "pointer",
     fontSize: 13,
     textDecoration: "underline",
@@ -83,10 +83,10 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
         alignItems: "center",
         gap: 14,
         padding: "8px 32px",
-        background: hata ? "var(--kirmizi)" : "var(--mor-koyu)",
-        color: "#fff",
+        background: hata ? "var(--kirmizi)" : "var(--sari)", // Pano'daki "Makbuz Kes" düğmesinin sarısı
+        color: hata ? "#fff" : "var(--mor-koyu)",
         fontSize: 13.5,
-        borderBottom: "1px solid rgba(255,255,255,.15)",
+        borderBottom: hata ? "1px solid rgba(255,255,255,.15)" : "1px solid rgba(0,0,0,.08)",
       }}
     >
       <Ikon ad={hata ? "uyari" : "indir"} boyut={18} />
@@ -113,8 +113,8 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
         )}
       </span>
       {durum.asama === "indiriliyor" && (
-        <div aria-hidden="true" style={{ width: 140, height: 6, borderRadius: 3, background: "rgba(255,255,255,.25)", overflow: "hidden" }}>
-          <div style={{ width: `${Math.min(100, yuzde)}%`, height: "100%", background: "var(--sari)", transition: "width .2s" }} />
+        <div aria-hidden="true" style={{ width: 140, height: 6, borderRadius: 3, background: "rgba(0,0,0,.15)", overflow: "hidden" }}>
+          <div style={{ width: `${Math.min(100, yuzde)}%`, height: "100%", background: "var(--mor)", transition: "width .2s" }} />
         </div>
       )}
       {(durum.asama === "var" || hata) && (
@@ -137,7 +137,7 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
         onClick={() => setKapali(true)}
         aria-label="Güncelleme şeridini kapat"
         title="Bu oturumda gizle"
-        style={{ background: "none", border: 0, color: "#fff", cursor: "pointer", display: "flex", padding: 2 }}
+        style={{ background: "none", border: 0, color: hata ? "#fff" : "var(--mor-koyu)", cursor: "pointer", display: "flex", padding: 2 }}
       >
         <Ikon ad="kapat" boyut={18} />
       </button>
