@@ -19,7 +19,7 @@ const sezonListesi = () => {
   const s = new Set(
     db
       .prepare(
-        "SELECT sezon FROM players WHERE sezon<>'' UNION SELECT sezon FROM age_groups WHERE sezon<>'' UNION SELECT sezon FROM receipts WHERE sezon<>''",
+        "SELECT sezon FROM players WHERE sezon<>'' UNION SELECT sezon FROM player_seasons UNION SELECT sezon FROM age_groups WHERE sezon<>'' UNION SELECT sezon FROM receipts WHERE sezon<>''",
       )
       .all()
       .map((r) => r.sezon),
@@ -59,6 +59,7 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
         const grup = y.yas_grubu_id ? Number(y.yas_grubu_id) : p.yas_grubu_id;
         if (grup !== p.yas_grubu_id) grupDegisen++;
         db.prepare("UPDATE players SET sezon=?, yas_grubu_id=?, updated_at=datetime('now') WHERE id=?").run(sezon, grup, p.id);
+        db.prepare("INSERT OR IGNORE INTO player_seasons (player_id, sezon) VALUES (?,?)").run(p.id, sezon); // geçmiş üyelik kalır (plan §18.1)
         yenilenen++;
         ilkAyBorcu += ensureMonthlyDues(ilkAy.yil, ilkAy.ay, p.id);
       } else {

@@ -197,7 +197,11 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
           secenekler={[...new Set([aktifSezon, ...sezonlar])].map((s) => ({ kod: s, ad: s === aktifSezon ? `${s} (aktif sezon)` : s }))}
           bos="Tüm sezonlar"
           value={seciliSezon}
-          onChange={(e) => setSezon(e.target.value)}
+          onChange={(e) => {
+            // Geçmiş sezon: o sezonun oyuncuları bugün pasif/ayrılmış olabilir → durum süzgeci "Tüm durumlar"a; aktif sezona dönünce sahadakiler
+            setSezon(e.target.value);
+            setDurum(e.target.value === aktifSezon ? "aktifler" : ""); // "Tüm sezonlar" da eski kayıtları arar → tüm durumlar
+          }}
           style={{ width: 200, height: 40 }}
           aria-label="Sezon"
         />

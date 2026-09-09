@@ -4,7 +4,7 @@ const { getMetaValue, setMetaValue } = require("./meta.cjs");
 const { createUser } = require("./kullanicilar.cjs");
 const { araNormalize } = require("../metin.cjs");
 
-const SCHEMA_VERSION = 15; // 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
+const SCHEMA_VERSION = 16; // 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -193,6 +193,14 @@ CREATE TABLE IF NOT EXISTS attendance (
   UNIQUE(training_id, player_id)
 );
 
+-- Oyuncunun geçtiği sezonlar (plan §18.1): kayıt ve her sezon yenilemesinde satır eklenir; sezon filtresi buna bakar.
+-- players.sezon "şu anki sezon"dur; geçmiş sezon üyeliği burada kalır.
+CREATE TABLE IF NOT EXISTS player_seasons (
+  player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+  sezon TEXT NOT NULL,
+  PRIMARY KEY (player_id, sezon)
+);
+
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
 `;
 
@@ -346,6 +354,16 @@ function migrate() {
     const aktifSezon =
       ayar("aktif_sezon") || tarihinSezonu(new Date().toISOString().slice(0, 10), Number(ayar("sezon_baslangic_ayi")) || 9);
     db.prepare("UPDATE players SET sezon=? WHERE sezon='' AND durum IN ('aktif','deneme','sakat')").run(aktifSezon);
+  }
+  // 16: player_seasons doldurulur — players.sezon + aidat kayıtlarının ait olduğu sezonlar (o ayda sahadaydı) + makbuz sezonları
+  if (cur < 16) {
+    const { tarihinSezonu } = require("../makbuzNo.cjs");
+    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const ekle = db.prepare("INSERT OR IGNORE INTO player_seasons (player_id, sezon) VALUES (?,?)");
+    for (const p of db.prepare("SELECT id, sezon FROM players WHERE sezon<>''").all()) ekle.run(p.id, p.sezon);
+    for (const d of db.prepare("SELECT DISTINCT player_id, yil, ay FROM monthly_dues").all())
+      ekle.run(d.player_id, tarihinSezonu(`${d.yil}-${String(d.ay).padStart(2, "0")}-01`, bas));
+    for (const r of db.prepare("SELECT DISTINCT player_id, sezon FROM receipts WHERE sezon<>''").all()) ekle.run(r.player_id, r.sezon);
   }
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }

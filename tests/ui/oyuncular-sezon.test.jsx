@@ -77,9 +77,12 @@ describe("Oyuncular sezon filtresi", () => {
     ac();
     await screen.findByText("Yeni Sezon Oyuncusu");
     fireEvent.change(screen.getByLabelText("Sezon"), { target: { value: "2026-2027" } });
-    fireEvent.change(screen.getByLabelText("Durum"), { target: { value: "" } }); // tüm durumlar
+    // Geçmiş sezon seçilince durum süzgeci kendiliğinden "Tüm durumlar" olur (o sezonun oyuncuları bugün pasif olabilir)
+    expect(screen.getByLabelText("Durum")).toHaveValue("");
     expect(await screen.findByText("Eski Sezon Oyuncusu")).toBeInTheDocument();
     await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ sezon: "2026-2027", durum: null }));
+    fireEvent.change(screen.getByLabelText("Sezon"), { target: { value: "2027-2028" } });
+    expect(screen.getByLabelText("Durum")).toHaveValue("aktifler"); // aktif sezona dönünce sahadakiler
     fireEvent.change(screen.getByLabelText("Sezon"), { target: { value: "" } });
     await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ sezon: null }));
     expect(await screen.findByText("Yeni Sezon Oyuncusu")).toBeInTheDocument();

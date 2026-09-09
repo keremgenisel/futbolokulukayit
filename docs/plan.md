@@ -793,3 +793,11 @@ aylar yine kendi ayında açılır.
   aktif/deneme/sakat oyunculara aktif sezonu yazar (pasif/ayrılmışlar boş kalır, "Tüm sezonlar"da görünür).
 - Test: `tests/ui/oyuncular-sezon.test.jsx`, `db-roundtrip` (varsayılan sezon, göç 15).
 
+### 18.1 Geçmiş sezon üyeliği (UYGULANDI, 09.09.2026)
+Sorun: sezon geçişinde yenileyenlerin `players.sezon`'u yeni sezona yazılınca geçmiş sezon seçildiğinde kimse gelmiyordu
+(yenileyenler yeni sezonda, yenilemeyenler pasif ve durum süzgecinde gizli). Çözüm: `player_seasons(player_id, sezon)` tablosu
+(şema 16): kayıt, sezon değişikliği ve sezon geçişinde satır eklenir, silinmez. Sezon süzgeci `players.sezon` VEYA bu tabloya
+bakar. Göç 16 mevcut veriden türetir: `players.sezon` + aidat kayıtlarının ait olduğu sezonlar (o ayda sahadaydı) + makbuz
+sezonları. Arayüz: aktif sezon dışında bir seçimde (geçmiş sezon ya da "Tüm sezonlar") durum süzgeci kendiliğinden
+"Tüm durumlar", aktif sezona dönünce "Aktif, deneme ve sakat".
+

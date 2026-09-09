@@ -41,6 +41,7 @@ function createPlayer(p) {
   if (p.sezon === undefined || p.sezon === null || p.sezon === "") p = { ...p, sezon: varsayilanSezon() };
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   const r = db.prepare(`INSERT INTO players (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).run(...cols.map((c) => p[c]));
+  sezonUyeligiEkle(Number(r.lastInsertRowid), p.sezon);
   buAyAidatAc(Number(r.lastInsertRowid)); // ay ortasında kaydolan oyuncunun bu ayki aidatı hemen açılsın
   return getPlayer(Number(r.lastInsertRowid));
 }
@@ -49,8 +50,13 @@ function buAyAidatAc(pid) {
   const t = new Date();
   return ensureMonthlyDues(t.getFullYear(), t.getMonth() + 1, pid);
 }
+// Oyuncunun sezon üyeliği (plan §18.1): kayıt, sezon değişikliği ve sezon geçişinde eklenir; silinmez (geçmiş kalır).
+const sezonUyeligiEkle = (pid, sezon) => {
+  if (sezon) db.prepare("INSERT OR IGNORE INTO player_seasons (player_id, sezon) VALUES (?,?)").run(Number(pid), String(sezon));
+};
 function updatePlayer(id, p) {
   ucretTipiDogrula(p.ucret_tipi);
+  if (p.sezon) sezonUyeligiEkle(id, p.sezon);
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   if (!cols.length) return getPlayer(id);
   db.prepare(`UPDATE players SET ${cols.map((c) => `${c}=?`).join(",")}, updated_at=datetime('now') WHERE id=?`).run(
@@ -139,8 +145,9 @@ function playersWhere({
   const where = [];
   const args = [yil, ay];
   if (sezon) {
-    where.push("p.sezon=?");
-    args.push(String(sezon));
+    // O sezonda sahada olan herkes (player_seasons); players.sezon yalnız güncel sezondur — geçmiş sezon seçilince yenileyenler de gelir
+    where.push("(p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?))");
+    args.push(String(sezon), String(sezon));
   }
   if (q) {
     const a = `%${likeKacir(araNormalize(q))}%`;
@@ -189,6 +196,7 @@ function playersPage({ sayfa = 1, sayfaBoyu = 50, ...opts } = {}) {
 
 module.exports = {
   PLAYER_FIELDS,
+  sezonUyeligiEkle,
   createPlayer,
   updatePlayer,
   getPlayer,

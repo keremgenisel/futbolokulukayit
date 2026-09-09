@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "15",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "16",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -279,8 +279,8 @@ app.whenReady().then(async () => {
       !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id,
     );
     check(
-      "şema sürümü 15 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "15" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      "şema sürümü 16 ve pasaport sütunu var",
+      db.getMetaValue("schema_version") === "16" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -713,6 +713,26 @@ app.whenReady().then(async () => {
       db.listPlayersWithDue({ yil: 2027, ay: 9, sezon: "2027-2028" }).some((p) => p.id === yenileyen.id) &&
         !db.listPlayersWithDue({ yil: 2027, ay: 9, sezon: "2027-2028" }).some((p) => p.id === yenilemeyen.id),
     );
+    // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
+    const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
+    check(
+      "geçmiş sezon üyeliği korunur: 2026-2027 listesinde yenileyen ve yenilemeyen var",
+      eskiSezonListesi.includes(yenileyen.id) && eskiSezonListesi.includes(yenilemeyen.id),
+    );
+    const ps = (id) => db.hamBaglanti().prepare("SELECT count(*) AS n FROM player_seasons WHERE player_id=?").get(id).n;
+    check("player_seasons: yenileyen iki sezonda, yenilemeyen bir sezonda", ps(yenileyen.id) === 2 && ps(yenilemeyen.id) === 1);
+    // Göç 16: tablo boşaltılıp yeniden açılınca aidat kayıtlarından geçmiş üyelik türetilir
+    db.hamBaglanti().prepare("DELETE FROM player_seasons").run();
+    db.setMetaValue("schema_version", "15");
+    db.close();
+    db.init();
+    check(
+      "göç 16: geçmiş üyelik aidat kayıtlarından türetildi",
+      db
+        .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
+        .map((p) => p.id)
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "16",
+    );
     check(
       "gruplar ve aktif sezon güncellendi",
       db
@@ -922,7 +942,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "15",
+        db.getMetaValue("schema_version") === "16",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1293,7 +1313,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "15",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "16",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;
