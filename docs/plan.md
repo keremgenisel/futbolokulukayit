@@ -857,3 +857,76 @@ Listesi ise `listUnpaid(yil, ay)` ile yalnız aya bakıyor, sezon süzgeci yok �
 1. Oyuncu Listesi "Tümü": ekranda tek sütun ("3/4 ay · 3.500 ₺ borç"), Excel/PDF'de üç sütun (`disaSutunlar`).
 2. Sağlık raporunda ay = o ayın son günü itibarıyla; rapora geçince Ay "Tümü" (bugün) gelir.
 3. Yoklama Özeti: "Dönem seçimi" kutusu — "Sezon ve ay" (varsayılan) ya da "Tarih aralığı" (eski davranış, sahadaki oyuncular).
+
+## 20. Raporlar — tek filtre çubuğu, sekmeli rapor seçimi (PLANLANDI, 09.09.2026)
+
+**Sorun:** Sol sütunda beş büyük rapor kartı + altında filtreler; filtreler kartların altında kaldığı için ekranda görünmüyor,
+kaydırmak gerekiyor. Her raporda farklı bir filtre bloğu çıkıyor; tablo dar alana sıkışıyor (320 px sol sütun).
+
+### 20.1 Yeni düzen
+- Sol sütun kalkar. Üstte **rapor sekmeleri** (tek satır, yatay): Oyuncu Listesi · Borçlu Listesi · Tahsilat · Yoklama Özeti ·
+  Sağlık Raporu. Seçili sekme mor; açıklama metni sekmenin altında tek satır, soluk.
+- Altında **tek filtre çubuğu** (bir kart, tek satır, sarmalanır). Kutular sabit sırada; seçili raporda anlamsız olanlar
+  **gizlenir** (boş yer bırakmaz): `Sezon · Ay · Yaş grubu · Dönem seçimi · Başlangıç · Bitiş` + sağda `Önizle · Excel · PDF`.
+  Seçimler raporlar arasında **korunur** (Sezon/Ay/Yaş grubu bir kez seçilir, sekme değişince aynı kalır).
+- Tablo tam genişlikte, altında sayfalama. Alt başlık (dönem, sayılar) tablonun üstünde kalır.
+- Sekme değişince önizleme temizlenmez; filtre değişince "Önizle" düğmesi vurgulanır ("Değişti, yeniden önizle").
+
+### 20.2 Mock-up (1440 px)
+```
+┌──────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Raporlar                                                                                            │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ [ Oyuncu Listesi ] [ Borçlu Listesi ] [ Tahsilat Raporu ] [ Yoklama Özeti ] [ Sağlık Raporu Durumu ] │
+│   Tüm oyuncular, grup, durum, ücret tipi ve seçilen ayın aidat durumu                                │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ SEZON              AY               YAŞ GRUBU                              [ Önizle ] [Excel] [PDF]  │
+│ [2026-2027 (aktif)▾] [Eylül 2026  ▾] [Tümü        ▾]                                                │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Oyuncu Listesi                                                                                       │
+│ Eylül 2026 · 2026-2027 sezonu · 5 oyuncu                                                             │
+│ AD SOYAD        TC / PASAPORT   DOĞUM       GRUP  DURUM   ÜCRET TİPİ      AİDAT     AİDAT DURUMU  GSM│
+│ Ela Demir       10000000003     21.06.2017  U11   Deneme  Kardeş İndirimi 3.000 ₺   Ödenmedi         │
+│ …                                                                                                    │
+│                                                        ‹ 1 / 1 ›  5 satır                            │
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Sekme: Tahsilat Raporu → filtre çubuğu:
+│ BAŞLANGIÇ      BİTİŞ                                                          [ Önizle ] [Excel] [PDF]│
+│ [01.09.2026]   [30.09.2026]                                                                          │
+
+Sekme: Yoklama Özeti → filtre çubuğu:
+│ DÖNEM SEÇİMİ     SEZON              AY            YAŞ GRUBU                   [ Önizle ] [Excel] [PDF]│
+│ [Sezon ve ay ▾]  [2026-2027 (aktif)▾] [Tümü     ▾] [Tümü      ▾]                                     │
+│  (Tarih aralığı seçilince Sezon/Ay yerine Başlangıç/Bitiş)                                           │
+
+Sekme: Sağlık Raporu Durumu → filtre çubuğu:
+│ SEZON              AY            YAŞ GRUBU        ⓘ Bugüne göre; ay seçilince ayın son günü          │
+│ [2026-2027 (aktif)▾] [Tümü     ▾] [Tümü      ▾]                               [ Önizle ] [Excel] [PDF]│
+```
+
+### 20.3 Rapor → görünen filtreler
+| Rapor | Sezon | Ay | Yaş grubu | Dönem seçimi | Başlangıç/Bitiş |
+|-------|:-----:|:--:|:---------:|:------------:|:---------------:|
+| Oyuncu Listesi | ✓ | ✓ (Tümü) | ✓ | – | – |
+| Borçlu Listesi | ✓ | ✓ (Tümü) | – | – | – |
+| Tahsilat Raporu | – | – | – | – | ✓ |
+| Yoklama Özeti | ✓* | ✓* | ✓ | ✓ | ✓* (*seçime göre) |
+| Sağlık Raporu | ✓ | ✓ (Tümü, varsayılan) | ✓ | – | – |
+
+### 20.4 Teknik
+- `Raporlar.jsx`: sol `Kart` kalkar; üstte `Sekmeler` (ui.jsx'teki mevcut bileşen, oyuncu kartında kullanılan) ile rapor
+  seçimi; `RAPOR_FILTRELERI[kod]` = görünen kutu listesi (saf, `src/lib/raporlar.js`'e taşınır, test edilir). Filtre
+  durumu tek nesnede (`{ sezon, ay, grup, mod, from, to }`), sekme değişince korunur; yalnız Sağlık'a geçişte `ay` Tümü.
+- Filtre çubuğu ayrı bileşen `src/components/RaporFiltre.jsx` (SezonAySecim'i içine alır). Rapor üreticileri ve DB sorguları
+  değişmez.
+- "Değişti, yeniden önizle" için `kirli` bayrağı: filtre değişince `true`, Önizle'de `false`; Excel/PDF her zaman güncel
+  filtreyle üretir (bugünkü gibi).
+- Testler: `tests/raporlar.test.js` (RAPOR_FILTRELERI), `tests/ui/raporlar-sezon.test.jsx` ve `sayfalama.test.jsx` sekmeye
+  uyarlanır (rapor seçimi `getByRole("tab")`), yeni: filtrelerin sekmeye göre gizlenmesi ve seçimlerin korunması; smoke
+  ekran görüntüsü.
+- Süre ~1,5 saat.
+
+### 20.5 Karar bekleyen
+1. Sekmeler yatay tek satır (5 sekme, geniş ekranda sığar; dar pencerede ikinci satıra sarar) — uygun mu?
+2. Sekme değişince önizleme kalsın mı (öneri: kalsın, "yeniden önizle" uyarısıyla), yoksa temizlensin mi?
