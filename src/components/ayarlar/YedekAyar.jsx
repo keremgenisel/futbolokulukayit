@@ -230,7 +230,10 @@ export function YedekAyar({ admin }) {
               style={{
                 fontSize: 13,
                 color: "var(--soluk)",
-                alignSelf: "center",
+                alignSelf: "flex-end",
+                height: 40, // düğmeyle aynı yükseklik: metin düğme satırına ortalanır (parola kutusunun etiketi yukarıda kalır)
+                display: "inline-flex",
+                alignItems: "center",
                 maxWidth: 260,
                 overflow: "hidden",
                 textOverflow: "ellipsis",

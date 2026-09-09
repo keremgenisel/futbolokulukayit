@@ -273,6 +273,10 @@ app.whenReady().then(async () => {
     await tikla("Yedekleme");
     await bekle(400);
     await shot("15-yedekleme");
+    await js(`document.scrollingElement.scrollTo(0, document.scrollingElement.scrollHeight)`); // taşıma paketi bölümü (alt)
+    await bekle(300);
+    await shot("15a-yedekleme-alt");
+    await js(`document.scrollingElement.scrollTo(0, 0)`);
     await js(
       `[...document.querySelectorAll("div")].find((d) => d.textContent.trim() === "Yeni bilgisayara taşıma paketi")?.scrollIntoView({ block: "start" })`,
     );
