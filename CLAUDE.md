@@ -17,7 +17,7 @@ npm install          # bağımlılıklar + native rebuild (postinstall) + git ho
 npm run dev          # vite + electron, hot reload
 npm run build        # vite build → dist/
 npm run build:win    # vite build + electron-builder --win → release/*.exe
-npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği, kalıcılık, sezon/taşıma paketi/raporlar e2e, arayüz duman testi (dist/ gerekir)
+npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği, kalıcılık, sezon/taşıma paketi/raporlar/oyuncular e2e, arayüz duman testi (dist/ gerekir)
 npm run test:saf     # yalnız süreç içi testler (~19 sn) — refactor döngüsü için
 npm run test:coverage # test:saf + kapsama raporu (coverage/); Electron alt süreç kodu (db.cjs, ipc/*) ölçülmez
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
