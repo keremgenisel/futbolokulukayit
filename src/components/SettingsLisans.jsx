@@ -58,7 +58,7 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
 
   const m = MOD[durum?.mod];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18, maxWidth: 680 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <h3 style={{ fontSize: 22 }}>Lisans</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14, lineHeight: 1.6 }}>
         Lisans anahtarınızı satıcınızdan alıp aşağıya yapıştırın. Süre dolduğunda uygulama <b>salt okunur</b> moda geçer: veriler güvende

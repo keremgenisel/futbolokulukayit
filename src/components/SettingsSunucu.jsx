@@ -86,7 +86,7 @@ export function SettingsSunucu({ admin, onModDegisti }) {
   const s = d.sunucu || {};
   const ipler = s.adresler || [];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, maxWidth: 720 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <h3 style={{ fontSize: 22 }}>Sunucu ve Çoklu Bilgisayar</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14, lineHeight: 1.6 }}>
         Birden fazla bilgisayar aynı verileri kullanacaksa biri <b>sunucu</b> olur, diğerleri ona <b>bağlanır</b>. Veriler yalnızca sunucu

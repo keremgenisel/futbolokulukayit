@@ -21,7 +21,7 @@ export function KulupAyar({ saltOkunur, admin, onKurulumAc }) {
       toast("ok", "Kaydedildi");
     });
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 560 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 style={{ fontSize: 22 }}>Kulüp ve Makbuz</h3>
       <Alan etiket="Makbuzda görünen kulüp adı">
         <Girdi value={a.kulup_adi} onChange={(e) => setA({ ...a, kulup_adi: e.target.value })} placeholder="EYÜPSPOR FUTBOL OKULU" />

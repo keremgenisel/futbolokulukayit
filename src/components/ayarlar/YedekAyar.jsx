@@ -142,7 +142,7 @@ export function YedekAyar({ admin }) {
     );
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 640 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 style={{ fontSize: 22 }}>Yedekleme</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
         Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir şifreli dosyaya (<code>eyupspor-yedek-tarih.eyupyedek</code>)

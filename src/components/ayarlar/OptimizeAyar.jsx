@@ -67,7 +67,7 @@ export function OptimizeAyar({ admin, saltOkunur }) {
   if (!admin) return <div style={{ color: "var(--soluk)" }}>Bu bölüm yalnız yöneticiler içindir.</div>;
   const yuzde = sonuc && sonuc.once > 0 ? Math.round((sonuc.tasarruf / sonuc.once) * 100) : 0;
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16, maxWidth: 720 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 style={{ fontSize: 22 }}>Resim ve Belge Optimizasyonu</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
         Vesikalık ve belge fotoğraflarını (JPG/PNG) en fazla 2000 piksele küçültür ve yeniden sıkıştırır; yedekler küçülür, program
