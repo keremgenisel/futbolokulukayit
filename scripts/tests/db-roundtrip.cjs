@@ -751,6 +751,17 @@ app.whenReady().then(async () => {
           .map((r) => r.player_id)
           .includes(yenilemeyen.id),
     );
+    // Raporlar tarih aralığı modu (plan §20.8): herkes=true → durum/sezon süzgeci yok, pasif yenilemeyen de listede
+    check(
+      "attendanceReport herkes=true: pasif yenilemeyen listede; süzgeçsiz çağrıda değil",
+      db.attendanceReport("1900-01-01", "2999-12-31", null, null, true).some((r) => r.id === yenilemeyen.id) &&
+        !db.attendanceReport("1900-01-01", "2999-12-31", null, null).some((r) => r.id === yenilemeyen.id),
+    );
+    check(
+      "saglikRaporuListesi herkes=true: pasif yenilemeyen listede; süzgeçsiz çağrıda değil",
+      db.saglikRaporuListesi("2026-10-31", null, 30, null, true).some((r) => r.player_id === yenilemeyen.id) &&
+        !db.saglikRaporuListesi("2026-10-31", null, 30, null).some((r) => r.player_id === yenilemeyen.id),
+    );
     // Yoklama raporu yalnız aralıktaki antrenmanları sayar (09.09.2026 düzeltmesi): tüm zamanlar > yalnız 2099 yılı (0)
     {
       const tumZaman = db.attendanceReport("1900-01-01", "2999-12-31", null, "2026-2027").find((r) => r.id === yenileyen.id);

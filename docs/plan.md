@@ -948,3 +948,9 @@ yaş grubu parametresi. Saf `raporFiltreleri` her rapor için aynı listeyi dön
 Sekmeler kaldırıldı; rapor seçimi yine sol sütundaki büyük kartlarla (ad + açıklama). Tek filtre çubuğu en üstte, tam
 genişlikte; altında sol kartlar + sağda tablo. Filtre davranışı §20.6 ile aynı.
 
+### 20.8 Tarih aralığı modunda oyuncu kümesi (Kerem, 09.09.2026)
+Tarih aralığı seçilince Yoklama Özeti ve Sağlık Raporu **tüm oyuncuları** kapsar (durum ve sezon süzgeci yok; pasif/ayrılmış
+dahil): `attendanceReport(..., herkes=true)`, `saglikRaporuListesi(..., herkes=true)`. Oyuncu ve Borçlu listeleri tarih modunda
+zaten sezonsuzdu. Sezon modunda davranış aynı (o sezonun oyuncuları). Ayrıca Yoklama Özeti'nde aralık dışı antrenmanların
+yoklamasının sayılması hatası düzeltildi (t.id IS NOT NULL).
+

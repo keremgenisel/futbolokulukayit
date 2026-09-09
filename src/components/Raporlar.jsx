@@ -110,10 +110,10 @@ export function Raporlar() {
       }
       if (rapor === "saglik") {
         // Sezon modunda ay seçiliyse ayın son günü, Tümü ise bugün; tarih modunda bitiş tarihi itibarıyla (plan §19.5)
-        const liste = await db("saglikRaporuListesi", d.referans, grupId, 30, d.sezon);
+        const liste = await db("saglikRaporuListesi", d.referans, grupId, 30, d.sezon, !d.sezon); // tarih modunda tüm oyuncular
         return saglikRaporu({ liste, bugunIso: d.referans, grupEk, sezon: d.sezon || "" });
       }
-      const liste = await db("attendanceReport", d.from, d.to, grupId, d.sezon);
+      const liste = await db("attendanceReport", d.from, d.to, grupId, d.sezon, !d.sezon); // tarih modunda tüm oyuncular
       return yoklamaOzetiRaporu({ liste, from: d.from, to: d.to, grupEk, donem: d.sezon ? d.etiket : "" });
     });
 

@@ -93,15 +93,19 @@ describe("Raporlar sezon + ay filtresi", () => {
     expect(screen.getByLabelText("Dönem seçimi")).toHaveValue("sezon");
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "" } });
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2027-09-01", "2028-08-31", null, "2027-2028"));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2027-09-01", "2028-08-31", null, "2027-2028", false),
+    );
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2027-10-01", "2027-10-31", null, "2027-2028"));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2027-10-01", "2027-10-31", null, "2027-2028", false),
+    );
     fireEvent.change(screen.getByLabelText("Dönem seçimi"), { target: { value: "tarih" } });
     expect(screen.queryByLabelText("Sezon")).toBeNull();
     onizle();
     await waitFor(() =>
-      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", expect.any(String), expect.any(String), null, null),
+      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", expect.any(String), expect.any(String), null, null, true),
     );
   });
 
@@ -118,11 +122,12 @@ describe("Raporlar sezon + ay filtresi", () => {
         null,
         30,
         "2027-2028",
+        false,
       ),
     );
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2027-10-31", null, 30, "2027-2028"));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2027-10-31", null, 30, "2027-2028", false));
     expect(await screen.findByText(/31\.10\.2027 itibarıyla · 2027-2028 sezonu/)).toBeInTheDocument();
   });
 
@@ -168,9 +173,9 @@ describe("Raporlar sezon + ay filtresi", () => {
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listUnpaidAralik", 202609, 202610, null, null));
     rapor("Yoklama Özeti");
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2026-09-01", "2026-10-31", null, null));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2026-09-01", "2026-10-31", null, null, true));
     rapor("Sağlık Raporu Durumu");
     onizle();
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2026-10-31", null, 30, null));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2026-10-31", null, 30, null, true));
   });
 });

@@ -173,6 +173,7 @@ describe("Raporlar: önizleme sayfalı", () => {
       null,
       30,
       expect.any(String),
+      false,
     );
     const satirlar = screen
       .getAllByRole("row")
@@ -186,7 +187,9 @@ describe("Raporlar: önizleme sayfalı", () => {
     expect(screen.getByText(/1 doldu · 1 dolacak · 1 yok · 1 geçerli/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Yaş grubu"), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: "Önizle" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", expect.any(String), 2, 30, expect.any(String)));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", expect.any(String), 2, 30, expect.any(String), false),
+    );
     await waitFor(() => expect(screen.queryByText("Ada Kaya")).toBeNull());
     fireEvent.click(screen.getByRole("button", { name: "Excel" }));
     await waitFor(() =>

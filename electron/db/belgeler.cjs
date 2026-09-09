@@ -35,7 +35,8 @@ const getDocument = (id) => db.prepare("SELECT * FROM documents WHERE id=?").get
 // Sağlık raporu uyarıları: aktif oyuncuların EN SON sağlık raporu; yoksa, süresi dolduysa ya da esik gün içinde dolacaksa listelenir.
 // Sağlık raporu satırları: aktif/deneme/sakat oyuncular, son raporun geçerliliği ve durum (gecerli|dolacak|doldu|tarihsiz|yok).
 // sezon verilirse oyuncu kümesi o sezonun oyuncuları; `bugun` referans tarih (rapor: ay seçilince ayın son günü; plan §19.5)
-function saglikSatirlari(bugun, esikGun = 30, age_group_id = null, sezon = null) {
+// herkes=true (Raporlar tarih aralığı modu): durum/sezon süzgeci yok, tüm oyuncular.
+function saglikSatirlari(bugun, esikGun = 30, age_group_id = null, sezon = null, herkes = false) {
   const rows = db
     .prepare(
       `SELECT p.id, p.ad_soyad, p.durum AS oyuncu_durum, g.ad AS yas_grubu_ad, g.sira,
@@ -43,10 +44,10 @@ function saglikSatirlari(bugun, esikGun = 30, age_group_id = null, sezon = null)
       (SELECT count(*) FROM documents d WHERE d.player_id=p.id AND d.tip='saglik') AS rapor_adet,
       (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel
     FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
-    WHERE CASE WHEN ? IS NULL THEN p.durum IN ('aktif','deneme','sakat') ELSE (p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) END
+    WHERE CASE WHEN ? THEN 1 WHEN ? IS NULL THEN p.durum IN ('aktif','deneme','sakat') ELSE (p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) END
       AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY g.sira, p.ad_soyad`,
     )
-    .all(sezon, sezon, sezon, age_group_id, age_group_id);
+    .all(herkes ? 1 : 0, sezon, sezon, sezon, age_group_id, age_group_id);
   const esik = new Date(bugun + "T00:00:00");
   esik.setDate(esik.getDate() + esikGun);
   const esikIso = esik.toISOString().slice(0, 10);
@@ -91,8 +92,8 @@ function saglikRaporuDurumu(bugun, esikGun = 30) {
 }
 // Raporlar > Sağlık Raporu Durumu: tüm satırlar (geçerliler dahil), en acil önce.
 const ACILIYET_SIRA = { doldu: 0, dolacak: 1, tarihsiz: 2, yok: 3, gecerli: 4 };
-const saglikRaporuListesi = (bugun, age_group_id = null, esikGun = 30, sezon = null) =>
-  saglikSatirlari(bugun, esikGun, age_group_id ? Number(age_group_id) : null, sezon || null).sort(
+const saglikRaporuListesi = (bugun, age_group_id = null, esikGun = 30, sezon = null, herkes = false) =>
+  saglikSatirlari(bugun, esikGun, age_group_id ? Number(age_group_id) : null, sezon || null, !!herkes).sort(
     (a, b) =>
       ACILIYET_SIRA[a.durum] - ACILIYET_SIRA[b.durum] ||
       String(a.gecerlilik || "").localeCompare(String(b.gecerlilik || "")) ||

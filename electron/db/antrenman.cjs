@@ -99,7 +99,8 @@ const attendanceSummary = (pid, from, to) =>
 // sezon verilirse oyuncu kümesi o sezonun oyuncuları (bugün pasif olsa da; plan §19.4); verilmezse sahadakiler.
 // Yalnız aralıktaki, iptal edilmemiş antrenmanların yoklaması sayılır (t.id IS NOT NULL) — 09.09.2026 raporlar e2e'de
 // aralık dışı yoklamaların da toplandığı görüldü.
-const attendanceReport = (from, to, age_group_id = null, sezon = null) =>
+// herkes=true (Raporlar tarih aralığı modu, 09.09.2026): durum/sezon süzgeci yok, tüm oyuncular.
+const attendanceReport = (from, to, age_group_id = null, sezon = null, herkes = false) =>
   db
     .prepare(
       `
@@ -111,11 +112,12 @@ const attendanceReport = (from, to, age_group_id = null, sezon = null) =>
   LEFT JOIN attendance a ON a.player_id=p.id
   LEFT JOIN trainings t ON t.id=a.training_id AND t.tarih BETWEEN ? AND ? AND t.iptal=0
   WHERE (? IS NULL OR p.yas_grubu_id=?)
-    AND CASE WHEN ? IS NULL THEN p.durum IN ('aktif','deneme','sakat')
+    AND CASE WHEN ? THEN 1
+             WHEN ? IS NULL THEN p.durum IN ('aktif','deneme','sakat')
              ELSE (p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) END
   GROUP BY p.id ORDER BY g.sira, p.ad_soyad`,
     )
-    .all(from, to, age_group_id, age_group_id, sezon, sezon, sezon);
+    .all(from, to, age_group_id, age_group_id, herkes ? 1 : 0, sezon, sezon, sezon);
 
 module.exports = {
   createTraining,

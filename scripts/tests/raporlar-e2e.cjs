@@ -253,8 +253,11 @@ app.on("browser-window-created", async (_e, win) => {
     await tarihYaz("Bitiş", "2026-09-30");
     r = await onizle();
     check(
-      "yoklama tarih aralığı Ağu–Eyl → Ali geldi 1 gelmedi 1, Berk izinli 1 (sahadakiler; pasif Ceren yok)",
-      adlar(r) === "Ali Aktif,Berk Yeni" && r.satirlar[0].slice(2, 5).join() === "1,1,0" && r.satirlar[0][5] === "50",
+      "yoklama tarih aralığı Ağu–Eyl → tüm oyuncular: Ali geldi 1 gelmedi 1, Berk izinli 1, pasif Ceren geldi 1",
+      adlar(r) === "Ali Aktif,Berk Yeni,Ceren Eski" &&
+        r.satirlar[0].slice(2, 5).join() === "1,1,0" &&
+        r.satirlar[0][5] === "50" &&
+        r.satirlar[2].slice(2, 5).join() === "1,0,0",
       JSON.stringify(r.satirlar),
     );
     await sec("Dönem seçimi", "sezon");
@@ -295,8 +298,8 @@ app.on("browser-window-created", async (_e, win) => {
     await tarihYaz("Bitiş", "2026-10-31");
     r = await onizle();
     check(
-      "sağlık tarih aralığı (bitiş 31 Ekim) → Ali Süresi doldu",
-      durumSutunu(r)["Ali Aktif"] === "Süresi doldu",
+      "sağlık tarih aralığı (bitiş 31 Ekim) → tüm oyuncular: Ali Süresi doldu, pasif Ceren de listede",
+      durumSutunu(r)["Ali Aktif"] === "Süresi doldu" && durumSutunu(r)["Ceren Eski"] === "Rapor yok",
       JSON.stringify(durumSutunu(r)) + " | " + r.alt,
     );
 
