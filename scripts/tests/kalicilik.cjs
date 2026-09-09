@@ -83,6 +83,25 @@ app.on("browser-window-created", async (_e, win) => {
       );
       await tikla("Grup Ekle");
       await bekle(400);
+      // İkinci grup: Düzenle → sezon kutusundan SONRAKİ sezon → Kaydet; sonra durum rozetiyle pasife al (plan §15, §17.1)
+      await setInput('input[placeholder="U11"]', "U14");
+      await tikla("Grup Ekle");
+      await bekle(400);
+      await js(
+        `(() => { const tr = [...document.querySelectorAll("tr")].find((t) => t.textContent.includes("U14")); [...tr.querySelectorAll("button")].find((b) => b.textContent.trim() === "Düzenle")?.click(); })()`,
+      );
+      await bekle(300);
+      const u14Sezon = await js(
+        `(() => { const s = [...document.querySelectorAll("select[aria-label='Sezon']")].at(-1); s.value = s.options[1].value; s.dispatchEvent(new Event("change", { bubbles: true })); return s.value; })()`,
+      );
+      await tikla("Kaydet");
+      await bekle(500);
+      await js(`document.querySelector("button[aria-label='U14 durum: Aktif']")?.click()`);
+      await bekle(500);
+      check(
+        "U14 arayüzden pasife alındı ve varsayılan listeden düştü",
+        !(await js(`!!document.querySelector("button[aria-label^='U14 durum']")`)), // toast metni "U14" içerir; satır düğmesine bakılır
+      );
       // Oyuncu (form)
       await tikla("Oyuncular");
       await bekle(400);
@@ -255,6 +274,19 @@ app.on("browser-window-created", async (_e, win) => {
       ]);
       db.setSetting("kurulum_tamam", "1");
       db.setSetting("aktif_sezon", "2026-2027");
+      // Plan §17: yeni sezona geçiş (herkes yeniler → kimse pasife düşmez), ilk ay borcu açılır; yeni sezon makbuzu 2027-0001
+      const sg = db.yeniSezonaGec({ sezon: "2027-2028", yenileyenler: db.sezonAdayListesi().map((a) => ({ id: a.id })) });
+      const m27 = db.createReceipt({
+        player_id: yab.id,
+        tarih: t2.toISOString().slice(0, 10),
+        odeme_yontemi: "nakit",
+        tahsil_eden: "T",
+        satirlar: [{ fee_item_id: aidat.id, tutar: 100, aciklama: "yeni sezon", yil: null, ay: null }],
+      });
+      check(
+        "yeni sezon makbuzu 2027-0001 ve sezon damgalı",
+        m27.makbuz_no === "2027-0001" && m27.sezon === "2027-2028" && sg.ilkAyBorcu >= 1,
+      );
       await js(`document.querySelector("button[aria-label='Menüyü daralt']").click()`);
       await bekle(300);
       // Taşıma paketi (plan §14): tüm kayıtlardan sonra oluşturulur; yeniden açılışta parolayla açılıp sayıları beklenenle karşılaştırılır
@@ -291,6 +323,10 @@ app.on("browser-window-created", async (_e, win) => {
           ay: a2,
           doldurulan: hd.eklenen,
           yabanciDueTutar: yabanciDue?.tutar ?? null,
+          u14Sezon,
+          makbuz27: m27.makbuz_no,
+          ilkAyBorcu: sg.ilkAyBorcu,
+          bugun: t2.toISOString().slice(0, 10),
         }),
       );
       console.log("YAZ TAMAM");
@@ -453,7 +489,27 @@ app.on("browser-window-created", async (_e, win) => {
         "Excel'den aktarılan oyuncu, yeni grubu ve velisi kalıcı",
         !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009",
       );
-      check("kurulum ve sezon ayarları kalıcı", db.getSetting("kurulum_tamam") === "1" && db.sezonDurumu().aktifSezon === "2026-2027");
+      check("kurulum ve sezon ayarları kalıcı", db.getSetting("kurulum_tamam") === "1" && db.sezonDurumu().aktifSezon === "2027-2028");
+      // 09.09.2026 özellikleri (plan §15, §17, göç 13/14)
+      const u14 = db.listAgeGroups().find((g) => g.ad === "U14");
+      check("düzenlenen grup sezonu (sonraki sezon) ve pasif durumu kalıcı", !!u14 && u14.sezon === b.u14Sezon && u14.aktif === 0);
+      check(
+        "yeni sezon makbuzu 2027 numaralı ve sezon damgalı; bugün kesilenler sezona göre ayrışıyor",
+        db.listReceipts(b.yabanci).some((r) => r.makbuz_no === b.makbuz27 && r.sezon === "2027-2028") &&
+          db.listReceiptsByDate(b.bugun, b.bugun, "2027-2028").length === 1 &&
+          db.listReceiptsByDate(b.bugun, b.bugun, "2026-2027").length >= 1 &&
+          db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts WHERE sezon=''").get().n === 0,
+      );
+      check("yeni sezonun ilk ay aidatı kalıcı", b.ilkAyBorcu >= 1 && db.getDue(b.yabanci, 2027, 9)?.durum === "odenmedi");
+      check(
+        "ücret tipi sırası kalıcı (normal, ücretsiz, …)",
+        db
+          .listFeeTypes()
+          .map((t) => t.kod)
+          .slice(0, 3)
+          .join() === "normal,ucretsiz,burslu",
+      );
+      check("sezon listesi yeniden eskiye", db.sezonListesi()[0] === "2027-2028" && db.sezonListesi().includes("2026-2027"));
       // Arayüz: kullanıcı adı önceki oturumdan hatırlanıyor, giriş yeni parolayla
       check("kullanıcı adı yeniden açılışta hatırlanıyor", (await js(`document.querySelector("input").value`)) === "admin");
       await js(
@@ -473,6 +529,19 @@ app.on("browser-window-created", async (_e, win) => {
       await js(`document.querySelector("button[aria-label='Oyuncular']").click()`);
       await bekle(600); // menü dar olabilir (yalnız ikon)
       check("oyuncu arayüzde görünüyor", await js(`document.body.textContent.includes(${JSON.stringify(b.oyuncu)})`));
+      // Yaş Grupları: pasif U14 varsayılan listede yok, onay kutusuyla gelir
+      await js(`document.querySelector("button[aria-label='Yaş Grupları']").click()`);
+      await bekle(600);
+      const u13Var = await js(`document.body.textContent.includes("U13")`);
+      const u14Gizli = !(await js(`document.body.textContent.includes("U14")`));
+      await js(
+        `[...document.querySelectorAll("label")].find((l) => l.textContent.includes("Pasif grupları da göster"))?.querySelector("input")?.click()`,
+      );
+      await bekle(300);
+      check(
+        "yeniden açılışta pasif grup gizli, onay kutusuyla görünür",
+        u13Var && u14Gizli && (await js(`document.body.textContent.includes("U14")`)),
+      );
       if (fail === 0) console.log("TUM KONTROLLER GECTI");
       app.exit(fail === 0 ? 0 : 1);
     }
