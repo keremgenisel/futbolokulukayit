@@ -3,6 +3,7 @@ import { Kart, Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } fr
 import { db } from "../lib/api.js";
 import { programCoz, programOzeti, GUN_ADLARI } from "../lib/program.js";
 import { SezonSecim } from "./SezonSecim.jsx";
+import { Ikon } from "./Ikon.jsx";
 import { sezonSecenekleri } from "../lib/sezon.js";
 import { bugun } from "../lib/api.js";
 
@@ -104,7 +105,35 @@ export function YasGruplari({ saltOkunur }) {
         </Kart>
       )}
       <Kart>
-        <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "12px 16px 0", flexWrap: "wrap" }}>
+        {/* Liste süzgeci: üstteki "Grup Ekle" formundan ayrışsın diye gri zeminli, ikonlu, kompakt bir çubuk (form beyaz kart + etiketli alanlar) */}
+        <div
+          data-testid="grup-suzgec"
+          style={{
+            display: "flex",
+            gap: 14,
+            alignItems: "center",
+            padding: "10px 16px",
+            background: "var(--zemin)",
+            borderBottom: "1px solid var(--cizgi)",
+            borderRadius: "12px 12px 0 0",
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+              fontSize: 12,
+              fontWeight: 700,
+              letterSpacing: ".06em",
+              textTransform: "uppercase",
+              color: "var(--soluk)",
+            }}
+          >
+            <Ikon ad="filtre" boyut={16} />
+            Süzgeç
+          </span>
           <Secim
             secenekler={[...new Set([aktifSezon, seciliSezon, ...sezonlar].filter(Boolean))].map((s) => ({
               kod: s,
@@ -113,15 +142,31 @@ export function YasGruplari({ saltOkunur }) {
             bos="Tüm sezonlar"
             value={seciliSezon}
             onChange={(e) => setSezonF(e.target.value)}
-            style={{ width: 220, height: 40 }}
+            style={{ width: 200, height: 34, fontSize: 14 }}
             aria-label="Sezon süzgeci"
           />
           {aktifSezonda && pasifSayisi > 0 && (
-            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, color: "var(--soluk)" }}>
-              <input type="checkbox" checked={pasifGoster} onChange={(e) => setPasifGoster(e.target.checked)} />
+            <label
+              style={{
+                display: "flex",
+                gap: 8,
+                alignItems: "center",
+                fontSize: 13.5,
+                color: "var(--mor-koyu)",
+                background: "#fff",
+                border: "1px solid var(--cizgi)",
+                borderRadius: 999,
+                padding: "6px 12px 6px 10px",
+                cursor: "pointer",
+              }}
+            >
+              <input type="checkbox" checked={pasifGoster} onChange={(e) => setPasifGoster(e.target.checked)} style={{ margin: 0 }} />
               Pasif grupları da göster ({pasifSayisi})
             </label>
           )}
+          <span style={{ marginLeft: "auto", fontSize: 13, color: "var(--soluk)" }}>
+            {gorunen.length} grup{gorunen.length !== gruplar.length ? ` · ${gruplar.length - gorunen.length} gizli` : ""}
+          </span>
         </div>
         {gruplar.length === 0 ? (
           <Bos metin={aktifSezonda ? "Henüz yaş grubu yok. Yukarıdan ekleyin." : "Bu sezonda grup yok."} />
