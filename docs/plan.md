@@ -954,3 +954,48 @@ dahil): `attendanceReport(..., herkes=true)`, `saglikRaporuListesi(..., herkes=t
 zaten sezonsuzdu. Sezon modunda davranış aynı (o sezonun oyuncuları). Ayrıca Yoklama Özeti'nde aralık dışı antrenmanların
 yoklamasının sayılması hatası düzeltildi (t.id IS NOT NULL).
 
+
+## 21. Yaş Grupları — sezon filtresi (PLANLANDI, 09.09.2026)
+
+**İstek:** Yaş Grupları ekranında sezon seçilince o sezonun grupları gelsin.
+
+**Bugünkü durum:** Her grubun tek bir `sezon` alanı var; sezon geçişinde (`yeniSezonaGec`) aktif grupların hepsi yeni
+sezona yazılıyor. Yani "geçen sezon hangi gruplar vardı" bilgisi tutulmuyor — oyuncularda §18.1 ile çözülen sorunun aynısı.
+Ekranda sezon süzgeci yok; liste aktif grupları (isteğe bağlı pasifleri) gösteriyor.
+
+### 21.1 Davranış
+- Listenin üstünde **Sezon** kutusu (Oyuncular'daki gibi): aktif sezon seçili gelir ("… (aktif sezon)"), kayıtlardaki eski
+  sezonlar ve "Tüm sezonlar" seçilebilir. Seçilince yalnız **o sezonda var olan** gruplar listelenir.
+- Aktif sezon seçiliyken bugünkü davranış: aktif gruplar + "Pasif grupları da göster (n)" kutusu. Geçmiş sezon seçilince
+  pasif gruplar da doğrudan görünür (o sezonun grubu bugün pasif olabilir), onay kutusu gizlenir.
+- "Grup Ekle" formu değişmez (sezon kutusu aktif/sonraki sezon); grup eklenince liste seçili sezona göre yenilenir.
+- Sezon sütunu ve "(eski)/(gelecek)" notu kalır.
+
+### 21.2 Veri: geçmiş sezon üyeliği
+- Yeni tablo `group_seasons(group_id, sezon)` (şema 17), `player_seasons`'ın grup karşılığı. Satır eklenir: grup
+  oluşturulunca (sezonuyla), grubun sezonu düzenlenince, sezon geçişinde aktif gruplar yeni sezona alınınca. Silinmez.
+- Göç 17 mevcut veriden türetir: `age_groups.sezon` + grubun **antrenman tarihlerinin** düştüğü sezonlar (o sezonda
+  antrenman yaptıysa vardı; `sezon_baslangic_ayi` ile) + `player_seasons` × o sezondaki oyuncuların grubu (yaklaşık; oyuncu
+  grubu güncel olduğundan yalnız aktif sezon için güvenilir, göçte yalnız aktif sezon için kullanılır).
+- Süzgeç: `listAgeGroups({ sezon })` → `sezon` verilirse `age_groups.sezon = ? OR EXISTS(group_seasons)`; verilmezse hepsi
+  (mevcut çağrılar değişmez). `sezonListesi` gruplar tablosunu zaten kapsıyor.
+
+### 21.3 Diğer ekranlar (isteğe bağlı, bu turda önerilir)
+- Oyuncular ve Raporlar'daki "Yaş grubu" kutusu seçili sezonun gruplarını listeler (`listAgeGroups({ sezon })`); "Tüm
+  sezonlar"da hepsi. Böylece eski sezonun grubu yeni sezon listesinde görünmez.
+- Oyuncu formundaki grup seçimi aktif sezonun aktif grupları (bugünkü gibi).
+
+### 21.4 Teknik ve test
+- `electron/db/gruplar.cjs`: `grupSezonUyeligiEkle`, `listAgeGroups({ sezon, aktif })`; `sezon.cjs` geçişte üyelik; `sema.cjs`
+  şema 17 + göç. `yetki.cjs`/`db.cjs` export listesi değişmez (aynı ad, isteğe bağlı parametre).
+- `YasGruplari.jsx`: `SezonSecim` benzeri süzgeç (aktif/eski/tümü; `sezonSecenekleri` + `sezonListesi`), `pasifGoster`
+  yalnız aktif sezonda.
+- Testler: `db-roundtrip` (üyelik satırları, göç 17 antrenmanlardan türetme, süzgeç), `tests/ui/yas-gruplari.test.jsx`
+  (sezon kutusu, eski sezon → pasif dahil, tüm sezonlar), `kalicilik` (üyelik kalıcı), isteğe bağlı §21.3 için
+  `oyuncular-sezon`/`raporlar-sezon` testleri.
+- Süre ~1 saat (+30 dk §21.3).
+
+### 21.5 Karar bekleyen
+1. §21.3 (Oyuncular/Raporlar'daki yaş grubu kutusu da sezona göre süzülsün) bu turda yapılsın mı? (Öneri: evet.)
+2. Göçte geçmiş üyelik antrenman tarihlerinden türetilsin mi? (Öneri: evet; antrenmanı olmayan eski sezon grubu ancak
+   elle düzenlemeyle geçmişe eklenir.)
