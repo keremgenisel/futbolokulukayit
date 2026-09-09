@@ -74,7 +74,7 @@ describe("İlk kurulum sihirbazı", () => {
     expect(ayarlar.aktif_sezon).toBe("2026-2027");
     // 4. Yedek → Atla
     await screen.findByRole("button", { name: "Klasör Seç" });
-    fireEvent.click(screen.getByRole("button", { name: "Atla" }));
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" }));
     // 5. Kurtarma kodları
     fireEvent.click(await screen.findByRole("button", { name: "Kurtarma Kodlarını Üret" }));
     await waitFor(() => expect(window.okul.auth.kurtarmaUret).toHaveBeenCalledWith(7));
@@ -109,5 +109,44 @@ describe("İlk kurulum sihirbazı", () => {
     fireEvent.click(screen.getByRole("button", { name: "Şimdi değil" }));
     await waitFor(() => expect(onBitti).toHaveBeenCalled());
     expect(ayarlar.kurulum_tamam).toBeUndefined();
+  });
+
+  it("'Bu adımı atla' her adımda var: kulüp/aidat/gruplar atlanınca hiçbir şey yazılmaz, adım ilerler; Geri ile dönülebilir", async () => {
+    const cagrilar = [];
+    window.okul = {
+      db: vi.fn(async (fn, ...a) => {
+        cagrilar.push([fn, ...a]);
+        if (fn === "listFeeItems") return [{ id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 0 }];
+        if (fn === "listAgeGroups") return [];
+        return null;
+      }),
+      yedek: { durum: vi.fn(async () => ({ klasor: null, son: null })), klasorSec: vi.fn() },
+      auth: { kurtarmaUret: vi.fn() },
+      cikti: { yazdir: vi.fn() },
+    };
+    render(
+      <ToastSaglayici>
+        <IlkKurulum oturum={{ username: "admin", ad_soyad: "Yönetici", role: "admin" }} onBitti={vi.fn()} />
+      </ToastSaglayici>,
+    );
+    fireEvent.change(screen.getByLabelText("Kulüp adı"), { target: { value: "Silinecek" } }); // atlanınca kaydedilmemeli
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" })); // 1. Kulüp
+    await screen.findByLabelText(/Aylık aidat taban/);
+    fireEvent.click(screen.getByRole("button", { name: "Geri" }));
+    expect(await screen.findByLabelText("Kulüp adı")).toHaveValue("Silinecek"); // girilen değer duruyor
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" }));
+    await screen.findByLabelText(/Aylık aidat taban/);
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" })); // 2. Aidat
+    await screen.findByLabelText("Aktif sezon");
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" })); // 3. Gruplar
+    await screen.findByRole("button", { name: "Klasör Seç" });
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" })); // 4. Yedek
+    await screen.findByRole("button", { name: "Kurtarma Kodlarını Üret" });
+    fireEvent.click(screen.getByRole("button", { name: "Bu adımı atla" })); // 5. Kurtarma
+    await screen.findByRole("button", { name: "Bitir, Pano'ya Git" });
+    expect(screen.queryByRole("button", { name: "Bu adımı atla" })).toBeNull(); // son adımda yok
+    const yazanlar = cagrilar.filter(([fn]) => ["setSetting", "aidatAyarlariKaydet", "createAgeGroup"].includes(fn));
+    expect(yazanlar).toEqual([]);
+    expect(window.okul.auth.kurtarmaUret).not.toHaveBeenCalled();
   });
 });

@@ -107,7 +107,8 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
 - `aktivasyon-sunucu/` — Cloudflare Worker + D1 (GenCRM kopyası, EYUPSPOR önekleri). `deploy.sh`
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/components/IlkKurulum.jsx` — ilk kurulum sihirbazı (ilk parola değişiminden sonra, `kurulum_tamam` boş ve oyuncu
-  yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı).
+  yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı; son adım hariç her adımda
+  "Bu adımı atla": hiçbir şey yazmadan ilerler, girilenler Geri ile korunur).
 - `src/components/Ayarlar.jsx` — yalnız kabuk (gruplu bölüm menüsü: Kulüp / Sezon ve Veri / Kullanıcılar ve Erişim / Uygulama;
   "İlk Kurulum Sihirbazı" menü öğesi bölüm değil eylem, `onKurulumAc`; `onKirli` uyarısı); bölümler `src/components/ayarlar/` (KulupAyar,
   KalemAyar, KullaniciAyar+KurtarmaKodlari, SezonAyar, YedekAyar, OptimizeAyar, WhatsAppAyar, Hakkinda+Guncelleme). Dış API

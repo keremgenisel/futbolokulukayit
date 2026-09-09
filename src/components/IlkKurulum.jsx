@@ -155,9 +155,14 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
               Geri
             </Btn>
           )}
-          {!son && adim >= 3 && (
-            <Btn tur="ghost" onClick={() => setAdim(adim + 1)} disabled={bekliyor}>
-              Atla
+          {!son && (
+            <Btn
+              tur="ghost"
+              onClick={() => setAdim(adim + 1)}
+              disabled={bekliyor}
+              title="Bu adımda hiçbir şey kaydedilmez; sonra Ayarlar'dan yapılabilir"
+            >
+              Bu adımı atla
             </Btn>
           )}
           {!son && (
