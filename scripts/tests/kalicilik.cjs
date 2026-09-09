@@ -374,7 +374,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 12 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "12");
+      check("şema sürümü 13 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "13");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",

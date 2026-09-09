@@ -15,12 +15,13 @@ export const DURUMLAR = [
   { kod: "dondurma", ad: "Dondurma" },
 ];
 /** Varsayılan ücret tipleri (tohum). Asıl liste veritabanında `fee_types`; arayüz `useUcretTipleri()` ile alır. */
+// Sıra: iki sabit tip (normal, ücretsiz) en üstte, sonra indirimli tipler (kulüp isteği 09.09.2026).
 export const UCRET_TIPLERI = [
   { kod: "normal", ad: "Normal" },
+  { kod: "ucretsiz", ad: "Ücretsiz" },
   { kod: "burslu", ad: "Burslu" },
   { kod: "indirimli", ad: "İndirimli" },
   { kod: "kardes", ad: "Kardeş İndirimi" },
-  { kod: "ucretsiz", ad: "Ücretsiz" },
 ];
 /** Ücret tipi başına varsayılan indirim yüzdesi (Ayarlar > Aidat Kalemleri'nden değiştirilir). */
 /** @type {Record<string, number>} */

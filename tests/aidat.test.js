@@ -20,6 +20,7 @@ import {
   gsmNormalize,
   gsmGecerliMi,
   yasGrubuOner,
+  UCRET_TIPLERI,
 } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
@@ -213,5 +214,9 @@ describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
       id: 9,
       adaylar: [{ id: 9, ad: "U11" }],
     });
+  });
+
+  it("varsayılan ücret tipi sırası: normal, ücretsiz, burslu, indirimli, kardeş (09.09.2026)", () => {
+    expect(UCRET_TIPLERI.map((t) => t.kod)).toEqual(["normal", "ucretsiz", "burslu", "indirimli", "kardes"]);
   });
 });

@@ -67,10 +67,10 @@ describe("Ayarlar > Aidat Kalemleri: tek Kaydet", () => {
     ];
     let tipler = [
       { kod: "normal", ad: "Normal", indirim: 0, aktif: 1, sabit: 1 },
+      { kod: "ucretsiz", ad: "Ücretsiz", indirim: 100, aktif: 1, sabit: 1 }, // DB sırası (şema 13): sabitler üstte
       { kod: "burslu", ad: "Burslu", indirim: 100, aktif: 1, sabit: 0 },
       { kod: "indirimli", ad: "İndirimli", indirim: 0, aktif: 1, sabit: 0 },
       { kod: "kardes", ad: "Kardeş İndirimi", indirim: 0, aktif: 1, sabit: 0 },
-      { kod: "ucretsiz", ad: "Ücretsiz", indirim: 100, aktif: 1, sabit: 1 },
     ];
     window.okul = {
       db: vi.fn(async (fn, ...a) => {

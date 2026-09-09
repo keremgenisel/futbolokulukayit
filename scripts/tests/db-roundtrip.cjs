@@ -59,10 +59,18 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "12",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "13",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
+    check(
+      "göç 13: varsayılan ücret tipleri normal, ücretsiz, burslu, indirimli, kardeş sırasında",
+      db
+        .listFeeTypes()
+        .map((t) => t.kod)
+        .slice(0, 5)
+        .join() === "normal,ucretsiz,burslu,indirimli,kardes",
+    );
     check("yaş grubu oluşturuldu", grp.id > 0);
 
     const oyuncu = db.createPlayer({
@@ -271,8 +279,8 @@ app.whenReady().then(async () => {
       !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id,
     );
     check(
-      "şema sürümü 12 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "12" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      "şema sürümü 13 ve pasaport sütunu var",
+      db.getMetaValue("schema_version") === "13" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -896,7 +904,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "12",
+        db.getMetaValue("schema_version") === "13",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
