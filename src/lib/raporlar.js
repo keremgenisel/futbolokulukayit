@@ -36,6 +36,28 @@ export const RAPORLAR = [
   },
 ];
 
+/**
+ * Raporda görünen filtre kutuları (plan §20.3). Yoklama'da `mod` seçime göre sezon+ay ya da tarih aralığı.
+ * @param {string} kod @param {{ mod?: string }} [filtre]
+ * @returns {("sezon"|"grup"|"mod"|"tarih")[]}
+ */
+export function raporFiltreleri(kod, { mod = "sezon" } = {}) {
+  switch (kod) {
+    case "oyuncu":
+      return ["sezon", "grup"];
+    case "borclu":
+      return ["sezon"];
+    case "tahsilat":
+      return ["tarih"];
+    case "yoklama":
+      return mod === "tarih" ? ["mod", "tarih", "grup"] : ["mod", "sezon", "grup"];
+    case "saglik":
+      return ["sezon", "grup"];
+    default:
+      return [];
+  }
+}
+
 /** @typedef {{ baslik: string, anahtar: string, genislik?: number, sag?: boolean }} Sutun */
 /** @typedef {{ baslik: string, alt: string, yatay?: boolean, sutunlar: Sutun[], satirlar: Record<string, unknown>[] }} Rapor */
 

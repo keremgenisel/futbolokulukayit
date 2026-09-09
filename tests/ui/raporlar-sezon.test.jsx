@@ -118,4 +118,36 @@ describe("Raporlar sezon + ay filtresi", () => {
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2027-10-31", null, 30, "2027-2028"));
     expect(await screen.findByText(/31\.10\.2027 itibarıyla · 2027-2028 sezonu/)).toBeInTheDocument();
   });
+
+  it("tek filtre çubuğu (plan §20): sekmeye göre kutular gizlenir, seçimler sekmeler arasında korunur, filtre değişince not çıkar", async () => {
+    ac();
+    await waitFor(() => expect(screen.getByLabelText("Sezon")).toHaveValue("2027-2028"));
+    // Oyuncu Listesi: Sezon, Ay, Yaş grubu var; tarih ve dönem seçimi yok
+    expect(screen.getByLabelText("Yaş grubu")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Başlangıç")).toBeNull();
+    expect(screen.queryByLabelText("Dönem seçimi")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Sezon"), { target: { value: "2026-2027" } });
+    fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
+    // Borçlu Listesi: yaş grubu yok, sezon/ay korunur
+    rapor("Borçlu Listesi");
+    expect(screen.queryByLabelText("Yaş grubu")).toBeNull();
+    expect(screen.getByLabelText("Sezon")).toHaveValue("2026-2027");
+    expect(screen.getByLabelText("Ay")).toHaveValue("10");
+    // Tahsilat: yalnız tarih aralığı
+    rapor("Tahsilat Raporu");
+    expect(screen.queryByLabelText("Sezon")).toBeNull();
+    expect(screen.getByLabelText("Başlangıç")).toBeInTheDocument();
+    expect(screen.getByLabelText("Bitiş")).toBeInTheDocument();
+    // Geri dönünce seçim yine korunmuş; önizleme sonrası filtre değişince "Filtre değişti"
+    rapor("Oyuncu Listesi");
+    expect(screen.getByLabelText("Sezon")).toHaveValue("2026-2027");
+    onizle();
+    expect(await screen.findByText("Ekim 2026 · 2026-2027 sezonu")).toBeInTheDocument();
+    expect(screen.queryByText("Filtre değişti")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "11" } });
+    expect(screen.getByText("Filtre değişti")).toBeInTheDocument();
+    onizle();
+    await screen.findByText("Kasım 2026 · 2026-2027 sezonu");
+    expect(screen.queryByText("Filtre değişti")).toBeNull();
+  });
 });

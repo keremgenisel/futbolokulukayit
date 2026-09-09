@@ -858,7 +858,7 @@ Listesi ise `listUnpaid(yil, ay)` ile yalnız aya bakıyor, sezon süzgeci yok �
 2. Sağlık raporunda ay = o ayın son günü itibarıyla; rapora geçince Ay "Tümü" (bugün) gelir.
 3. Yoklama Özeti: "Dönem seçimi" kutusu — "Sezon ve ay" (varsayılan) ya da "Tarih aralığı" (eski davranış, sahadaki oyuncular).
 
-## 20. Raporlar — tek filtre çubuğu, sekmeli rapor seçimi (PLANLANDI, 09.09.2026)
+## 20. Raporlar — tek filtre çubuğu, sekmeli rapor seçimi (PLANLANDI ve UYGULANDI, 09.09.2026)
 
 **Sorun:** Sol sütunda beş büyük rapor kartı + altında filtreler; filtreler kartların altında kaldığı için ekranda görünmüyor,
 kaydırmak gerekiyor. Her raporda farklı bir filtre bloğu çıkıyor; tablo dar alana sıkışıyor (320 px sol sütun).
@@ -927,6 +927,7 @@ Sekme: Sağlık Raporu Durumu → filtre çubuğu:
   ekran görüntüsü.
 - Süre ~1,5 saat.
 
-### 20.5 Karar bekleyen
-1. Sekmeler yatay tek satır (5 sekme, geniş ekranda sığar; dar pencerede ikinci satıra sarar) — uygun mu?
-2. Sekme değişince önizleme kalsın mı (öneri: kalsın, "yeniden önizle" uyarısıyla), yoksa temizlensin mi?
+### 20.5 Uygulama notu (09.09.2026)
+Sekmeler yatay tek satır (`Sekmeler` bileşeni); sekme değişince önizleme kalır, Önizle düğmesi sarıya döner ve yanında
+"Filtre değişti" notu çıkar (düğme metni sabit "Önizle": testler ve smoke buna bağlı). Filtre çubuğu `RaporFiltre.jsx`,
+görünürlük tablosu saf `raporFiltreleri()`.

@@ -9,6 +9,7 @@ import {
   donemEtiketi,
   sezonAidatMetni,
   borcluAylarMetni,
+  raporFiltreleri,
 } from "../src/lib/raporlar.js";
 
 describe("rapor üreticileri (saf)", () => {
@@ -234,5 +235,15 @@ describe("rapor üreticileri (saf)", () => {
       "2026-2027 sezonu (tüm aylar)",
     );
     expect(yoklamaOzetiRaporu({ liste: [], from: "2026-09-01", to: "2026-09-30" }).alt).toBe("01.09.2026 – 30.09.2026");
+  });
+
+  it("rapora göre görünen filtreler (plan §20.3)", () => {
+    expect(raporFiltreleri("oyuncu")).toEqual(["sezon", "grup"]);
+    expect(raporFiltreleri("borclu")).toEqual(["sezon"]);
+    expect(raporFiltreleri("tahsilat")).toEqual(["tarih"]);
+    expect(raporFiltreleri("yoklama")).toEqual(["mod", "sezon", "grup"]);
+    expect(raporFiltreleri("yoklama", { mod: "tarih" })).toEqual(["mod", "tarih", "grup"]);
+    expect(raporFiltreleri("saglik")).toEqual(["sezon", "grup"]);
+    expect(raporFiltreleri("yok")).toEqual([]);
   });
 });
