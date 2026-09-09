@@ -21,6 +21,7 @@ npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, s
 npm run test:saf     # yalnız süreç içi testler (~19 sn) — refactor döngüsü için
 npm run test:coverage # test:saf + kapsama raporu (coverage/); Electron alt süreç kodu (db.cjs, ipc/*) ölçülmez
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
+npx electron scripts/tests/guncelleme-serit-onizle.cjs <dizin>   # güncelleme şeridini gerçek pencerede göster (updater olayları elle; 4 görüntü)
 npm run lint         # ESLint 9 (hata sayısı 0 tutulur)
 npm run format       # Prettier (140 sütun, .prettierrc); format:check CI için. Biçimlendirme commit'i .git-blame-ignore-revs'te
 npm run typecheck    # tsc --noEmit (// @ts-check işaretli dosyalar)
