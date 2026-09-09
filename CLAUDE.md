@@ -106,7 +106,8 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/components/IlkKurulum.jsx` — ilk kurulum sihirbazı (ilk parola değişiminden sonra, `kurulum_tamam` boş ve oyuncu
   yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı).
-- `src/components/Ayarlar.jsx` — yalnız kabuk (bölüm menüsü, `onKirli` uyarısı); bölümler `src/components/ayarlar/` (KulupAyar,
+- `src/components/Ayarlar.jsx` — yalnız kabuk (gruplu bölüm menüsü: Kulüp / Sezon ve Veri / Kullanıcılar ve Erişim / Uygulama;
+  "İlk Kurulum Sihirbazı" menü öğesi bölüm değil eylem, `onKurulumAc`; `onKirli` uyarısı); bölümler `src/components/ayarlar/` (KulupAyar,
   KalemAyar, KullaniciAyar+KurtarmaKodlari, SezonAyar, YedekAyar, OptimizeAyar, WhatsAppAyar, Hakkinda+Guncelleme). Dış API
   (`Ayarlar`, `KurtarmaKodlari`, `Guncelleme`) Ayarlar.jsx'ten yeniden dışa verilir.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.

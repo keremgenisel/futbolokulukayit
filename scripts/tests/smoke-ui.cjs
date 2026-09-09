@@ -224,7 +224,7 @@ app.whenReady().then(async () => {
     await shot("13-gruplar");
     await tikla("Ayarlar");
     await bekle(400);
-    await tikla("Kurulum Sihirbazını Aç");
+    await tikla("İlk Kurulum Sihirbazı"); // Ayarlar > Uygulama (plan §16)
     await bekle(500);
     await shot("13a-kurulum-sihirbazi");
     await tikla("Kaydet ve Devam");

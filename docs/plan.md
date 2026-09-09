@@ -326,7 +326,7 @@ Not: otomatik güncelleme yalnız Setup ile KURULMUŞ uygulamada çalışır; ge
 1. Kurulum dosyasını çalıştır, `admin`/`admin` ile gir, parolayı değiştir (rehber: `docs/kurulum.md`).
 2. Ayarlar > Lisans: anahtarı yapıştır. Online aktivasyon açıksa "Aktive Et".
 3. Ayarlar > Yedekleme: klasör seç (harici disk veya bulut klasörü).
-4. İlk kurulum sihirbazı ilk girişte açılır (kulüp adı, aidat/indirim, gruplar, yedek, kurtarma kodları); atlandıysa Ayarlar > Kulüp ve Makbuz > Kurulum Sihirbazını Aç.
+4. İlk kurulum sihirbazı ilk girişte açılır (kulüp adı, aidat/indirim, gruplar, yedek, kurtarma kodları); atlandıysa Ayarlar > Uygulama > İlk Kurulum Sihirbazı.
 5. Mevcut oyuncu listesini Oyuncular > İçe Aktar ile Excel'den yükle (şablon indir → doldur → önizle → aktar).
 6. Yazıcıda deneme makbuzu bas, düzeni kontrol et.
 7. İkinci PC istenirse: `src/lib/ozellikler.js` COKLU_PC_ACIK bayrağını aç, sunucuyu başlat, diğer PC'den bağlan (şu an arayüzde kapalı).
@@ -678,7 +678,7 @@ testleri (40 dk) → smoke ekran görüntüsü. Toplam ~1,5 saat. Davranış de�
 İki seçenek (aktif + sonraki sezon) ve eski kayıt değeri üçüncü seçenek olarak: üçü de uygulandı. Henüz kullanıcı olmadığı
 için geriye uyumluluk kaygısı yok; göç 12 yine de boş sezonlu aktif grupları doldurur.
 
-## 16. Ayarlar menüsü — başlıklar altında gruplama (PLANLANDI, 09.09.2026)
+## 16. Ayarlar menüsü — başlıklar altında gruplama (PLANLANDI ve UYGULANDI, 09.09.2026)
 
 **Sorun:** Sol menüde 9 (çoklu PC açıkken 10) bölüm düz liste hâlinde; ilgisiz maddeler yan yana (Yeni Sezon → Yedekleme →
 Optimizasyon → WhatsApp → Lisans). İlk Kurulum Sihirbazı ise menüde yok; Kulüp ve Makbuz bölümünün altında bir düğme.

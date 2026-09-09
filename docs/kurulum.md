@@ -7,7 +7,8 @@
    mevcut parolanız da sorulur. Üst üste 8 yanlış girişte kullanıcı 15 dakika kilitlenir.)
 4. Ardından **İlk Kurulum** sihirbazı açılır: kulüp adı → aidat taban fiyatı ve indirimler → yaş grupları
    ve sezon → yedek klasörü → kurtarma kodları (8 kod, bir kez gösterilir; yazdırıp saklayın) → Excel'den
-   oyuncu aktarımı. Her adım atlanabilir; hepsi sonradan Ayarlar'dan değiştirilebilir. "Şimdi değil"
+   oyuncu aktarımı. Her adım atlanabilir; hepsi sonradan Ayarlar'dan değiştirilebilir (sihirbazı yeniden açmak için
+   Ayarlar > Uygulama > İlk Kurulum Sihirbazı). "Şimdi değil"
    derseniz oyuncu eklenene kadar bir sonraki girişte yeniden çıkar.
 5. İsterseniz kendi adınıza bir yönetici hesabı açıp (Ayarlar > Kullanıcılar) hazır gelen **admin**
    hesabını silebilirsiniz. Program en az bir aktif yönetici kalmasını şart koşar.

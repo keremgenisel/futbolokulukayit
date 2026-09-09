@@ -2,9 +2,8 @@
 import { useEffect, useState } from "react";
 import { Btn, Alan, Girdi, useToast, useDene } from "../ui.jsx";
 import { db } from "../../lib/api.js";
-import { Ikon } from "../Ikon.jsx";
 
-export function KulupAyar({ saltOkunur, admin, onKurulumAc }) {
+export function KulupAyar({ saltOkunur }) {
   const [a, setA] = useState({ kulup_adi: "", tahsil_eden: "" });
   const toast = useToast();
   const dene = useDene();
@@ -32,20 +31,6 @@ export function KulupAyar({ saltOkunur, admin, onKurulumAc }) {
       {!saltOkunur && (
         <div>
           <Btn onClick={kaydet}>Kaydet</Btn>
-        </div>
-      )}
-      {admin && onKurulumAc && (
-        <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 8 }}>
-          <div style={{ fontWeight: 700 }}>İlk kurulum sihirbazı</div>
-          <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
-            Kulüp adı, aidat ve indirimler, yaş grupları, yedek klasörü ve kurtarma kodlarını adım adım gözden geçirmek için. İlk açılışta
-            otomatik çıkar; buradan istediğiniz zaman yeniden açabilirsiniz.
-          </p>
-          <div>
-            <Btn tur="ghost" ikon={<Ikon ad="takvim" />} onClick={onKurulumAc}>
-              Kurulum Sihirbazını Aç
-            </Btn>
-          </div>
         </div>
       )}
     </div>

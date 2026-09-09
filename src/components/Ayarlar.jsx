@@ -15,17 +15,39 @@ import { YedekAyar } from "./ayarlar/YedekAyar.jsx";
 import { Hakkinda, Guncelleme } from "./ayarlar/Hakkinda.jsx";
 import { paraTR } from "../lib/aidat.js";
 
-const BOLUMLER = [
-  { kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" },
-  { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" },
-  { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" },
-  { kod: "sezon", ad: "Yeni Sezon", ikon: "takvim" },
-  { kod: "yedek", ad: "Yedekleme", ikon: "yedek" },
-  { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" },
-  { kod: "whatsapp", ad: "WhatsApp Mesajları", ikon: "whatsapp" },
-  ...(COKLU_PC_ACIK ? [{ kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }] : []),
-  { kod: "lisans", ad: "Lisans", ikon: "kilit" },
-  { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" },
+// Menü grupları (plan §16). Bölüm kodları sabittir (App.jsx yönlendirmeleri, testler); "sihirbaz" bölüm değil eylemdir.
+const GRUPLAR = [
+  {
+    baslik: "Kulüp",
+    bolumler: [
+      { kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" },
+      { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" },
+      { kod: "whatsapp", ad: "WhatsApp Mesajları", ikon: "whatsapp" },
+    ],
+  },
+  {
+    baslik: "Sezon ve Veri",
+    bolumler: [
+      { kod: "sezon", ad: "Yeni Sezon", ikon: "takvim" },
+      { kod: "yedek", ad: "Yedekleme", ikon: "yedek" },
+      { kod: "optimize", ad: "Resim ve Belge Optimizasyonu", ikon: "dosya" },
+    ],
+  },
+  {
+    baslik: "Kullanıcılar ve Erişim",
+    bolumler: [
+      { kod: "kullanici", ad: "Kullanıcılar", ikon: "kullanici" },
+      ...(COKLU_PC_ACIK ? [{ kod: "sunucu", ad: "Sunucu / Çoklu PC", ikon: "sunucu" }] : []),
+    ],
+  },
+  {
+    baslik: "Uygulama",
+    bolumler: [
+      { kod: "sihirbaz", ad: "İlk Kurulum Sihirbazı", ikon: "onay", eylem: "kurulum" },
+      { kod: "lisans", ad: "Lisans", ikon: "kilit" },
+      { kod: "hakkinda", ad: "Hakkında", ikon: "uyari" },
+    ],
+  },
 ];
 
 export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum, onKurulumAc }) {
@@ -33,41 +55,64 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
   const [kirli, setKirli] = useState(false); // açık bölümde kaydedilmemiş değişiklik var mı
   const [hedefBolum, setHedefBolum] = useState(null); // onay bekleyen bölüm geçişi
   const admin = oturum?.role === "admin";
-  const bolumeGit = (kod) => {
-    if (kod === bolum) return;
-    if (kirli) setHedefBolum(kod);
-    else setBolum(kod);
+  // Eylemli öğe (sihirbaz): bölüm değişmez, kirli kontrolünden sonra sihirbaz açılır
+  const eylemYap = (b) => {
+    if (b.eylem === "kurulum") onKurulumAc?.();
+  };
+  const bolumeGit = (b) => {
+    if (!b.eylem && b.kod === bolum) return;
+    if (kirli) setHedefBolum(b);
+    else if (b.eylem) eylemYap(b);
+    else setBolum(b.kod);
   };
   return (
     <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 20, alignItems: "start" }}>
       <Kart style={{ padding: 10, display: "flex", flexDirection: "column", gap: 4 }}>
-        {BOLUMLER.map((b) => (
-          <button
-            key={b.kod}
-            type="button"
-            onClick={() => bolumeGit(b.kod)}
-            style={{
-              textAlign: "left",
-              padding: "11px 14px",
-              borderRadius: 8,
-              cursor: "pointer",
-              border: 0,
-              background: bolum === b.kod ? "var(--mor-acik)" : "transparent",
-              color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)",
-              fontWeight: bolum === b.kod ? 700 : 500,
-              fontSize: 15,
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-            }}
-          >
-            <Ikon ad={b.ikon} />
-            <span>{b.ad}</span>
-          </button>
+        {GRUPLAR.filter((g) => g.bolumler.length).map((g, gi) => (
+          <div key={g.baslik} style={{ display: "flex", flexDirection: "column", gap: 2, marginTop: gi ? 10 : 0 }}>
+            <div
+              style={{
+                padding: "6px 14px 4px",
+                fontSize: 11.5,
+                fontWeight: 700,
+                color: "var(--soluk)",
+                textTransform: "uppercase",
+                letterSpacing: ".06em",
+              }}
+            >
+              {g.baslik}
+            </div>
+            {g.bolumler
+              .filter((b) => !b.eylem || (admin && onKurulumAc))
+              .map((b) => (
+                <button
+                  key={b.kod}
+                  type="button"
+                  onClick={() => bolumeGit(b)}
+                  style={{
+                    textAlign: "left",
+                    padding: "11px 14px",
+                    borderRadius: 8,
+                    cursor: "pointer",
+                    border: 0,
+                    background: bolum === b.kod ? "var(--mor-acik)" : "transparent",
+                    color: bolum === b.kod ? "var(--mor-koyu)" : "var(--metin)",
+                    fontWeight: bolum === b.kod ? 700 : 500,
+                    fontSize: 15,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                  }}
+                >
+                  <Ikon ad={b.ikon} />
+                  <span>{b.ad}</span>
+                </button>
+              ))}
+          </div>
         ))}
       </Kart>
       <Kart style={{ padding: 24 }}>
-        {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} admin={admin} onKurulumAc={onKurulumAc} />}
+        {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} admin={admin} />}
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "whatsapp" && <WhatsAppAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
@@ -84,7 +129,8 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
           mesaj="Bu bölümde kaydedilmemiş değişiklikler var. Kaydetmeden çıkılsın mı? (Değişiklikler kaybolur.)"
           onEvet={() => {
             setKirli(false);
-            setBolum(hedefBolum);
+            if (hedefBolum.eylem) eylemYap(hedefBolum);
+            else setBolum(hedefBolum.kod);
             setHedefBolum(null);
           }}
           onHayir={() => setHedefBolum(null)}
