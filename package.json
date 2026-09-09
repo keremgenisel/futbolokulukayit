@@ -5,6 +5,7 @@
   "description": "Futbol Okulu Kayıt Programı — oyuncu kayıt, aidat, makbuz ve yoklama",
   "main": "electron/main.cjs",
   "private": true,
+  "license": "UNLICENSED",
   "scripts": {
     "postinstall": "electron-rebuild -f -w better-sqlite3 -w better-sqlite3-multiple-ciphers",
     "prepare": "node scripts/install-git-hooks.cjs",

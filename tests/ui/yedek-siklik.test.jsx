@@ -45,11 +45,11 @@ describe("Ayarlar > Yedekleme: sıklık seçimi", () => {
       db: vi.fn(async () => null),
       yedek: {
         durum: vi.fn(async () => ({ klasor: "/yedek", son: null, siklik: "gunluk", sikliklar: [{ kod: "gunluk", ad: "Günde bir" }] })),
-        tasimaOlustur: vi.fn(async () => ({ ok: true, yol: "/x/eyupspor-tasima-1.eyupspor" })),
-        tasimaSec: vi.fn(async () => ({ ok: true, yol: "/x/paket.eyupspor" })),
+        tasimaOlustur: vi.fn(async () => ({ ok: true, yol: "/x/futbolokulu-tasima-1.fokpaket" })),
+        tasimaSec: vi.fn(async () => ({ ok: true, yol: "/x/paket.fokpaket" })),
         tasimaBilgi: vi.fn(async (_y, p) =>
           p === "dogru-parola1"
-            ? { ok: true, yol: "/x/paket.eyupspor", oyuncu: 42, makbuz: 7, sonMakbuz: "2026-09-05" }
+            ? { ok: true, yol: "/x/paket.fokpaket", oyuncu: 42, makbuz: 7, sonMakbuz: "2026-09-05" }
             : { error: "Parola yanlış ya da paket bozuk" },
         ),
         tasimaGeriYukle: vi.fn(async () => ({ ok: true })),
@@ -79,7 +79,7 @@ describe("Ayarlar > Yedekleme: sıklık seçimi", () => {
     expect(await screen.findByText(/Taşıma paketi kaydedildi/)).toBeInTheDocument();
     // Geri yükleme
     fireEvent.click(screen.getByRole("button", { name: "Paket Dosyası Seç" }));
-    expect(await screen.findByText("paket.eyupspor")).toBeInTheDocument();
+    expect(await screen.findByText("paket.fokpaket")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Geri yükleme parolası"), { target: { value: "yanlis" } });
     fireEvent.click(screen.getByRole("button", { name: "Paketi Aç ve Geri Yükle" }));
     expect(await screen.findByText("Parola yanlış ya da paket bozuk")).toBeInTheDocument();
@@ -88,6 +88,6 @@ describe("Ayarlar > Yedekleme: sıklık seçimi", () => {
     const dlg = await screen.findByRole("dialog");
     expect(dlg).toHaveTextContent("42 oyuncu, 7 makbuz, son makbuz 05.09.2026");
     fireEvent.click(within(dlg).getByRole("button", { name: "Evet" }));
-    await waitFor(() => expect(window.okul.yedek.tasimaGeriYukle).toHaveBeenCalledWith("/x/paket.eyupspor", "dogru-parola1"));
+    await waitFor(() => expect(window.okul.yedek.tasimaGeriYukle).toHaveBeenCalledWith("/x/paket.fokpaket", "dogru-parola1"));
   });
 });

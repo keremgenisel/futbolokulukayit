@@ -145,9 +145,10 @@ export function YedekAyar({ admin }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <h3 style={{ fontSize: 22 }}>Yedekleme</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
-        Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir şifreli dosyaya (<code>eyupspor-yedek-tarih.eyupyedek</code>)
-        yazılır; bulut klasöründe bile içerik okunamaz. Otomatik yedek uygulama açılışında, aşağıda seçtiğiniz sıklıkla alınır; en eski
-        yedekler silinir, son 30 yedek saklanır. Klasör olarak harici disk veya bulut klasörü (OneDrive, Google Drive) seçebilirsiniz.
+        Veritabanı, vesikalık fotoğraflar, belgeler ve makbuz PDF'leri tek bir şifreli dosyaya (
+        <code>futbolokulu-yedek-tarih.fokyedek</code>) yazılır; bulut klasöründe bile içerik okunamaz. Otomatik yedek uygulama açılışında,
+        aşağıda seçtiğiniz sıklıkla alınır; en eski yedekler silinir, son 30 yedek saklanır. Klasör olarak harici disk veya bulut klasörü
+        (OneDrive, Google Drive) seçebilirsiniz.
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: 15 }}>
         <div>
@@ -175,7 +176,7 @@ export function YedekAyar({ admin }) {
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
           <div style={{ fontWeight: 700, fontSize: 16 }}>Yedekten geri yükle</div>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
-            Bir yedek dosyası (<code>.eyupyedek</code> ya da eski <code>.zip</code>) seçin. Mevcut veriler silinmez,{" "}
+            Bir yedek dosyası (<code>.fokyedek</code> ya da eski <code>.zip</code>) seçin. Mevcut veriler silinmez,{" "}
             <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda
             alınmış olmalıdır.
           </p>
@@ -191,7 +192,7 @@ export function YedekAyar({ admin }) {
           <div style={{ fontWeight: 700, fontSize: 16 }}>Yeni bilgisayara taşıma paketi</div>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
             Normal yedek yalnız bu bilgisayarda açılır (şifreleme anahtarı bu bilgisayara bağlıdır). Bilgisayar değişecekse ya da bozulma
-            ihtimaline karşı, <b>parola korumalı</b> bir taşıma paketi (<code>eyupspor-tasima-tarih.eyupspor</code>) alın: veritabanı,
+            ihtimaline karşı, <b>parola korumalı</b> bir taşıma paketi (<code>futbolokulu-tasima-tarih.fokpaket</code>) alın: veritabanı,
             belgeler ve makbuz PDF'leri tek dosyada, yalnız bu parolayla açılır. Parolayı ayrı bir yerde saklayın; unutulursa paket
             açılamaz.
           </p>

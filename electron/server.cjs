@@ -73,7 +73,7 @@ function buildApp({ surum = "" } = {}) {
   app.use(compression());
   app.use(express.json({ limit: "40mb" }));
 
-  app.get("/saglik", (_req, res) => res.json({ ok: true, ad: "eyupspor-futbol-okulu", surum }));
+  app.get("/saglik", (_req, res) => res.json({ ok: true, ad: "futbol-okulu-kayit-programi", surum }));
 
   app.post("/api/auth/login", (req, res) => {
     const ip = req.socket.remoteAddress || "?";

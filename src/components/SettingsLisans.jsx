@@ -135,7 +135,7 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
               value={anahtar}
               onChange={(e) => setAnahtar(e.target.value)}
               rows={4}
-              placeholder="EYUPSPOR. ile başlayan anahtarı buraya yapıştırın"
+              placeholder="FOKLISANS. ile başlayan anahtarı buraya yapıştırın"
               style={alanStili}
               aria-label="Lisans anahtarı"
             />
@@ -163,13 +163,13 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
             </div>
             <p style={{ margin: "0 0 8px", color: "var(--soluk)", fontSize: 13.5 }}>
               Yalnızca online aktivasyon gerektiren lisanslarda. İnternet yoksa makine kimliğini satıcınıza iletin, verilen dizeyi
-              (EYUPLEASE…) buraya yapıştırın.
+              (FOKLEASE…) buraya yapıştırın.
             </p>
             <textarea
               value={lease}
               onChange={(e) => setLease(e.target.value)}
               rows={3}
-              placeholder="EYUPLEASE. ile başlayan dizeyi buraya yapıştırın"
+              placeholder="FOKLEASE. ile başlayan dizeyi buraya yapıştırın"
               style={alanStili}
               aria-label="Lease"
             />

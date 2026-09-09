@@ -110,7 +110,7 @@ describe("Aktivasyon sunucusu — kurulum limiti + iptal + admin", () => {
   it("ilk iki makine aktive olur, imzalı lease döner", async () => {
     const a = await AKTIVE("MAK-A");
     expect(a.status).toBe(200);
-    expect(a.body.lease.startsWith("EYUPLEASE.")).toBe(true);
+    expect(a.body.lease.startsWith("FOKLEASE.")).toBe(true);
     const b = await AKTIVE("MAK-B");
     expect(b.status).toBe(200);
   });
@@ -135,7 +135,7 @@ describe("Aktivasyon sunucusu — kurulum limiti + iptal + admin", () => {
   it("kayıtlı makine yenilenir", async () => {
     const r = await call("/yenile", "POST", { anahtar, makineId: "MAK-A" });
     expect(r.status).toBe(200);
-    expect(r.body.lease.startsWith("EYUPLEASE.")).toBe(true);
+    expect(r.body.lease.startsWith("FOKLEASE.")).toBe(true);
   });
 
   it("uzaktan iptal: iptal sonrası yenileme 403 (lease penceresi dolunca uygulama kilitlenir)", async () => {

@@ -86,7 +86,7 @@ function registerCiktiHandlers(getSession) {
       String(ad || "cikti")
         .replace(/[^\w.-]+/g, "_")
         .replace(/\.pdf$/i, "") + ".pdf";
-    const yol = path.join(app.getPath("temp"), "eyupspor-" + Date.now() + "-" + dosya);
+    const yol = path.join(app.getPath("temp"), "futbolokulu-" + Date.now() + "-" + dosya);
     fs.writeFileSync(yol, await htmlToPdf(html, { yatay }));
     const hata = await shell.openPath(yol);
     return hata ? { error: hata } : { ok: true, yol };

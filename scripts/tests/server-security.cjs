@@ -34,7 +34,7 @@ app.whenReady().then(async () => {
       return { status: r.status, body: await r.json().catch(() => ({})) };
     };
 
-    check("/saglik", (await istek("/saglik")).body.ad === "eyupspor-futbol-okulu");
+    check("/saglik", (await istek("/saglik")).body.ad === "futbol-okulu-kayit-programi");
     check("oturumsuz /api/db 401", (await istek("/api/db", { method: "POST", body: { fn: "listAgeGroups", args: [] } })).status === 401);
     check(
       "yanlış parola 401",
@@ -87,7 +87,7 @@ app.whenReady().then(async () => {
     );
     check(
       "yönetici olmayan lisans kaydet 403",
-      (await istek("/api/lisans/kaydet", { method: "POST", body: { anahtar: "EYUPSPOR.a.b" }, token: g2.body.token })).status === 403,
+      (await istek("/api/lisans/kaydet", { method: "POST", body: { anahtar: "FOKLISANS.a.b" }, token: g2.body.token })).status === 403,
     );
     check(
       "yönetici olmayan okuma serbest",

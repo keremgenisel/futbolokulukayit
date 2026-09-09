@@ -80,7 +80,7 @@ async function baglan(url, { trust = false, force = false } = {}) {
   config.yaz({ serverUrl: u.origin, serverCertFp: fp, serverCertPem: pem });
   knownServers.kaydet(app, host, fp);
   const s = await istek("/saglik", { auth: false });
-  if (s?.ad !== "eyupspor-futbol-okulu") throw new IstemciHata("Adresteki sunucu Eyüpspor programı değil", 0);
+  if (s?.ad !== "futbol-okulu-kayit-programi") throw new IstemciHata("Adresteki sunucu Futbol Okulu Kayıt Programı değil", 0);
   return { ok: true, fp, sunucu: s };
 }
 
@@ -111,7 +111,7 @@ const dbCall = async (fn, args) => (await istek("/api/db", { method: "POST", bod
 async function dosyaIndir(yol) {
   const r = await istek("/api/files/indir?yol=" + encodeURIComponent(yol), { raw: true, timeoutMs: 120000 });
   if (!r.ok) throw new IstemciHata("Dosya indirilemedi", r.status);
-  const dir = path.join(os.tmpdir(), "eyupspor-belge");
+  const dir = path.join(os.tmpdir(), "futbolokulu-belge");
   fs.mkdirSync(dir, { recursive: true });
   const hedef = path.join(dir, path.basename(yol));
   fs.writeFileSync(hedef, Buffer.from(await r.arrayBuffer()));

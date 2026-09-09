@@ -1,7 +1,7 @@
 // Yedekleme: data.db (WAL checkpoint sonrası) + uploads/ (belgeler, vesikalıklar, makbuz PDF'leri)
 // TEK dosyaya yazılır: zip oluşturulur, sonra makine anahtarıyla (safeStorage'daki DB anahtarı) şifrelenir →
-// eyupspor-yedek-<damga>.eyupyedek (inceleme #6: belgeler/PDF'ler bulut klasöründe düz durmaz). Anahtar yoksa
-// (şifreleme kullanılamıyorsa) düz .zip yazılır. Geri yükleme .eyupyedek, eski düz .zip ya da klasörden (en eski biçim).
+// futbolokulu-yedek-<damga>.fokyedek (inceleme #6: belgeler/PDF'ler bulut klasöründe düz durmaz). Anahtar yoksa
+// (şifreleme kullanılamıyorsa) düz .zip yazılır. Geri yükleme .fokyedek, eski düz .zip ya da klasörden (en eski biçim).
 // Otomatik yedek: ayarlar.yedek_klasoru doluysa uygulama açılışında sıklık ayarına göre.
 const { ipcMain, dialog, BrowserWindow, app } = require("electron");
 const fs = require("fs");
@@ -38,7 +38,7 @@ function zipGirdileriTopla(kok, onek, girdiler) {
 function yedekAl(hedefKok) {
   const damga = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
   const anahtar = db.getDbKey();
-  const hedef = path.join(hedefKok, `eyupspor-yedek-${damga}.${anahtar ? "eyupyedek" : "zip"}`);
+  const hedef = path.join(hedefKok, `futbolokulu-yedek-${damga}.${anahtar ? "fokyedek" : "zip"}`);
   fs.mkdirSync(hedefKok, { recursive: true });
   db.checkpoint();
   const girdiler = { "data.db": [new Uint8Array(fs.readFileSync(db.getDbPath())), { level: 0 }] };
@@ -75,7 +75,7 @@ function geciciArtiklariTemizle() {
   try {
     const kok = os.tmpdir();
     for (const ad of fs.readdirSync(kok))
-      if (/^eyupspor-(tasima|geri)-/.test(ad)) {
+      if (/^futbolokulu-(tasima|geri)-/.test(ad)) {
         try {
           fs.rmSync(path.join(kok, ad), { recursive: true, force: true });
         } catch {
@@ -88,8 +88,8 @@ function geciciArtiklariTemizle() {
 }
 function zipAcBuffer(veri) {
   const arsiv = unzipSync(veri);
-  if (!arsiv["data.db"]) throw new Error("Zip içinde data.db yok; bu bir Eyüpspor yedeği değil");
-  const hedef = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-geri-"));
+  if (!arsiv["data.db"]) throw new Error("Zip içinde data.db yok; bu bir Futbol Okulu Kayıt Programı yedeği değil");
+  const hedef = fs.mkdtempSync(path.join(os.tmpdir(), "futbolokulu-geri-"));
   const kok = path.resolve(hedef);
   for (const [ad, veri] of Object.entries(arsiv)) {
     if (ad.endsWith("/")) continue; // klasör girdisi
@@ -107,7 +107,7 @@ function zipAcBuffer(veri) {
 function yedekHazirla(yol) {
   try {
     if (fs.existsSync(yol) && fs.statSync(yol).isFile()) {
-      if (!/\.(zip|eyupyedek)$/i.test(yol)) return { error: "Yedek dosyası .eyupyedek ya da .zip olmalı" };
+      if (!/\.(zip|fokyedek)$/i.test(yol)) return { error: "Yedek dosyası .fokyedek ya da .zip olmalı" };
       const klasor = zipAc(yol);
       const bilgi = db.yedekBilgisi(path.join(klasor, "data.db"));
       if (bilgi.error) {
@@ -133,7 +133,7 @@ function otomatikYedek() {
     // 30'dan eski yedekleri sil (zip ve eski biçim klasörler birlikte)
     const eski = fs
       .readdirSync(klasor)
-      .filter((a) => a.startsWith("eyupspor-yedek-") && !a.endsWith(".tmp"))
+      .filter((a) => a.startsWith("futbolokulu-yedek-") && !a.endsWith(".tmp"))
       .sort();
     for (const a of eski.slice(0, Math.max(0, eski.length - 30))) fs.rmSync(path.join(klasor, a), { recursive: true, force: true });
   } catch (e) {
@@ -216,10 +216,10 @@ function geriYukleCekirdek(yedekYolu) {
 }
 
 // ── Taşıma paketi (plan §14): başka bilgisayarda açılabilen, PAROLA korumalı yedek ──
-// İçerik: data.db (ŞİFRESİZ kopya) + uploads/ + paket.json; tamamı tasimaKripto ile şifrelenir. Uzantı .eyupspor.
+// İçerik: data.db (ŞİFRESİZ kopya) + uploads/ + paket.json; tamamı tasimaKripto ile şifrelenir. Uzantı .fokpaket.
 function tasimaPaketiOlustur(hedefYol, parola) {
   if (!tasima.parolaGecerliMi(parola)) return { error: `Parola en az ${tasima.PAROLA_MIN} karakter olmalı` };
-  const gecici = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-tasima-"));
+  const gecici = fs.mkdtempSync(path.join(os.tmpdir(), "futbolokulu-tasima-"));
   try {
     const duzDb = path.join(gecici, "data.db");
     db.duzKopyaOlustur(duzDb);
@@ -227,7 +227,7 @@ function tasimaPaketiOlustur(hedefYol, parola) {
       "data.db": [new Uint8Array(fs.readFileSync(duzDb)), { level: 0 }],
       "paket.json": [
         new TextEncoder().encode(
-          JSON.stringify({ tur: "eyupspor-tasima", surum: 1, olusturma: new Date().toISOString(), sifreliKaynak: db.isEncrypted() }),
+          JSON.stringify({ tur: "futbolokulu-tasima", surum: 1, olusturma: new Date().toISOString(), sifreliKaynak: db.isEncrypted() }),
         ),
         { level: 6 },
       ],
@@ -335,9 +335,9 @@ function registerYedekHandlers(getSession) {
     const hata = yoneticiHata();
     if (hata) return hata;
     const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
-      title: "Yedek dosyasını seçin (eyupspor-yedek-….eyupyedek)",
+      title: "Yedek dosyasını seçin (futbolokulu-yedek-….fokyedek)",
       properties: ["openFile"],
-      filters: [{ name: "Eyüpspor yedeği", extensions: ["eyupyedek", "zip"] }],
+      filters: [{ name: "Yedek dosyası", extensions: ["fokyedek", "zip"] }],
     });
     if (r.canceled || !r.filePaths[0]) return { iptal: true };
     const yol = r.filePaths[0];
@@ -378,8 +378,8 @@ function registerYedekHandlers(getSession) {
     const damga = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
     const r = await dialog.showSaveDialog(BrowserWindow.fromWebContents(e.sender), {
       title: "Taşıma paketini kaydet",
-      defaultPath: `eyupspor-tasima-${damga}.eyupspor`,
-      filters: [{ name: "Eyüpspor taşıma paketi", extensions: ["eyupspor"] }],
+      defaultPath: `futbolokulu-tasima-${damga}.fokpaket`,
+      filters: [{ name: "Taşıma paketi", extensions: ["fokpaket"] }],
     });
     if (r.canceled || !r.filePath) return { iptal: true };
     return tasimaPaketiOlustur(r.filePath, String(parola));
@@ -388,9 +388,9 @@ function registerYedekHandlers(getSession) {
     const hata = yoneticiHata();
     if (hata) return hata;
     const r = await dialog.showOpenDialog(BrowserWindow.fromWebContents(e.sender), {
-      title: "Taşıma paketini seçin (eyupspor-tasima-….eyupspor)",
+      title: "Taşıma paketini seçin (futbolokulu-tasima-….fokpaket)",
       properties: ["openFile"],
-      filters: [{ name: "Eyüpspor taşıma paketi", extensions: ["eyupspor"] }],
+      filters: [{ name: "Taşıma paketi", extensions: ["fokpaket"] }],
     });
     if (r.canceled || !r.filePaths[0]) return { iptal: true };
     bekleyenPaket = r.filePaths[0];

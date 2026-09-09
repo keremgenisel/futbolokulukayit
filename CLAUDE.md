@@ -79,12 +79,12 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
 - `electron/ipc/aktar.cjs` + `electron/oyuncuAktar.cjs` (saf satır çözümleme) — Excel'den oyuncu aktarımı
   (şablon / önizleme / tek işlemde aktar; `src/components/OyuncuAktar.jsx`).
 - `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
-- `electron/tasimaKripto.cjs` (SAF: parola → scrypt → AES-256-GCM) + `yedek.cjs` taşıma paketi: `.eyupspor` dosyası, içinde
+- `electron/tasimaKripto.cjs` (SAF: parola → scrypt → AES-256-GCM) + `yedek.cjs` taşıma paketi: `.fokpaket` dosyası, içinde
   ŞİFRESİZ data.db (`db.duzKopyaOlustur`: VACUUM INTO + rekey '') + uploads; geri yüklemede `db.duzVeritabaniniSifrele`
   (rekey makine anahtarı). Başka PC'de açılır; normal yedek açılmaz. Plan §14. Uçtan uca test `scripts/tests/tasima-e2e.cjs`
-  (gerçek main.cjs, iki userData, diyaloglar dosyaya yönlendirilir; test klasör adları `eyupspor-tasima-`/`eyupspor-geri-` ile
+  (gerçek main.cjs, iki userData, diyaloglar dosyaya yönlendirilir; test klasör adları `futbolokulu-tasima-`/`futbolokulu-geri-` ile
   BAŞLAYAMAZ: açılış temizliği siler).
-- `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip, makine anahtarıyla `tasimaKripto` YEDEK_MAGIC kabında şifreli `eyupspor-yedek-<damga>.eyupyedek`; anahtar yoksa düz `.zip`; eski düz zip'ler açılmaya devam eder,
+- `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip, makine anahtarıyla `tasimaKripto` YEDEK_MAGIC kabında şifreli `futbolokulu-yedek-<damga>.fokyedek`; anahtar yoksa düz `.zip`; eski düz zip'ler açılmaya devam eder,
   fflate, 30 gün saklama) ve
   geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
   Yedek aynı PC'nin safeStorage anahtarıyla şifreli; başka PC'de açılmaz (`db.yedekBilgisi` bunu raporlar).
@@ -97,7 +97,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   yalnız diyalogdan (ana süreçte bekletilir). Testler `tests/guvenlik-saf.test.js` ve ilgili dosyalar.
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
-  önek `EYUPSPOR.`/`EYUPLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
+  önek `FOKLISANS.`/`FOKLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
   Üretici betikleri: `scripts/lisans-uret.cjs`, `lease-uret.cjs`, `lisans-yonet.cjs`.
 - `src/lib/makbuzHtml.js`, `raporHtml.js` — yazdırma/PDF şablonları (renderer üretir, main render eder).
 - **Çoklu PC (arayüzde KAPALI, bayrak: `src/lib/ozellikler.js` COKLU_PC_ACIK; ana süreç kodu yerinde):** `electron/config.cjs` (mod: yerel|sunucu|istemci, `config.json` + şifreli jeton),
@@ -106,7 +106,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   `electron/yetki.cjs` (IPC ve sunucu için ORTAK yetki kararı). `ipc/data.cjs` her çağrıda
   `config.istemciMi()` ile yönlendirir; istemcide belge yükleme base64 ile sunucuya gider, makbuz PDF
   istemcide üretilip sunucuya yüklenir, yedek yalnız sunucuda.
-- `aktivasyon-sunucu/` — Cloudflare Worker + D1 (GenCRM kopyası, EYUPSPOR önekleri). `deploy.sh`
+- `aktivasyon-sunucu/` — Cloudflare Worker + D1 (GenCRM kopyası, FOKLISANS önekleri). `deploy.sh`
   ilk kurulumu yapar; sonra `electron/aktivasyonIstemci.cjs` AKTIVASYON_URL doldurulur.
 - `src/components/IlkKurulum.jsx` — ilk kurulum sihirbazı (ilk parola değişiminden sonra, `kurulum_tamam` boş ve oyuncu
   yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı; son adım hariç her adımda

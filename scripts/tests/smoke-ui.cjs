@@ -215,7 +215,9 @@ app.whenReady().then(async () => {
     await bekle(600);
     await shot("12-raporlar");
     // Önizlemeden sonra filtre + rapor değişince Önizle'nin üstünde kırmızı pil (09.09.2026)
-    await js(`(() => { const s = document.querySelector("select[aria-label='Ay']"); s.value = ""; s.dispatchEvent(new Event("change", { bubbles: true })); })()`);
+    await js(
+      `(() => { const s = document.querySelector("select[aria-label='Ay']"); s.value = ""; s.dispatchEvent(new Event("change", { bubbles: true })); })()`,
+    );
     await tikla("Borçlu Listesi");
     await bekle(300);
     await shot("12a-raporlar-degisti");

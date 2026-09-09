@@ -23,7 +23,7 @@ describe("Aktivasyon kripto sözleşmesi — uygulama (Node) ↔ sunucu (Web Cry
   });
 
   it("Sunucu (Web Crypto) imzalı LEASE uygulamada (Node) doğrulanır", async () => {
-    process.env.EYUPSPOR_LEASE_PUBKEY = pubPem;
+    process.env.FOKLISANS_LEASE_PUBKEY = pubPem;
     const lease = await leaseImzala(
       { firma: "Test A.Ş.", makineId: "MAK-1", leaseBitis: "2026-08-01", iptal: false, uretimTarihi: "2026-07-19" },
       await ozelAnahtarYukle(privPem),
@@ -31,7 +31,7 @@ describe("Aktivasyon kripto sözleşmesi — uygulama (Node) ↔ sunucu (Web Cry
     const d = leaseDogrula(lease);
     expect(d.gecerli).toBe(true);
     expect(d.payload.makineId).toBe("MAK-1");
-    delete process.env.EYUPSPOR_LEASE_PUBKEY;
+    delete process.env.FOKLISANS_LEASE_PUBKEY;
   });
 
   it("tahrif edilen anahtar sunucuda reddedilir (bitiş uzatma)", async () => {
@@ -44,20 +44,20 @@ describe("Aktivasyon kripto sözleşmesi — uygulama (Node) ↔ sunucu (Web Cry
   });
 
   it("yabancı anahtarla imzalı lease uygulamada reddedilir (çift eşleşmiyor)", async () => {
-    process.env.EYUPSPOR_LEASE_PUBKEY = pubPem; // uygulama pub'ı bekliyor
+    process.env.FOKLISANS_LEASE_PUBKEY = pubPem; // uygulama pub'ı bekliyor
     const yabanci = crypto.generateKeyPairSync("ed25519").privateKey.export({ type: "pkcs8", format: "pem" });
     const lease = await leaseImzala(
       { firma: "X", makineId: "MAK-1", leaseBitis: "2026-08-01", iptal: false, uretimTarihi: "2026-07-19" },
       await ozelAnahtarYukle(yabanci),
     );
     expect(leaseDogrula(lease).gecerli).toBe(false);
-    delete process.env.EYUPSPOR_LEASE_PUBKEY;
+    delete process.env.FOKLISANS_LEASE_PUBKEY;
   });
 
   it("sha256hex tutarlı ve 64 hex (D1'de ham anahtar yerine bu tutulur)", async () => {
-    const h = await sha256hex("EYUPSPOR.abc");
+    const h = await sha256hex("FOKLISANS.abc");
     expect(h).toMatch(/^[0-9a-f]{64}$/);
-    expect(await sha256hex("EYUPSPOR.abc")).toBe(h);
-    expect(await sha256hex("EYUPSPOR.xyz")).not.toBe(h);
+    expect(await sha256hex("FOKLISANS.abc")).toBe(h);
+    expect(await sha256hex("FOKLISANS.xyz")).not.toBe(h);
   });
 });

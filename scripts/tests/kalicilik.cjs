@@ -290,8 +290,8 @@ app.on("browser-window-created", async (_e, win) => {
       await js(`document.querySelector("button[aria-label='Menüyü daralt']").click()`);
       await bekle(300);
       // Taşıma paketi (plan §14): tüm kayıtlardan sonra oluşturulur; yeniden açılışta parolayla açılıp sayıları beklenenle karşılaştırılır
-      const tp = require("../../electron/ipc/yedek.cjs").tasimaPaketiOlustur(path.join(dizin, "kalici-tasima.eyupspor"), "kalici-parola-1");
-      check("taşıma paketi oluşturuldu", tp.ok && fs.existsSync(path.join(dizin, "kalici-tasima.eyupspor")));
+      const tp = require("../../electron/ipc/yedek.cjs").tasimaPaketiOlustur(path.join(dizin, "kalici-tasima.fokpaket"), "kalici-parola-1");
+      check("taşıma paketi oluşturuldu", tp.ok && fs.existsSync(path.join(dizin, "kalici-tasima.fokpaket")));
       // Normal yedek → aynı saniyede İKİ geri yükleme (ENOTEMPTY düzeltmesi) → yeniden açılışta veri aynı, .pre-restore klasörleri iki adet
       const yk = require("../../electron/ipc/yedek.cjs");
       const yedekKlasoru = path.join(dizin, "yedekler");
@@ -466,7 +466,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.sonMesajlar(o.id).some((m) => m.training_id === t4.id && m.tur === "degisiklik"),
       );
       check("grup bildirimi geri alma kalıcı (kayıt boş, bildirim gerekli)", t5 && t5.grup_bildirim === "" && t5.bildirim_gerekli === 1);
-      const tpa = require("../../electron/ipc/yedek.cjs").tasimaPaketiAc(path.join(dizin, "kalici-tasima.eyupspor"), "kalici-parola-1");
+      const tpa = require("../../electron/ipc/yedek.cjs").tasimaPaketiAc(path.join(dizin, "kalici-tasima.fokpaket"), "kalici-parola-1");
       check(
         "iki geri yükleme sonrası yeniden açılış: oyuncu/makbuz sayısı korunmuş, kenara alınan iki kopya duruyor",
         db.listPlayers({ durum: null }).length === b.tpOyuncu &&

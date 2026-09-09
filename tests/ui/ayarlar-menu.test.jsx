@@ -67,7 +67,7 @@ describe("Ayarlar menüsü", () => {
     ac({ onKurulumAc, baslangicBolum: "hakkinda" });
     fireEvent.click(screen.getByRole("button", { name: "İlk Kurulum Sihirbazı" }));
     expect(onKurulumAc).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole("heading", { name: "Eyüpspor Futbol Okulu Kayıt Programı" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Futbol Okulu Kayıt Programı" })).toBeInTheDocument();
   });
 
   it("baslangicBolum ile Lisans açılır; onKurulumAc yoksa sihirbaz öğesi görünmez", () => {

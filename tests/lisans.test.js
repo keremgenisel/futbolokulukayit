@@ -4,20 +4,20 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import crypto from "crypto";
 import { imzala, dogrula, leaseImzala, leaseDogrula, durumHesapla, DENEME_GUN } from "../electron/lisans.cjs";
 
-// Testler kendi anahtar çiftlerini üretir; modül açık anahtarları EYUPSPOR_LISANS_PUBKEY /
-// EYUPSPOR_LEASE_PUBKEY'den okur (lisans ve lease AYRI çift).
+// Testler kendi anahtar çiftlerini üretir; modül açık anahtarları FOKLISANS_LISANS_PUBKEY /
+// FOKLISANS_LEASE_PUBKEY'den okur (lisans ve lease AYRI çift).
 let privatePem, leasePrivatePem;
 beforeAll(() => {
   const l = crypto.generateKeyPairSync("ed25519");
   privatePem = l.privateKey.export({ type: "pkcs8", format: "pem" });
-  process.env.EYUPSPOR_LISANS_PUBKEY = l.publicKey.export({ type: "spki", format: "pem" });
+  process.env.FOKLISANS_LISANS_PUBKEY = l.publicKey.export({ type: "spki", format: "pem" });
   const le = crypto.generateKeyPairSync("ed25519");
   leasePrivatePem = le.privateKey.export({ type: "pkcs8", format: "pem" });
-  process.env.EYUPSPOR_LEASE_PUBKEY = le.publicKey.export({ type: "spki", format: "pem" });
+  process.env.FOKLISANS_LEASE_PUBKEY = le.publicKey.export({ type: "spki", format: "pem" });
 });
 afterAll(() => {
-  delete process.env.EYUPSPOR_LISANS_PUBKEY;
-  delete process.env.EYUPSPOR_LEASE_PUBKEY;
+  delete process.env.FOKLISANS_LISANS_PUBKEY;
+  delete process.env.FOKLISANS_LEASE_PUBKEY;
 });
 
 const ornekPayload = { firma: "Test Gıda A.Ş.", bitis: "2027-01-01", maksKullanici: 5, uretimTarihi: "2026-07-13" };
@@ -25,7 +25,7 @@ const ornekPayload = { firma: "Test Gıda A.Ş.", bitis: "2027-01-01", maksKulla
 describe("imzala/dogrula", () => {
   it("imzalanan anahtar doğrulanır ve payload aynen döner", () => {
     const anahtar = imzala(ornekPayload, privatePem);
-    expect(anahtar.startsWith("EYUPSPOR.")).toBe(true);
+    expect(anahtar.startsWith("FOKLISANS.")).toBe(true);
     const d = dogrula(anahtar);
     expect(d.gecerli).toBe(true);
     expect(d.payload).toEqual(ornekPayload);
@@ -39,7 +39,7 @@ describe("imzala/dogrula", () => {
     expect(dogrula(sahte)).toEqual({ gecerli: false, neden: "imza" });
   });
   it("bozuk biçim ve boş anahtar reddedilir", () => {
-    expect(dogrula("EYUPSPOR.abc").gecerli).toBe(false);
+    expect(dogrula("FOKLISANS.abc").gecerli).toBe(false);
     expect(dogrula("").gecerli).toBe(false);
     expect(dogrula("BASKA.x.y").gecerli).toBe(false);
   });
@@ -79,8 +79,8 @@ describe("durumHesapla", () => {
     expect(d2.neden).toBe("denemeBitti");
   });
   it("geçersiz anahtar deneme penceresinde denemeye düşer, pencere dışında lisansGecersiz", () => {
-    expect(durumHesapla({ anahtar: "EYUPSPOR.bozuk.anahtar", kurulumTarihi: "2026-07-10", simdi: "2026-07-13" }).mod).toBe("deneme");
-    const d = durumHesapla({ anahtar: "EYUPSPOR.bozuk.anahtar", kurulumTarihi: "2026-01-01", simdi: "2026-07-13" });
+    expect(durumHesapla({ anahtar: "FOKLISANS.bozuk.anahtar", kurulumTarihi: "2026-07-10", simdi: "2026-07-13" }).mod).toBe("deneme");
+    const d = durumHesapla({ anahtar: "FOKLISANS.bozuk.anahtar", kurulumTarihi: "2026-01-01", simdi: "2026-07-13" });
     expect(d.mod).toBe("saltOkunur");
     expect(d.neden).toBe("lisansGecersiz");
   });
@@ -94,7 +94,7 @@ describe("leaseImzala/leaseDogrula", () => {
   const leasePayload = { firma: "Test Gıda A.Ş.", makineId: "MAK-1", leaseBitis: "2026-08-01", iptal: false, uretimTarihi: "2026-07-19" };
   it("imzalanan lease doğrulanır, payload aynen döner", () => {
     const lease = leaseImzala(leasePayload, leasePrivatePem);
-    expect(lease.startsWith("EYUPLEASE.")).toBe(true);
+    expect(lease.startsWith("FOKLEASE.")).toBe(true);
     const d = leaseDogrula(lease);
     expect(d.gecerli).toBe(true);
     expect(d.payload).toEqual(leasePayload);
@@ -112,8 +112,8 @@ describe("leaseImzala/leaseDogrula", () => {
     expect(leaseDogrula(leaseImzala(leasePayload, privatePem)).neden).toBe("imza");
   });
   it("bozuk biçim / yanlış önek reddedilir", () => {
-    expect(leaseDogrula("EYUPLEASE.abc").gecerli).toBe(false);
-    expect(leaseDogrula("EYUPSPOR.x.y").gecerli).toBe(false); // lisans önekiyle karışmaz
+    expect(leaseDogrula("FOKLEASE.abc").gecerli).toBe(false);
+    expect(leaseDogrula("FOKLISANS.x.y").gecerli).toBe(false); // lisans önekiyle karışmaz
     expect(leaseDogrula("").gecerli).toBe(false);
   });
 });

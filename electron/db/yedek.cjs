@@ -35,7 +35,7 @@ function yedekBilgisiBuffer(buf) {
   try {
     conn = new Database(Buffer.from(buf));
     const sv = Number(conn.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 0);
-    if (!sv) return { error: "Bu dosya bir Eyüpspor veritabanı değil" };
+    if (!sv) return { error: "Bu dosya bir Futbol Okulu Kayıt Programı veritabanı değil" };
     if (sv > SCHEMA_VERSION) return { error: `Yedek daha yeni bir program sürümünden (şema ${sv}); önce programı güncelleyin` };
     return {
       ok: true,
@@ -71,7 +71,7 @@ function yedekBilgisi(dbPath, { duz = false } = {}) {
     const key = duz ? null : getDbKey();
     if (key) conn.pragma(`key='${key}'`);
     const sv = Number(conn.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 0);
-    if (!sv) return { error: "Bu dosya bir Eyüpspor veritabanı değil" };
+    if (!sv) return { error: "Bu dosya bir Futbol Okulu Kayıt Programı veritabanı değil" };
     if (sv > SCHEMA_VERSION) return { error: `Yedek daha yeni bir program sürümünden (şema ${sv}); önce programı güncelleyin` };
     const oyuncu = conn.prepare("SELECT count(*) AS n FROM players").get().n;
     const makbuz = conn.prepare("SELECT count(*) AS n FROM receipts").get().n;

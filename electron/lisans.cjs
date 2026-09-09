@@ -1,5 +1,5 @@
 // Lisans çekirdeği (Faz 6) — SAF modül: Electron/SQLite bağımlılığı yok, node altında
-// test edilir. Anahtar biçimi: "EYUPSPOR.<b64url(payloadJson)>.<b64url(ed25519 imza)>".
+// test edilir. Anahtar biçimi: "FOKLISANS.<b64url(payloadJson)>.<b64url(ed25519 imza)>".
 // Payload üretici makinesindeki ÖZEL anahtarla imzalanır (scripts/lisans-uret.cjs,
 // scripts/keys/lisans-private.pem — repoya GİRMEZ, .gitignore'da); uygulama yalnız
 // gömülü AÇIK anahtarla doğrular. Payload alanları:
@@ -17,12 +17,12 @@ const crypto = require("crypto");
 const DENEME_GUN = 30;
 
 // Üretici açık anahtarı (özel eşi: scripts/keys/lisans-private.pem, repo dışı).
-// Testler EYUPSPOR_LISANS_PUBKEY ortam değişkeniyle kendi çiftlerini kullanır.
+// Testler FOKLISANS_LISANS_PUBKEY ortam değişkeniyle kendi çiftlerini kullanır.
 const VARSAYILAN_PUBLIC_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAc2A6GAI4cfZYBetKAx8S+p8MGUsvqm7PBzCOyt2t62s=
 -----END PUBLIC KEY-----`;
 
-const publicPem = () => process.env.EYUPSPOR_LISANS_PUBKEY || VARSAYILAN_PUBLIC_PEM;
+const publicPem = () => process.env.FOKLISANS_LISANS_PUBKEY || VARSAYILAN_PUBLIC_PEM;
 
 // ── Lease (kiralama) açık anahtarı — İKİNCİ, AYRI çift (Faz B1) ────────────────
 // Kalıcı lisans anahtarının özel eşi çevrimdışı senin makinende kalır; lease'in özel eşi
@@ -30,11 +30,11 @@ const publicPem = () => process.env.EYUPSPOR_LISANS_PUBKEY || VARSAYILAN_PUBLIC_
 // kalıcı lisans üretilemez → hasar yarıçapı 1 lease penceresiyle sınırlı; Anahtar 2'yi bir
 // güncellemeyle döndürüp eski lease'leri geçersiz kılarsın. Aşağıdaki değer YER TUTUCU:
 // B2'ye geçerken `node scripts/lisans-anahtar-cifti.cjs` lease çiftini de üretir, açık eşini
-// buraya göm. Testler EYUPSPOR_LEASE_PUBKEY ortam değişkeniyle kendi çiftini kullanır.
+// buraya göm. Testler FOKLISANS_LEASE_PUBKEY ortam değişkeniyle kendi çiftini kullanır.
 const VARSAYILAN_LEASE_PUBLIC_PEM = `-----BEGIN PUBLIC KEY-----
 MCowBQYDK2VwAyEAI/08vA3cuUu5LgeXWZJ4kFL3rFg6PpSK9dDeex/Knuw=
 -----END PUBLIC KEY-----`;
-const leasePublicPem = () => process.env.EYUPSPOR_LEASE_PUBKEY || VARSAYILAN_LEASE_PUBLIC_PEM;
+const leasePublicPem = () => process.env.FOKLISANS_LEASE_PUBKEY || VARSAYILAN_LEASE_PUBLIC_PEM;
 
 const b64url = (buf) => Buffer.from(buf).toString("base64url");
 const bugun = () => new Date().toISOString().slice(0, 10);
@@ -43,7 +43,7 @@ const bugun = () => new Date().toISOString().slice(0, 10);
 function imzala(payload, privatePem) {
   const veri = Buffer.from(JSON.stringify(payload), "utf8");
   const sig = crypto.sign(null, veri, privatePem); // ed25519: digest null
-  return `EYUPSPOR.${b64url(veri)}.${b64url(sig)}`;
+  return `FOKLISANS.${b64url(veri)}.${b64url(sig)}`;
 }
 
 // Anahtar dizesini doğrular. Dönüş: { gecerli: true, payload } | { gecerli: false, neden }.
@@ -52,7 +52,7 @@ function dogrula(anahtar) {
     const parcalar = String(anahtar || "")
       .trim()
       .split(".");
-    if (parcalar.length !== 3 || parcalar[0] !== "EYUPSPOR") return { gecerli: false, neden: "bicim" };
+    if (parcalar.length !== 3 || parcalar[0] !== "FOKLISANS") return { gecerli: false, neden: "bicim" };
     const veri = Buffer.from(parcalar[1], "base64url");
     const sig = Buffer.from(parcalar[2], "base64url");
     if (!crypto.verify(null, veri, publicPem(), sig)) return { gecerli: false, neden: "imza" };
@@ -65,12 +65,12 @@ function dogrula(anahtar) {
   }
 }
 
-// Lease imzalama (aktivasyon SUNUCUSU kullanır) — biçim "EYUPLEASE.<payload>.<imza>".
+// Lease imzalama (aktivasyon SUNUCUSU kullanır) — biçim "FOKLEASE.<payload>.<imza>".
 // Lease payload: { firma, makineId, leaseBitis: "YYYY-MM-DD" | null, iptal: bool, uretimTarihi }
 function leaseImzala(payload, leasePrivatePem) {
   const veri = Buffer.from(JSON.stringify(payload), "utf8");
   const sig = crypto.sign(null, veri, leasePrivatePem);
-  return `EYUPLEASE.${b64url(veri)}.${b64url(sig)}`;
+  return `FOKLEASE.${b64url(veri)}.${b64url(sig)}`;
 }
 
 // Lease doğrulama (UYGULAMA). Dönüş: { gecerli: true, payload } | { gecerli: false, neden }.
@@ -79,7 +79,7 @@ function leaseDogrula(lease) {
     const parcalar = String(lease || "")
       .trim()
       .split(".");
-    if (parcalar.length !== 3 || parcalar[0] !== "EYUPLEASE") return { gecerli: false, neden: "bicim" };
+    if (parcalar.length !== 3 || parcalar[0] !== "FOKLEASE") return { gecerli: false, neden: "bicim" };
     const veri = Buffer.from(parcalar[1], "base64url");
     const sig = Buffer.from(parcalar[2], "base64url");
     if (!crypto.verify(null, veri, leasePublicPem(), sig)) return { gecerli: false, neden: "imza" };

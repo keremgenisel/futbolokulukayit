@@ -35,13 +35,13 @@ function pemDer(pem) {
 export const acikAnahtarYukle = (pem) => crypto.subtle.importKey("spki", pemDer(pem), { name: "Ed25519" }, false, ["verify"]);
 export const ozelAnahtarYukle = (pem) => crypto.subtle.importKey("pkcs8", pemDer(pem), { name: "Ed25519" }, false, ["sign"]);
 
-// Lisans anahtarını doğrula. Biçim "EYUPSPOR.<b64url(payload)>.<b64url(imza)>" (electron/lisans.cjs ile aynı).
+// Lisans anahtarını doğrula. Biçim "FOKLISANS.<b64url(payload)>.<b64url(imza)>" (electron/lisans.cjs ile aynı).
 // İMZA, iletilen ham baytlar üzerinde doğrulanır (yeniden serileştirme YOK) → JSON kanonikleştirme derdi olmaz.
 export async function lisansDogrula(anahtar, acikAnahtar) {
   const p = String(anahtar || "")
     .trim()
     .split(".");
-  if (p.length !== 3 || p[0] !== "EYUPSPOR") return { gecerli: false, neden: "bicim" };
+  if (p.length !== 3 || p[0] !== "FOKLISANS") return { gecerli: false, neden: "bicim" };
   const veri = b64urlToBuf(p[1]);
   const ok = await crypto.subtle.verify({ name: "Ed25519" }, acikAnahtar, b64urlToBuf(p[2]), veri);
   if (!ok) return { gecerli: false, neden: "imza" };
@@ -52,11 +52,11 @@ export async function lisansDogrula(anahtar, acikAnahtar) {
   }
 }
 
-// Lease imzala. Biçim "EYUPLEASE.<b64url(payload)>.<b64url(imza)>" (uygulamanın leaseDogrula'sıyla aynı).
+// Lease imzala. Biçim "FOKLEASE.<b64url(payload)>.<b64url(imza)>" (uygulamanın leaseDogrula'sıyla aynı).
 export async function leaseImzala(payload, ozelAnahtar) {
   const veri = enc.encode(JSON.stringify(payload));
   const sig = await crypto.subtle.sign({ name: "Ed25519" }, ozelAnahtar, veri);
-  return `EYUPLEASE.${b64url(veri)}.${b64url(sig)}`;
+  return `FOKLEASE.${b64url(veri)}.${b64url(sig)}`;
 }
 
 // Anahtarın SHA-256 hex özeti — D1'de ham anahtar yerine bunu tutarız (KVKK: minimum veri).

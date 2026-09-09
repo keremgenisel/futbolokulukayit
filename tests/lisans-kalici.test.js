@@ -53,8 +53,8 @@ describe("birlestir — sonGorulen (saat-geri-alma işareti)", () => {
 
 describe("birlestir — lease taşıma (B2)", () => {
   it("lease dosyadan taşınır; yoksa meta'dan; ikisi de yoksa null", () => {
-    expect(birlestir({ dosya: { lease: "EYUPLEASE.x" }, meta: {}, bugun: "2026-07-19", yeniMakineId: "y" }).lease).toBe("EYUPLEASE.x");
-    expect(birlestir({ dosya: {}, meta: { lease: "EYUPLEASE.m" }, bugun: "2026-07-19", yeniMakineId: "y" }).lease).toBe("EYUPLEASE.m");
+    expect(birlestir({ dosya: { lease: "FOKLEASE.x" }, meta: {}, bugun: "2026-07-19", yeniMakineId: "y" }).lease).toBe("FOKLEASE.x");
+    expect(birlestir({ dosya: {}, meta: { lease: "FOKLEASE.m" }, bugun: "2026-07-19", yeniMakineId: "y" }).lease).toBe("FOKLEASE.m");
     expect(birlestir({ dosya: {}, meta: {}, bugun: "2026-07-19", yeniMakineId: "y" }).lease).toBeNull();
   });
 });

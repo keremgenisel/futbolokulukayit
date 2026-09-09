@@ -18,7 +18,9 @@ describe("taşıma paketi şifrelemesi", () => {
     const bozuk = Buffer.from(p);
     bozuk[bozuk.length - 1] ^= 0xff;
     expect(() => coz(bozuk, "cok-gizli-parola")).toThrow("Parola yanlış ya da paket bozuk");
-    expect(() => coz(Buffer.from("PK zip ama paket degil"), "cok-gizli-parola")).toThrow("Bu bir Eyüpspor taşıma paketi değil");
+    expect(() => coz(Buffer.from("PK zip ama paket degil"), "cok-gizli-parola")).toThrow(
+      "Bu bir Futbol Okulu Kayıt Programı taşıma paketi değil",
+    );
   });
   it("parola en az 10 karakter (inceleme #24)", () => {
     expect(parolaGecerliMi("123456789")).toBe(false);
@@ -34,7 +36,9 @@ describe("taşıma paketi şifrelemesi", () => {
     expect(paketMi(y, YEDEK_MAGIC)).toBe(true);
     expect(coz(y, "makine-anahtari-abcdef", { magic: YEDEK_MAGIC }).equals(veri)).toBe(true);
     expect(() => coz(y, "makine-anahtari-abcdef")).toThrow("taşıma paketi değil");
-    expect(() => coz(sifrele(veri, "cok-gizli-parola"), "cok-gizli-parola", { magic: YEDEK_MAGIC })).toThrow("Eyüpspor yedeği değil");
+    expect(() => coz(sifrele(veri, "cok-gizli-parola"), "cok-gizli-parola", { magic: YEDEK_MAGIC })).toThrow(
+      "Futbol Okulu Kayıt Programı yedeği değil",
+    );
     expect(() => coz(y, "yanlis-anahtar-xx", { magic: YEDEK_MAGIC })).toThrow("Parola yanlış");
   });
 });

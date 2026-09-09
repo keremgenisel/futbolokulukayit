@@ -39,7 +39,7 @@ npm run deploy                            # https://eyupspor-aktivasyon.<hesap>.
 node ../scripts/lisans-uret.cjs --firma "Örnek A.Ş." --bitis 2027-01-01 --kullanici 5 --aktivasyon
 # b) Bu anahtarı sunucuya kaydet (maksKurulum = kaç makine):
 curl -X POST https://.../admin/lisans -H "x-admin-token: $ADMIN_TOKEN" \
-  -H 'content-type: application/json' -d '{"anahtar":"EYUPSPOR....","maksKurulum":3}'
+  -H 'content-type: application/json' -d '{"anahtar":"FOKLISANS....","maksKurulum":3}'
 # c) Anahtarı müşteriye ver. Uygulama Ayarlar > Lisans'tan Aktive Et → lease alır.
 ```
 

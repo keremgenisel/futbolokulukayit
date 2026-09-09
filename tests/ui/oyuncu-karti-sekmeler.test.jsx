@@ -36,12 +36,21 @@ function kur() {
   window.okul = {
     db: vi.fn(async (fn) => {
       if (fn === "getPlayer") return oyuncu;
-      if (fn === "listGuardians") return [{ id: 1, tip: "baba", ad_soyad: "Murat Genişel", gsm: "05321112233", whatsapp_no: "", veli_mi: 1, mesaj_onayi: 1 }];
+      if (fn === "listGuardians")
+        return [{ id: 1, tip: "baba", ad_soyad: "Murat Genişel", gsm: "05321112233", whatsapp_no: "", veli_mi: 1, mesaj_onayi: 1 }];
       if (fn === "listEmergency") return [{ id: 2, ad_soyad: "Ayşe Genişel", yakinlik: "Teyze", telefon: "05331112233" }];
       if (fn === "listDues") return aidatlar;
       if (fn === "listReceipts") return makbuzlar;
-      if (fn === "playerAttendanceSon") return [{ durum: "geldi", tarih: "2026-09-01", saat: "18:00" }, { durum: "gelmedi", tarih: "2026-09-03", saat: "18:00" }];
-      if (fn === "attendanceSummary") return [{ durum: "geldi", n: 5 }, { durum: "gelmedi", n: 2 }];
+      if (fn === "playerAttendanceSon")
+        return [
+          { durum: "geldi", tarih: "2026-09-01", saat: "18:00" },
+          { durum: "gelmedi", tarih: "2026-09-03", saat: "18:00" },
+        ];
+      if (fn === "attendanceSummary")
+        return [
+          { durum: "geldi", n: 5 },
+          { durum: "gelmedi", n: 2 },
+        ];
       if (fn === "sonMesajlar") return [{ id: 1, tur: "aidat", tarih: "2026-09-07 10:00:00", kullanici: "admin" }];
       return [];
     }),
@@ -97,6 +106,8 @@ describe("Oyuncu kartı sekmeleri", () => {
     const acilBaslik = screen.getByText("Acil Durumda Veli Dışında Ulaşılacak Kişiler").parentElement;
     fireEvent.change(within(acilBaslik).getAllByRole("textbox")[0], { target: { value: "Ali Veli" } });
     fireEvent.click(within(acilBaslik).getByRole("button", { name: "Ekle" }));
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("addEmergency", 7, { ad_soyad: "Ali Veli", yakinlik: "", telefon: "" }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("addEmergency", 7, { ad_soyad: "Ali Veli", yakinlik: "", telefon: "" }),
+    );
   });
 });

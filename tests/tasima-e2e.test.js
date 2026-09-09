@@ -18,9 +18,9 @@ describe("Taşıma paketi (Electron altında, dist/ gerekli)", () => {
     }
     const eski = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-e2e-eski-"));
     const yeni = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-e2e-yeni-"));
-    // Hiçbir dizin adı "eyupspor-tasima-"/"eyupspor-geri-" ile BAŞLAMAMALI: uygulama açılışta os.tmpdir()'deki o önekli klasörleri
+    // Hiçbir dizin adı "futbolokulu-tasima-"/"futbolokulu-geri-" ile BAŞLAMAMALI: uygulama açılışta os.tmpdir()'deki o önekli klasörleri
     // geçici artık sayıp siler (güvenlik #8) — userData da silinirdi
-    const paket = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-paket-")), "eyupspor-tasima-test.eyupspor");
+    const paket = path.join(fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-paket-")), "futbolokulu-tasima-test.fokpaket");
     for (const adim of ["olustur", "geriyukle", "dogrula"]) {
       const r = spawnSync(electronBin, [path.join(root, "scripts", "tests", "tasima-e2e.cjs"), eski, yeni, paket, adim], {
         encoding: "utf-8",

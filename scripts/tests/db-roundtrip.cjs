@@ -884,13 +884,13 @@ app.whenReady().then(async () => {
     // Lisans: temiz kurulum → deneme; geçersiz anahtar reddedilir; salt okunur değil
     const ld = db.lisansDurumu();
     check("lisans temiz kurulumda deneme", ld.mod === "deneme" && ld.kalanGun === 30 && !!ld.makineId);
-    check("geçersiz anahtar reddedilir", !!db.lisansKaydet("EYUPSPOR.bozuk.anahtar").error);
+    check("geçersiz anahtar reddedilir", !!db.lisansKaydet("FOKLISANS.bozuk.anahtar").error);
     check("salt okunur değil", db.lisansSaltOkunurMu() === false);
     check("makineId kalıcı", db.lisansDurumu().makineId === ld.makineId);
 
     // Yedek al → değişiklik yap → geri yükle → değişiklik geri alınmış olmalı
     const { yedekAl, geriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
-    const yedekKok = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-yedek-"));
+    const yedekKok = fs.mkdtempSync(path.join(os.tmpdir(), "futbolokulu-yedek-"));
     const yedekOncesi = db.listPlayers().length;
     // Bir belge dosyası koy: yedek zip'ine girmeli ve geri yüklemede geri gelmeli
     const upKok = db.getUploadsDir();
@@ -898,8 +898,8 @@ app.whenReady().then(async () => {
     fs.writeFileSync(path.join(upKok, "oyuncu-1", "1-saglik-rapor.pdf"), "%PDF-1.4 yedek testi");
     const y = yedekAl(yedekKok);
     check(
-      "yedek tek şifreli dosya (.eyupyedek)",
-      y.ok && y.sifreli && /eyupspor-yedek-.*\.eyupyedek$/.test(y.yol) && fs.existsSync(y.yol) && y.dosya >= 1,
+      "yedek tek şifreli dosya (.fokyedek)",
+      y.ok && y.sifreli && /futbolokulu-yedek-.*\.fokyedek$/.test(y.yol) && fs.existsSync(y.yol) && y.dosya >= 1,
     );
     const hamYedek = fs.readFileSync(y.yol);
     check(
@@ -934,7 +934,7 @@ app.whenReady().then(async () => {
     check("şifreli yedek doğrulanıyor", hz.ok && hz.oyuncu === yedekOncesi && hz.gecici);
     fs.rmSync(hz.klasor, { recursive: true, force: true });
     // Başka makinenin anahtarıyla şifrelenmiş yedek burada açılmaz
-    const yabanci = path.join(yedekKok, "yabanci.eyupyedek");
+    const yabanci = path.join(yedekKok, "yabanci.fokyedek");
     fs.writeFileSync(
       yabanci,
       tasimaK.sifrele(Buffer.from(require("fflate").zipSync({ "data.db": arsiv["data.db"] })), "baska-makine-anahtari-1234", {
@@ -946,7 +946,7 @@ app.whenReady().then(async () => {
       /başka bir bilgisayarın/.test(yedekHazirla(yabanci).error || ""),
     );
     // Eski düz .zip yedek hâlâ açılır
-    const eskiZip = path.join(yedekKok, "eyupspor-yedek-eski.zip");
+    const eskiZip = path.join(yedekKok, "futbolokulu-yedek-eski.zip");
     fs.writeFileSync(eskiZip, Buffer.from(require("fflate").zipSync({ "data.db": arsiv["data.db"] })));
     const hzEski = yedekHazirla(eskiZip);
     check("eski düz zip yedek de doğrulanır", hzEski.ok === true && hzEski.oyuncu === yedekOncesi);
@@ -1134,7 +1134,7 @@ app.whenReady().then(async () => {
     );
     // ── Taşıma paketi (plan §14): parola korumalı, makine anahtarından bağımsız ──
     const { tasimaPaketiOlustur, tasimaPaketiAc, tasimaGeriYukleCekirdek } = require("../../electron/ipc/yedek.cjs");
-    const paketYol = path.join(tmp, "tasima.eyupspor");
+    const paketYol = path.join(tmp, "tasima.fokpaket");
     const oyuncuSayisi = db.listPlayers({ durum: null }).length;
     const tpo = tasimaPaketiOlustur(paketYol, "cok-gizli-parola");
     check(
@@ -1170,7 +1170,7 @@ app.whenReady().then(async () => {
         /Parola yanlış/.test(require("../../electron/ipc/yedek.cjs").tasimaPaketiOzet(paketYol, "yanlis-parola-1").error || ""),
     );
     // Güvenlik #8: açılış temizliği geçici artıkları siler
-    const art = fs.mkdtempSync(path.join(os.tmpdir(), "eyupspor-tasima-"));
+    const art = fs.mkdtempSync(path.join(os.tmpdir(), "futbolokulu-tasima-"));
     fs.writeFileSync(path.join(art, "data.db"), "duz");
     require("../../electron/ipc/yedek.cjs").geciciArtiklariTemizle();
     check("geçici taşıma artığı açılışta silinir", !fs.existsSync(art));

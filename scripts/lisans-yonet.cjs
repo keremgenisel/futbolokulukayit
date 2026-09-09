@@ -1,12 +1,12 @@
 // Lisans yönetimi (ÜRETİCİ) — aktivasyon sunucusunun /admin uçlarına konuşur. curl GEREKMEZ (Node fetch).
 // Sunucu adresi electron/aktivasyonIstemci.cjs'ten (AKTIVASYON_URL) okunur. Admin token:
-//   ortamdan EYUPSPOR_ADMIN_TOKEN, yoksa scripts/keys/admin-token.txt dosyasından (gitignore'da).
+//   ortamdan FOKLISANS_ADMIN_TOKEN, yoksa scripts/keys/admin-token.txt dosyasından (gitignore'da).
 //
 // Kullanım:
-//   node scripts/lisans-yonet.cjs kaydet --anahtar "EYUPSPOR..." --kurulum 3   (yeni müşteri: kaydet + limit)
-//   node scripts/lisans-yonet.cjs iptal  --anahtar "EYUPSPOR..."               (iptal: yenileme kesilir)
-//   node scripts/lisans-yonet.cjs ac     --anahtar "EYUPSPOR..."               (iptali geri al)
-//   node scripts/lisans-yonet.cjs liste  --anahtar "EYUPSPOR..."               (kurulumları göster)
+//   node scripts/lisans-yonet.cjs kaydet --anahtar "FOKLISANS..." --kurulum 3   (yeni müşteri: kaydet + limit)
+//   node scripts/lisans-yonet.cjs iptal  --anahtar "FOKLISANS..."               (iptal: yenileme kesilir)
+//   node scripts/lisans-yonet.cjs ac     --anahtar "FOKLISANS..."               (iptali geri al)
+//   node scripts/lisans-yonet.cjs liste  --anahtar "FOKLISANS..."               (kurulumları göster)
 const fs = require("fs");
 const path = require("path");
 
@@ -22,10 +22,10 @@ if (!KOMUTLAR.includes(komut)) {
     [
       "Kullanım:",
       "  node scripts/lisans-yonet.cjs tumu                                    (TÜM lisansları listele)",
-      '  node scripts/lisans-yonet.cjs kaydet --anahtar "EYUPSPOR..." --kurulum 3',
-      '  node scripts/lisans-yonet.cjs iptal  --anahtar "EYUPSPOR..."',
-      '  node scripts/lisans-yonet.cjs ac     --anahtar "EYUPSPOR..." [--kurulum 3]',
-      '  node scripts/lisans-yonet.cjs liste  --anahtar "EYUPSPOR..."             (tek lisansın kurulumları)',
+      '  node scripts/lisans-yonet.cjs kaydet --anahtar "FOKLISANS..." --kurulum 3',
+      '  node scripts/lisans-yonet.cjs iptal  --anahtar "FOKLISANS..."',
+      '  node scripts/lisans-yonet.cjs ac     --anahtar "FOKLISANS..." [--kurulum 3]',
+      '  node scripts/lisans-yonet.cjs liste  --anahtar "FOKLISANS..."             (tek lisansın kurulumları)',
     ].join("\n"),
   );
   process.exit(1);
@@ -39,10 +39,10 @@ if (!SUNUCU) {
 }
 
 const tokenDosya = path.join(__dirname, "keys", "admin-token.txt");
-const TOKEN = process.env.EYUPSPOR_ADMIN_TOKEN || (fs.existsSync(tokenDosya) ? fs.readFileSync(tokenDosya, "utf8").trim() : null);
+const TOKEN = process.env.FOKLISANS_ADMIN_TOKEN || (fs.existsSync(tokenDosya) ? fs.readFileSync(tokenDosya, "utf8").trim() : null);
 if (!TOKEN) {
   console.error(
-    'HATA: Admin token yok. Bir kez şunu yap:\n  echo "ADMIN_TOKEN_DEĞERİN" > scripts/keys/admin-token.txt\n(veya EYUPSPOR_ADMIN_TOKEN ortam değişkenini ayarla)',
+    'HATA: Admin token yok. Bir kez şunu yap:\n  echo "ADMIN_TOKEN_DEĞERİN" > scripts/keys/admin-token.txt\n(veya FOKLISANS_ADMIN_TOKEN ortam değişkenini ayarla)',
   );
   process.exit(1);
 }
