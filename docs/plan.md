@@ -1015,3 +1015,12 @@ Envanter (Kerem: "uygulamada sayfalama gerektiren yerleri bul"): zaten sayfalı 
 4. Tahsilat > Bugün Kesilen Makbuzlar (`Tahsilat.jsx`): 460px sabit yükseklikli kaydırma, yapışık başlık.
 Sayfalanmayan (bilinçli): Yoklama formu (grup büyüklüğü ~20), Yaş Grupları, ayar tabloları, pano listeleri (zaten sınırlı).
 
+Testler (09.09.2026, "sayfalama olan her yeri test et"): `scripts/tests/sayfalama-e2e.cjs` gerçek main.cjs + DB ile 121 oyuncu → Oyuncular
+50/sayfa (sonraki/önceki, arama → ilk sayfa, tek sayfada çubuk yok), oyuncu kartı 12 dönem / 12 makbuz / 40 yoklama + "Tümünü göster",
+150 satırlık gerçek Excel dosyasıyla aktarım önizlemesi 100/sayfa ve 2. sayfadayken tam aktarım, Raporlar Oyuncu Listesi / Borçlu
+Listesi 100/sayfa ve yeni Önizle'de ilk sayfa, Tahsilat 30 makbuz (460px kap, yapışık başlık), Yeni Sezon 271 aday (sayaç + kap),
+WhatsApp 241 alıcı sayacı. `tests/ui/sayfalama-sinirlar.test.jsx` (jsdom): sayfa taşması (3. sayfadayken liste küçülür → sunucunun
+döndürdüğü 2. sayfa), Önizle ilk sayfa, kart makbuz/yoklama "Tümünü göster", Tahsilat kabı + "30 makbuz", WhatsApp "60 alıcı · 2
+numarasız/onaysız". Önceden var olan: `tests/ui/sayfalama.test.jsx` (bileşen, Oyuncular, Raporlar), `oyuncu-aktar.test.jsx`,
+`db-roundtrip` (`playersPage` offset/taşma, `listDues`/`listReceipts` limit).
+

@@ -17,7 +17,7 @@ npm install          # bağımlılıklar + native rebuild (postinstall) + git ho
 npm run dev          # vite + electron, hot reload
 npm run build        # vite build → dist/
 npm run build:win    # vite build + electron-builder --win → release/*.exe
-npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği, kalıcılık, sezon/taşıma paketi/raporlar/oyuncular e2e, arayüz duman testi (dist/ gerekir)
+npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği, kalıcılık, sezon/taşıma paketi/raporlar/oyuncular/sayfalama e2e, arayüz duman testi (dist/ gerekir)
 npm run test:saf     # yalnız süreç içi testler (~19 sn) — refactor döngüsü için
 npm run test:coverage # test:saf + kapsama raporu (coverage/); Electron alt süreç kodu (db.cjs, ipc/*) ölçülmez
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
@@ -127,7 +127,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   (`db.playersPage`, 50/sayfa; dışa aktarım tam liste), Raporlar önizleme 100 satır (Excel/PDF tam), oyuncu kartı son
   12 dönem / 12 makbuz / 40 yoklama + "Tümünü göster", Excel aktarım önizlemesi 100/sayfa (aktarım tam liste); sabit
   yükseklikli kaydırma + yapışık başlık + sayaç: sezon sihirbazı aday listesi, WhatsApp toplu pencere, Tahsilat "Bugün
-  Kesilen Makbuzlar" (plan §22). Tüm stil inline; renkler
+  Kesilen Makbuzlar" (plan §22; uçtan uca `scripts/tests/sayfalama-e2e.cjs`, sınır durumları `tests/ui/sayfalama-sinirlar.test.jsx`). Tüm stil inline; renkler
   `src/ui.css` CSS değişkenlerinden (mor `#5B2D8E`, sarı `#F5D000`, kırmızı `#E0101F`).
 - `design/*.dc.html` — ekran tasarımları (Claude Design tuvali). Yeni ekran yaparken buna uy.
 
