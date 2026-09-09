@@ -35,7 +35,7 @@ function createWindow() {
     minHeight: 700,
     show: false,
     autoHideMenuBar: true,
-    title: "Eyüpspor Futbol Okulu",
+    title: "Futbol Okulu Kayıt Programı",
     backgroundColor: "#F6F4FA",
     icon: path.join(__dirname, "../build/icon.png"),
     webPreferences: {

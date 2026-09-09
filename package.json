@@ -1,8 +1,8 @@
 {
   "name": "eyupspor-futbol-okulu",
-  "productName": "Eyüpspor Futbol Okulu",
+  "productName": "Futbol Okulu Kayıt Programı",
   "version": "0.1.0",
-  "description": "Eyüpspor Futbol Okulu oyuncu kayıt, aidat, makbuz ve yoklama programı",
+  "description": "Futbol Okulu Kayıt Programı — oyuncu kayıt, aidat, makbuz ve yoklama",
   "main": "electron/main.cjs",
   "private": true,
   "scripts": {
@@ -75,7 +75,7 @@
   },
   "build": {
     "appId": "com.eyupspor.futbolokulu",
-    "productName": "Eyüpspor Futbol Okulu",
+    "productName": "Futbol Okulu Kayıt Programı",
     "directories": {
       "output": "release"
     },
@@ -110,7 +110,7 @@
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "shortcutName": "Eyüpspor Futbol Okulu",
+      "shortcutName": "Futbol Okulu Kayıt Programı",
       "perMachine": true,
       "allowElevation": true,
       "deleteAppDataOnUninstall": false,

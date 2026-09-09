@@ -14,7 +14,7 @@ export function Hakkinda({ admin }) {
   }, []);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-      <h3 style={{ fontSize: 22 }}>Eyüpspor Futbol Okulu Kayıt Programı</h3>
+      <h3 style={{ fontSize: 22 }}>Futbol Okulu Kayıt Programı</h3>
       <div style={{ color: "var(--soluk)" }}>Sürüm {v || "—"}</div>
       <div style={{ color: "var(--soluk)", fontSize: 14 }}>
         Oyuncu kayıt, aylık aidat, tahsilat makbuzu ve antrenman yoklaması. Veritabanı şifreli olarak bu bilgisayarda saklanır.
