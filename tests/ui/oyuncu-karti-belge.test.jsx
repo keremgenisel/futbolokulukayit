@@ -105,4 +105,31 @@ describe("Oyuncu kartı > Belgeler: sağlık raporu geçerlilik tarihi", () => {
     expect(await screen.findByLabelText("Sağlık raporu geçerlilik tarihi")).toHaveValue(onerilenGecerlilik(bugun().iso));
     expect(screen.queryByRole("button", { name: "Yeni Rapor Yükle" })).toBeNull();
   });
+
+  it("'Diğer' belgesi isteğe bağlı: yoksa 'Eksik' değil 'İsteğe bağlı'; zorunlu tipler 'Eksik'", async () => {
+    window.okul.db = vi.fn(async (fn) =>
+      fn === "getPlayer"
+        ? {
+            id: 7,
+            ad_soyad: "Yeni",
+            dogum_tarihi: "2015-01-01",
+            durum: "aktif",
+            ucret_tipi: "normal",
+            aylik_aidat: 0,
+            odeme_donemi: "1-10",
+            kayit_tarihi: "2026-09-01",
+            updated_at: "2026-09-01",
+          }
+        : [],
+    );
+    render(
+      <ToastSaglayici>
+        <OyuncuKarti oyuncuId={7} oturum={{ role: "admin" }} gruplar={[]} saltOkunur={false} onKapat={vi.fn()} onMakbuzKes={vi.fn()} />
+      </ToastSaglayici>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "Belgeler" }));
+    await screen.findByText("Diğer");
+    expect(screen.getAllByText("Eksik")).toHaveLength(5); // sağlık, foto, sporcu kimlik, veli kimlik, kayıt formu
+    expect(screen.getByText("İsteğe bağlı")).toBeInTheDocument();
+  });
 });

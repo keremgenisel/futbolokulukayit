@@ -12,7 +12,7 @@ const BELGE_TIPLERI = [
   { kod: "sporcu_kimlik", ad: "Sporcu kimlik fotokopisi" },
   { kod: "veli_kimlik", ad: "Veli kimlik fotokopisi" },
   { kod: "kayit_formu", ad: "İmzalı kayıt formu" },
-  { kod: "diger", ad: "Diğer" },
+  { kod: "diger", ad: "Diğer", istege: true }, // isteğe bağlı: yoksa "Eksik" değil "İsteğe bağlı" (09.09.2026)
 ];
 
 // Mevcut belgenin geçerlilik tarihi: "Tarih gir" / "Tarihi değiştir" → satır içi tarih kutusu + Kaydet (dosyayı yeniden yüklemeden).
@@ -177,6 +177,8 @@ export function BelgeSekmesi({ belgeler, saltOkunur, onYukle, onTarihKaydet, onS
               ) : (
                 <Rozet ton="green">Yüklü</Rozet>
               )
+            ) : t.istege ? (
+              <Rozet ton="gray">İsteğe bağlı</Rozet>
             ) : (
               <Rozet ton="red">Eksik</Rozet>
             )}
