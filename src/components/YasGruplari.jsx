@@ -119,21 +119,7 @@ export function YasGruplari({ saltOkunur }) {
             flexWrap: "wrap",
           }}
         >
-          <span
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              letterSpacing: ".06em",
-              textTransform: "uppercase",
-              color: "var(--soluk)",
-            }}
-          >
-            <Ikon ad="filtre" boyut={16} />
-            Süzgeç
-          </span>
+          <Ikon ad="filtre" boyut={18} style={{ color: "var(--soluk)" }} />
           <Secim
             secenekler={[...new Set([aktifSezon, seciliSezon, ...sezonlar].filter(Boolean))].map((s) => ({
               kod: s,
