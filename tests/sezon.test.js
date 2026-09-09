@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupAdi, ustGrupOner } from "../src/lib/sezon.js";
+import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupAdi, ustGrupOner, sezonSecenekleri } from "../src/lib/sezon.js";
 
 describe("sezon mantığı", () => {
   it("güncel sezon başlangıç ayına göre belirlenir", () => {
@@ -50,5 +50,21 @@ describe("sezon mantığı", () => {
     expect(ustGrupOner(g, 2)).toBe(4); // U12 B pasif → gövde U12
     expect(ustGrupOner(g, 3)).toBe(3); // U13 A yok, U13 yok → kal
     expect(ustGrupOner(g, 5)).toBe(5);
+  });
+
+  it("sezon seçenekleri (plan §15): aktif + sonraki; ayar boşsa bugünün sezonu; eski değer üçüncü seçenek", () => {
+    expect(sezonSecenekleri({ aktifSezon: "2026-2027", bugunIso: "2026-09-09" }).map((s) => s.kod)).toEqual(["2026-2027", "2027-2028"]);
+    expect(sezonSecenekleri({ aktifSezon: "", bugunIso: "2027-03-01", baslangicAyi: 9 }).map((s) => s.kod)).toEqual([
+      "2026-2027",
+      "2027-2028",
+    ]);
+    expect(sezonSecenekleri({ aktifSezon: "bozuk", bugunIso: "2027-09-01" })[0]).toEqual({
+      kod: "2027-2028",
+      ad: "2027-2028 (aktif sezon)",
+    });
+    const eski = sezonSecenekleri({ aktifSezon: "2026-2027", bugunIso: "2026-09-09", mevcut: "2026" });
+    expect(eski.map((s) => s.kod)).toEqual(["2026-2027", "2027-2028", "2026"]);
+    expect(eski[2].ad).toBe("2026 (eski kayıt)");
+    expect(sezonSecenekleri({ aktifSezon: "2026-2027", bugunIso: "2026-09-09", mevcut: "2027-2028" })).toHaveLength(2);
   });
 });

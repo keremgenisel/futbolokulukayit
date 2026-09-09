@@ -13,6 +13,7 @@ describe("Yaş Grupları ekranı", () => {
     window.okul = {
       db: vi.fn(async (fn, ...args) => {
         if (fn === "listAgeGroups") return gruplar;
+        if (fn === "sezonDurumu") return { aktifSezon: "2026-2027", baslangicAyi: 9, sonGecis: null, adaySayisi: 1 };
         if (fn === "listPlayers")
           return [
             { id: 9, yas_grubu_id: 1, durum: "aktif" },
@@ -49,7 +50,41 @@ describe("Yaş Grupları ekranı", () => {
     fireEvent.change(screen.getByPlaceholderText("U11"), { target: { value: "U12" } });
     fireEvent.click(screen.getByRole("button", { name: "Grup Ekle" }));
     await waitFor(() => expect(screen.getByText("U12")).toBeInTheDocument());
-    expect(window.okul.db).toHaveBeenCalledWith("createAgeGroup", expect.objectContaining({ ad: "U12" }));
+    expect(window.okul.db).toHaveBeenCalledWith("createAgeGroup", expect.objectContaining({ ad: "U12", sezon: "2026-2027" }));
+  });
+
+  it("sezon kutusu aktif sezonla dolu gelir; yalnız aktif/sonraki seçilebilir; ekle sonrası yine aktif sezon (plan §15)", async () => {
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => screen.getByText("U11"));
+    const kutu = await screen.findByLabelText("Sezon");
+    await waitFor(() => expect(kutu).toHaveValue("2026-2027"));
+    expect([...kutu.options].map((o) => o.value)).toEqual(["2026-2027", "2027-2028"]);
+    fireEvent.change(kutu, { target: { value: "2027-2028" } });
+    fireEvent.change(screen.getByPlaceholderText("U11"), { target: { value: "U12" } });
+    fireEvent.click(screen.getByRole("button", { name: "Grup Ekle" }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("createAgeGroup", expect.objectContaining({ ad: "U12", sezon: "2027-2028" })),
+    );
+    expect(screen.getByLabelText("Sezon")).toHaveValue("2026-2027"); // aktif sezona döndü
+    expect(screen.getByText("(gelecek)")).toBeInTheDocument(); // U12 2027-2028 listede işaretli
+  });
+
+  it("düzenlemede eski elle girilmiş sezon üçüncü seçenek olarak korunur", async () => {
+    gruplar = [{ id: 1, ad: "U11", sezon: "2026", sira: 1, aktif: 1 }];
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => screen.getByText("(eski)"));
+    fireEvent.click(screen.getByRole("button", { name: "Düzenle" }));
+    const kutu = screen.getAllByLabelText("Sezon").at(-1);
+    expect(kutu).toHaveValue("2026");
+    expect([...kutu.options].map((o) => o.value)).toEqual(["2026-2027", "2027-2028", "2026"]);
   });
 
   it("oyuncusu olan grubu silmeye çalışınca hatayı gösterir", async () => {

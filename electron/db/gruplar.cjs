@@ -3,7 +3,17 @@ const { db } = require("./baglanti.cjs");
 const { createTraining } = require("./antrenman.cjs");
 
 const listAgeGroups = () => db.prepare("SELECT * FROM age_groups ORDER BY sira, ad").all();
+// Sezon "2026-2027" biçiminde ve ikinci yıl birinciden bir fazla olmalı (plan §15); boş kabul (API uyumu). undefined → null (COALESCE: dokunma).
+function sezonDogrula(sezon) {
+  if (sezon === undefined || sezon === null) return null;
+  const s = String(sezon).trim();
+  if (s === "") return "";
+  const m = /^(\d{4})-(\d{4})$/.exec(s);
+  if (!m || Number(m[2]) !== Number(m[1]) + 1) throw new Error("Sezon 2026-2027 biçiminde olmalı");
+  return s;
+}
 function createAgeGroup({ ad, sezon = "", sira = 0 }) {
+  sezon = sezonDogrula(sezon) ?? "";
   const r = db.prepare("INSERT INTO age_groups (ad,sezon,sira) VALUES (?,?,?)").run(ad, sezon, sira);
   return { id: Number(r.lastInsertRowid), ad, sezon, sira, aktif: 1 };
 }
@@ -12,7 +22,7 @@ const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }) =>
     .prepare(
       "UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif), program=COALESCE(?,program) WHERE id=?",
     )
-    .run(ad, sezon, sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
+    .run(ad, sezonDogrula(sezon), sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
 // Program girdisini süz: [{gun 1..7, saat HH:MM, saha}]
 function programDogrula(p) {
   const l =
@@ -73,4 +83,4 @@ const deleteAgeGroup = (id) => {
   return { ok: true };
 };
 
-module.exports = { listAgeGroups, createAgeGroup, updateAgeGroup, programDogrula, haftayiProgramdanDoldur, deleteAgeGroup };
+module.exports = { listAgeGroups, createAgeGroup, updateAgeGroup, programDogrula, sezonDogrula, haftayiProgramdanDoldur, deleteAgeGroup };

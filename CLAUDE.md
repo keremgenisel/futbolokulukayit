@@ -62,10 +62,10 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   `mesaj`, `belgeler`, `aidat`, `makbuz`, `antrenman`, `sezon`, `pano`, `lisansDurum`, `yedek`. Yeni sorgu ilgili modüle yazılır,
   db.cjs export listesine ve `yetki.cjs` beyaz listesine eklenir. Şema `docs/plan.md §3`.
   Anahtar `safeStorage` ile OS anahtarlığında.
-  Şema sürümü 11: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
+  Şema sürümü 12: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
   6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani · 8 fee_types (ücret tipleri
   tabloda; `players.ucret_tipi` = kod; normal/ucretsiz sabit; kod `electron/kodUret.cjs` ile addan üretilir) · 9 WhatsApp
-  (`guardians.mesaj_onayi` varsayılan 1, `message_log`, `trainings.bildirim_gerekli/degisiklik_notu`) · 10 `trainings.grup_bildirim` · 11 bildirim olayı (`trainings.bildirim_olay`, `message_log.olay`: her iptal/değişiklik ayrı olay, eski bildirim yeni olayda sayılmaz). Göç `migrate()` PRAGMA
+  (`guardians.mesaj_onayi` varsayılan 1, `message_log`, `trainings.bildirim_gerekli/degisiklik_notu`) · 10 `trainings.grup_bildirim` · 11 bildirim olayı (`trainings.bildirim_olay`, `message_log.olay`: her iptal/değişiklik ayrı olay, eski bildirim yeni olayda sayılmaz) · 12 sezonu boş aktif gruplara `aktif_sezon` (plan §15; grup sezonu ana süreçte `sezonDogrula` ile 2026-2027 biçimine zorlanır, arayüzde `SezonSecim`: aktif/sonraki sezon). Göç `migrate()` PRAGMA
   table_info ile idempotent; varsayılan kalem/tip tohumu meta bayrağıyla TEK SEFER (silinen geri gelmez).
 - **WhatsApp (plan §13, API YOK):** `src/lib/whatsapp.js` SAF (wa numarası, şablon doldurma, uygunluk), `src/components/WhatsAppHatirlat.jsx`
   toplu pencere; ana süreç `app:whatsappAc` yalnız `https://wa.me/90…` açar (`shell.openExternal`). Kayıt `db.mesajKaydet`

@@ -3,6 +3,7 @@ import { Modal, Btn, Alan, Girdi, ParaGirdi, Rozet, useToast, useDene } from "./
 import { db, yedek, bugun } from "../lib/api.js";
 import { UCRET_TIPLERI, SABIT_INDIRIM, VARSAYILAN_INDIRIM, aidatHesapla, paraTR } from "../lib/aidat.js";
 import { guncelSezon, sezonGecerliMi } from "../lib/sezon.js";
+import { SezonSecim } from "./SezonSecim.jsx";
 import { KurtarmaKodlari } from "./Ayarlar.jsx";
 import { Ikon } from "./Ikon.jsx";
 
@@ -263,7 +264,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
         {adim === 2 && (
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <Alan etiket="Aktif sezon" style={{ width: 180 }}>
-              <Girdi value={sezon} onChange={(e) => setSezon(e.target.value.trim())} aria-label="Aktif sezon" />
+              <SezonSecim durum={null} value={sezon} onChange={setSezon} aria-label="Aktif sezon" />
             </Alan>
             <div style={{ fontSize: 13, color: "var(--soluk)" }}>
               Okulda hangi yaş grupları var? Seçin ya da ekleyin. Oyuncular bu gruplara kaydedilir.

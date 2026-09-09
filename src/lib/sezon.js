@@ -11,6 +11,22 @@ export function guncelSezon(iso, baslangicAyi = VARSAYILAN_SEZON_AYI) {
   return `${bas}-${bas + 1}`;
 }
 
+/**
+ * Sezon seçim kutusunun seçenekleri (plan §15): aktif sezon (ayar boşsa bugünün sezonu) ve sonraki sezon.
+ * `mevcut` verilirse ve iki seçenekten biri değilse (eski elle girilmiş değer) üçüncü seçenek olarak eklenir ki kayıt bozulmasın.
+ * @param {{ aktifSezon?: string, bugunIso: string, baslangicAyi?: number, mevcut?: string }} p
+ * @returns {{ kod: string, ad: string }[]}
+ */
+export function sezonSecenekleri({ aktifSezon = "", bugunIso, baslangicAyi = VARSAYILAN_SEZON_AYI, mevcut = "" }) {
+  const aktif = sezonGecerliMi(aktifSezon) ? aktifSezon : guncelSezon(bugunIso, baslangicAyi);
+  const l = [
+    { kod: aktif, ad: `${aktif} (aktif sezon)` },
+    { kod: sonrakiSezon(aktif), ad: `${sonrakiSezon(aktif)} (sonraki sezon)` },
+  ];
+  if (mevcut && !l.some((s) => s.kod === mevcut)) l.push({ kod: mevcut, ad: `${mevcut} (eski kayıt)` });
+  return l;
+}
+
 /** "2026-2027" → "2027-2028". Biçim bozuksa boş döner. @param {string} sezon */
 export function sonrakiSezon(sezon) {
   const m = /^(\d{4})-(\d{4})$/.exec(String(sezon || ""));

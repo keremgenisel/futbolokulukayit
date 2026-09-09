@@ -2,11 +2,15 @@ import { useEffect, useState } from "react";
 import { Kart, Btn, Alan, Girdi, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db } from "../lib/api.js";
 import { programCoz, programOzeti, GUN_ADLARI } from "../lib/program.js";
+import { SezonSecim } from "./SezonSecim.jsx";
+import { sezonSecenekleri } from "../lib/sezon.js";
+import { bugun } from "../lib/api.js";
 
 export function YasGruplari({ saltOkunur }) {
   const [gruplar, setGruplar] = useState([]);
   const [oyuncular, setOyuncular] = useState([]);
-  const [yeni, setYeni] = useState({ ad: "", sezon: "" });
+  const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi } — sezon kutusu bununla dolu gelir (plan §15)
+  const [yeni, setYeni] = useState({ ad: "", sezon: "" }); // sezon boş = aktif sezon (SezonSecim ilk seçeneği)
   const [duzenle, setDuzenle] = useState(null); // { id, ad, sezon, sira, aktif }
   const [sil, setSil] = useState(null);
   const toast = useToast();
@@ -16,7 +20,13 @@ export function YasGruplari({ saltOkunur }) {
     dene(async () => {
       setGruplar(await db("listAgeGroups"));
       setOyuncular(await db("listPlayers"));
+      setSezonDurum((await db("sezonDurumu")) || null);
     });
+  const aktifSezon = sezonSecenekleri({
+    aktifSezon: sezonDurum?.aktifSezon || "",
+    bugunIso: bugun().iso,
+    baslangicAyi: sezonDurum?.baslangicAyi || 9,
+  })[0].kod;
   useEffect(() => {
     yukle();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -26,8 +36,8 @@ export function YasGruplari({ saltOkunur }) {
   const ekle = async () => {
     if (!yeni.ad.trim()) return;
     return dene(async () => {
-      await db("createAgeGroup", { ad: yeni.ad.trim(), sezon: yeni.sezon.trim(), sira: gruplar.length + 1 });
-      setYeni({ ad: "", sezon: "" });
+      await db("createAgeGroup", { ad: yeni.ad.trim(), sezon: yeni.sezon || aktifSezon, sira: gruplar.length + 1 });
+      setYeni({ ad: "", sezon: "" }); // sezon yine aktif sezona döner
       toast("ok", "Grup eklendi");
       yukle();
     });
@@ -36,7 +46,7 @@ export function YasGruplari({ saltOkunur }) {
     dene(async () => {
       await db("updateAgeGroup", duzenle.id, {
         ad: duzenle.ad,
-        sezon: duzenle.sezon,
+        sezon: duzenle.sezon || aktifSezon,
         sira: Number(duzenle.sira) || 0,
         aktif: duzenle.aktif ? 1 : 0,
         program: (duzenle.programListe || []).filter((p) => p.saat),
@@ -66,13 +76,8 @@ export function YasGruplari({ saltOkunur }) {
               onKeyDown={(e) => e.key === "Enter" && ekle()}
             />
           </Alan>
-          <Alan etiket="Sezon" style={{ width: 200 }}>
-            <Girdi
-              value={yeni.sezon}
-              onChange={(e) => setYeni({ ...yeni, sezon: e.target.value })}
-              placeholder="2026-2027"
-              onKeyDown={(e) => e.key === "Enter" && ekle()}
-            />
+          <Alan etiket="Sezon" style={{ width: 220 }}>
+            <SezonSecim durum={sezonDurum} value={yeni.sezon} onChange={(v) => setYeni({ ...yeni, sezon: v })} aria-label="Sezon" />
           </Alan>
           <Btn onClick={ekle} disabled={!yeni.ad.trim()}>
             Grup Ekle
@@ -110,9 +115,11 @@ export function YasGruplari({ saltOkunur }) {
                       <Girdi value={duzenle.ad} onChange={(e) => setDuzenle({ ...duzenle, ad: e.target.value })} style={{ height: 36 }} />
                     </td>
                     <td>
-                      <Girdi
+                      <SezonSecim
+                        durum={sezonDurum}
                         value={duzenle.sezon}
-                        onChange={(e) => setDuzenle({ ...duzenle, sezon: e.target.value })}
+                        onChange={(v) => setDuzenle({ ...duzenle, sezon: v })}
+                        aria-label="Sezon"
                         style={{ height: 36 }}
                       />
                     </td>
@@ -147,7 +154,14 @@ export function YasGruplari({ saltOkunur }) {
                     <td>
                       <Rozet ton="purple">{g.ad}</Rozet>
                     </td>
-                    <td>{g.sezon || "—"}</td>
+                    <td>
+                      {g.sezon || "—"}
+                      {g.sezon && g.sezon !== aktifSezon && (
+                        <span style={{ color: "var(--soluk)", fontSize: 12, marginLeft: 6 }}>
+                          {g.sezon > aktifSezon ? "(gelecek)" : "(eski)"}
+                        </span>
+                      )}
+                    </td>
                     <td>
                       <b>{sayi(g.id)}</b>
                     </td>

@@ -627,7 +627,7 @@ program dışında saklanır; unutulursa paket açılamaz (tasarım gereği).
 - Yalnız yönetici; istemci modunda kapalı. Roundtrip testi: oluştur/aç/yanlış parola/geri yükle/yeniden şifreli.
 
 
-## 15. Yaş Grupları — Sezon alanı otomatik ve denetimli (PLANLANDI, 09.09.2026)
+## 15. Yaş Grupları — Sezon alanı otomatik ve denetimli (PLANLANDI ve UYGULANDI, 09.09.2026)
 
 **Sorun:** Yaş Grupları > Grup Ekle ve satır düzenlemedeki "Sezon" kutusu serbest metin; kullanıcı "2026", "26/27", "Eylül"
 yazabiliyor. Oysa programın tek bir aktif sezon kavramı var (`settings.aktif_sezon`: ilk kurulum sihirbazı `guncelSezon` ile
@@ -674,6 +674,6 @@ uyarısı bu değerlere bakıyor.
 Saf mantık + test (15 dk) → ana süreç doğrulama + göç + roundtrip (20 dk) → `SezonSecim` + Yaş Grupları + İlk Kurulum + UI
 testleri (40 dk) → smoke ekran görüntüsü. Toplam ~1,5 saat. Davranış değişikliği: elle sezon yazılamaz; bu kulüp isteği.
 
-### 15.5 Karar bekleyen
-- Sonraki sezon seçeneği gerekli mi, yoksa yalnız aktif sezon kilitli mi olsun? (Öneri: iki seçenek; sezon sonunda yeni
-  grupları önceden açmak isteyen kulüp için. Yeni Sezon sihirbazı zaten var, o yüzden kilitli tek değer de savunulabilir.)
+### 15.5 Karar (Kerem, 09.09.2026)
+İki seçenek (aktif + sonraki sezon) ve eski kayıt değeri üçüncü seçenek olarak: üçü de uygulandı. Henüz kullanıcı olmadığı
+için geriye uyumluluk kaygısı yok; göç 12 yine de boş sezonlu aktif grupları doldurur.
