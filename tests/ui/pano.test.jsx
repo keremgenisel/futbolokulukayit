@@ -110,7 +110,7 @@ describe("Pano — tesise giriş kontrolü", () => {
     expect(onOyuncu).toHaveBeenCalledWith(2);
   });
 
-  it("sağlık uyarıları en acil önce sıralı; 8'den fazlaysa 'Tümünü göster' tam listeyi açar", async () => {
+  it("sağlık uyarıları en acil önce sıralı; ilk 8 satır; 'Tümü (n)' Oyuncular ekranını sağlık filtresiyle açar", async () => {
     const uyarilar = Array.from({ length: 11 }, (_, i) => ({
       player_id: 100 + i,
       ad_soyad: `Oyuncu ${String(i).padStart(2, "0")}`,
@@ -124,9 +124,10 @@ describe("Pano — tesise giriş kontrolü", () => {
       if (fn === "saglikRaporuDurumu") return { toplam: 12, doldu: 1, dolacak: 0, yok: 11, uyarilar };
       return [];
     });
+    const onSekme = vi.fn();
     render(
       <ToastSaglayici>
-        <Pano onOyuncu={() => {}} onSekme={() => {}} onMakbuzKes={() => {}} />
+        <Pano onOyuncu={() => {}} onSekme={onSekme} onMakbuzKes={() => {}} />
       </ToastSaglayici>,
     );
     await screen.findByText("Sağlık Raporu Uyarıları");
@@ -135,11 +136,10 @@ describe("Pano — tesise giriş kontrolü", () => {
     expect(satirlar()).toHaveLength(8);
     expect(satirlar()[0]).toHaveTextContent("Acil Dolmuş"); // "yok" olanlar listede önce gelse de dolmuş rapor başa alınır
     expect(screen.queryByText("Oyuncu 10")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "Tümünü göster (+4 oyuncu daha)" }));
-    expect(satirlar()).toHaveLength(12);
-    expect(screen.getByText("Oyuncu 10")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Daha az göster" }));
-    expect(satirlar()).toHaveLength(8);
+    const tumu = screen.getAllByRole("link", { name: "Tümü (12)" });
+    expect(tumu).toHaveLength(1);
+    fireEvent.click(tumu[0]);
+    expect(onSekme).toHaveBeenCalledWith("oyuncular", "saglik");
   });
 
   it("borçlu listesinde veli telefonu görünür ve tıklayınca kopyalanır", async () => {

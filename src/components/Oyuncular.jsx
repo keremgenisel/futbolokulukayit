@@ -93,6 +93,12 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     if (acilacakOyuncu === "yeni") {
       setYeni(true);
       onAcildi?.();
+    } else if (acilacakOyuncu === "borclu") {
+      setOdemeyen(true); // Pano > Aidatı ödemeyenler > Tümü
+      onAcildi?.();
+    } else if (acilacakOyuncu === "saglik") {
+      setSaglik(true); // Pano > Sağlık raporu uyarıları > Tümü
+      onAcildi?.();
     } else if (acilacakOyuncu === "aktar") {
       setAktarAcik(true);
       onAcildi?.();

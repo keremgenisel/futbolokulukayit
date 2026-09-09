@@ -8,7 +8,7 @@ import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../lib/belge.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { aidatDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
 
-const SAGLIK_KISA = 8; // panoda önce en acil 8 uyarı; "Tümünü göster" ile tam liste
+const SAGLIK_KISA = 8; // panoda en acil 8 uyarı; "Tümü (n)" Oyuncular > "Sağlık raporu olmayanlar" filtresini açar (borçlular gibi)
 
 function Stat({ etiket, deger, renk, not }) {
   return (
@@ -27,7 +27,6 @@ function Stat({ etiket, deger, renk, not }) {
 export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
   const [sezon, setSezon] = useState(null);
   const [saglik, setSaglik] = useState(null); // sağlık raporu uyarıları
-  const [saglikTumu, setSaglikTumu] = useState(false);
   const [wa, setWa] = useState(null); // WhatsApp hatırlatma penceresi: { alicilar, baslik }
   const [ozet, setOzet] = useState(null);
   const [borclular, setBorclular] = useState([]);
@@ -131,9 +130,21 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
               Sağlık Raporu Uyarıları{" "}
               <span style={{ color: "var(--soluk)", fontSize: 15, fontWeight: 500 }}>({saglik.uyarilar.length})</span>
             </h3>
-            <span style={{ color: "var(--soluk)", fontSize: 13 }}>
-              Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş · en acil önce
-            </span>
+            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+              <span style={{ color: "var(--soluk)", fontSize: 13 }}>
+                Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş · en acil önce
+              </span>
+              <a
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault();
+                  onSekme("oyuncular", "saglik");
+                }}
+                style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}
+              >
+                Tümü ({saglik.uyarilar.length})
+              </a>
+            </div>
           </div>
           <table>
             <thead>
@@ -145,7 +156,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
               </tr>
             </thead>
             <tbody>
-              {(saglikTumu ? saglik.uyarilar : saglik.uyarilar.slice(0, SAGLIK_KISA)).map((u) => {
+              {saglik.uyarilar.slice(0, SAGLIK_KISA).map((u) => {
                 const d = u.durum === "yok" ? { durum: "yok", kalanGun: null } : belgeGecerlilik(u.gecerlilik, iso);
                 return (
                   <tr key={u.player_id} onClick={() => onOyuncu(u.player_id)} style={{ cursor: "pointer" }}>
@@ -162,25 +173,6 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
               })}
             </tbody>
           </table>
-          {saglik.uyarilar.length > SAGLIK_KISA && (
-            <button
-              type="button"
-              onClick={() => setSaglikTumu(!saglikTumu)}
-              style={{
-                alignSelf: "flex-start",
-                background: "none",
-                border: 0,
-                padding: 0,
-                color: "var(--mor)",
-                cursor: "pointer",
-                fontSize: 14,
-                fontWeight: 600,
-                textDecoration: "underline",
-              }}
-            >
-              {saglikTumu ? "Daha az göster" : `Tümünü göster (+${saglik.uyarilar.length - SAGLIK_KISA} oyuncu daha)`}
-            </button>
-          )}
         </Kart>
       )}
       {sezonUyari && (

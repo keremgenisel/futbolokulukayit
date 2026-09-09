@@ -88,4 +88,22 @@ describe("Oyuncular sezon filtresi", () => {
     expect(await screen.findByText("Yeni Sezon Oyuncusu")).toBeInTheDocument();
     expect(screen.getByText("Eski Sezon Oyuncusu")).toBeInTheDocument();
   });
+
+  it("Pano'dan gelen 'borclu' / 'saglik' parametresi ilgili filtreyi açar", async () => {
+    const onAcildi = vi.fn();
+    render(
+      <ToastSaglayici>
+        <Oyuncular oturum={{ role: "admin" }} acilacakOyuncu="borclu" onAcildi={onAcildi} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ sadeceOdemeyen: true }));
+    expect(onAcildi).toHaveBeenCalled();
+    cleanup();
+    render(
+      <ToastSaglayici>
+        <Oyuncular oturum={{ role: "admin" }} acilacakOyuncu="saglik" onAcildi={vi.fn()} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ saglikSorunlu: true }));
+  });
 });
