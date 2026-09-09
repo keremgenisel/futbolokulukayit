@@ -15,7 +15,7 @@ export function YasGruplari({ saltOkunur }) {
   const [duzenle, setDuzenle] = useState(null); // { id, ad, sezon, sira, aktif }
   const [sil, setSil] = useState(null);
   const [pasifGoster, setPasifGoster] = useState(false); // varsayılan: yalnız aktif gruplar (plan §17.1)
-  const [sezonF, setSezonF] = useState(null); // sezon süzgeci (plan §21): null → aktif sezon, "" → tüm sezonlar
+  const [sezonF, setSezonF] = useState(null); // sezon süzgeci (plan §21): null → aktif sezon; "Tüm sezonlar" seçeneği yok (Kerem, 09.09.2026)
   const [sezonlar, setSezonlar] = useState([]);
   const toast = useToast();
   const dene = useDene();
@@ -25,11 +25,11 @@ export function YasGruplari({ saltOkunur }) {
     bugunIso: bugun().iso,
     baslangicAyi: sezonDurum?.baslangicAyi || 9,
   })[0].kod;
-  const seciliSezon = sezonF === null ? aktifSezon : sezonF; // "" = tüm sezonlar
+  const seciliSezon = sezonF || aktifSezon;
   const aktifSezonda = seciliSezon === aktifSezon;
   const yukle = () =>
     dene(async () => {
-      setGruplar(await db("listAgeGroups", { sezon: seciliSezon || null }));
+      setGruplar(await db("listAgeGroups", { sezon: seciliSezon }));
       setOyuncular(await db("listPlayers"));
       setSezonDurum((await db("sezonDurumu")) || null);
       setSezonlar((await db("sezonListesi")) || []);
@@ -48,7 +48,7 @@ export function YasGruplari({ saltOkunur }) {
       setYeni({ ad: "", sezon: "" }); // sezon yine aktif sezona döner
       toast("ok", "Grup eklendi");
       // Eklenen grup seçili sezonun süzgecine girmiyorsa (örn. sonraki sezon için açıldı) süzgeç o sezona geçer ki grup görünsün
-      if (seciliSezon && eklenenSezon !== seciliSezon) setSezonF(eklenenSezon);
+      if (eklenenSezon !== seciliSezon) setSezonF(eklenenSezon);
       else yukle();
     });
   };
@@ -72,8 +72,8 @@ export function YasGruplari({ saltOkunur }) {
       toast("ok", g.aktif ? `${g.ad} pasife alındı` : `${g.ad} aktif`);
       yukle();
     });
-  // Aktif sezonda yalnız aktifler (+ onay kutusu); geçmiş sezon / tüm sezonlarda o sezonun tüm grupları (bugün pasif olabilir)
-  const gorunen = gruplar.filter((g) => g.aktif || pasifGoster || !aktifSezonda);
+  // Her sezonda yalnız aktifler; pasifler "Pasif grupları da göster (n)" kutusuyla (eski sezonda da aynı; Kerem, 09.09.2026)
+  const gorunen = gruplar.filter((g) => g.aktif || pasifGoster);
   const pasifSayisi = gruplar.filter((g) => !g.aktif).length;
   const silOnayla = () =>
     dene(async () => {
@@ -125,13 +125,12 @@ export function YasGruplari({ saltOkunur }) {
               kod: s,
               ad: s === aktifSezon ? `${s} (aktif sezon)` : s,
             }))}
-            bos="Tüm sezonlar"
             value={seciliSezon}
             onChange={(e) => setSezonF(e.target.value)}
             style={{ width: 200, height: 34, fontSize: 14 }}
             aria-label="Sezon süzgeci"
           />
-          {aktifSezonda && pasifSayisi > 0 && (
+          {pasifSayisi > 0 && (
             <label
               style={{
                 display: "flex",

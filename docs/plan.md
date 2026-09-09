@@ -965,9 +965,10 @@ Ekranda sezon süzgeci yok; liste aktif grupları (isteğe bağlı pasifleri) g�
 
 ### 21.1 Davranış
 - Listenin üstünde **Sezon** kutusu (Oyuncular'daki gibi): aktif sezon seçili gelir ("… (aktif sezon)"), kayıtlardaki eski
-  sezonlar ve "Tüm sezonlar" seçilebilir. Seçilince yalnız **o sezonda var olan** gruplar listelenir.
-- Aktif sezon seçiliyken bugünkü davranış: aktif gruplar + "Pasif grupları da göster (n)" kutusu. Geçmiş sezon seçilince
-  pasif gruplar da doğrudan görünür (o sezonun grubu bugün pasif olabilir), onay kutusu gizlenir.
+  sezonlar seçilebilir. Seçilince yalnız **o sezonda var olan** gruplar listelenir. ~~"Tüm sezonlar"~~ seçeneği 09.09.2026'da
+  kaldırıldı (Kerem: "tüm sezonlar seçeneğini kaldır").
+- Her sezonda aynı davranış: aktif gruplar + "Pasif grupları da göster (n)" kutusu (09.09.2026: eski sezonda pasiflerin
+  kendiliğinden görünmesi kaldırıldı; Kerem: "eski sezona alınca pasifler gözüküyor").
 - "Grup Ekle" formu değişmez (sezon kutusu aktif/sonraki sezon); grup eklenince liste seçili sezona göre yenilenir.
 - Sezon sütunu ve "(eski)/(gelecek)" notu kalır.
 

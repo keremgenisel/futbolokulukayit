@@ -78,14 +78,20 @@ describe("Yaş Grupları ekranı", () => {
   });
 
   it("düzenlemede eski elle girilmiş sezon üçüncü seçenek olarak korunur", async () => {
-    gruplar = [{ id: 1, ad: "U11", sezon: "2026", sira: 1, aktif: 1 }]; // eski biçimli sezon: yalnız "Tüm sezonlar"da görünür
+    gruplar = [{ id: 1, ad: "U11", sezon: "2026", sira: 1, aktif: 1 }]; // eski biçimli sezon: süzgeçte kendi seçeneğiyle bulunur
+    window.okul.db.mockImplementation(async (fn, ...args) => {
+      if (fn === "listAgeGroups") return gruplar.filter((g) => g.sezon === args[0].sezon);
+      if (fn === "sezonDurumu") return { aktifSezon: "2026-2027", baslangicAyi: 9, sonGecis: null, adaySayisi: 1 };
+      if (fn === "sezonListesi") return ["2026-2027", "2026"];
+      return [];
+    });
     render(
       <ToastSaglayici>
         <YasGruplari />
       </ToastSaglayici>,
     );
     await waitFor(() => screen.getByLabelText("Sezon süzgeci"));
-    fireEvent.change(screen.getByLabelText("Sezon süzgeci"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("Sezon süzgeci"), { target: { value: "2026" } });
     await waitFor(() => screen.getByText("(eski)"));
     fireEvent.click(screen.getByRole("button", { name: "Düzenle" }));
     const kutu = screen.getAllByLabelText("Sezon").at(-1);
@@ -144,7 +150,7 @@ describe("Yaş Grupları ekranı", () => {
     expect(await screen.findByRole("button", { name: "U15 durum: Aktif" })).toBeInTheDocument();
   });
 
-  it("sezon süzgeci (plan §21): aktif sezon seçili; eski sezon seçilince o sezonun grupları pasif dahil, onay kutusu gizli; Tüm sezonlar hepsi", async () => {
+  it("sezon süzgeci (plan §21): aktif sezon seçili, 'Tüm sezonlar' yok; eski sezonda da yalnız aktifler, pasifler onay kutusuyla", async () => {
     gruplar = [
       { id: 1, ad: "U11", sezon: "2026-2027", sira: 1, aktif: 1, sezonlar: ["2025-2026", "2026-2027"] },
       { id: 2, ad: "U15", sezon: "2025-2026", sira: 2, aktif: 0, sezonlar: ["2025-2026"] },
@@ -158,18 +164,18 @@ describe("Yaş Grupları ekranı", () => {
     await waitFor(() => screen.getByText("U11"));
     const kutu = screen.getByLabelText("Sezon süzgeci");
     await waitFor(() => expect(kutu).toHaveValue("2026-2027"));
-    expect([...kutu.options].map((o) => o.textContent)).toEqual(["Tüm sezonlar", "2026-2027 (aktif sezon)", "2025-2026"]);
+    expect([...kutu.options].map((o) => o.textContent)).toEqual(["2026-2027 (aktif sezon)", "2025-2026"]);
+    expect(screen.queryByText("Tüm sezonlar")).toBeNull();
     expect(screen.getByText("U9")).toBeInTheDocument();
     expect(screen.queryByText("U15")).toBeNull(); // 2025-2026 grubu bu sezonda yok
     fireEvent.change(kutu, { target: { value: "2025-2026" } });
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listAgeGroups", { sezon: "2025-2026" }));
-    expect(await screen.findByText("U15")).toBeInTheDocument(); // pasif ama o sezonun grubu, onay kutusu olmadan
-    expect(screen.getByText("U11")).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText("U9")).toBeNull());
-    expect(screen.queryByLabelText(/Pasif grupları da göster/)).toBeNull();
-    fireEvent.change(kutu, { target: { value: "" } });
-    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listAgeGroups", { sezon: null }));
-    expect(await screen.findByText("U9")).toBeInTheDocument();
-    expect(screen.getByText("U15")).toBeInTheDocument();
+    expect(screen.getByText("U11")).toBeInTheDocument(); // o sezonda da vardı, aktif
+    expect(screen.queryByText("U15")).toBeNull(); // pasif: eski sezonda da varsayılan gizli
+    fireEvent.click(screen.getByLabelText(/Pasif grupları da göster \(1\)/));
+    expect(await screen.findByText("U15")).toBeInTheDocument();
+    expect(screen.getByText(/2 grup/)).toBeInTheDocument();
+    expect(window.okul.db).not.toHaveBeenCalledWith("listAgeGroups", { sezon: null });
   });
 });
