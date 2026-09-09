@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Sekmeler, Sayfalama, useDene } from "./ui.jsx";
+import { Kart, Sayfalama, useDene } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, ayAraligi } from "../lib/api.js";
 import { paraTR, tarihTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
@@ -153,25 +153,17 @@ export function Raporlar() {
   };
 
   const kirli = veri && veri.filtreImzasi !== filtreImzasi;
-  const seciliRapor = RAPORLAR.find((r) => r.kod === rapor);
   const gorunen = raporFiltreleri(rapor, { mod: yoklamaMod });
   const saglikNotu =
     rapor === "saglik"
-      ? `${ayS ? "Seçilen ayın son günü itibarıyla" : "Bugünün tarihine göre"} hesaplanır; 30 gün içinde dolacak raporlar "Dolmak üzere" sayılır.`
+      ? `${yoklamaMod === "tarih" ? "Bitiş tarihi itibarıyla" : ayS ? "Seçilen ayın son günü itibarıyla" : "Bugünün tarihine göre"} hesaplanır; 30 gün içinde dolacak raporlar "Dolmak üzere" sayılır.`
       : "";
+  const raporSec = (kod) => {
+    setRapor(kod);
+    if (kod === "saglik") setAyS(null); // sağlık raporu varsayılan: bugün itibarıyla (Ay: Tümü)
+  };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Kart style={{ padding: "0 8px" }}>
-        <Sekmeler
-          liste={RAPORLAR.map((r) => ({ kod: r.kod, ad: r.ad }))}
-          aktif={rapor}
-          onSec={(kod) => {
-            setRapor(kod);
-            if (kod === "saglik") setAyS(null); // sağlık raporu varsayılan: bugün itibarıyla (Ay: Tümü)
-          }}
-        />
-        <div style={{ padding: "8px 12px 10px", fontSize: 13, color: "var(--soluk)" }}>{seciliRapor?.aciklama}</div>
-      </Kart>
       <Kart style={{ padding: 14 }}>
         <RaporFiltre
           gorunen={gorunen}
@@ -195,45 +187,67 @@ export function Raporlar() {
           not={saglikNotu}
         />
       </Kart>
-      <Kart style={{ overflow: "hidden" }}>
-        {!veri ? (
-          <div style={{ padding: 32, color: "var(--soluk)", textAlign: "center" }}>Filtreleri seçip Önizle'ye basın.</div>
-        ) : (
-          <>
-            <div style={{ padding: "16px 16px 8px" }}>
-              <h3 style={{ fontSize: 22 }}>{veri.baslik}</h3>
-              <div style={{ color: "var(--soluk)", fontSize: 13 }}>{veri.alt}</div>
-            </div>
-            <div style={{ overflow: "auto", maxHeight: "calc(100vh - 340px)" }}>
-              <table>
-                <thead>
-                  <tr>
-                    {veri.sutunlar.map((c) => (
-                      <th key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>
-                        {c.baslik}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {gorunenSatirlar.map((s, i) => (
-                    <tr key={(sayfa - 1) * ONIZLEME_BOYU + i}>
+      <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
+        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+          {RAPORLAR.map((r) => (
+            <button
+              key={r.kod}
+              type="button"
+              onClick={() => raporSec(r.kod)}
+              style={{
+                textAlign: "left",
+                padding: "12px 14px",
+                borderRadius: 10,
+                cursor: "pointer",
+                border: `1px solid ${rapor === r.kod ? "var(--mor)" : "var(--cizgi)"}`,
+                background: rapor === r.kod ? "var(--mor-acik)" : "#fff",
+              }}
+            >
+              <div style={{ fontWeight: 700, color: "var(--mor-koyu)" }}>{r.ad}</div>
+              <div style={{ fontSize: 12, color: "var(--soluk)", marginTop: 2 }}>{r.aciklama}</div>
+            </button>
+          ))}
+        </Kart>
+        <Kart style={{ overflow: "hidden" }}>
+          {!veri ? (
+            <div style={{ padding: 32, color: "var(--soluk)", textAlign: "center" }}>Filtreleri seçip Önizle'ye basın.</div>
+          ) : (
+            <>
+              <div style={{ padding: "16px 16px 8px" }}>
+                <h3 style={{ fontSize: 22 }}>{veri.baslik}</h3>
+                <div style={{ color: "var(--soluk)", fontSize: 13 }}>{veri.alt}</div>
+              </div>
+              <div style={{ overflow: "auto", maxHeight: "calc(100vh - 340px)" }}>
+                <table>
+                  <thead>
+                    <tr>
                       {veri.sutunlar.map((c) => (
-                        <td key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>
-                          {(typeof s[c.anahtar] === "number" && c.anahtar === "tutar") || c.anahtar === "aidat"
-                            ? paraTR(s[c.anahtar])
-                            : s[c.anahtar]}
-                        </td>
+                        <th key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>
+                          {c.baslik}
+                        </th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <Sayfalama sayfa={sayfa} toplam={veri.satirlar.length} sayfaBoyu={ONIZLEME_BOYU} onSayfa={setSayfa} birim="satır" />
-          </>
-        )}
-      </Kart>
+                  </thead>
+                  <tbody>
+                    {gorunenSatirlar.map((s, i) => (
+                      <tr key={(sayfa - 1) * ONIZLEME_BOYU + i}>
+                        {veri.sutunlar.map((c) => (
+                          <td key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>
+                            {(typeof s[c.anahtar] === "number" && c.anahtar === "tutar") || c.anahtar === "aidat"
+                              ? paraTR(s[c.anahtar])
+                              : s[c.anahtar]}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <Sayfalama sayfa={sayfa} toplam={veri.satirlar.length} sayfaBoyu={ONIZLEME_BOYU} onSayfa={setSayfa} birim="satır" />
+            </>
+          )}
+        </Kart>
+      </div>
     </div>
   );
 }

@@ -115,7 +115,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
 - `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi, `sezonAyYili`); Ayarlar > Yeni Sezon
   sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup + yeni sezonun ilk ay aidatı açılır, diğerleri pasif+not).
-  Raporlar: üstte sekmeler, tek filtre çubuğu `RaporFiltre.jsx` — HER raporda aynı kutular: Dönem seçimi (sezon+ay | tarih aralığı),
+  Raporlar: en üstte tek filtre çubuğu `RaporFiltre.jsx`, altında solda rapor kartları + sağda tablo (plan §20.7) — HER raporda aynı kutular: Dönem seçimi (sezon+ay | tarih aralığı),
   Sezon + Ay (Tümü) ya da Başlangıç/Bitiş, Yaş grubu (plan §20.6; saf `raporFiltreleri`, `tarihAyAraligi`); sorgular ay aralığı
   alır (`aidatOzeti`, `listUnpaidAralik`; `SezonAySecim`; `db.sezonListesi`, `sezonAidatOzeti`, `listUnpaidSezon`,
   `attendanceReport`/`saglikRaporuListesi`/`listUnpaid` sezon parametresi; oyuncu kümesi `player_seasons`); Yoklama Özeti'nde

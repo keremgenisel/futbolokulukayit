@@ -944,3 +944,7 @@ sekmeler arasında korunur. Her rapor iki modu da destekler:
 DB: `aidatOzeti(bas, son)`, `listUnpaidAralik(bas, son, sezon, grup)`; `listUnpaid`, `listReceiptsByDate`, `listCancelledReceipts`
 yaş grubu parametresi. Saf `raporFiltreleri` her rapor için aynı listeyi döner; `tarihAyAraligi`.
 
+### 20.7 Düzen (Kerem, 09.09.2026 — "tasarımı eski hâline döndür, filtreler yukarıda kalsın")
+Sekmeler kaldırıldı; rapor seçimi yine sol sütundaki büyük kartlarla (ad + açıklama). Tek filtre çubuğu en üstte, tam
+genişlikte; altında sol kartlar + sağda tablo. Filtre davranışı §20.6 ile aynı.
+
