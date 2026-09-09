@@ -19,8 +19,8 @@
     "typecheck": "tsc --noEmit",
     "scan:secrets": "gitleaks git . --config .gitleaks.toml --redact --verbose",
     "audit": "npm audit --audit-level=high",
-    "test:saf": "vitest run --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e}.test.js'",
-    "test:coverage": "vitest run --coverage --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e}.test.js'",
+    "test:saf": "vitest run --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e,tasima-e2e}.test.js'",
+    "test:coverage": "vitest run --coverage --exclude 'tests/{db-electron,kalicilik,server-security,sezon-e2e,tasima-e2e}.test.js'",
     "format": "prettier --write \"src/**/*.{js,jsx,css}\" \"electron/**/*.cjs\" \"scripts/**/*.cjs\" \"tests/**/*.{js,jsx}\" \"aktivasyon-sunucu/src/*.js\"",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"electron/**/*.cjs\" \"scripts/**/*.cjs\" \"tests/**/*.{js,jsx}\" \"aktivasyon-sunucu/src/*.js\""
   },

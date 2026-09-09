@@ -17,7 +17,7 @@ npm install          # bağımlılıklar + native rebuild (postinstall) + git ho
 npm run dev          # vite + electron, hot reload
 npm run build        # vite build → dist/
 npm run build:win    # vite build + electron-builder --win → release/*.exe
-npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği ve arayüz duman testi (dist/ gerekir)
+npm test             # vitest: saf mantık + jsdom + Electron altında SQLite, sunucu güvenliği, kalıcılık, sezon e2e, taşıma paketi e2e, arayüz duman testi (dist/ gerekir)
 npm run test:saf     # yalnız süreç içi testler (~19 sn) — refactor döngüsü için
 npm run test:coverage # test:saf + kapsama raporu (coverage/); Electron alt süreç kodu (db.cjs, ipc/*) ölçülmez
 npx electron scripts/tests/smoke-ui.cjs <dizin>   # ekran görüntüleriyle duman testi (önce npm run build)
@@ -79,7 +79,9 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
 - `electron/ipc/cikti.cjs` — yazdırma, makbuz PDF (`uploads/makbuz/<no>.pdf`), rapor PDF, Excel (exceljs).
 - `electron/tasimaKripto.cjs` (SAF: parola → scrypt → AES-256-GCM) + `yedek.cjs` taşıma paketi: `.eyupspor` dosyası, içinde
   ŞİFRESİZ data.db (`db.duzKopyaOlustur`: VACUUM INTO + rekey '') + uploads; geri yüklemede `db.duzVeritabaniniSifrele`
-  (rekey makine anahtarı). Başka PC'de açılır; normal yedek açılmaz. Plan §14.
+  (rekey makine anahtarı). Başka PC'de açılır; normal yedek açılmaz. Plan §14. Uçtan uca test `scripts/tests/tasima-e2e.cjs`
+  (gerçek main.cjs, iki userData, diyaloglar dosyaya yönlendirilir; test klasör adları `eyupspor-tasima-`/`eyupspor-geri-` ile
+  BAŞLAYAMAZ: açılış temizliği siler).
 - `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip, makine anahtarıyla `tasimaKripto` YEDEK_MAGIC kabında şifreli `eyupspor-yedek-<damga>.eyupyedek`; anahtar yoksa düz `.zip`; eski düz zip'ler açılmaya devam eder,
   fflate, 30 gün saklama) ve
   geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
