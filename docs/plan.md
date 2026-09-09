@@ -783,3 +783,13 @@ aylar yine kendi ayında açılır.
    satırında sezon damgası var).
 2. Sezon geçişinde ilk ay borcu hemen açılır (muaf kuralları aynı; yenilemeyene açılmaz).
 3. Aylık raporlarda sezon + ay; sezon listesi oyuncu/grup/makbuz kayıtlarından.
+
+## 18. Oyuncular — sezon filtresi (UYGULANDI, 09.09.2026)
+- Filtre kartında ilk kutu **Sezon**: aktif sezon seçili gelir ("… (aktif sezon)"), kayıtlardaki eski sezonlar ve "Tüm sezonlar"
+  seçilebilir; sonra yaş grubu, durum ve düğmeler. Sezon seçilince yalnız o sezonun oyuncuları (`players.sezon`) listelenir;
+  Excel/PDF aynı filtreyle, PDF alt başlığında sezon.
+- Arama kutusu üst satıra, sola alındı; İçe Aktar / Excel / PDF / Yeni Oyuncu aynı satırda sağda.
+- Ana süreç: `createPlayer` sezon verilmezse `aktif_sezon` damgalar (form ve Excel aktarımı); göç 15 sezonu boş olan
+  aktif/deneme/sakat oyunculara aktif sezonu yazar (pasif/ayrılmışlar boş kalır, "Tüm sezonlar"da görünür).
+- Test: `tests/ui/oyuncular-sezon.test.jsx`, `db-roundtrip` (varsayılan sezon, göç 15).
+

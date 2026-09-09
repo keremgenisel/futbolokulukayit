@@ -24,6 +24,7 @@ import { OyuncuAktar } from "./OyuncuAktar.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
 import { raporHtml } from "../lib/raporHtml.js";
 import { Ikon } from "./Ikon.jsx";
+import { guncelSezon } from "../lib/sezon.js";
 
 export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onAcildi }) {
   const [liste, setListe] = useState([]);
@@ -32,6 +33,10 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const SAYFA_BOYU = 50;
   const [gruplar, setGruplar] = useState([]);
   const [q, setQ] = useState("");
+  // Sezon filtresi (plan §18): varsayılan aktif sezon; "" = tüm sezonlar
+  const [sezonDurum, setSezonDurum] = useState(null);
+  const [sezonlar, setSezonlar] = useState([]);
+  const [sezon, setSezon] = useState(null); // null: henüz seçilmedi → aktif sezon
   const [grup, setGrup] = useState("");
   const [durum, setDurum] = useState("aktifler"); // varsayılan: aktif + deneme + sakat (sahadaki herkes); pasif/ayrıldı/dondurma filtreyle görülür
   const [odemeyen, setOdemeyen] = useState(false);
@@ -42,9 +47,12 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const toast = useToast();
   const dene = useDene();
   const { yil, ay, iso } = bugun();
+  const aktifSezon = sezonDurum?.aktifSezon || guncelSezon(iso, sezonDurum?.baslangicAyi || 9);
+  const seciliSezon = sezon === null ? aktifSezon : sezon;
 
   const filtre = () => ({
     q,
+    sezon: seciliSezon || null,
     yas_grubu_id: grup ? Number(grup) : null,
     durum: durum || null,
     yil,
@@ -60,15 +68,21 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       setToplam(r.toplam);
       if (r.sayfa !== sayfa) setSayfa(r.sayfa); // sayfa taşarsa sunucu son sayfaya çeker
     });
-  }, [q, grup, durum, odemeyen, saglik, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, seciliSezon, grup, durum, odemeyen, saglik, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   // Filtre değişince ilk sayfaya dön.
   useEffect(() => {
     setSayfa(1);
-  }, [q, grup, durum, odemeyen, saglik]);
+  }, [q, seciliSezon, grup, durum, odemeyen, saglik]);
 
   useEffect(() => {
     db("listAgeGroups")
       .then(setGruplar)
+      .catch(() => {});
+    db("sezonDurumu")
+      .then((d) => d && setSezonDurum(d))
+      .catch(() => {});
+    db("sezonListesi")
+      .then((l) => Array.isArray(l) && setSezonlar(l))
       .catch(() => {});
   }, []);
   useEffect(() => {
@@ -134,7 +148,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       await cikti().pdfKaydet(
         raporHtml({
           baslik: "Oyuncu Listesi",
-          altBaslik: `${v.satirlar.length} oyuncu · ${tarihTR(bugun().iso)}`,
+          altBaslik: `${v.satirlar.length} oyuncu${seciliSezon ? ` · ${seciliSezon} sezonu` : ""} · ${tarihTR(bugun().iso)}`,
           sutunlar: v.sutunlar,
           satirlar: v.satirlar,
           logo,
@@ -147,7 +161,20 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+        <div style={{ position: "relative", width: 320 }}>
+          <span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}>
+            <Ikon ad="ara" />
+          </span>
+          <Girdi
+            placeholder="Ad, soyad, TC veya pasaport ara"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            style={{ height: 40, paddingLeft: 40 }}
+            aria-label="Ara"
+          />
+        </div>
+        <div style={{ flex: 1 }} />
         {oturum?.role === "admin" && !saltOkunur && (
           <Btn tur="ghost" ikon={<Ikon ad="yukle" />} onClick={() => setAktarAcik(true)}>
             İçe Aktar
@@ -166,18 +193,14 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         )}
       </div>
       <Kart style={{ padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <div style={{ position: "relative", width: 300 }}>
-          <span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}>
-            <Ikon ad="ara" />
-          </span>
-          <Girdi
-            placeholder="Ad, soyad, TC veya pasaport ara"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            style={{ height: 40, paddingLeft: 40 }}
-            aria-label="Ara"
-          />
-        </div>
+        <Secim
+          secenekler={[...new Set([aktifSezon, ...sezonlar])].map((s) => ({ kod: s, ad: s === aktifSezon ? `${s} (aktif sezon)` : s }))}
+          bos="Tüm sezonlar"
+          value={seciliSezon}
+          onChange={(e) => setSezon(e.target.value)}
+          style={{ width: 200, height: 40 }}
+          aria-label="Sezon"
+        />
         <Secim
           secenekler={gruplar}
           bos="Tüm gruplar"

@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "14",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "15",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -279,8 +279,8 @@ app.whenReady().then(async () => {
       !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id,
     );
     check(
-      "şema sürümü 14 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "14" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      "şema sürümü 15 ve pasaport sütunu var",
+      db.getMetaValue("schema_version") === "15" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -922,7 +922,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "14",
+        db.getMetaValue("schema_version") === "15",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1284,6 +1284,16 @@ app.whenReady().then(async () => {
           m2.makbuz_no === "2027-0002" &&
           m1.sezon === "2027-2028" &&
           db.getReceipt(m1.id).sezon === "2027-2028",
+      );
+      // Plan §18: sezon verilmeyen oyuncu aktif sezonu alır; göç 15 sezonu boş sahadaki oyuncuları doldurur
+      check("createPlayer sezon verilmeyince aktif sezonu damgalar", p17.sezon === "2027-2028");
+      db.hamBaglanti().prepare("UPDATE players SET sezon='' WHERE id=?").run(p17.id);
+      db.setMetaValue("schema_version", "14");
+      db.close();
+      db.init();
+      check(
+        "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "15",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;

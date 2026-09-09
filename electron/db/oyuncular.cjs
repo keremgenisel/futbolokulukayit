@@ -1,6 +1,10 @@
 // ── players, guardians, emergency contacts, liste/sayfa sorguları ──
 const { db } = require("./baglanti.cjs");
 const { ensureMonthlyDues } = require("./aidat.cjs");
+const { getSetting } = require("./meta.cjs");
+const { tarihinSezonu } = require("../makbuzNo.cjs");
+const varsayilanSezon = () =>
+  getSetting("aktif_sezon") || tarihinSezonu(new Date().toISOString().slice(0, 10), Number(getSetting("sezon_baslangic_ayi")) || 9);
 const { araNormalize } = require("../metin.cjs");
 // LIKE içinde kullanıcı girdisinin % _ \ karakterleri joker olmasın (ESCAPE '\\')
 const likeKacir = (s) => String(s).replace(/[\\%_]/g, (c) => "\\" + c);
@@ -32,6 +36,9 @@ function ucretTipiDogrula(kod) {
 }
 function createPlayer(p) {
   ucretTipiDogrula(p.ucret_tipi);
+  // Sezon verilmediyse (form, Excel aktarımı) aktif sezon damgalanır; ayar boşsa (sihirbaz atlanmış) bugünün sezonu —
+  // Oyuncular ekranının varsayılan sezon filtresi de aynı kuralla seçer (plan §18)
+  if (p.sezon === undefined || p.sezon === null || p.sezon === "") p = { ...p, sezon: varsayilanSezon() };
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
   const r = db.prepare(`INSERT INTO players (${cols.join(",")}) VALUES (${cols.map(() => "?").join(",")})`).run(...cols.map((c) => p[c]));
   buAyAidatAc(Number(r.lastInsertRowid)); // ay ortasında kaydolan oyuncunun bu ayki aidatı hemen açılsın
