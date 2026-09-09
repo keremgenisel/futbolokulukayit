@@ -626,3 +626,54 @@ program dışında saklanır; unutulursa paket açılamaz (tasarım gereği).
   `PRAGMA rekey='<anahtar>'` ile şifrelenir → mevcut geri yükleme çekirdeği (`.pre-restore` kenara alma) → relaunch.
 - Yalnız yönetici; istemci modunda kapalı. Roundtrip testi: oluştur/aç/yanlış parola/geri yükle/yeniden şifreli.
 
+
+## 15. Yaş Grupları — Sezon alanı otomatik ve denetimli (PLANLANDI, 09.09.2026)
+
+**Sorun:** Yaş Grupları > Grup Ekle ve satır düzenlemedeki "Sezon" kutusu serbest metin; kullanıcı "2026", "26/27", "Eylül"
+yazabiliyor. Oysa programın tek bir aktif sezon kavramı var (`settings.aktif_sezon`: ilk kurulum sihirbazı `guncelSezon` ile
+doldurur, Yeni Sezon sihirbazı `yeniSezonaGec` ile ilerletir ve TÜM aktif grupların sezonunu tek seferde yazar). Grup
+sezonunun elle girilmesi hem gereksiz hem hataya açık: oyuncu formundaki grup önerisi (`yasGrubuOner`) ve sezon sonu
+uyarısı bu değerlere bakıyor.
+
+### 15.1 Davranış
+- **Grup Ekle:** Sezon kutusu serbest metin olmaktan çıkar; **seçim kutusu** olur ve **aktif sezonla dolu gelir**.
+  Seçenekler yalnız iki tane: aktif sezon (varsayılan) ve sonraki sezon (`sonrakiSezon`). İkincisi sezon sonuna yakın,
+  yeni sezonun gruplarını önceden açmak için. Aktif sezon ayarı boşsa (sihirbaz atlanmışsa) bugünün sezonu
+  (`guncelSezon(bugün, sezon_baslangic_ayi)`) kullanılır.
+- **Satır düzenleme:** Aynı seçim kutusu; mevcut değer iki seçenekten biri değilse (eski elle girilmiş "2026" gibi) üçüncü
+  seçenek olarak gösterilir ki kayıt bozulmasın, ama yeni giriş yalnız geçerli sezonlardan yapılır.
+- **Liste:** Sezon sütunu olduğu gibi; aktif sezondan farklı olan satırda soluk "(eski)" ya da "(gelecek)" notu.
+- **Ana süreç (asıl koruma):** `createAgeGroup` ve `updateAgeGroup` sezonu doğrular: boş ya da `2026-2027` biçimi ve ikinci
+  yıl = ilk yıl + 1 (`sezonGecerliMi` kuralı, `electron/db/gruplar.cjs` içinde saf `sezonDogrula`). Biçim bozuksa
+  "Sezon 2026-2027 biçiminde olmalı" hatası. Boş değer API uyumluluğu için kabul edilir (mevcut test ve aktarım yolları).
+- **Tek seferlik göç (şema 12):** `aktif_sezon` doluysa, sezonu boş olan AKTİF gruplara aktif sezon yazılır
+  (`UPDATE age_groups SET sezon=? WHERE aktif=1 AND sezon=''`). Pasif gruplara ve dolu değerlere dokunulmaz.
+- **İlk kurulum sihirbazı:** "Aktif sezon" kutusu zaten `guncelSezon` ile dolu ve doğrulanıyor; aynı seçim kutusuna
+  çevrilir (aktif / sonraki), böylece iki ekranda aynı bileşen kullanılır.
+
+### 15.2 Teknik
+- `src/lib/sezon.js` (SAF): `sezonSecenekleri(aktifSezon, bugunIso, baslangicAyi)` → `[{ kod, ad }]` (aktif, sonraki;
+  aktif boşsa bugünün sezonu). Mevcut `guncelSezon`, `sonrakiSezon`, `sezonGecerliMi` kullanılır.
+- `src/components/SezonSecim.jsx` (yeni, küçük): `Secim` üzerine sarmalayıcı; `value` seçeneklerde yoksa onu üçüncü
+  seçenek olarak ekler. Yaş Grupları (ekle + düzenle) ve İlk Kurulum kullanır.
+- `YasGruplari.jsx`: `yeni.sezon` başlangıç değeri `aidatAyarlari().sezon` (zaten `db("aidatAyarlari")` dönüyor; ekranda
+  `sezon_baslangic_ayi` için `sezonDurumu` çağrısı) → ekle sonrası kutu yine aktif sezona döner (boşa değil).
+- `electron/db/gruplar.cjs`: `sezonDogrula(sezon)`; `createAgeGroup`/`updateAgeGroup` içinde. `electron/db/sema.cjs`:
+  `SCHEMA_VERSION = 12`, `migrate()` içinde `cur < 12` göçü.
+- Yetki/beyaz liste değişmez (yeni IPC yok).
+
+### 15.3 Testler
+- `tests/sezon.test.js`: `sezonSecenekleri` (aktif dolu / boş, sonraki sezon, başlangıç ayı).
+- `tests/ui/yas-gruplari.test.jsx`: Grup Ekle sezon kutusu aktif sezonla dolu gelir; ekle sonrası yine dolu; düzenlemede
+  eski "2026" değeri üçüncü seçenek olarak görünür; `createAgeGroup` çağrısı seçilen sezonla gider.
+- `tests/ui/ilk-kurulum.test.jsx`: sezon seçim kutusu (mevcut test uyarlanır).
+- `scripts/tests/db-roundtrip.cjs`: `createAgeGroup({ sezon: "2026" })` → hata; `"2026-2027"` → ok; boş → ok; şema 12 göçü
+  boş sezonlu aktif gruba aktif sezonu yazar, pasif gruba dokunmaz; şema sürümü 12.
+
+### 15.4 Süre ve sıra
+Saf mantık + test (15 dk) → ana süreç doğrulama + göç + roundtrip (20 dk) → `SezonSecim` + Yaş Grupları + İlk Kurulum + UI
+testleri (40 dk) → smoke ekran görüntüsü. Toplam ~1,5 saat. Davranış değişikliği: elle sezon yazılamaz; bu kulüp isteği.
+
+### 15.5 Karar bekleyen
+- Sonraki sezon seçeneği gerekli mi, yoksa yalnız aktif sezon kilitli mi olsun? (Öneri: iki seçenek; sezon sonunda yeni
+  grupları önceden açmak isteyen kulüp için. Yeni Sezon sihirbazı zaten var, o yüzden kilitli tek değer de savunulabilir.)
