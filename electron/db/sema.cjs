@@ -4,7 +4,7 @@ const { getMetaValue, setMetaValue } = require("./meta.cjs");
 const { createUser } = require("./kullanicilar.cjs");
 const { araNormalize } = require("../metin.cjs");
 
-const SCHEMA_VERSION = 16; // 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
+const SCHEMA_VERSION = 17; // 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -201,6 +201,13 @@ CREATE TABLE IF NOT EXISTS player_seasons (
   PRIMARY KEY (player_id, sezon)
 );
 
+-- Grubun var olduğu sezonlar (plan §21): oluşturma, sezon düzenleme ve sezon geçişinde satır eklenir; Yaş Grupları sezon süzgeci.
+CREATE TABLE IF NOT EXISTS group_seasons (
+  group_id INTEGER NOT NULL REFERENCES age_groups(id) ON DELETE CASCADE,
+  sezon TEXT NOT NULL,
+  PRIMARY KEY (group_id, sezon)
+);
+
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
 `;
 
@@ -364,6 +371,15 @@ function migrate() {
     for (const d of db.prepare("SELECT DISTINCT player_id, yil, ay FROM monthly_dues").all())
       ekle.run(d.player_id, tarihinSezonu(`${d.yil}-${String(d.ay).padStart(2, "0")}-01`, bas));
     for (const r of db.prepare("SELECT DISTINCT player_id, sezon FROM receipts WHERE sezon<>''").all()) ekle.run(r.player_id, r.sezon);
+  }
+  // 17: group_seasons doldurulur — age_groups.sezon + grubun antrenman tarihlerinin düştüğü sezonlar (o sezonda çalışıyordu)
+  if (cur < 17) {
+    const { tarihinSezonu } = require("../makbuzNo.cjs");
+    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const ekle = db.prepare("INSERT OR IGNORE INTO group_seasons (group_id, sezon) VALUES (?,?)");
+    for (const g of db.prepare("SELECT id, sezon FROM age_groups WHERE sezon<>''").all()) ekle.run(g.id, g.sezon);
+    for (const t of db.prepare("SELECT DISTINCT age_group_id, substr(tarih,1,7) AS ay FROM trainings").all())
+      ekle.run(t.age_group_id, tarihinSezonu(t.ay + "-01", bas));
   }
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }

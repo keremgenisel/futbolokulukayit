@@ -418,7 +418,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 16 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "16");
+      check("şema sürümü 17 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "17");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",
@@ -522,6 +522,15 @@ app.on("browser-window-created", async (_e, win) => {
         "geçmiş sezon süzgeci yeniden açılışta oyuncuyu bulur; yeni sezon süzgeci de",
         db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).some((p) => p.id === o.id) &&
           db.playersPage({ yil: 2027, ay: 9, sezon: "2027-2028", durum: "aktifler" }).liste.some((p) => p.id === o.id),
+      );
+      check(
+        "grup sezon üyeliği kalıcı: U13 kayıtta 2026-2027, geçişle 2027-2028 (plan §21)",
+        db
+          .hamBaglanti()
+          .prepare("SELECT sezon FROM group_seasons WHERE group_id=? ORDER BY sezon")
+          .all(db.listAgeGroups().find((g) => g.ad === "U13").id)
+          .map((r) => r.sezon)
+          .join() === "2026-2027,2027-2028",
       );
       check(
         "hiç oyuncu sezonsuz kalmadı (göç 15 + createPlayer damgası)",

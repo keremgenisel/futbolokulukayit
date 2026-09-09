@@ -955,7 +955,7 @@ zaten sezonsuzdu. Sezon modunda davranış aynı (o sezonun oyuncuları). Ayrıc
 yoklamasının sayılması hatası düzeltildi (t.id IS NOT NULL).
 
 
-## 21. Yaş Grupları — sezon filtresi (PLANLANDI, 09.09.2026)
+## 21. Yaş Grupları — sezon filtresi (PLANLANDI ve UYGULANDI, 09.09.2026)
 
 **İstek:** Yaş Grupları ekranında sezon seçilince o sezonun grupları gelsin.
 
@@ -995,7 +995,8 @@ Ekranda sezon süzgeci yok; liste aktif grupları (isteğe bağlı pasifleri) g�
   `oyuncular-sezon`/`raporlar-sezon` testleri.
 - Süre ~1 saat (+30 dk §21.3).
 
-### 21.5 Karar bekleyen
-1. §21.3 (Oyuncular/Raporlar'daki yaş grubu kutusu da sezona göre süzülsün) bu turda yapılsın mı? (Öneri: evet.)
-2. Göçte geçmiş üyelik antrenman tarihlerinden türetilsin mi? (Öneri: evet; antrenmanı olmayan eski sezon grubu ancak
-   elle düzenlemeyle geçmişe eklenir.)
+### 21.5 Kararlar (Kerem, 09.09.2026: "uygula")
+1. §21.3 yapıldı: Oyuncular'da seçili sezonun grupları ("Tüm sezonlar"da hepsi); Raporlar'da sezon modunda seçili sezonun,
+   tarih modunda tüm gruplar.
+2. Göç 17 antrenman tarihlerinden türetir (grup sezonu + antrenman ayları). Antrenmanı olmayan eski grup için grubun sezon
+   alanı düzenlenince üyelik eklenir.

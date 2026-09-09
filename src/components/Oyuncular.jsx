@@ -74,10 +74,13 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     setSayfa(1);
   }, [q, seciliSezon, grup, durum, odemeyen, saglik]);
 
+  // Yaş grubu kutusu seçili sezonun gruplarını listeler (plan §21.3); "Tüm sezonlar"da hepsi
   useEffect(() => {
-    db("listAgeGroups")
-      .then(setGruplar)
+    db("listAgeGroups", { sezon: seciliSezon || null })
+      .then((l) => Array.isArray(l) && setGruplar(l))
       .catch(() => {});
+  }, [seciliSezon]);
+  useEffect(() => {
     db("sezonDurumu")
       .then((d) => d && setSezonDurum(d))
       .catch(() => {});

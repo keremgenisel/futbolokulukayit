@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Alan, Girdi, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
+import { Kart, Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db } from "../lib/api.js";
 import { programCoz, programOzeti, GUN_ADLARI } from "../lib/program.js";
 import { SezonSecim } from "./SezonSecim.jsx";
@@ -14,33 +14,41 @@ export function YasGruplari({ saltOkunur }) {
   const [duzenle, setDuzenle] = useState(null); // { id, ad, sezon, sira, aktif }
   const [sil, setSil] = useState(null);
   const [pasifGoster, setPasifGoster] = useState(false); // varsayılan: yalnız aktif gruplar (plan §17.1)
+  const [sezonF, setSezonF] = useState(null); // sezon süzgeci (plan §21): null → aktif sezon, "" → tüm sezonlar
+  const [sezonlar, setSezonlar] = useState([]);
   const toast = useToast();
   const dene = useDene();
 
-  const yukle = () =>
-    dene(async () => {
-      setGruplar(await db("listAgeGroups"));
-      setOyuncular(await db("listPlayers"));
-      setSezonDurum((await db("sezonDurumu")) || null);
-    });
   const aktifSezon = sezonSecenekleri({
     aktifSezon: sezonDurum?.aktifSezon || "",
     bugunIso: bugun().iso,
     baslangicAyi: sezonDurum?.baslangicAyi || 9,
   })[0].kod;
+  const seciliSezon = sezonF === null ? aktifSezon : sezonF; // "" = tüm sezonlar
+  const aktifSezonda = seciliSezon === aktifSezon;
+  const yukle = () =>
+    dene(async () => {
+      setGruplar(await db("listAgeGroups", { sezon: seciliSezon || null }));
+      setOyuncular(await db("listPlayers"));
+      setSezonDurum((await db("sezonDurumu")) || null);
+      setSezonlar((await db("sezonListesi")) || []);
+    });
   useEffect(() => {
     yukle();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [seciliSezon]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sayi = (id) => oyuncular.filter((o) => o.yas_grubu_id === id && ["aktif", "deneme", "sakat"].includes(o.durum)).length;
 
   const ekle = async () => {
     if (!yeni.ad.trim()) return;
     return dene(async () => {
-      await db("createAgeGroup", { ad: yeni.ad.trim(), sezon: yeni.sezon || aktifSezon, sira: gruplar.length + 1 });
+      const eklenenSezon = yeni.sezon || aktifSezon;
+      await db("createAgeGroup", { ad: yeni.ad.trim(), sezon: eklenenSezon, sira: gruplar.length + 1 });
       setYeni({ ad: "", sezon: "" }); // sezon yine aktif sezona döner
       toast("ok", "Grup eklendi");
-      yukle();
+      // Eklenen grup seçili sezonun süzgecine girmiyorsa (örn. sonraki sezon için açıldı) süzgeç o sezona geçer ki grup görünsün
+      if (seciliSezon && eklenenSezon !== seciliSezon) setSezonF(eklenenSezon);
+      else yukle();
     });
   };
   const kaydet = () =>
@@ -63,7 +71,8 @@ export function YasGruplari({ saltOkunur }) {
       toast("ok", g.aktif ? `${g.ad} pasife alındı` : `${g.ad} aktif`);
       yukle();
     });
-  const gorunen = gruplar.filter((g) => g.aktif || pasifGoster);
+  // Aktif sezonda yalnız aktifler (+ onay kutusu); geçmiş sezon / tüm sezonlarda o sezonun tüm grupları (bugün pasif olabilir)
+  const gorunen = gruplar.filter((g) => g.aktif || pasifGoster || !aktifSezonda);
   const pasifSayisi = gruplar.filter((g) => !g.aktif).length;
   const silOnayla = () =>
     dene(async () => {
@@ -95,14 +104,27 @@ export function YasGruplari({ saltOkunur }) {
         </Kart>
       )}
       <Kart>
-        {pasifSayisi > 0 && (
-          <label style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 16px 0", fontSize: 14, color: "var(--soluk)" }}>
-            <input type="checkbox" checked={pasifGoster} onChange={(e) => setPasifGoster(e.target.checked)} />
-            Pasif grupları da göster ({pasifSayisi})
-          </label>
-        )}
+        <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "12px 16px 0", flexWrap: "wrap" }}>
+          <Secim
+            secenekler={[...new Set([aktifSezon, seciliSezon, ...sezonlar].filter(Boolean))].map((s) => ({
+              kod: s,
+              ad: s === aktifSezon ? `${s} (aktif sezon)` : s,
+            }))}
+            bos="Tüm sezonlar"
+            value={seciliSezon}
+            onChange={(e) => setSezonF(e.target.value)}
+            style={{ width: 220, height: 40 }}
+            aria-label="Sezon süzgeci"
+          />
+          {aktifSezonda && pasifSayisi > 0 && (
+            <label style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 14, color: "var(--soluk)" }}>
+              <input type="checkbox" checked={pasifGoster} onChange={(e) => setPasifGoster(e.target.checked)} />
+              Pasif grupları da göster ({pasifSayisi})
+            </label>
+          )}
+        </div>
         {gruplar.length === 0 ? (
-          <Bos metin="Henüz yaş grubu yok. Yukarıdan ekleyin." />
+          <Bos metin={aktifSezonda ? "Henüz yaş grubu yok. Yukarıdan ekleyin." : "Bu sezonda grup yok."} />
         ) : gorunen.length === 0 ? (
           <Bos metin="Aktif grup yok. Pasif grupları göstermek için yukarıdaki kutuyu işaretleyin." />
         ) : (

@@ -2,7 +2,19 @@
 const { db } = require("./baglanti.cjs");
 const { createTraining } = require("./antrenman.cjs");
 
-const listAgeGroups = () => db.prepare("SELECT * FROM age_groups ORDER BY sira, ad").all();
+// sezon verilirse yalnız o sezonda var olan gruplar (age_groups.sezon VEYA group_seasons; plan §21); verilmezse hepsi
+const listAgeGroups = ({ sezon = null } = {}) =>
+  sezon
+    ? db
+        .prepare(
+          "SELECT * FROM age_groups WHERE sezon=? OR EXISTS (SELECT 1 FROM group_seasons gs WHERE gs.group_id=age_groups.id AND gs.sezon=?) ORDER BY sira, ad",
+        )
+        .all(String(sezon), String(sezon))
+    : db.prepare("SELECT * FROM age_groups ORDER BY sira, ad").all();
+// Grubun sezon üyeliği (plan §21): oluşturma, sezon düzenleme, sezon geçişi; silinmez (geçmiş kalır)
+const grupSezonUyeligiEkle = (id, sezon) => {
+  if (sezon) db.prepare("INSERT OR IGNORE INTO group_seasons (group_id, sezon) VALUES (?,?)").run(Number(id), String(sezon));
+};
 // Sezon "2026-2027" biçiminde ve ikinci yıl birinciden bir fazla olmalı (plan §15); boş kabul (API uyumu). undefined → null (COALESCE: dokunma).
 function sezonDogrula(sezon) {
   if (sezon === undefined || sezon === null) return null;
@@ -15,14 +27,18 @@ function sezonDogrula(sezon) {
 function createAgeGroup({ ad, sezon = "", sira = 0 }) {
   sezon = sezonDogrula(sezon) ?? "";
   const r = db.prepare("INSERT INTO age_groups (ad,sezon,sira) VALUES (?,?,?)").run(ad, sezon, sira);
+  grupSezonUyeligiEkle(Number(r.lastInsertRowid), sezon);
   return { id: Number(r.lastInsertRowid), ad, sezon, sira, aktif: 1 };
 }
-const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }) =>
-  db
+const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }) => {
+  const s = sezonDogrula(sezon);
+  if (s) grupSezonUyeligiEkle(id, s);
+  return db
     .prepare(
       "UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif), program=COALESCE(?,program) WHERE id=?",
     )
-    .run(ad, sezonDogrula(sezon), sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
+    .run(ad, s, sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
+};
 // Program girdisini süz: [{gun 1..7, saat HH:MM, saha}]
 function programDogrula(p) {
   const l =
@@ -83,4 +99,13 @@ const deleteAgeGroup = (id) => {
   return { ok: true };
 };
 
-module.exports = { listAgeGroups, createAgeGroup, updateAgeGroup, programDogrula, sezonDogrula, haftayiProgramdanDoldur, deleteAgeGroup };
+module.exports = {
+  listAgeGroups,
+  createAgeGroup,
+  updateAgeGroup,
+  programDogrula,
+  sezonDogrula,
+  grupSezonUyeligiEkle,
+  haftayiProgramdanDoldur,
+  deleteAgeGroup,
+};

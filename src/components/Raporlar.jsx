@@ -42,10 +42,14 @@ export function Raporlar() {
   const [sayfa, setSayfa] = useState(1);
   const ONIZLEME_BOYU = 100; // önizleme sayfası; Excel/PDF tam liste
   const dene = useDene();
+  // Yaş grubu kutusu: sezon modunda seçili sezonun grupları, tarih modunda hepsi (plan §21.3)
+  const grupSezonu = yoklamaMod === "tarih" ? null : seciliSezon;
   useEffect(() => {
-    db("listAgeGroups")
-      .then(setGruplar)
+    db("listAgeGroups", { sezon: grupSezonu || null })
+      .then((l) => Array.isArray(l) && setGruplar(l))
       .catch(() => {});
+  }, [grupSezonu]);
+  useEffect(() => {
     db("sezonDurumu")
       .then((d) => d && setSezonDurum(d))
       .catch(() => {});

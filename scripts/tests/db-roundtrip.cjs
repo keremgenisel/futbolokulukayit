@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "16",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "17",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -279,8 +279,8 @@ app.whenReady().then(async () => {
       !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id,
     );
     check(
-      "şema sürümü 16 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "16" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      "şema sürümü 17 ve pasaport sütunu var",
+      db.getMetaValue("schema_version") === "17" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -713,6 +713,30 @@ app.whenReady().then(async () => {
       db.listPlayersWithDue({ yil: 2027, ay: 9, sezon: "2027-2028" }).some((p) => p.id === yenileyen.id) &&
         !db.listPlayersWithDue({ yil: 2027, ay: 9, sezon: "2027-2028" }).some((p) => p.id === yenilemeyen.id),
     );
+    // Plan §21: grup sezon üyeliği — U12 (2026-2027'de açıldı) geçişle 2027-2028'e de üye; eski sezon süzgecinde görünür
+    const gs = (id) =>
+      db
+        .hamBaglanti()
+        .prepare("SELECT sezon FROM group_seasons WHERE group_id=? ORDER BY sezon")
+        .all(id)
+        .map((r) => r.sezon)
+        .join();
+    check("group_seasons: U12 iki sezonda", gs(u12.id) === "2026-2027,2027-2028");
+    check(
+      "listAgeGroups sezon süzgeci: 2026-2027 ve 2027-2028'de U12 var, 2020-2021'de yok",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === u12.id) &&
+        db.listAgeGroups({ sezon: "2027-2028" }).some((g) => g.id === u12.id) &&
+        db.listAgeGroups({ sezon: "2020-2021" }).length === 0,
+    );
+    // Göç 17: tablo boşaltılıp yeniden açılınca antrenman tarihlerinden ve grup sezonundan türetilir
+    db.hamBaglanti().prepare("DELETE FROM group_seasons").run();
+    db.setMetaValue("schema_version", "16");
+    db.close();
+    db.init();
+    check(
+      "göç 17: grup üyeliği antrenman tarihlerinden türetildi (U11'in 2027-04 antrenmanı → 2026-2027)",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "17",
+    );
     // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
     const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
     check(
@@ -801,7 +825,7 @@ app.whenReady().then(async () => {
       db
         .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
         .map((p) => p.id)
-        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "16",
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "17",
     );
     check(
       "gruplar ve aktif sezon güncellendi",
@@ -1012,7 +1036,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "16",
+        db.getMetaValue("schema_version") === "17",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1383,7 +1407,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "16",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "17",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;

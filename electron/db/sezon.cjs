@@ -74,6 +74,7 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
       }
     }
     db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1").run(sezon);
+    db.prepare("INSERT OR IGNORE INTO group_seasons (group_id, sezon) SELECT id, ? FROM age_groups WHERE aktif=1").run(sezon); // geçmiş üyelik kalır (plan §21)
     setSetting("aktif_sezon", sezon);
     setSetting("son_sezon_gecisi", new Date().toISOString());
     return { ok: true, sezon, yenilenen, pasif, grupDegisen, borcSilinen, ilkAyBorcu, ilkAy };
