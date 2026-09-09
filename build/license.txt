@@ -1,0 +1,52 @@
+﻿FUTBOL OKULU KAYIT PROGRAMI
+SON KULLANICI LİSANS SÖZLEŞMESİ
+
+Sürüm: 1.0 — 09.09.2026
+
+Bu sözleşme, "Futbol Okulu Kayıt Programı" yazılımının (bundan sonra "Yazılım") sahibi ve geliştiricisi Kerem Genişel ("Lisans Veren") ile Yazılımı kuran ve kullanan gerçek veya tüzel kişi ("Lisans Alan") arasında yapılmıştır. Yazılımı kurarak veya kullanarak bu sözleşmenin tüm şartlarını kabul etmiş olursunuz. Şartları kabul etmiyorsanız kurulumu tamamlamayın ve Yazılımı kullanmayın.
+
+1. TANIMLAR
+"Yazılım": Futbol Okulu Kayıt Programı masaüstü uygulaması, güncellemeleri, yardımcı araçları ve belgeleri.
+"Lisans Anahtarı": Lisans Veren tarafından üretilen, Yazılımı belirli sayıda bilgisayarda etkinleştiren dize.
+"Kurulum": Yazılımın tek bir bilgisayarda çalışır hâlde bulunması.
+
+2. LİSANSIN KAPSAMI
+2.1. Lisans Veren, Lisans Alan'a Yazılımı yalnızca kendi futbol okulu veya spor kulübünün iç işleyişinde (oyuncu kaydı, aidat takibi, makbuz, yoklama ve raporlama) kullanmak üzere münhasır olmayan, devredilemez ve alt lisans verilemez bir kullanım hakkı tanır.
+2.2. Yazılım, Lisans Anahtarında belirtilen sayıda bilgisayara kurulabilir. Aynı anahtarla daha fazla kurulum yapılamaz.
+2.3. Yazılım satılmamakta, lisanslanmaktadır. Yazılımın ve kopyalarının tüm mülkiyet ve fikri hakları Lisans Veren'e aittir.
+
+3. DENEME SÜRÜMÜ
+Lisans Anahtarı girilmeden Yazılım sınırlı bir süre deneme amaçlı kullanılabilir. Deneme süresi dolduğunda Yazılım salt okunur moda geçer: mevcut veriler görüntülenebilir ve dışa aktarılabilir, ancak yeni kayıt yapılamaz. Geçerli bir Lisans Anahtarı girildiğinde kısıtlama kalkar.
+
+4. KISITLAMALAR
+Lisans Alan aşağıdakileri yapamaz ve üçüncü kişilere yaptıramaz:
+a) Yazılımı kiralamak, ödünç vermek, satmak, devretmek veya alt lisansla vermek;
+b) Yazılımı tersine mühendisliğe tabi tutmak, kaynak koduna dönüştürmek, kopyalamak veya türev çalışma üretmek (yürürlükteki yasaların açıkça izin verdiği hâller saklıdır);
+c) Lisans Anahtarını başkalarıyla paylaşmak veya lisans denetim mekanizmalarını aşmaya çalışmak;
+d) Yazılımdaki telif hakkı ve mülkiyet bildirimlerini kaldırmak veya değiştirmek.
+
+5. VERİLER VE KİŞİSEL VERİLERİN KORUNMASI
+5.1. Yazılıma girilen tüm veriler (oyuncu, veli, sağlık ve ödeme bilgileri dâhil) Lisans Alan'ın bilgisayarında saklanır. Lisans Veren bu verilere erişemez, verileri toplamaz ve herhangi bir sunucuya aktarmaz. İsteğe bağlı çevrimiçi lisans etkinleştirme yalnızca Lisans Anahtarı ve makine kimliği bilgisini iletir.
+5.2. Lisans Alan, 6698 sayılı Kişisel Verilerin Korunması Kanunu ve ilgili mevzuat kapsamında veri sorumlusudur. Verilerin hukuka uygun toplanması, saklanması, silinmesi ve ilgili kişilerin aydınlatılması Lisans Alan'ın sorumluluğundadır.
+5.3. Yazılım veritabanını bu bilgisayara özgü bir anahtarla şifreler ve yedekleme araçları sunar. Yedeklerin düzenli alınması, güvenli bir yerde saklanması ve bilgisayar değişiminde taşıma paketi kullanılması Lisans Alan'ın sorumluluğundadır. Yedeği olmayan verilerin kaybından Lisans Veren sorumlu değildir.
+
+6. GÜNCELLEMELER VE DESTEK
+Lisans Veren, Yazılım için güncelleme yayımlayabilir. Güncellemeler bu sözleşmeye tabidir. Lisans Veren, güncelleme veya destek sağlamayı taahhüt etmez; destek şartları ayrı bir sözleşmeyle belirlenebilir.
+
+7. GARANTİ REDDİ
+Yazılım "olduğu gibi" sağlanır. Lisans Veren, Yazılımın kesintisiz veya hatasız çalışacağını, belirli bir amaca uygun olacağını veya tüm ihtiyaçları karşılayacağını garanti etmez. Yürürlükteki yasaların izin verdiği ölçüde, açık veya zımni tüm garantiler reddedilir.
+
+8. SORUMLULUĞUN SINIRLANDIRILMASI
+Yürürlükteki yasaların izin verdiği azami ölçüde, Lisans Veren; veri kaybı, kâr kaybı, iş kesintisi veya dolaylı, arızi, özel ya da cezai zararlardan, bu tür zararların olasılığı bildirilmiş olsa bile sorumlu değildir. Lisans Veren'in bu sözleşmeden doğan toplam sorumluluğu, Lisans Alan'ın Yazılım için ödediği lisans bedelini aşamaz.
+
+9. SÜRE VE FESİH
+Bu sözleşme, Yazılım kurulduğunda yürürlüğe girer. Lisans Alan sözleşme şartlarını ihlal ederse lisans kendiliğinden sona erer. Fesih hâlinde Lisans Alan Yazılımı kullanmayı bırakmalı ve tüm kopyalarını kaldırmalıdır. Lisans Alan'ın kendi verileri üzerindeki hakları fesihten etkilenmez; veriler dışa aktarma ve yedek araçlarıyla alınabilir.
+
+10. GENEL HÜKÜMLER
+10.1. Bu sözleşme Türkiye Cumhuriyeti hukukuna tabidir. Uyuşmazlıklarda İstanbul mahkemeleri ve icra daireleri yetkilidir.
+10.2. Sözleşmenin herhangi bir hükmü geçersiz sayılırsa diğer hükümler yürürlükte kalır.
+10.3. Bu sözleşme, taraflar arasındaki Yazılım kullanımına ilişkin anlaşmanın tamamını oluşturur.
+
+İletişim: Kerem Genişel — keremgenisel@gmail.com
+
+Yazılımı kurarak yukarıdaki şartları okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan edersiniz.

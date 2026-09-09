@@ -109,6 +109,7 @@
       "verifyUpdateCodeSignature": false
     },
     "nsis": {
+      "license": "build/license.txt",
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,

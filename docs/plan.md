@@ -1053,6 +1053,8 @@ Kerem: uygulamanın adı "Futbol Okulu Kayıt Programı" olsun; kulüpten bağı
 3. ~~Teknik önekler~~ — 09.09.2026'da yeniden adlandırıldı (yukarıda).
 4. **Belgeler:** `README.md` ve `docs/kurulum.md` başlıkları "Eyüpspor Futbol Okulu"; kurulum rehberindeki exe adı artık
    `Futbol-Okulu-Kayit-Programi-Setup-x.y.z.exe`.
+6. ~~Kurulum lisans sözleşmesi sayfası~~ — 09.09.2026 yapıldı: `build/license.txt` (Türkçe son kullanıcı lisans sözleşmesi; UTF-8
+   BOM + CRLF, `nsis.license`). Metin hukuki danışmanlık değildir; dağıtımdan önce bir hukukçuya gösterilmesi önerilir.
 5. **Sürüm ve yayın:** `version 0.1.0` → ilk dağıtımda `1.0.0` + `v1.0.0` etiketi (release.yml uyumu denetler). Kod imzalama
    sertifikası yok: SmartScreen ilk açılışta uyarır; sertifika alınırsa `win.certificateFile`/`signtool` ayarı.
 
