@@ -145,14 +145,55 @@ const listDues = (pid, limit = null) =>
   limit
     ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
     : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
-const listUnpaid = (yil, ay) =>
+// sezon verilirse yalnız o sezonun oyuncuları (plan §19.3)
+const listUnpaid = (yil, ay, sezon = null) =>
   db
     .prepare(
-      "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') ORDER BY p.ad_soyad",
+      "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') AND (? IS NULL OR p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) ORDER BY p.ad_soyad",
     )
-    .all(yil, ay);
+    .all(yil, ay, sezon, sezon, sezon);
+
+// Sezon ayları aralığı (yil*100+ay): başlangıç ayından bir sonraki yılın önceki ayına
+const sezonAyAraligi = (sezon, baslangicAyi = 9) => {
+  const ilk = Number(String(sezon).slice(0, 4));
+  return [ilk * 100 + baslangicAyi, (ilk + 1) * 100 + baslangicAyi - 1];
+};
+// Oyuncu başına sezon aidat özeti (plan §19.2): açılan/ödenen/kısmi/ödenmemiş/muaf ay sayısı ve toplam borç. Anahtar: player_id.
+function sezonAidatOzeti(sezon, baslangicAyi = 9) {
+  const [bas, son] = sezonAyAraligi(sezon, baslangicAyi);
+  const rows = db
+    .prepare(
+      `SELECT player_id, count(*) AS acilan,
+        sum(CASE WHEN durum='odendi' THEN 1 ELSE 0 END) AS odenen,
+        sum(CASE WHEN durum='kismi' THEN 1 ELSE 0 END) AS kismi,
+        sum(CASE WHEN durum='odenmedi' THEN 1 ELSE 0 END) AS odenmedi,
+        sum(CASE WHEN durum='muaf' THEN 1 ELSE 0 END) AS muaf,
+        COALESCE(sum(CASE WHEN durum IN ('odenmedi','kismi') THEN MAX(0, tutar-odenen) ELSE 0 END), 0) AS borc
+      FROM monthly_dues WHERE yil*100+ay BETWEEN ? AND ? GROUP BY player_id`,
+    )
+    .all(bas, son);
+  return Object.fromEntries(rows.map((r) => [r.player_id, r]));
+}
+// Sezon borçluları (plan §19.3, Ay: Tümü): oyuncu başına borçlu aylar ("2026-9,2026-10"), toplam kalan, veli bilgisi.
+const listUnpaidSezon = (sezon, baslangicAyi = 9) => {
+  const [bas, son] = sezonAyAraligi(sezon, baslangicAyi);
+  return db
+    .prepare(
+      `SELECT p.id AS player_id, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad,
+        group_concat(d.yil || '-' || d.ay, ',') AS aylar, count(*) AS ay_sayisi, sum(MAX(0, d.tutar-d.odenen)) AS kalan,
+        (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad,
+        (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel
+      FROM (SELECT * FROM monthly_dues WHERE yil*100+ay BETWEEN ? AND ? AND durum IN ('odenmedi','kismi') ORDER BY yil, ay) d
+      JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
+      WHERE p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)
+      GROUP BY p.id ORDER BY p.ad_soyad`,
+    )
+    .all(bas, son, sezon, sezon);
+};
 
 module.exports = {
+  sezonAidatOzeti,
+  listUnpaidSezon,
   aidatAyarlari,
   listFeeTypes,
   listFeeItems,

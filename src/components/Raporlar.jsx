@@ -1,26 +1,38 @@
 import { useEffect, useState } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Sayfalama, useDene } from "./ui.jsx";
 import { db, cikti, uygulama, bugun, ayAraligi } from "../lib/api.js";
-import { AY_ADLARI, paraTR } from "../lib/aidat.js";
+import { paraTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
-import { sezonAyYili, guncelSezon } from "../lib/sezon.js";
+import { sezonAyYili, guncelSezon, sezonAraligi, ayinSonGunu } from "../lib/sezon.js";
 import { Ikon } from "./Ikon.jsx";
+import { SezonAySecim } from "./SezonAySecim.jsx";
 
-import { RAPORLAR, oyuncuListesiRaporu, borcluListesiRaporu, tahsilatRaporu, saglikRaporu, yoklamaOzetiRaporu } from "../lib/raporlar.js";
+import {
+  RAPORLAR,
+  oyuncuListesiRaporu,
+  borcluListesiRaporu,
+  tahsilatRaporu,
+  saglikRaporu,
+  yoklamaOzetiRaporu,
+  donemEtiketi,
+} from "../lib/raporlar.js";
 
 export function Raporlar() {
   const { yil, ay } = bugun();
   const { ad: ucretAd } = useUcretTipleri();
   const [rapor, setRapor] = useState("oyuncu");
+  // Sezon + Ay süzgeci (plan §19): ay null = Tümü; yıl sezon + aydan türetilir
   const [ayS, setAyS] = useState(ay);
-  // Aylık raporlar sezon + ay ile süzülür (plan §17.5); yıl sezondan türetilir
   const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi }
   const [sezonlar, setSezonlar] = useState([]);
   const [sezonS, setSezonS] = useState("");
+  const [yoklamaMod, setYoklamaMod] = useState("sezon"); // Yoklama Özeti: "sezon" (sezon + ay) | "tarih" (aralık)
   const baslangicAyi = sezonDurum?.baslangicAyi || 9;
   const seciliSezon = sezonS || sezonDurum?.aktifSezon || guncelSezon(bugun().iso, baslangicAyi);
-  const yilS = sezonAyYili(seciliSezon, ayS, baslangicAyi) ?? yil;
+  const yilS = ayS ? (sezonAyYili(seciliSezon, ayS, baslangicAyi) ?? yil) : null;
+  // Seçime göre tarih aralığı: ay → o ay; Tümü → sezon aralığı
+  const donemAraligi = () => (ayS ? ayAraligi(yilS, ayS) : sezonAraligi(seciliSezon, baslangicAyi) || ayAraligi(yil, ay));
   const [from, setFrom] = useState(ayAraligi(yil, ay).from);
   const [to, setTo] = useState(ayAraligi(yil, ay).to);
   const [grup, setGrup] = useState("");
@@ -45,11 +57,21 @@ export function Raporlar() {
   const hazirla = () =>
     dene(async () => {
       if (rapor === "oyuncu") {
-        const liste = await db("listPlayersWithDue", { yil: yilS, ay: ayS, yas_grubu_id: grup ? Number(grup) : null, sezon: seciliSezon });
-        return oyuncuListesiRaporu({ liste, yil: yilS, ay: ayS, grupEk, ucretAd, sezon: seciliSezon });
+        const liste = await db("listPlayersWithDue", {
+          yil: yilS ?? 0,
+          ay: ayS ?? 0,
+          yas_grubu_id: grup ? Number(grup) : null,
+          sezon: seciliSezon,
+        });
+        const ozet = ayS ? {} : (await db("sezonAidatOzeti", seciliSezon, baslangicAyi)) || {};
+        return oyuncuListesiRaporu({ liste, yil: yilS, ay: ayS, grupEk, ucretAd, sezon: seciliSezon, ozet });
       }
       if (rapor === "borclu") {
-        const liste = await db("listUnpaid", yilS, ayS);
+        if (!ayS) {
+          const liste = (await db("listUnpaidSezon", seciliSezon, baslangicAyi)) || [];
+          return borcluListesiRaporu({ liste, ay: null, sezon: seciliSezon });
+        }
+        const liste = await db("listUnpaid", yilS, ayS, seciliSezon);
         const veliler = {};
         for (const b of liste) veliler[b.player_id] = await db("listGuardians", b.player_id);
         return borcluListesiRaporu({ liste, veliler, yil: yilS, ay: ayS, sezon: seciliSezon });
@@ -60,9 +82,21 @@ export function Raporlar() {
         return tahsilatRaporu({ makbuzlar, iptaller, from, to });
       }
       if (rapor === "saglik") {
-        const bugunIso = bugun().iso;
-        const liste = await db("saglikRaporuListesi", bugunIso, grup ? Number(grup) : null);
-        return saglikRaporu({ liste, bugunIso, grupEk });
+        // Ay seçiliyse o ayın son günü itibarıyla ("Ekim sonunda kimin raporu dolmuş olacak"), Tümü ise bugün (plan §19.5)
+        const referans = ayS ? ayinSonGunu(yilS, ayS) : bugun().iso;
+        const liste = await db("saglikRaporuListesi", referans, grup ? Number(grup) : null, 30, seciliSezon);
+        return saglikRaporu({ liste, bugunIso: referans, grupEk, sezon: seciliSezon });
+      }
+      if (yoklamaMod === "sezon") {
+        const a = donemAraligi();
+        const liste = await db("attendanceReport", a.from, a.to, grup ? Number(grup) : null, seciliSezon);
+        return yoklamaOzetiRaporu({
+          liste,
+          from: a.from,
+          to: a.to,
+          grupEk,
+          donem: donemEtiketi({ yil: yilS, ay: ayS, sezon: seciliSezon }),
+        });
       }
       const liste = await db("attendanceReport", from, to, grup ? Number(grup) : null);
       return yoklamaOzetiRaporu({ liste, from, to, grupEk });
@@ -77,7 +111,7 @@ export function Raporlar() {
     const v = veri || (await hazirla());
     if (!v) return;
     return dene(async () => {
-      await cikti().excelKaydet({ sayfa: v.baslik, sutunlar: v.sutunlar, satirlar: v.satirlar }, `${rapor}.xlsx`);
+      await cikti().excelKaydet({ sayfa: v.baslik, sutunlar: v.disaSutunlar || v.sutunlar, satirlar: v.satirlar }, `${rapor}.xlsx`);
     });
   };
   const pdf = async () => {
@@ -86,19 +120,34 @@ export function Raporlar() {
     return dene(async () => {
       const logo = await uygulama().logo();
       await cikti().pdfKaydet(
-        raporHtml({ baslik: v.baslik, altBaslik: v.alt, sutunlar: v.sutunlar, satirlar: v.satirlar, logo, yatay: !!v.yatay }),
+        raporHtml({
+          baslik: v.baslik,
+          altBaslik: v.alt,
+          sutunlar: v.disaSutunlar || v.sutunlar,
+          satirlar: v.satirlar,
+          logo,
+          yatay: !!v.yatay,
+        }),
         `${rapor}.pdf`,
         !!v.yatay,
       );
     });
   };
 
-  const aylik = rapor === "oyuncu" || rapor === "borclu";
-  const tarihsiz = rapor === "saglik"; // bugüne göre; tarih filtresi yok
-  const sezonSecenekleri = [...new Set([seciliSezon, ...sezonlar])].map((s) => ({
-    kod: s,
-    ad: s === sezonDurum?.aktifSezon ? `${s} (aktif)` : s,
-  }));
+  const sezonAy = rapor === "oyuncu" || rapor === "borclu" || rapor === "saglik" || (rapor === "yoklama" && yoklamaMod === "sezon");
+  const sezonAyKutusu = (
+    <SezonAySecim
+      sezonlar={sezonlar}
+      aktifSezon={sezonDurum?.aktifSezon || seciliSezon}
+      baslangicAyi={baslangicAyi}
+      sezon={seciliSezon}
+      ay={ayS}
+      onChange={(v) => {
+        setSezonS(v.sezon);
+        setAyS(v.ay);
+      }}
+    />
+  );
   return (
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -109,6 +158,7 @@ export function Raporlar() {
             onClick={() => {
               setRapor(r.kod);
               setVeri(null);
+              if (r.kod === "saglik") setAyS(null); // sağlık raporu varsayılan: bugün itibarıyla (Ay: Tümü)
             }}
             style={{
               textAlign: "left",
@@ -124,24 +174,29 @@ export function Raporlar() {
           </button>
         ))}
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 14, display: "flex", flexDirection: "column", gap: 10 }}>
-          {tarihsiz ? (
-            <div style={{ fontSize: 13, color: "var(--soluk)" }}>
-              Bugünün tarihine göre hesaplanır; 30 gün içinde dolacak raporlar "Dolmak üzere" sayılır.
-            </div>
-          ) : aylik ? (
-            <div style={{ display: "flex", gap: 8 }}>
-              <Alan etiket="Ay" style={{ flex: 1 }}>
-                <Secim
-                  secenekler={AY_ADLARI.map((a, i) => ({ kod: i + 1, ad: a }))}
-                  aria-label="Ay"
-                  value={ayS}
-                  onChange={(e) => setAyS(Number(e.target.value))}
-                />
-              </Alan>
-              <Alan etiket="Sezon" style={{ width: 150 }}>
-                <Secim secenekler={sezonSecenekleri} value={seciliSezon} onChange={(e) => setSezonS(e.target.value)} aria-label="Sezon" />
-              </Alan>
-            </div>
+          {rapor === "yoklama" && (
+            <Alan etiket="Dönem seçimi">
+              <Secim
+                secenekler={[
+                  { kod: "sezon", ad: "Sezon ve ay" },
+                  { kod: "tarih", ad: "Tarih aralığı" },
+                ]}
+                value={yoklamaMod}
+                onChange={(e) => setYoklamaMod(e.target.value)}
+                aria-label="Dönem seçimi"
+              />
+            </Alan>
+          )}
+          {sezonAy ? (
+            <>
+              {sezonAyKutusu}
+              {rapor === "saglik" && (
+                <div style={{ fontSize: 13, color: "var(--soluk)" }}>
+                  {ayS ? "Seçilen ayın son günü itibarıyla hesaplanır" : "Bugünün tarihine göre hesaplanır"}; 30 gün içinde dolacak raporlar
+                  "Dolmak üzere" sayılır.
+                </div>
+              )}
+            </>
           ) : (
             <div style={{ display: "flex", gap: 8 }}>
               <Alan etiket="Başlangıç" style={{ flex: 1 }}>

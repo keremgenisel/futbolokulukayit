@@ -8,6 +8,9 @@ import {
   ustGrupOner,
   sezonSecenekleri,
   sezonAyYili,
+  sezonAylari,
+  sezonAraligi,
+  ayinSonGunu,
 } from "../src/lib/sezon.js";
 
 describe("sezon mantığı", () => {
@@ -84,5 +87,21 @@ describe("sezon mantığı", () => {
     expect(sezonAyYili("2027-2028", 8)).toBe(2028);
     expect(sezonAyYili("2027-2028", 9, 8)).toBe(2027);
     expect(sezonAyYili("bozuk", 9)).toBeNull();
+  });
+
+  it("sezon ayları başlangıçtan sıralı, sezon aralığı ve ayın son günü (plan §19)", () => {
+    const a = sezonAylari("2026-2027", 9);
+    expect(a).toHaveLength(12);
+    expect(a[0]).toEqual({ yil: 2026, ay: 9 });
+    expect(a[3]).toEqual({ yil: 2026, ay: 12 });
+    expect(a[4]).toEqual({ yil: 2027, ay: 1 });
+    expect(a[11]).toEqual({ yil: 2027, ay: 8 });
+    expect(sezonAylari("bozuk")).toEqual([]);
+    expect(sezonAraligi("2026-2027", 9)).toEqual({ from: "2026-09-01", to: "2027-08-31" });
+    expect(sezonAraligi("2026-2027", 1)).toEqual({ from: "2026-01-01", to: "2026-12-31" });
+    expect(sezonAraligi("bozuk")).toBeNull();
+    expect(ayinSonGunu(2026, 2)).toBe("2026-02-28");
+    expect(ayinSonGunu(2028, 2)).toBe("2028-02-29");
+    expect(ayinSonGunu(2026, 10)).toBe("2026-10-31");
   });
 });

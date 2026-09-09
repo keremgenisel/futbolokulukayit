@@ -90,6 +90,8 @@ module.exports = {
   getDue: m.getDue,
   listDues: m.listDues,
   listUnpaid: m.listUnpaid,
+  listUnpaidSezon: m.listUnpaidSezon,
+  sezonAidatOzeti: m.sezonAidatOzeti,
   createReceipt: m.createReceipt,
   getReceipt: m.getReceipt,
   listReceipts: m.listReceipts,

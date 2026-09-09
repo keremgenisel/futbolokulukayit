@@ -802,7 +802,7 @@ sezonları. Arayüz: aktif sezon dışında bir seçimde (geçmiş sezon ya da "
 "Tüm durumlar", aktif sezona dönünce "Aktif, deneme ve sakat".
 
 
-## 19. Raporlar — sezon + ay (Tümü) süzgeci, dört raporda (PLANLANDI, 09.09.2026)
+## 19. Raporlar — sezon + ay (Tümü) süzgeci, dört raporda (PLANLANDI ve UYGULANDI, 09.09.2026)
 
 **İstek:** Oyuncu Listesi ve Borçlu Listesi'nde "Ay: Tümü" seçeneği; eski sezon oyuncuları gelsin. Yoklama Özeti ve Sağlık
 Raporu Durumu'nda da sezon + ay seçimi.
@@ -853,9 +853,7 @@ Listesi ise `listUnpaid(yil, ay)` ile yalnız aya bakıyor, sezon süzgeci yok �
   kümesi, sağlık raporu tarih referansı).
 - Süre ~2 saat: saf + DB (45 dk), bileşen + Raporlar (45 dk), testler (30 dk).
 
-### 19.7 Karar bekleyen
-1. Oyuncu Listesi "Tümü" sütunu: tek sütun ("3/4 ay · 3.500 ₺ borç") mi, Excel'deki gibi üç ayrı sütun mu? (Öneri: ekranda
-   tek, Excel/PDF'de üç.)
-2. Sağlık raporunda ay = "o ayın son günü itibarıyla" yorumu uygun mu? Alternatif: ay yalnız oyuncu kümesini etkilesin,
-   geçerlilik hep bugüne göre.
-3. Yoklama Özeti'nde tarih aralığı tamamen kalksın mı, yoksa "Sezon + Ay" yanında "Tarih aralığı" seçeneği kalsın mı?
+### 19.7 Kararlar (Kerem, 09.09.2026)
+1. Oyuncu Listesi "Tümü": ekranda tek sütun ("3/4 ay · 3.500 ₺ borç"), Excel/PDF'de üç sütun (`disaSutunlar`).
+2. Sağlık raporunda ay = o ayın son günü itibarıyla; rapora geçince Ay "Tümü" (bugün) gelir.
+3. Yoklama Özeti: "Dönem seçimi" kutusu — "Sezon ve ay" (varsayılan) ya da "Tarih aralığı" (eski davranış, sahadaki oyuncular).

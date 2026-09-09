@@ -96,7 +96,8 @@ const attendanceSummary = (pid, from, to) =>
     .all(pid, from, to);
 
 // Yoklama raporu: tarih aralığında oyuncu bazında geldi/gelmedi/izinli sayıları.
-const attendanceReport = (from, to, age_group_id = null) =>
+// sezon verilirse oyuncu kümesi o sezonun oyuncuları (bugün pasif olsa da; plan §19.4); verilmezse sahadakiler
+const attendanceReport = (from, to, age_group_id = null, sezon = null) =>
   db
     .prepare(
       `
@@ -107,10 +108,12 @@ const attendanceReport = (from, to, age_group_id = null) =>
   FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
   LEFT JOIN attendance a ON a.player_id=p.id
   LEFT JOIN trainings t ON t.id=a.training_id AND t.tarih BETWEEN ? AND ? AND t.iptal=0
-  WHERE (? IS NULL OR p.yas_grubu_id=?) AND p.durum IN ('aktif','deneme','sakat')
+  WHERE (? IS NULL OR p.yas_grubu_id=?)
+    AND CASE WHEN ? IS NULL THEN p.durum IN ('aktif','deneme','sakat')
+             ELSE (p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) END
   GROUP BY p.id ORDER BY g.sira, p.ad_soyad`,
     )
-    .all(from, to, age_group_id, age_group_id);
+    .all(from, to, age_group_id, age_group_id, sezon, sezon, sezon);
 
 module.exports = {
   createTraining,

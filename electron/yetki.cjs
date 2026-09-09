@@ -15,6 +15,8 @@ const OKUMA = new Set([
   "getDue",
   "listDues",
   "listUnpaid",
+  "listUnpaidSezon",
+  "sezonAidatOzeti",
   "getReceipt",
   "listReceipts",
   "listReceiptsByDate",

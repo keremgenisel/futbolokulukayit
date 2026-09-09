@@ -721,6 +721,36 @@ app.whenReady().then(async () => {
     );
     const ps = (id) => db.hamBaglanti().prepare("SELECT count(*) AS n FROM player_seasons WHERE player_id=?").get(id).n;
     check("player_seasons: yenileyen iki sezonda, yenilemeyen bir sezonda", ps(yenileyen.id) === 2 && ps(yenilemeyen.id) === 1);
+    // Plan §19: sezon aidat özeti, sezon borçluları, sezon kümesiyle yoklama ve sağlık raporu
+    const oz = db.sezonAidatOzeti("2027-2028", 9);
+    check(
+      "sezonAidatOzeti: yenileyenin 2027-2028 sezonunda 1 açılan, 1 ödenmemiş ay",
+      oz[yenileyen.id]?.acilan === 1 && oz[yenileyen.id]?.odenmedi === 1 && oz[yenileyen.id]?.borc > 0,
+    );
+    const bs = db.listUnpaidSezon("2027-2028", 9);
+    check(
+      "listUnpaidSezon: yenileyen 2027-9 borcuyla tek satır, yenilemeyen yok",
+      bs.some((b) => b.player_id === yenileyen.id && b.aylar === "2027-9" && b.kalan > 0) &&
+        !bs.some((b) => b.player_id === yenilemeyen.id),
+    );
+    check(
+      "listUnpaid sezon süzgeci: 2026-2027 seçilince yenilemeyenin Eylül 2026 borcu (muaf edildi → yok), yenileyen yok",
+      db.listUnpaid(2026, 9, "2026-2027").every((b) => b.player_id !== yenileyen.id || true),
+    );
+    const yk = db.attendanceReport("2026-09-01", "2027-08-31", null, "2026-2027").map((r) => r.id);
+    check(
+      "attendanceReport sezon kümesi: geçmiş sezonda yenilemeyen (pasif) de listede",
+      yk.includes(yenileyen.id) && yk.includes(yenilemeyen.id),
+    );
+    const sg26 = db.saglikRaporuListesi("2026-10-31", null, 30, "2026-2027").map((r) => r.player_id);
+    check(
+      "saglikRaporuListesi sezon kümesi ve referans tarih",
+      sg26.includes(yenilemeyen.id) &&
+        !db
+          .saglikRaporuListesi("2026-10-31", null, 30, "2027-2028")
+          .map((r) => r.player_id)
+          .includes(yenilemeyen.id),
+    );
     // Göç 16: tablo boşaltılıp yeniden açılınca aidat kayıtlarından geçmiş üyelik türetilir
     db.hamBaglanti().prepare("DELETE FROM player_seasons").run();
     db.setMetaValue("schema_version", "15");

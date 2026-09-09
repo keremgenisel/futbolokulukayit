@@ -6,6 +6,9 @@ import {
   tahsilatRaporu,
   saglikRaporu,
   yoklamaOzetiRaporu,
+  donemEtiketi,
+  sezonAidatMetni,
+  borcluAylarMetni,
 } from "../src/lib/raporlar.js";
 
 describe("rapor üreticileri (saf)", () => {
@@ -47,7 +50,7 @@ describe("rapor üreticileri (saf)", () => {
     expect(r.alt).toBe("Eylül 2026 · U11");
     expect(r.yatay).toBe(true);
     expect(r.sutunlar.map((s) => s.anahtar)).toEqual(["ad", "tc", "dogum", "grup", "durum", "ucret", "aidat", "ad_durum", "gsm"]);
-    expect(r.satirlar[0]).toEqual({
+    expect(r.satirlar[0]).toMatchObject({
       ad: "Kaan",
       tc: "123",
       dogum: "02.11.2015",
@@ -78,8 +81,8 @@ describe("rapor üreticileri (saf)", () => {
       ay: 9,
     });
     expect(r.alt).toBe("Eylül 2026 · 2 oyuncu · toplam 5.500 ₺");
-    expect(r.satirlar[0]).toEqual({ ad: "Kaan", grup: "U11", tutar: 2500, donem: "1-10", veli: "Baba", tel: "333" });
-    expect(r.satirlar[1]).toEqual({ ad: "Ali", grup: "", tutar: 3000, donem: "1-10", veli: "", tel: "" });
+    expect(r.satirlar[0]).toMatchObject({ ad: "Kaan", grup: "U11", tutar: 2500, donem: "1-10", veli: "Baba", tel: "333" });
+    expect(r.satirlar[1]).toMatchObject({ ad: "Ali", grup: "", tutar: 3000, donem: "1-10", veli: "", tel: "" });
   });
   it("tahsilat: yöntem özeti, iptal makbuzlar 0 tutarla ve açıklamada asıl tutar", () => {
     const r = tahsilatRaporu({
@@ -163,5 +166,73 @@ describe("rapor üreticileri (saf)", () => {
     expect(borcluListesiRaporu({ liste: [], veliler: {}, yil: 2028, ay: 1, sezon: "2027-2028" }).alt).toBe(
       "Ocak 2028 · 2027-2028 sezonu · 0 oyuncu · toplam 0 ₺",
     );
+  });
+
+  it("Ay: Tümü — oyuncu listesi sezon aidat sütunu ekranda tek, Excel/PDF'de üç (plan §19.2)", () => {
+    const r = oyuncuListesiRaporu({
+      liste: [
+        { id: 1, ad_soyad: "A", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "normal", aylik_aidat: 3500 },
+        { id: 2, ad_soyad: "B", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "aktif", ucret_tipi: "ucretsiz", aylik_aidat: 0 },
+        { id: 3, ad_soyad: "C", uyruk: "tc", dogum_tarihi: "2015-01-01", durum: "pasif", ucret_tipi: "normal", aylik_aidat: 3500 },
+      ],
+      ay: null,
+      sezon: "2026-2027",
+      ucretAd: (k) => k,
+      ozet: {
+        1: { acilan: 4, odenen: 3, kismi: 0, odenmedi: 1, muaf: 0, borc: 3500 },
+        2: { acilan: 4, odenen: 0, kismi: 0, odenmedi: 0, muaf: 4, borc: 0 },
+      },
+    });
+    expect(r.alt).toBe("2026-2027 sezonu (tüm aylar)");
+    expect(r.sutunlar.map((s) => s.anahtar)).toContain("sezon_aidat");
+    expect(r.sutunlar.map((s) => s.anahtar)).not.toContain("ad_durum");
+    expect(r.disaSutunlar.map((s) => s.anahtar)).toEqual(expect.arrayContaining(["acilan_ay", "odenen_ay", "borc"]));
+    expect(r.satirlar.map((s) => s.sezon_aidat)).toEqual(["3/4 ay · 3.500 ₺ borç", "Muaf", "Kayıt yok"]);
+    expect(r.satirlar[0]).toMatchObject({ acilan_ay: 4, odenen_ay: 3, borc: 3500 });
+    // ay seçiliyse eski biçim
+    const ayli = oyuncuListesiRaporu({ liste: [], yil: 2026, ay: 9, sezon: "2026-2027", ucretAd: (k) => k });
+    expect(ayli.alt).toBe("Eylül 2026 · 2026-2027 sezonu");
+    expect(ayli.disaSutunlar).toBeUndefined();
+  });
+  it("Ay: Tümü — borçlu listesi sezon satırları (borçlu aylar kısaltılmış, veli satırdan) (plan §19.3)", () => {
+    const r = borcluListesiRaporu({
+      liste: [
+        {
+          player_id: 1,
+          ad_soyad: "Kaan",
+          yas_grubu_ad: "U11",
+          aylar: "2026-9,2026-10,2027-1",
+          kalan: 7000,
+          odeme_donemi: "1-10",
+          veli_ad: "Baba",
+          veli_tel: "333",
+        },
+      ],
+      ay: null,
+      sezon: "2026-2027",
+    });
+    expect(r.alt).toBe("2026-2027 sezonu (tüm aylar) · 1 oyuncu · toplam 7.000 ₺");
+    expect(r.sutunlar.map((s) => s.anahtar)).toContain("aylar");
+    expect(r.satirlar[0]).toEqual({
+      ad: "Kaan",
+      grup: "U11",
+      aylar: "Eyl, Eki, Oca",
+      tutar: 7000,
+      donem: "1-10",
+      veli: "Baba",
+      tel: "333",
+    });
+    expect(donemEtiketi({ yil: 2027, ay: 1, sezon: "2026-2027" })).toBe("Ocak 2027 · 2026-2027 sezonu");
+    expect(sezonAidatMetni({ acilan: 2, odenen: 2, muaf: 0, borc: 0 })).toBe("2/2 ay");
+    expect(borcluAylarMetni("")).toBe("");
+  });
+  it("sağlık ve yoklama alt başlıkları sezon/dönem eki alır", () => {
+    expect(saglikRaporu({ liste: [], bugunIso: "2026-10-31", sezon: "2026-2027" }).alt).toContain(
+      "31.10.2026 itibarıyla · 2026-2027 sezonu",
+    );
+    expect(yoklamaOzetiRaporu({ liste: [], from: "2026-09-01", to: "2027-08-31", donem: "2026-2027 sezonu (tüm aylar)" }).alt).toBe(
+      "2026-2027 sezonu (tüm aylar)",
+    );
+    expect(yoklamaOzetiRaporu({ liste: [], from: "2026-09-01", to: "2026-09-30" }).alt).toBe("01.09.2026 – 30.09.2026");
   });
 });

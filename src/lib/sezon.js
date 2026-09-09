@@ -38,6 +38,35 @@ export function sezonAyYili(sezon, ay, baslangicAyi = VARSAYILAN_SEZON_AYI) {
   return Number(ay) >= baslangicAyi ? ilk : ilk + 1;
 }
 
+/**
+ * Sezonun ayları, başlangıç ayından itibaren sıralı (plan §19): [{ yil, ay }] — Eylül … Ağustos. Sezon bozuksa boş.
+ * @param {string} sezon @param {number} baslangicAyi
+ */
+export function sezonAylari(sezon, baslangicAyi = VARSAYILAN_SEZON_AYI) {
+  if (!sezonGecerliMi(sezon)) return [];
+  const l = [];
+  for (let i = 0; i < 12; i++) {
+    const ay = ((baslangicAyi - 1 + i) % 12) + 1;
+    l.push({ yil: sezonAyYili(sezon, ay, baslangicAyi), ay });
+  }
+  return l;
+}
+
+/** Ayın son günü (yyyy-aa-gg). @param {number} yil @param {number} ay */
+export function ayinSonGunu(yil, ay) {
+  const son = new Date(yil, ay, 0).getDate();
+  return `${yil}-${String(ay).padStart(2, "0")}-${String(son).padStart(2, "0")}`;
+}
+
+/** Sezonun tarih aralığı: ilk ayın 1'i – son ayın son günü. Sezon bozuksa null. @param {string} sezon @param {number} baslangicAyi */
+export function sezonAraligi(sezon, baslangicAyi = VARSAYILAN_SEZON_AYI) {
+  const aylar = sezonAylari(sezon, baslangicAyi);
+  if (!aylar.length) return null;
+  const ilk = aylar[0],
+    son = aylar[aylar.length - 1];
+  return { from: `${ilk.yil}-${String(ilk.ay).padStart(2, "0")}-01`, to: ayinSonGunu(Number(son.yil), son.ay) };
+}
+
 /** "2026-2027" → "2027-2028". Biçim bozuksa boş döner. @param {string} sezon */
 export function sonrakiSezon(sezon) {
   const m = /^(\d{4})-(\d{4})$/.exec(String(sezon || ""));

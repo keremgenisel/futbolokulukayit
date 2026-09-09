@@ -4,6 +4,26 @@
 // Veri çekme (db çağrıları) bileşende kalır; burada yalnız dönüşüm ve metin vardır.
 import { AY_ADLARI, ODEME_YONTEMLERI, DURUMLAR, tarihTR, paraTR, aidatEtiket } from "./aidat.js";
 
+/** Dönem etiketi: ay seçiliyse "Eylül 2026 · 2026-2027 sezonu", Tümü ise "2026-2027 sezonu (tüm aylar)". @param {{ yil?: number|null, ay?: number|null, sezon?: string }} p */
+export function donemEtiketi({ yil, ay, sezon = "" }) {
+  if (ay) return `${AY_ADLARI[ay - 1]} ${yil}${sezon ? ` · ${sezon} sezonu` : ""}`;
+  return sezon ? `${sezon} sezonu (tüm aylar)` : "Tüm aylar";
+}
+/** Sezon aidat özeti tek satır metni (ekran): "3/4 ay · 3.500 ₺ borç" | "Muaf" | "Kayıt yok". @param {any} o */
+export function sezonAidatMetni(o) {
+  if (!o || !o.acilan) return "Kayıt yok";
+  if (o.muaf === o.acilan) return "Muaf";
+  const odenen = `${o.odenen}/${o.acilan - o.muaf} ay`;
+  return o.borc > 0 ? `${odenen} · ${paraTR(o.borc)} borç` : odenen;
+}
+/** Borçlu aylar kısa metni: "2026-9,2026-10" → "Eyl, Eki". @param {string} aylar */
+export const borcluAylarMetni = (aylar) =>
+  String(aylar || "")
+    .split(",")
+    .filter(Boolean)
+    .map((x) => AY_ADLARI[Number(x.split("-")[1]) - 1]?.slice(0, 3))
+    .join(", ");
+
 export const RAPORLAR = [
   { kod: "oyuncu", ad: "Oyuncu Listesi", aciklama: "Tüm oyuncular, grup, durum, ücret tipi ve seçilen ayın aidat durumu" },
   { kod: "borclu", ad: "Borçlu Listesi", aciklama: "Seçilen ayda aidatı ödenmemiş oyuncular ve veli telefonları" },
@@ -21,63 +41,88 @@ export const RAPORLAR = [
 
 /**
  * Oyuncu listesi: seçilen ayın aidat durumuyla.
- * @param {{ liste: any[], yil: number, ay: number, grupEk?: string, ucretAd: (kod: string) => string, sezon?: string }} p
- * @returns {Rapor}
+ * ay null (Tümü) → "Sezon aidatı" sütunu (`ozet`: sezonAidatOzeti); Excel/PDF'de üç ayrı sütun (`disaSutunlar`; plan §19.2).
+ * @param {{ liste: any[], yil?: number|null, ay?: number|null, grupEk?: string, ucretAd: (kod: string) => string, sezon?: string, ozet?: Record<number, any> }} p
+ * @returns {Rapor & { disaSutunlar?: Sutun[] }}
  */
-export function oyuncuListesiRaporu({ liste, yil, ay, grupEk = "", ucretAd, sezon = "" }) {
+export function oyuncuListesiRaporu({ liste, yil = null, ay = null, grupEk = "", ucretAd, sezon = "", ozet = {} }) {
+  const ortak = [
+    { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
+    { baslik: "TC / Pasaport", anahtar: "tc", genislik: 16 },
+    { baslik: "Doğum", anahtar: "dogum", genislik: 12 },
+    { baslik: "Grup", anahtar: "grup", genislik: 8 },
+    { baslik: "Durum", anahtar: "durum", genislik: 10 },
+    { baslik: "Ücret tipi", anahtar: "ucret", genislik: 16 },
+    { baslik: "Aidat", anahtar: "aidat", genislik: 10, sag: true },
+  ];
+  const gsm = { baslik: "GSM", anahtar: "gsm", genislik: 16 };
+  const sutunlar = ay
+    ? [...ortak, { baslik: "Aidat durumu", anahtar: "ad_durum", genislik: 14 }, gsm]
+    : [...ortak, { baslik: "Sezon aidatı", anahtar: "sezon_aidat", genislik: 22 }, gsm];
+  const disaSutunlar = ay
+    ? undefined
+    : [
+        ...ortak,
+        { baslik: "Açılan ay", anahtar: "acilan_ay", genislik: 10, sag: true },
+        { baslik: "Ödenen ay", anahtar: "odenen_ay", genislik: 10, sag: true },
+        { baslik: "Borç", anahtar: "borc", genislik: 12, sag: true },
+        gsm,
+      ];
   return {
     baslik: "Oyuncu Listesi",
-    alt: `${AY_ADLARI[ay - 1]} ${yil}${sezon ? ` · ${sezon} sezonu` : ""}${grupEk}`,
+    alt: `${donemEtiketi({ yil, ay, sezon })}${grupEk}`,
     yatay: true,
-    sutunlar: [
-      { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
-      { baslik: "TC / Pasaport", anahtar: "tc", genislik: 16 },
-      { baslik: "Doğum", anahtar: "dogum", genislik: 12 },
-      { baslik: "Grup", anahtar: "grup", genislik: 8 },
-      { baslik: "Durum", anahtar: "durum", genislik: 10 },
-      { baslik: "Ücret tipi", anahtar: "ucret", genislik: 16 },
-      { baslik: "Aidat", anahtar: "aidat", genislik: 10, sag: true },
-      { baslik: "Aidat durumu", anahtar: "ad_durum", genislik: 14 },
-      { baslik: "GSM", anahtar: "gsm", genislik: 16 },
-    ],
-    satirlar: liste.map((o) => ({
-      ad: o.ad_soyad,
-      tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "",
-      dogum: tarihTR(o.dogum_tarihi),
-      grup: o.yas_grubu_ad || "",
-      durum: DURUMLAR.find((d) => d.kod === o.durum)?.ad,
-      ucret: ucretAd(o.ucret_tipi),
-      aidat: o.aylik_aidat,
-      ad_durum: aidatEtiket(o.aidat_durum),
-      gsm: o.gsm || "",
-    })),
+    sutunlar,
+    disaSutunlar,
+    satirlar: liste.map((o) => {
+      const oz = ozet[o.id];
+      return {
+        ad: o.ad_soyad,
+        tc: o.uyruk === "yabanci" ? "P: " + (o.pasaport_no || "") : o.tc_no || "",
+        dogum: tarihTR(o.dogum_tarihi),
+        grup: o.yas_grubu_ad || "",
+        durum: DURUMLAR.find((d) => d.kod === o.durum)?.ad,
+        ucret: ucretAd(o.ucret_tipi),
+        aidat: o.aylik_aidat,
+        ad_durum: aidatEtiket(o.aidat_durum),
+        sezon_aidat: sezonAidatMetni(oz),
+        acilan_ay: oz ? oz.acilan - oz.muaf : 0,
+        odenen_ay: oz ? oz.odenen : 0,
+        borc: oz ? oz.borc : 0,
+        gsm: o.gsm || "",
+      };
+    }),
   };
 }
 
 /**
  * Borçlu listesi: `veliler` oyuncu id → veli listesi (birincil veli, yoksa ilk veli).
- * @param {{ liste: any[], veliler: Record<number, any[]>, yil: number, ay: number, sezon?: string }} p
+ * ay null (Tümü) → `liste` listUnpaidSezon çıktısı (oyuncu başına borçlu aylar + toplam; veli bilgisi satırda; plan §19.3).
+ * @param {{ liste: any[], veliler?: Record<number, any[]>, yil?: number|null, ay?: number|null, sezon?: string }} p
  * @returns {Rapor}
  */
-export function borcluListesiRaporu({ liste, veliler, yil, ay, sezon = "" }) {
+export function borcluListesiRaporu({ liste, veliler = {}, yil = null, ay = null, sezon = "" }) {
   const satirlar = liste.map((b) => {
     const v = veliler[b.player_id] || [];
     const veli = v.find((x) => x.veli_mi) || v[0];
     return {
       ad: b.ad_soyad,
       grup: b.yas_grubu_ad || "",
+      aylar: ay ? "" : borcluAylarMetni(b.aylar),
       tutar: b.kalan ?? b.tutar,
       donem: b.odeme_donemi,
-      veli: veli?.ad_soyad || "",
-      tel: veli?.whatsapp_no || veli?.gsm || "",
+      veli: veli?.ad_soyad ?? b.veli_ad ?? "",
+      tel: veli ? veli.whatsapp_no || veli.gsm || "" : b.veli_tel || "",
     };
   });
+  const toplam = paraTR(liste.reduce((s, b) => s + (b.kalan ?? b.tutar), 0));
   return {
     baslik: "Borçlu Listesi",
-    alt: `${AY_ADLARI[ay - 1]} ${yil}${sezon ? ` · ${sezon} sezonu` : ""} · ${liste.length} oyuncu · toplam ${paraTR(liste.reduce((s, b) => s + (b.kalan ?? b.tutar), 0))}`,
+    alt: `${donemEtiketi({ yil, ay, sezon })} · ${liste.length} oyuncu · toplam ${toplam}`,
     sutunlar: [
       { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
       { baslik: "Grup", anahtar: "grup", genislik: 8 },
+      ...(ay ? [] : [{ baslik: "Borçlu aylar", anahtar: "aylar", genislik: 22 }]),
       { baslik: "Tutar", anahtar: "tutar", genislik: 10, sag: true },
       { baslik: "Ödeme dönemi", anahtar: "donem", genislik: 14 },
       { baslik: "Veli", anahtar: "veli", genislik: 24 },
@@ -139,15 +184,16 @@ const SAGLIK_ETIKET = { doldu: "Süresi doldu", dolacak: "Dolmak üzere", tarihs
 
 /**
  * Sağlık raporu durumu (db.saglikRaporuListesi çıktısı; en acil önce sıralı gelir).
- * @param {{ liste: any[], bugunIso: string, grupEk?: string }} p
+ * `bugunIso` referans tarih (ay seçilince ayın son günü); `sezon` alt başlıkta (plan §19.5).
+ * @param {{ liste: any[], bugunIso: string, grupEk?: string, sezon?: string }} p
  * @returns {Rapor}
  */
-export function saglikRaporu({ liste, bugunIso, grupEk = "" }) {
+export function saglikRaporu({ liste, bugunIso, grupEk = "", sezon = "" }) {
   /** @param {string} d */
   const sayi = (d) => liste.filter((x) => x.durum === d).length;
   return {
     baslik: "Sağlık Raporu Durumu",
-    alt: `${tarihTR(bugunIso)} itibarıyla${grupEk} · ${sayi("doldu")} doldu · ${sayi("dolacak")} dolacak · ${sayi("yok") + sayi("tarihsiz")} yok · ${sayi("gecerli")} geçerli`,
+    alt: `${tarihTR(bugunIso)} itibarıyla${sezon ? ` · ${sezon} sezonu` : ""}${grupEk} · ${sayi("doldu")} doldu · ${sayi("dolacak")} dolacak · ${sayi("yok") + sayi("tarihsiz")} yok · ${sayi("gecerli")} geçerli`,
     sutunlar: [
       { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
       { baslik: "Grup", anahtar: "grup", genislik: 8 },
@@ -169,13 +215,14 @@ export function saglikRaporu({ liste, bugunIso, grupEk = "" }) {
 
 /**
  * Yoklama özeti (db.attendanceReport çıktısı).
- * @param {{ liste: any[], from: string, to: string, grupEk?: string }} p
+ * `donem` verilirse alt başlıkta tarih aralığı yerine o yazılır (sezon + ay; plan §19.4).
+ * @param {{ liste: any[], from: string, to: string, grupEk?: string, donem?: string }} p
  * @returns {Rapor}
  */
-export function yoklamaOzetiRaporu({ liste, from, to, grupEk = "" }) {
+export function yoklamaOzetiRaporu({ liste, from, to, grupEk = "", donem = "" }) {
   return {
     baslik: "Yoklama Özeti",
-    alt: `${tarihTR(from)} – ${tarihTR(to)}${grupEk}`,
+    alt: `${donem || `${tarihTR(from)} – ${tarihTR(to)}`}${grupEk}`,
     sutunlar: [
       { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
       { baslik: "Grup", anahtar: "grup", genislik: 8 },
