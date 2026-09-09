@@ -40,6 +40,14 @@ app.on("browser-window-created", async (_e, win) => {
       const inputs = await js(`document.querySelectorAll("input").length`);
       check("giriş ekranı açıldı", inputs >= 2);
       // Güvenlik #2: yerel giriş deneme sınırı (kullanıcı adı başına 8/15 dk) — köprüden 9 yanlış deneme
+      // Panoya yazma (telefon numarası kopyalama) gerçek izin işleyicisiyle çalışmalı; pano okuma kapalı kalmalı (09.09.2026)
+      const pano = await js(
+        `(async () => { let y = "ok", o = "ok"; try { await navigator.clipboard.writeText("0532 pano testi"); } catch (e) { y = String(e); } try { await navigator.clipboard.readText(); } catch (e) { o = String(e); } return { y, o }; })()`,
+      );
+      check(
+        "panoya yazma izinli, okuma reddedilir",
+        pano.y === "ok" && pano.o !== "ok" && require("electron").clipboard.readText() === "0532 pano testi",
+      );
       const sonuclar = await js(
         `(async () => { const r = []; for (let i = 0; i < 9; i++) r.push((await window.okul.auth.login("kaba-kuvvet", "p" + i)).error); return r; })()`,
       );

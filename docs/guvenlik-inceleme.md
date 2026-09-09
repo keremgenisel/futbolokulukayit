@@ -26,7 +26,7 @@ testle geldi (`tests/guvenlik-saf.test.js`, `tests/ui/parola-degistir.test.jsx`,
 | 8 | DÜZELTİLDİ | Açılışta `geciciArtiklariTemizle()` (`eyupspor-tasima-*`/`eyupspor-geri-*`); `tasimaBilgi` bellek içi özet (`db.yedekBilgisiBuffer`), diske düz kopya yazmaz. |
 | 9 | KEREM | Kod imzası bütçeye bağlı. Şimdilik: GitHub hesabında 2FA + `v*` etiketleri için korumalı etiket kuralı (plan §8.1 madde 7). |
 | 10 | KABUL EDİLEN RİSK | Makine kimliği donanıma bağlanmadı: dağıtılmış lisansları bozar; 1 numaralı düzeltme pratik istismarı kapatıyor. DB + `lisans-meta.enc` birlikte silinirse deneme yeniden başlar (bilinçli). |
-| 11 | DÜZELTİLDİ | `devTools: !app.isPackaged`, paketli Windows'ta uygulama menüsü yok, tüm izin istekleri red. |
+| 11 | DÜZELTİLDİ | `devTools: !app.isPackaged`, paketli Windows'ta uygulama menüsü yok, izin istekleri red. Tek istisna (09.09.2026): `clipboard-sanitized-write` — telefon numarasına tıklayınca kopyalama bunu gerektiriyor; pano okuma kapalı. |
 | 12 | DÜZELTİLDİ | `will-navigate`/`will-redirect` yalnız `dist/index.html` (ya da dev URL). |
 | 13 | DÜZELTİLDİ | `cagriYetkisi`: `must_change_password` olan oturumda her veri çağrısı 403 (IPC ve sunucu ortak). |
 | 14 | DÜZELTİLDİ | Zorunlu ilk değişim dışında mevcut parola istenir ve doğrulanır (IPC, sunucu, `ParolaDegistir`). |

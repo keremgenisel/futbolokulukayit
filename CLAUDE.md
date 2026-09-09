@@ -89,7 +89,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   oturumunda her çağrı 403; saf modüller `electron/makbuzIzin.cjs` (makbuz PDF izni), `electron/belgeDogrula.cjs` (belge
   girdi doğrulama), `imageOptimize.resimBoyutu` (50 MP üstü atlanır); `src/lib/metin.js` `esc` + `guvenliLogo` tüm
   şablonlarda; yazdırma penceresi ayrı `cikti` oturumunda ağa kapalı; `main.cjs` devTools yalnız dev, menü yok, izin
-  istekleri red, gezinme yalnız `dist/index.html`; `SifresizUyari` yöneticiye şifresiz DB şeridi; geri yükleme yolları
+  istekleri red (yalnız panoya yazma izinli: `Telefon` bileşeni), gezinme yalnız `dist/index.html`; `SifresizUyari` yöneticiye şifresiz DB şeridi; geri yükleme yolları
   yalnız diyalogdan (ana süreçte bekletilir). Testler `tests/guvenlik-saf.test.js` ve ilgili dosyalar.
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;

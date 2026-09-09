@@ -86,9 +86,12 @@ if (!app.requestSingleInstanceLock()) {
 
   app.whenReady().then(() => {
     // İnceleme #11: paketli sürümde menü çubuğu ve kısayolları kapalı (macOS'ta Cmd+C/V menüye bağlı olduğundan yalnız Windows/Linux);
-    // kamera/mikrofon/konum gibi izin istekleri her zaman reddedilir (uygulama hiçbirini kullanmaz).
+    // kamera/mikrofon/konum gibi izin istekleri reddedilir (uygulama hiçbirini kullanmaz). Tek istisna panoya YAZMA:
+    // telefon numarasına tıklayınca kopyalama (Telefon bileşeni) buna ihtiyaç duyar; pano OKUMA yine kapalı (09.09.2026).
     if (app.isPackaged && process.platform !== "darwin") Menu.setApplicationMenu(null);
-    session.defaultSession.setPermissionRequestHandler((_wc, _perm, cb) => cb(false));
+    const PANO_YAZMA = "clipboard-sanitized-write";
+    session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === PANO_YAZMA));
+    session.defaultSession.setPermissionCheckHandler((_wc, perm) => perm === PANO_YAZMA);
     geciciArtiklariTemizle(); // inceleme #8: kaba kapanıştan kalan düz (şifresiz) geçici kopyalar
     db.init();
     // Bu ayın aidat kayıtlarını aç: açılışta, sonra saatte bir ve pencere öne gelince (uygulama ay sonunda
