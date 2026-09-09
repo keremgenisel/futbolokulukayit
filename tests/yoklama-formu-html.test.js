@@ -27,7 +27,7 @@ describe("saha yoklama formu HTML'i", () => {
     expect(html).toContain('<img src="data:image/png;base64,AAA"');
     expect(html).toContain("size: A4 portrait");
   });
-  it("işaretli oyuncu dolu kutuyla, işaretsiz üç boş kutuyla gelir; sonda ek boş satırlar", () => {
+  it("işaretli oyuncu dolu kutuyla, işaretsiz üç boş kutuyla gelir; sonda ek boş satır yok (plan §17.3)", () => {
     expect(satirlar).toHaveLength(oyuncular.length + EK_BOS_SATIR);
     const [ada, baris, can, deniz] = satirlar;
     expect((ada.match(/kutu dolu/g) || []).length).toBe(1);
@@ -37,12 +37,8 @@ describe("saha yoklama formu HTML'i", () => {
     expect(baris).not.toContain("kutu dolu");
     expect(can).toMatch(/<div class="kutu">.*<div class="kutu">.*<div class="kutu dolu"><span class="izin">İ<\/span>/s);
     expect(deniz).toMatch(/<div class="kutu">.*<div class="kutu dolu">.*<div class="kutu">/s);
-    const bos = satirlar.slice(-EK_BOS_SATIR);
-    for (const b of bos) {
-      expect(b).toContain('class="no bos"');
-      expect(b.match(/class="kutu"/g)).toHaveLength(3);
-    }
-    expect(bos[0]).toContain(`>${oyuncular.length + 1}</td>`);
+    expect(EK_BOS_SATIR).toBe(0);
+    expect(satirlar.some((s) => s.includes('class="no bos"'))).toBe(false); // sonda boş satır yok
   });
   it("deneme/sakat etiketi var, aktifte yok; ad HTML'den kaçırılır", () => {
     expect(satirlar[1]).toContain("(deneme)");

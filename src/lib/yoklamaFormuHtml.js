@@ -6,7 +6,7 @@ import { uzunTarih } from "./takvim.js";
 import { esc, guvenliLogo } from "./metin.js";
 
 /** Boş satır sayısı: sonradan gelen/deneme oyuncular elle yazılır. */
-export const EK_BOS_SATIR = 3;
+export const EK_BOS_SATIR = 0; // 09.09.2026: sonda boş satır istenmedi (plan §17.3)
 /** @type {Record<string, string>} */
 const ETIKET = { deneme: "deneme", sakat: "sakat" };
 const KUTU_IC = {

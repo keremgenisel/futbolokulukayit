@@ -13,6 +13,7 @@ export function YasGruplari({ saltOkunur }) {
   const [yeni, setYeni] = useState({ ad: "", sezon: "" }); // sezon boş = aktif sezon (SezonSecim ilk seçeneği)
   const [duzenle, setDuzenle] = useState(null); // { id, ad, sezon, sira, aktif }
   const [sil, setSil] = useState(null);
+  const [pasifGoster, setPasifGoster] = useState(false); // varsayılan: yalnız aktif gruplar (plan §17.1)
   const toast = useToast();
   const dene = useDene();
 
@@ -55,6 +56,15 @@ export function YasGruplari({ saltOkunur }) {
       toast("ok", "Kaydedildi");
       yukle();
     });
+  // Durum rozeti tek tıkla Aktif ↔ Pasif (plan §17.1); Düzenle'ye girmeden
+  const durumDegistir = (g) =>
+    dene(async () => {
+      await db("updateAgeGroup", g.id, { aktif: g.aktif ? 0 : 1 });
+      toast("ok", g.aktif ? `${g.ad} pasife alındı` : `${g.ad} aktif`);
+      yukle();
+    });
+  const gorunen = gruplar.filter((g) => g.aktif || pasifGoster);
+  const pasifSayisi = gruplar.filter((g) => !g.aktif).length;
   const silOnayla = () =>
     dene(async () => {
       const r = await db("deleteAgeGroup", sil.id);
@@ -85,8 +95,16 @@ export function YasGruplari({ saltOkunur }) {
         </Kart>
       )}
       <Kart>
+        {pasifSayisi > 0 && (
+          <label style={{ display: "flex", gap: 8, alignItems: "center", padding: "12px 16px 0", fontSize: 14, color: "var(--soluk)" }}>
+            <input type="checkbox" checked={pasifGoster} onChange={(e) => setPasifGoster(e.target.checked)} />
+            Pasif grupları da göster ({pasifSayisi})
+          </label>
+        )}
         {gruplar.length === 0 ? (
           <Bos metin="Henüz yaş grubu yok. Yukarıdan ekleyin." />
+        ) : gorunen.length === 0 ? (
+          <Bos metin="Aktif grup yok. Pasif grupları göstermek için yukarıdaki kutuyu işaretleyin." />
         ) : (
           <table>
             <thead>
@@ -101,7 +119,7 @@ export function YasGruplari({ saltOkunur }) {
               </tr>
             </thead>
             <tbody>
-              {gruplar.map((g) =>
+              {gorunen.map((g) =>
                 duzenle?.id === g.id ? (
                   <tr key={g.id}>
                     <td>
@@ -168,7 +186,18 @@ export function YasGruplari({ saltOkunur }) {
                     <td style={{ fontSize: 13 }}>
                       {programOzeti(programCoz(g.program)) || <span style={{ color: "var(--soluk)" }}>—</span>}
                     </td>
-                    <td>{g.aktif ? <Rozet ton="green">Aktif</Rozet> : <Rozet ton="gray">Pasif</Rozet>}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => durumDegistir(g)}
+                        disabled={saltOkunur}
+                        aria-label={`${g.ad} durum: ${g.aktif ? "Aktif" : "Pasif"}`}
+                        title={saltOkunur ? "" : g.aktif ? "Tıklayınca pasife alınır" : "Tıklayınca aktif olur"}
+                        style={{ background: "none", border: 0, padding: 0, cursor: saltOkunur ? "default" : "pointer" }}
+                      >
+                        {g.aktif ? <Rozet ton="green">Aktif</Rozet> : <Rozet ton="gray">Pasif</Rozet>}
+                      </button>
+                    </td>
                     <td>
                       <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         {!saltOkunur && (

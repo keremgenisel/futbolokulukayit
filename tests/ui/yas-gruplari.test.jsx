@@ -109,4 +109,32 @@ describe("Yaş Grupları ekranı", () => {
     expect(screen.queryByRole("button", { name: "Grup Ekle" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Sil" })).toBeNull();
   });
+
+  it("varsayılan yalnız aktif gruplar; 'Pasif grupları da göster' ile pasifler gelir; rozet tıklayınca durum değişir (plan §17.1)", async () => {
+    gruplar = [
+      { id: 1, ad: "U11", sezon: "2026-2027", sira: 1, aktif: 1 },
+      { id: 2, ad: "U15", sezon: "2025-2026", sira: 2, aktif: 0 },
+    ];
+    window.okul.db.mockImplementation(async (fn, ...args) => {
+      if (fn === "listAgeGroups") return gruplar;
+      if (fn === "sezonDurumu") return { aktifSezon: "2026-2027", baslangicAyi: 9 };
+      if (fn === "updateAgeGroup") {
+        gruplar = gruplar.map((g) => (g.id === args[0] ? { ...g, ...args[1] } : g));
+        return {};
+      }
+      return [];
+    });
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => screen.getByText("U11"));
+    expect(screen.queryByText("U15")).toBeNull(); // pasif gizli, oyuncusu olmayan aktif grup görünür
+    fireEvent.click(screen.getByLabelText(/Pasif grupları da göster/));
+    expect(await screen.findByText("U15")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "U15 durum: Pasif" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("updateAgeGroup", 2, { aktif: 1 }));
+    expect(await screen.findByRole("button", { name: "U15 durum: Aktif" })).toBeInTheDocument();
+  });
 });
