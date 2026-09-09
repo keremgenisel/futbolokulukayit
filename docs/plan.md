@@ -801,3 +801,61 @@ bakar. Göç 16 mevcut veriden türetir: `players.sezon` + aidat kayıtlarının
 sezonları. Arayüz: aktif sezon dışında bir seçimde (geçmiş sezon ya da "Tüm sezonlar") durum süzgeci kendiliğinden
 "Tüm durumlar", aktif sezona dönünce "Aktif, deneme ve sakat".
 
+
+## 19. Raporlar — sezon + ay (Tümü) süzgeci, dört raporda (PLANLANDI, 09.09.2026)
+
+**İstek:** Oyuncu Listesi ve Borçlu Listesi'nde "Ay: Tümü" seçeneği; eski sezon oyuncuları gelsin. Yoklama Özeti ve Sağlık
+Raporu Durumu'nda da sezon + ay seçimi.
+
+**Not — "eski sezon oyuncuları gelmiyor":** Oyuncu Listesi, Oyuncular ekranıyla aynı süzgeci (`playersWhere.sezon`) kullanır;
+§18.1 (e783cae) ile bu süzgeç `player_seasons` tablosuna bakmaya başladı, dolayısıyla geçmiş sezon artık geliyor. Borçlu
+Listesi ise `listUnpaid(yil, ay)` ile yalnız aya bakıyor, sezon süzgeci yok → aşağıda düzeltilir.
+
+### 19.1 Ortak süzgeç: Sezon + Ay
+- Dört raporda aynı iki kutu: **Sezon** (aktif sezon seçili; kayıtlardaki eski sezonlar) ve **Ay** (sezon ayları başlangıç
+  ayından itibaren sıralı: Eylül … Ağustos; en üstte **Tümü**). Tahsilat Raporu tarih aralığıyla kalır.
+- Saf yardımcılar (`src/lib/sezon.js`): `sezonAylari(sezon, baslangicAyi)` → `[{ yil, ay, ad }]` sıralı;
+  `sezonAraligi(sezon, baslangicAyi)` → `{ from, to }` (1 Eylül – 31 Ağustos); mevcut `sezonAyYili` ay → yıl için.
+- Bileşen `src/components/SezonAySecim.jsx`: iki kutu + değer `{ sezon, ay }` (ay `null` = Tümü). Raporlar'da tek yerden.
+- Oyuncu kümesi her raporda **o sezonun oyuncuları** (`player_seasons` VEYA `players.sezon`); durum süzgeci yok (geçmiş
+  sezonun oyuncusu bugün pasif olabilir). Yaş grubu süzgeci aynen kalır.
+
+### 19.2 Oyuncu Listesi
+- Ay seçiliyse bugünkü gibi: "Eylül aidatı" sütunu (ödendi/ödenmedi/kısmi/muaf/kayıt yok).
+- **Ay: Tümü** → sütun "Sezon aidatı": `ödenen/açılan ay` + borç tutarı (örn. "3/4 ay · 3.500 ₺ borç"; muaf oyuncuda "Muaf").
+  Veri: `db.sezonAidatOzeti(sezon, baslangicAyi)` → oyuncu başına `{ acilan, odenen, kismi, odenmedi, muaf, borc }`
+  (sezon aylarındaki `monthly_dues` toplanır). Excel'de üç ayrı sütun: Açılan ay, Ödenen ay, Borç.
+
+### 19.3 Borçlu Listesi
+- Ay seçiliyse `listUnpaid(yil, ay, sezon)`: sezon süzgeci eklenir (oyuncu o sezonda mı).
+- **Ay: Tümü** → `db.listUnpaidSezon(sezon, baslangicAyi)`: oyuncu başına tek satır — borçlu aylar ("Eyl, Eki, Kas"), toplam
+  kalan, veli, telefon. Alt başlık: "2026-2027 sezonu · 12 oyuncu · toplam 41.500 ₺". WhatsApp hatırlatma bu rapora bağlı
+  değil (Pano'daki borçlular aylık kalır).
+
+### 19.4 Yoklama Özeti
+- Tarih aralığı kutuları yerine Sezon + Ay; aralık türetilir: ay seçiliyse o ay, Tümü ise sezon aralığı.
+  `attendanceReport(from, to, age_group_id, sezon)`: oyuncu kümesi `player_seasons` ile (bugünkü `p.durum IN (aktif…)`
+  şartı kalkar; sezon verilmezse eski davranış). Katılım yüzdesi aynı.
+- İleride istenirse "Tarih aralığı" ek seçenek olarak geri konabilir; bu turda kaldırılıyor (istek: sezon + ay).
+
+### 19.5 Sağlık Raporu Durumu
+- Sezon: oyuncu kümesi (o sezonun oyuncuları). Ay: **Tümü** = bugün itibarıyla (mevcut davranış); belirli ay = **o ayın son
+  günü itibarıyla** geçerlilik (süresi dolacak/dolmuş hesabı o tarihe göre; "30 gün içinde dolacak" eşiği aynı). Böylece
+  "Ekim sonunda kimin raporu dolmuş olacak" görülür. `saglikRaporuListesi(tarih, age_group_id, esik, sezon)`.
+
+### 19.6 Teknik ve test
+- DB: `sezonAidatOzeti`, `listUnpaidSezon` (aidat.cjs); `attendanceReport` ve `saglikSatirlari` sezon parametresi; `listUnpaid`
+  sezon parametresi. Hepsi OKUMA kümesinde (`yetki.cjs`), db.cjs export. Yeni tablo yok.
+- Saf: `src/lib/raporlar.js` üreticileri "Tümü" biçimini alır (`oyuncuListesiRaporu({ ay: null, ozet })`,
+  `borcluListesiRaporu({ ay: null })`, yoklama/sağlık alt başlıkları sezon + ay).
+- Testler: `tests/sezon.test.js` (sezonAylari, sezonAraligi), `tests/raporlar.test.js` (Tümü biçimleri), `tests/ui/raporlar-sezon.test.jsx`
+  (dört raporda Sezon + Ay kutuları, Tümü çağrıları), `db-roundtrip` (sezonAidatOzeti, listUnpaidSezon, attendanceReport sezon
+  kümesi, sağlık raporu tarih referansı).
+- Süre ~2 saat: saf + DB (45 dk), bileşen + Raporlar (45 dk), testler (30 dk).
+
+### 19.7 Karar bekleyen
+1. Oyuncu Listesi "Tümü" sütunu: tek sütun ("3/4 ay · 3.500 ₺ borç") mi, Excel'deki gibi üç ayrı sütun mu? (Öneri: ekranda
+   tek, Excel/PDF'de üç.)
+2. Sağlık raporunda ay = "o ayın son günü itibarıyla" yorumu uygun mu? Alternatif: ay yalnız oyuncu kümesini etkilesin,
+   geçerlilik hep bugüne göre.
+3. Yoklama Özeti'nde tarih aralığı tamamen kalksın mı, yoksa "Sezon + Ay" yanında "Tarih aralığı" seçeneği kalsın mı?
