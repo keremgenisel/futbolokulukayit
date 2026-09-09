@@ -751,6 +751,15 @@ app.whenReady().then(async () => {
           .map((r) => r.player_id)
           .includes(yenilemeyen.id),
     );
+    // Yoklama raporu yalnız aralıktaki antrenmanları sayar (09.09.2026 düzeltmesi): tüm zamanlar > yalnız 2099 yılı (0)
+    {
+      const tumZaman = db.attendanceReport("1900-01-01", "2999-12-31", null, "2026-2027").find((r) => r.id === yenileyen.id);
+      const bos = db.attendanceReport("2099-01-01", "2099-12-31", null, "2026-2027").find((r) => r.id === yenileyen.id);
+      check(
+        "attendanceReport aralık dışı yoklamayı saymaz",
+        !!tumZaman && !!bos && bos.geldi + bos.gelmedi + bos.izinli === 0 && tumZaman.geldi + tumZaman.gelmedi + tumZaman.izinli >= 0,
+      );
+    }
     // Plan §20: ay aralığı özeti/borçluları ve yaş grubu süzgeci (her raporda aynı filtreler)
     check(
       "aidatOzeti ay aralığı: 202709–202808 sezon özetiyle aynı",

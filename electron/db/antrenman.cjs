@@ -96,15 +96,17 @@ const attendanceSummary = (pid, from, to) =>
     .all(pid, from, to);
 
 // Yoklama raporu: tarih aralığında oyuncu bazında geldi/gelmedi/izinli sayıları.
-// sezon verilirse oyuncu kümesi o sezonun oyuncuları (bugün pasif olsa da; plan §19.4); verilmezse sahadakiler
+// sezon verilirse oyuncu kümesi o sezonun oyuncuları (bugün pasif olsa da; plan §19.4); verilmezse sahadakiler.
+// Yalnız aralıktaki, iptal edilmemiş antrenmanların yoklaması sayılır (t.id IS NOT NULL) — 09.09.2026 raporlar e2e'de
+// aralık dışı yoklamaların da toplandığı görüldü.
 const attendanceReport = (from, to, age_group_id = null, sezon = null) =>
   db
     .prepare(
       `
   SELECT p.id, p.ad_soyad, g.ad AS yas_grubu_ad,
-    sum(CASE WHEN a.durum='geldi' THEN 1 ELSE 0 END) AS geldi,
-    sum(CASE WHEN a.durum='gelmedi' THEN 1 ELSE 0 END) AS gelmedi,
-    sum(CASE WHEN a.durum='izinli' THEN 1 ELSE 0 END) AS izinli
+    sum(CASE WHEN t.id IS NOT NULL AND a.durum='geldi' THEN 1 ELSE 0 END) AS geldi,
+    sum(CASE WHEN t.id IS NOT NULL AND a.durum='gelmedi' THEN 1 ELSE 0 END) AS gelmedi,
+    sum(CASE WHEN t.id IS NOT NULL AND a.durum='izinli' THEN 1 ELSE 0 END) AS izinli
   FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
   LEFT JOIN attendance a ON a.player_id=p.id
   LEFT JOIN trainings t ON t.id=a.training_id AND t.tarih BETWEEN ? AND ? AND t.iptal=0
