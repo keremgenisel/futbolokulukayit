@@ -510,6 +510,23 @@ app.on("browser-window-created", async (_e, win) => {
           .join() === "normal,ucretsiz,burslu",
       );
       check("sezon listesi yeniden eskiye", db.sezonListesi()[0] === "2027-2028" && db.sezonListesi().includes("2026-2027"));
+      // Plan §18/§18.1: formdan kaydedilen oyuncu sezon damgası aldı (2026-2027), sezon geçişiyle 2027-2028 üyeliği eklendi;
+      // geçmiş sezon süzgeci onu hâlâ bulur; arayüzdeki varsayılan (aktif sezon) süzgeç de gösterir
+      const ps = db
+        .hamBaglanti()
+        .prepare("SELECT sezon FROM player_seasons WHERE player_id=? ORDER BY sezon")
+        .all(o.id)
+        .map((r) => r.sezon);
+      check("oyuncunun sezon damgası ve geçmiş sezon üyeliği kalıcı", o.sezon === "2027-2028" && ps.join() === "2026-2027,2027-2028");
+      check(
+        "geçmiş sezon süzgeci yeniden açılışta oyuncuyu bulur; yeni sezon süzgeci de",
+        db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).some((p) => p.id === o.id) &&
+          db.playersPage({ yil: 2027, ay: 9, sezon: "2027-2028", durum: "aktifler" }).liste.some((p) => p.id === o.id),
+      );
+      check(
+        "hiç oyuncu sezonsuz kalmadı (göç 15 + createPlayer damgası)",
+        db.hamBaglanti().prepare("SELECT count(*) AS n FROM players WHERE sezon='' AND durum IN ('aktif','deneme','sakat')").get().n === 0,
+      );
       // Arayüz: kullanıcı adı önceki oturumdan hatırlanıyor, giriş yeni parolayla
       check("kullanıcı adı yeniden açılışta hatırlanıyor", (await js(`document.querySelector("input").value`)) === "admin");
       await js(
