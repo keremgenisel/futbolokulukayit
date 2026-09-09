@@ -11,10 +11,11 @@ import { Ayarlar } from "./components/Ayarlar.jsx";
 import { ToastSaglayici } from "./components/ui.jsx";
 import { KenarMenu } from "./components/KenarMenu.jsx";
 import { SifresizUyari } from "./components/SifresizUyari.jsx";
+import { GuncellemeSeridi } from "./components/GuncellemeSeridi.jsx";
 import { IlkKurulum } from "./components/IlkKurulum.jsx";
 import { HizliArama } from "./components/HizliArama.jsx";
 import { tarihTR } from "./lib/aidat.js";
-import { bugun, guncelleme } from "./lib/api.js";
+import { bugun } from "./lib/api.js";
 
 // Yönlendirici yok: sekme bir string, TABS'a göre koşullu render.
 export const TABS = [
@@ -61,12 +62,6 @@ export function App() {
     kurulumGerekliMi().then((g) => g && setKurulum(true));
   }, [kurulumGerekliMi]);
   const [ayarBolum, setAyarBolum] = useState(null); // Ayarlar'a belirli bölümle gitmek için
-  const [yeniSurum, setYeniSurum] = useState(null); // açılış denetimi yeni sürüm bulursa (paketli sürüm; yöneticiye şerit)
-  useEffect(() => {
-    const g = guncelleme();
-    if (!g?.on) return undefined;
-    return g.on("available", (i) => setYeniSurum(i?.version || "yeni"));
-  }, []);
   const modYenile = useCallback(() => {
     window.okul?.mod
       ?.oku()
@@ -162,6 +157,14 @@ export function App() {
           }}
         />
         <main style={{ flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+          <GuncellemeSeridi
+            oturum={oturum}
+            onHakkinda={() => {
+              setTab("ayarlar");
+              setAyarBolum("hakkinda");
+              setSekmeKey((k) => k + 1);
+            }}
+          />
           <header style={{ padding: "22px 32px 16px", borderBottom: "1px solid var(--cizgi)", background: "#fff" }}>
             <h1 style={{ fontSize: 30 }}>{TABS.find((t) => t.kod === tab)?.ad}</h1>
           </header>
@@ -185,44 +188,6 @@ export function App() {
                   Verileriniz güvende; görüntüleme ve dışa aktarma açık, değişiklik kapalı. Ayarlar &gt; Lisans'tan anahtar girince kilit
                   kalkar.
                 </div>
-              </div>
-            )}
-            {yeniSurum && oturum.role === "admin" && tab !== "ayarlar" && (
-              <div
-                role="status"
-                style={{
-                  background: "var(--mor-acik)",
-                  border: "1.5px solid var(--mor)",
-                  borderRadius: 10,
-                  padding: "10px 16px",
-                  marginBottom: 20,
-                  fontSize: 13.5,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 12,
-                }}
-              >
-                <span style={{ flex: 1 }}>
-                  <b>Yeni sürüm {yeniSurum} hazır.</b> Kurmak için Ayarlar &gt; Hakkında bölümünden İndir ve Kur deyin.
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setTab("ayarlar");
-                    setAyarBolum("hakkinda");
-                    setSekmeKey((k) => k + 1);
-                  }}
-                  style={{
-                    background: "none",
-                    border: 0,
-                    color: "var(--mor)",
-                    cursor: "pointer",
-                    fontWeight: 700,
-                    textDecoration: "underline",
-                  }}
-                >
-                  Hakkında'ya git
-                </button>
               </div>
             )}
             {!saltOkunur && lisans?.mod === "deneme" && (
