@@ -1,6 +1,7 @@
 // ── Yeni sezon geçişi (docs/plan.md §10) ──
 const { db } = require("./baglanti.cjs");
 const { getSetting, setSetting } = require("./meta.cjs");
+const { ensureMonthlyDues } = require("./aidat.cjs");
 
 const SEZON_DURUMLARI = ["aktif", "deneme", "sakat"];
 // Sihirbaz listesi: sezonda aktif sayılan oyuncular + geçmiş ödenmemiş aidat sayısı/tutarı.
@@ -13,6 +14,23 @@ const sezonAdayListesi = () =>
   FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE p.durum IN ('aktif','deneme','sakat') ORDER BY g.sira, p.ad_soyad`,
     )
     .all();
+// Raporlar sezon kutusu (plan §17.5): kayıtlarda geçen tüm sezonlar + aktif sezon, yeniden eskiye
+const sezonListesi = () => {
+  const s = new Set(
+    db
+      .prepare(
+        "SELECT sezon FROM players WHERE sezon<>'' UNION SELECT sezon FROM age_groups WHERE sezon<>'' UNION SELECT sezon FROM receipts WHERE sezon<>''",
+      )
+      .all()
+      .map((r) => r.sezon),
+  );
+  const aktif = getSetting("aktif_sezon");
+  if (aktif) s.add(aktif);
+  return [...s]
+    .filter((x) => /^\d{4}-\d{4}$/.test(x))
+    .sort()
+    .reverse();
+};
 function sezonDurumu() {
   return {
     aktifSezon: getSetting("aktif_sezon") || "",
@@ -31,7 +49,10 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
     let yenilenen = 0,
       pasif = 0,
       grupDegisen = 0,
-      borcSilinen = 0;
+      borcSilinen = 0,
+      ilkAyBorcu = 0;
+    // Yeni sezonun ilk ayı (başlangıç ayı, sezonun ilk yılı): yenileyenlerin aidat kaydı hemen açılır (plan §17.4)
+    const ilkAy = { yil: Number(sezon.slice(0, 4)), ay: Number(getSetting("sezon_baslangic_ayi")) || 9 };
     for (const p of adaylar) {
       const y = yenile.get(p.id);
       if (y) {
@@ -39,6 +60,7 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
         if (grup !== p.yas_grubu_id) grupDegisen++;
         db.prepare("UPDATE players SET sezon=?, yas_grubu_id=?, updated_at=datetime('now') WHERE id=?").run(sezon, grup, p.id);
         yenilenen++;
+        ilkAyBorcu += ensureMonthlyDues(ilkAy.yil, ilkAy.ay, p.id);
       } else {
         const notEk = `${eskiSezon || "Önceki"} sezonu sonunda yenilemedi (${new Date().toISOString().slice(0, 10)})`;
         const notlar = p.notlar ? `${p.notlar}\n${notEk}` : notEk;
@@ -53,9 +75,9 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
     db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1").run(sezon);
     setSetting("aktif_sezon", sezon);
     setSetting("son_sezon_gecisi", new Date().toISOString());
-    return { ok: true, sezon, yenilenen, pasif, grupDegisen, borcSilinen };
+    return { ok: true, sezon, yenilenen, pasif, grupDegisen, borcSilinen, ilkAyBorcu, ilkAy };
   });
   return tx();
 }
 
-module.exports = { SEZON_DURUMLARI, sezonAdayListesi, sezonDurumu, yeniSezonaGec };
+module.exports = { SEZON_DURUMLARI, sezonAdayListesi, sezonListesi, sezonDurumu, yeniSezonaGec };

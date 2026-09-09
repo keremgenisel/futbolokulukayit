@@ -737,7 +737,7 @@ UYGULAMA
   KULÜP, çünkü şablon metinleri kulübün dili). "Yedekleme" ve "Optimizasyon" için "VERİ" yeterli olabilir; "SEZON VE VERİ"
   tek kelimeye inebilir ("VERİ").
 
-## 17. Sezon sonrası düzeltmeler — 09.09.2026 istekleri (PLANLANDI)
+## 17. Sezon sonrası düzeltmeler — 09.09.2026 istekleri (PLANLANDI ve UYGULANDI)
 
 Kerem'in yeni sezona geçiş denemesinden sonra bildirdiği beş madde. 1 ve 3 net, hemen uygulandı; 2, 4, 5 için karar §17.6.
 
@@ -748,7 +748,7 @@ Kerem'in yeni sezona geçiş denemesinden sonra bildirdiği beş madde. 1 ve 3 n
   okunurda tıklanmaz. Düzenle satırındaki "Aktif" kutusu da kalır.
 - Pasif grup: yeni oyuncu kaydında seçilemez (mevcut davranış), yoklama takviminde antrenman açılmaz (mevcut).
 
-### 17.2 Tahsilat ve makbuz numarası sezona bağlı (KARAR BEKLİYOR)
+### 17.2 Tahsilat ve makbuz numarası sezona bağlı (UYGULANDI — şema 14, `electron/makbuzNo.cjs`)
 Bugünkü durum: makbuz numarası takvim yılına göre (`2026-0001`); "Bugün Kesilen Makbuzlar" tarihe göre. Sezon geçişi
 makbuzu etkilemiyor; aynı gün eski sezonda kesilen makbuzlar listede kalıyor, yeni sezonda kesilen makbuz 2026 önekini alıyor.
 Öneri:
@@ -762,14 +762,14 @@ makbuzu etkilemiyor; aynı gün eski sezonda kesilen makbuzlar listede kalıyor,
 ### 17.3 Yoklama formu: sonda boş satır yok (UYGULANDI)
 `EK_BOS_SATIR` 3 → 0. Elle eklenecek oyuncu için kâğıtta yer istenirse ileride ayar yapılır.
 
-### 17.4 Yeni sezona geçince yenileyenlerin ilk ay borcu (KARAR BEKLİYOR)
+### 17.4 Yeni sezona geçince yenileyenlerin ilk ay borcu (UYGULANDI — `yeniSezonaGec` sonucu `ilkAyBorcu`, `ilkAy`)
 Bugünkü durum: aidat kayıtları yalnız içinde bulunulan takvim ayı için açılıyor. Eylül 2026'da 2027-2028'e geçilince
 2027 Eylül borcu açılmıyor; o ay gelince açılacak. Öneri: `yeniSezonaGec` yenileyen oyuncular için yeni sezonun **ilk
 ayının** (başlangıç ayı, sezonun ilk yılı) aidat kaydını hemen açar (`ensureMonthlyDues(yil, ay, pid)`; muaf kuralları
 aynı). Böylece sezon bazlı raporda (§17.5) yeni sezon borçluları hemen görünür; makbuzda o dönem seçilebilir. Sonraki
 aylar yine kendi ayında açılır.
 
-### 17.5 Raporlar: yıl yerine sezon, ay kalır (KARAR BEKLİYOR)
+### 17.5 Raporlar: yıl yerine sezon, ay kalır (UYGULANDI — `db.sezonListesi`, `playersWhere.sezon`, `sezonAyYili`)
 - Aylık raporlarda (Oyuncu Listesi, Borçlu Listesi) "Yıl" kutusu yerine **Sezon** kutusu (SezonSecim + geçmiş sezonlar:
   oyuncu/grup kayıtlarındaki ayrık sezonlar); ay seçimi kalır. Yıl sezondan türetilir: başlangıç ayı ve sonrası → ilk yıl,
   öncesi → ikinci yıl (Eylül 2027-2028 → 2027, Ocak → 2028).
@@ -778,7 +778,8 @@ aylar yine kendi ayında açılır.
 - Borçlu Listesi: türetilen yıl+ay ile `listUnpaid` (aynı). Tahsilat/Yoklama tarih aralığıyla kalır; Sağlık bugün.
 - Excel/PDF alt başlığında "Eylül · 2027-2028 sezonu".
 
-### 17.6 Kararlar
-1. Makbuz numarası sezon başlangıç yılıyla mı (2027-0001), takvim yılıyla mı kalsın? (Öneri: sezon.)
-2. Sezon geçişinde ilk ay borcu hemen açılsın mı? (Öneri: evet.)
-3. Rapor filtresi: sezon + ay. (Öneri: evet; geçmiş sezon listesi kayıtlardan.)
+### 17.6 Kararlar (Kerem, 09.09.2026: "sırayla uygula")
+1. Makbuz numarası sezon başlangıç yılıyla (2027-0001). Tahsilat raporu tarih aralığıyla kaldı (sezon süzgeci yok; makbuz
+   satırında sezon damgası var).
+2. Sezon geçişinde ilk ay borcu hemen açılır (muaf kuralları aynı; yenilemeyene açılmaz).
+3. Aylık raporlarda sezon + ay; sezon listesi oyuncu/grup/makbuz kayıtlarından.

@@ -27,6 +27,17 @@ export function sezonSecenekleri({ aktifSezon = "", bugunIso, baslangicAyi = VAR
   return l;
 }
 
+/**
+ * Sezon + ay → takvim yılı (plan §17.5): başlangıç ayı ve sonrası sezonun ilk yılı, öncesi ikinci yılı.
+ * ("2027-2028", 9) → 2027; ("2027-2028", 1) → 2028. Sezon bozuksa null.
+ * @param {string} sezon @param {number} ay 1-12 @param {number} baslangicAyi
+ */
+export function sezonAyYili(sezon, ay, baslangicAyi = VARSAYILAN_SEZON_AYI) {
+  if (!sezonGecerliMi(sezon)) return null;
+  const ilk = Number(sezon.slice(0, 4));
+  return Number(ay) >= baslangicAyi ? ilk : ilk + 1;
+}
+
 /** "2026-2027" → "2027-2028". Biçim bozuksa boş döner. @param {string} sezon */
 export function sonrakiSezon(sezon) {
   const m = /^(\d{4})-(\d{4})$/.exec(String(sezon || ""));

@@ -155,4 +155,13 @@ describe("rapor üreticileri (saf)", () => {
     expect(r.satirlar[0]).toEqual({ ad: "A", grup: "U11", geldi: 3, gelmedi: 1, izinli: 0, oran: 75 });
     expect(r.satirlar[1].oran).toBe("");
   });
+
+  it("sezon verilince alt başlıkta görünür (plan §17.5)", () => {
+    expect(oyuncuListesiRaporu({ liste: [], yil: 2027, ay: 9, sezon: "2027-2028", ucretAd: (k) => k }).alt).toBe(
+      "Eylül 2027 · 2027-2028 sezonu",
+    );
+    expect(borcluListesiRaporu({ liste: [], veliler: {}, yil: 2028, ay: 1, sezon: "2027-2028" }).alt).toBe(
+      "Ocak 2028 · 2027-2028 sezonu · 0 oyuncu · toplam 0 ₺",
+    );
+  });
 });

@@ -21,13 +21,13 @@ export const RAPORLAR = [
 
 /**
  * Oyuncu listesi: seçilen ayın aidat durumuyla.
- * @param {{ liste: any[], yil: number, ay: number, grupEk?: string, ucretAd: (kod: string) => string }} p
+ * @param {{ liste: any[], yil: number, ay: number, grupEk?: string, ucretAd: (kod: string) => string, sezon?: string }} p
  * @returns {Rapor}
  */
-export function oyuncuListesiRaporu({ liste, yil, ay, grupEk = "", ucretAd }) {
+export function oyuncuListesiRaporu({ liste, yil, ay, grupEk = "", ucretAd, sezon = "" }) {
   return {
     baslik: "Oyuncu Listesi",
-    alt: `${AY_ADLARI[ay - 1]} ${yil}${grupEk}`,
+    alt: `${AY_ADLARI[ay - 1]} ${yil}${sezon ? ` · ${sezon} sezonu` : ""}${grupEk}`,
     yatay: true,
     sutunlar: [
       { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
@@ -56,10 +56,10 @@ export function oyuncuListesiRaporu({ liste, yil, ay, grupEk = "", ucretAd }) {
 
 /**
  * Borçlu listesi: `veliler` oyuncu id → veli listesi (birincil veli, yoksa ilk veli).
- * @param {{ liste: any[], veliler: Record<number, any[]>, yil: number, ay: number }} p
+ * @param {{ liste: any[], veliler: Record<number, any[]>, yil: number, ay: number, sezon?: string }} p
  * @returns {Rapor}
  */
-export function borcluListesiRaporu({ liste, veliler, yil, ay }) {
+export function borcluListesiRaporu({ liste, veliler, yil, ay, sezon = "" }) {
   const satirlar = liste.map((b) => {
     const v = veliler[b.player_id] || [];
     const veli = v.find((x) => x.veli_mi) || v[0];
@@ -74,7 +74,7 @@ export function borcluListesiRaporu({ liste, veliler, yil, ay }) {
   });
   return {
     baslik: "Borçlu Listesi",
-    alt: `${AY_ADLARI[ay - 1]} ${yil} · ${liste.length} oyuncu · toplam ${paraTR(liste.reduce((s, b) => s + (b.kalan ?? b.tutar), 0))}`,
+    alt: `${AY_ADLARI[ay - 1]} ${yil}${sezon ? ` · ${sezon} sezonu` : ""} · ${liste.length} oyuncu · toplam ${paraTR(liste.reduce((s, b) => s + (b.kalan ?? b.tutar), 0))}`,
     sutunlar: [
       { baslik: "Ad Soyad", anahtar: "ad", genislik: 28 },
       { baslik: "Grup", anahtar: "grup", genislik: 8 },

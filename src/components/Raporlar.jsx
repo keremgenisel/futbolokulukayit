@@ -4,6 +4,7 @@ import { db, cikti, uygulama, bugun, ayAraligi } from "../lib/api.js";
 import { AY_ADLARI, paraTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
+import { sezonAyYili, guncelSezon } from "../lib/sezon.js";
 import { Ikon } from "./Ikon.jsx";
 
 import { RAPORLAR, oyuncuListesiRaporu, borcluListesiRaporu, tahsilatRaporu, saglikRaporu, yoklamaOzetiRaporu } from "../lib/raporlar.js";
@@ -13,7 +14,13 @@ export function Raporlar() {
   const { ad: ucretAd } = useUcretTipleri();
   const [rapor, setRapor] = useState("oyuncu");
   const [ayS, setAyS] = useState(ay);
-  const [yilS, setYilS] = useState(yil);
+  // Aylık raporlar sezon + ay ile süzülür (plan §17.5); yıl sezondan türetilir
+  const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi }
+  const [sezonlar, setSezonlar] = useState([]);
+  const [sezonS, setSezonS] = useState("");
+  const baslangicAyi = sezonDurum?.baslangicAyi || 9;
+  const seciliSezon = sezonS || sezonDurum?.aktifSezon || guncelSezon(bugun().iso, baslangicAyi);
+  const yilS = sezonAyYili(seciliSezon, ayS, baslangicAyi) ?? yil;
   const [from, setFrom] = useState(ayAraligi(yil, ay).from);
   const [to, setTo] = useState(ayAraligi(yil, ay).to);
   const [grup, setGrup] = useState("");
@@ -26,20 +33,26 @@ export function Raporlar() {
     db("listAgeGroups")
       .then(setGruplar)
       .catch(() => {});
+    db("sezonDurumu")
+      .then((d) => d && setSezonDurum(d))
+      .catch(() => {});
+    db("sezonListesi")
+      .then((l) => Array.isArray(l) && setSezonlar(l))
+      .catch(() => {});
   }, []);
 
   const grupEk = grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : "";
   const hazirla = () =>
     dene(async () => {
       if (rapor === "oyuncu") {
-        const liste = await db("listPlayersWithDue", { yil: yilS, ay: ayS, yas_grubu_id: grup ? Number(grup) : null });
-        return oyuncuListesiRaporu({ liste, yil: yilS, ay: ayS, grupEk, ucretAd });
+        const liste = await db("listPlayersWithDue", { yil: yilS, ay: ayS, yas_grubu_id: grup ? Number(grup) : null, sezon: seciliSezon });
+        return oyuncuListesiRaporu({ liste, yil: yilS, ay: ayS, grupEk, ucretAd, sezon: seciliSezon });
       }
       if (rapor === "borclu") {
         const liste = await db("listUnpaid", yilS, ayS);
         const veliler = {};
         for (const b of liste) veliler[b.player_id] = await db("listGuardians", b.player_id);
-        return borcluListesiRaporu({ liste, veliler, yil: yilS, ay: ayS });
+        return borcluListesiRaporu({ liste, veliler, yil: yilS, ay: ayS, sezon: seciliSezon });
       }
       if (rapor === "tahsilat") {
         const makbuzlar = await db("listReceiptsByDate", from, to);
@@ -82,7 +95,10 @@ export function Raporlar() {
 
   const aylik = rapor === "oyuncu" || rapor === "borclu";
   const tarihsiz = rapor === "saglik"; // bugüne göre; tarih filtresi yok
-  const yillar = [yil - 1, yil, yil + 1].map((y) => ({ kod: y, ad: String(y) }));
+  const sezonSecenekleri = [...new Set([seciliSezon, ...sezonlar])].map((s) => ({
+    kod: s,
+    ad: s === sezonDurum?.aktifSezon ? `${s} (aktif)` : s,
+  }));
   return (
     <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
@@ -117,12 +133,13 @@ export function Raporlar() {
               <Alan etiket="Ay" style={{ flex: 1 }}>
                 <Secim
                   secenekler={AY_ADLARI.map((a, i) => ({ kod: i + 1, ad: a }))}
+                  aria-label="Ay"
                   value={ayS}
                   onChange={(e) => setAyS(Number(e.target.value))}
                 />
               </Alan>
-              <Alan etiket="Yıl" style={{ width: 100 }}>
-                <Secim secenekler={yillar} value={yilS} onChange={(e) => setYilS(Number(e.target.value))} />
+              <Alan etiket="Sezon" style={{ width: 150 }}>
+                <Secim secenekler={sezonSecenekleri} value={seciliSezon} onChange={(e) => setSezonS(e.target.value)} aria-label="Sezon" />
               </Alan>
             </div>
           ) : (

@@ -127,9 +127,14 @@ function playersWhere({
   sadeceOdemeyen = false,
   saglikSorunlu = false,
   bugun = null,
+  sezon = null, // raporlar: yalnız o sezonun oyuncuları (players.sezon; plan §17.5)
 } = {}) {
   const where = [];
   const args = [yil, ay];
+  if (sezon) {
+    where.push("p.sezon=?");
+    args.push(String(sezon));
+  }
   if (q) {
     const a = `%${likeKacir(araNormalize(q))}%`;
     where.push("(tr_ara(p.ad_soyad) LIKE ? ESCAPE '\\' OR p.tc_no LIKE ? ESCAPE '\\' OR tr_ara(p.pasaport_no) LIKE ? ESCAPE '\\')");

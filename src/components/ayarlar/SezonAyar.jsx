@@ -135,6 +135,9 @@ export function SezonAyar({ admin, saltOkunur }) {
           <b>{sonuc.sezon} sezonuna geçildi.</b> {sonuc.yenilenen} oyuncu yeniledi
           {sonuc.grupDegisen ? ` (${sonuc.grupDegisen} üst gruba taşındı)` : ""}, {sonuc.pasif} oyuncu pasife alındı
           {sonuc.borcSilinen ? `, ${sonuc.borcSilinen} eski aidat kaydı silindi` : ""}.
+          {sonuc.ilkAy
+            ? ` Yeni sezonun ilk ayı (${AY_ADLARI[sonuc.ilkAy.ay - 1]} ${sonuc.ilkAy.yil}) için ${sonuc.ilkAyBorcu} aidat kaydı açıldı.`
+            : ""}
         </div>
       )}
 

@@ -32,6 +32,7 @@ const OKUMA = new Set([
   "isEncrypted",
   "sezonAdayListesi",
   "sezonDurumu",
+  "sezonListesi",
   "listFeeTypes",
   "sonMesajlar",
   "antrenmanVelileri",

@@ -111,8 +111,9 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   KalemAyar, KullaniciAyar+KurtarmaKodlari, SezonAyar, YedekAyar, OptimizeAyar, WhatsAppAyar, Hakkinda+Guncelleme). Dış API
   (`Ayarlar`, `KurtarmaKodlari`, `Guncelleme`) Ayarlar.jsx'ten yeniden dışa verilir.
 - `src/App.jsx` — üst durum ve sekme kabuğu. Router yok; `tab` string + `TABS` dizisi.
-- `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi); Ayarlar > Yeni Sezon
-  sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup, diğerleri pasif+not). Bkz. `docs/plan.md §10`.
+- `src/lib/sezon.js` — SAF sezon mantığı (güncel/sonraki sezon, sezon sonu, üst grup önerisi, `sezonAyYili`); Ayarlar > Yeni Sezon
+  sihirbazı `db.yeniSezonaGec` (tek işlem: yenileyen → yeni sezon+grup + yeni sezonun ilk ay aidatı açılır, diğerleri pasif+not).
+  Raporlar'da aylık raporlar sezon + ay ile (`db.sezonListesi`, `listPlayersWithDue { sezon }`). Bkz. `docs/plan.md §10, §17`.
 - `src/lib/belge.js` (sağlık raporu geçerliliği), `src/lib/program.js` (haftalık program), `src/lib/takvim.js` (takvim
   şeridi), `electron/oyuncuAktar.cjs` (Excel satır çözümleme) — hepsi SAF, vitest ile test edilir.
 - `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.

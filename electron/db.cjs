@@ -43,6 +43,7 @@ module.exports = {
   aidatAyarlariKaydet: m.aidatAyarlariKaydet,
   sezonAdayListesi: m.sezonAdayListesi,
   sezonDurumu: m.sezonDurumu,
+  sezonListesi: m.sezonListesi,
   yeniSezonaGec: m.yeniSezonaGec,
   SEZON_DURUMLARI: m.SEZON_DURUMLARI,
   getUserByUsername: m.getUserByUsername,

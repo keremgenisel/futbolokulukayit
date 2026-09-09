@@ -695,6 +695,24 @@ app.whenReady().then(async () => {
       y2.durum === "pasif" && /2026-2027 sezonu sonunda yenilemedi/.test(y2.notlar) && /eski not/.test(y2.notlar),
     );
     check("yenilemeyenin eski borcu muaf oldu", db.listDues(yenilemeyen.id).every((d) => d.durum !== "odenmedi") && sg.borcSilinen >= 1);
+    // Plan §17.4: yenileyenin yeni sezon ilk ay (Eylül 2027) aidat kaydı hemen açıldı; yenilemeyende yok
+    const ilk = db.getDue(yenileyen.id, 2027, 9);
+    check(
+      "yeni sezonun ilk ayı borcu açıldı (yenileyen), yenilemeyende yok",
+      sg.ilkAyBorcu >= 1 &&
+        sg.ilkAy.yil === 2027 &&
+        sg.ilkAy.ay === 9 &&
+        !!ilk &&
+        ilk.durum === "odenmedi" &&
+        !db.getDue(yenilemeyen.id, 2027, 9),
+    );
+    // Plan §17.5: sezon listesi ve sezon süzgeci
+    check("sezon listesi yeniden eskiye, aktif dahil", db.sezonListesi()[0] === "2027-2028" && db.sezonListesi().includes("2026-2027"));
+    check(
+      "oyuncu listesi sezon süzer",
+      db.listPlayersWithDue({ yil: 2027, ay: 9, sezon: "2027-2028" }).some((p) => p.id === yenileyen.id) &&
+        !db.listPlayersWithDue({ yil: 2027, ay: 9, sezon: "2027-2028" }).some((p) => p.id === yenilemeyen.id),
+    );
     check(
       "gruplar ve aktif sezon güncellendi",
       db

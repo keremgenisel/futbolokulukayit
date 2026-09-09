@@ -1,5 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupAdi, ustGrupOner, sezonSecenekleri } from "../src/lib/sezon.js";
+import {
+  guncelSezon,
+  sonrakiSezon,
+  sezonGecerliMi,
+  sezonSonuMu,
+  ustGrupAdi,
+  ustGrupOner,
+  sezonSecenekleri,
+  sezonAyYili,
+} from "../src/lib/sezon.js";
 
 describe("sezon mantığı", () => {
   it("güncel sezon başlangıç ayına göre belirlenir", () => {
@@ -66,5 +75,14 @@ describe("sezon mantığı", () => {
     expect(eski.map((s) => s.kod)).toEqual(["2026-2027", "2027-2028", "2026"]);
     expect(eski[2].ad).toBe("2026 (eski kayıt)");
     expect(sezonSecenekleri({ aktifSezon: "2026-2027", bugunIso: "2026-09-09", mevcut: "2027-2028" })).toHaveLength(2);
+  });
+
+  it("sezon + ay → yıl (plan §17.5)", () => {
+    expect(sezonAyYili("2027-2028", 9)).toBe(2027);
+    expect(sezonAyYili("2027-2028", 12)).toBe(2027);
+    expect(sezonAyYili("2027-2028", 1)).toBe(2028);
+    expect(sezonAyYili("2027-2028", 8)).toBe(2028);
+    expect(sezonAyYili("2027-2028", 9, 8)).toBe(2027);
+    expect(sezonAyYili("bozuk", 9)).toBeNull();
   });
 });
