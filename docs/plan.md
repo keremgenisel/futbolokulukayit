@@ -1000,3 +1000,18 @@ Ekranda sezon süzgeci yok; liste aktif grupları (isteğe bağlı pasifleri) g�
    tarih modunda tüm gruplar.
 2. Göç 17 antrenman tarihlerinden türetir (grup sezonu + antrenman ayları). Antrenmanı olmayan eski grup için grubun sezon
    alanı düzenlenince üyelik eklenir.
+
+## 22. Sayfalama envanteri ve dört düzeltme (UYGULANDI, 09.09.2026)
+
+Envanter (Kerem: "uygulamada sayfalama gerektiren yerleri bul"): zaten sayfalı olanlar Oyuncular (DB'de 50/sayfa), Raporlar
+önizleme (100 satır), oyuncu kartı (son 12/12/40 + Tümünü göster). Büyüyebilen ama sınırsız uzayan dört yer düzeltildi
+(Kerem: "dördünü uygula"):
+1. Excel aktarım önizlemesi (`OyuncuAktar.jsx`): `Sayfalama` ile 100 satır/sayfa; aktarım tam listeyi gönderir. Test:
+   `tests/ui/oyuncu-aktar.test.jsx` (250 kayıt).
+2. Yeni Sezon sihirbazı aday listesi (`SezonAyar.jsx`): sabit yükseklikli kaydırma (`calc(100vh - 420px)`, en az 240px),
+   yapışık başlık, her zaman görünen "n oyuncu" / "x / y oyuncu gösteriliyor" sayacı.
+3. WhatsApp toplu pencere (`WhatsAppHatirlat.jsx`): tablo kaydırma sınırı (`calc(100vh - 320px)`), üstte "n alıcı ·
+   m numarasız/onaysız" sayacı.
+4. Tahsilat > Bugün Kesilen Makbuzlar (`Tahsilat.jsx`): 460px sabit yükseklikli kaydırma, yapışık başlık.
+Sayfalanmayan (bilinçli): Yoklama formu (grup büyüklüğü ~20), Yaş Grupları, ayar tabloları, pano listeleri (zaten sınırlı).
+

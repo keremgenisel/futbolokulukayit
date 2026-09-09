@@ -92,4 +92,40 @@ describe("Excel'den oyuncu aktarımı penceresi", () => {
     await screen.findByText("Aktarılacak geçerli satır yok.");
     expect(screen.getByRole("button", { name: "0 Oyuncuyu Aktar" })).toBeDisabled();
   });
+
+  it("önizleme 100 satır/sayfa: 250 kayıtta ilk sayfa 100 satır, sonraki sayfa; aktarım tüm kayıtları gönderir", async () => {
+    const kayitlar = Array.from({ length: 250 }, (_, i) => ({
+      satir: i + 2,
+      ad_soyad: `Oyuncu ${String(i + 1).padStart(3, "0")}`,
+      tc_no: null,
+      dogum_tarihi: "2015-01-01",
+      yas_grubu_id: 1,
+      durum: "aktif",
+      ucret_tipi: "normal",
+      aylik_aidat: 0,
+    }));
+    window.okul = {
+      aktar: {
+        sablon: vi.fn(),
+        onizle: vi.fn(async () => ({ ok: true, dosya: "/tmp/l.xlsx", kayitlar, hatalar: [], uyarilar: [], yeniGruplar: [] })),
+        uygula: vi.fn(async (k) => ({ ok: true, eklenen: k.length, yeniGrup: 0 })),
+      },
+    };
+    render(
+      <ToastSaglayici>
+        <OyuncuAktar onKapat={vi.fn()} onAktarildi={vi.fn()} />
+      </ToastSaglayici>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Excel Dosyası Seç" }));
+    await screen.findByText("250 aktarılacak");
+    const satirlar = () => screen.getAllByRole("row").filter((r) => /Oyuncu \d{3}/.test(r.textContent));
+    expect(satirlar()).toHaveLength(100);
+    expect(screen.getByText("Oyuncu 001")).toBeInTheDocument();
+    expect(screen.queryByText("Oyuncu 101")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Sonraki/ }));
+    expect(screen.getByText("Oyuncu 101")).toBeInTheDocument();
+    expect(screen.queryByText("Oyuncu 001")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "250 Oyuncuyu Aktar" }));
+    await waitFor(() => expect(window.okul.aktar.uygula).toHaveBeenCalledWith(kayitlar));
+  });
 });

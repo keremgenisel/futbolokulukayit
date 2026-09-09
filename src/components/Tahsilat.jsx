@@ -546,41 +546,43 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
         {bugunku.length === 0 ? (
           <Bos metin="Bugün henüz makbuz kesilmedi." />
         ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>No</th>
-                <th>Oyuncu</th>
-                <th>Tutar</th>
-                <th>Yöntem</th>
-                <th>Tahsil eden</th>
-                <th style={{ width: 200 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {bugunku.map((m) => (
-                <tr key={m.id}>
-                  <td>{m.makbuz_no}</td>
-                  <td style={{ fontWeight: 600 }}>{m.ad_soyad}</td>
-                  <td>{paraTR(m.toplam)}</td>
-                  <td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td>
-                  <td>{m.tahsil_eden}</td>
-                  <td>
-                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                      <Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => yazdir(m.id)}>
-                        Yazdır
-                      </Btn>
-                      {!saltOkunur && (
-                        <Btn kucuk tur="danger" onClick={() => setIptal(m)}>
-                          İptal
-                        </Btn>
-                      )}
-                    </div>
-                  </td>
+          <div style={{ overflow: "auto", maxHeight: 460 }}>
+            <table>
+              <thead style={{ position: "sticky", top: 0, zIndex: 1, background: "#fff" }}>
+                <tr>
+                  <th>No</th>
+                  <th>Oyuncu</th>
+                  <th>Tutar</th>
+                  <th>Yöntem</th>
+                  <th>Tahsil eden</th>
+                  <th style={{ width: 200 }}></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {bugunku.map((m) => (
+                  <tr key={m.id}>
+                    <td>{m.makbuz_no}</td>
+                    <td style={{ fontWeight: 600 }}>{m.ad_soyad}</td>
+                    <td>{paraTR(m.toplam)}</td>
+                    <td>{ODEME_YONTEMLERI.find((y) => y.kod === m.odeme_yontemi)?.ad}</td>
+                    <td>{m.tahsil_eden}</td>
+                    <td>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+                        <Btn kucuk tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={() => yazdir(m.id)}>
+                          Yazdır
+                        </Btn>
+                        {!saltOkunur && (
+                          <Btn kucuk tur="danger" onClick={() => setIptal(m)}>
+                            İptal
+                          </Btn>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Kart>
       {iptal && (

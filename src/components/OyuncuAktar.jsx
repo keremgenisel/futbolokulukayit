@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Modal, Btn, Rozet, useToast, useDene } from "./ui.jsx";
+import { Modal, Btn, Rozet, Sayfalama, useToast, useDene } from "./ui.jsx";
 import { aktar } from "../lib/api.js";
 import { tarihTR, paraTR } from "../lib/aidat.js";
 import { Ikon } from "./Ikon.jsx";
@@ -9,6 +9,8 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
   const [onizleme, setOnizleme] = useState(null); // { dosya, kayitlar, hatalar, uyarilar, yeniGruplar }
   const [bekliyor, setBekliyor] = useState(false);
   const [sonuc, setSonuc] = useState(null);
+  const [sayfa, setSayfa] = useState(1); // önizleme 100 satır/sayfa (aktarım tam listeyi alır)
+  const SAYFA_BOYU = 100;
   const toast = useToast();
   const dene = useDene();
 
@@ -26,6 +28,7 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
         if (r.error) toast("err", r.error);
         else if (!r.iptal) {
           setOnizleme(r);
+          setSayfa(1);
           setSonuc(null);
         }
       },
@@ -150,7 +153,7 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {onizleme.kayitlar.map((k) => (
+                    {onizleme.kayitlar.slice((sayfa - 1) * SAYFA_BOYU, sayfa * SAYFA_BOYU).map((k) => (
                       <tr key={k.satir}>
                         <td style={{ color: "var(--soluk)" }}>{k.satir}</td>
                         <td style={{ fontWeight: 600 }}>{k.ad_soyad}</td>
@@ -165,6 +168,7 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
                     ))}
                   </tbody>
                 </table>
+                <Sayfalama sayfa={sayfa} toplam={onizleme.kayitlar.length} sayfaBoyu={SAYFA_BOYU} onSayfa={setSayfa} birim="satır" />
               </div>
             )}
           </>

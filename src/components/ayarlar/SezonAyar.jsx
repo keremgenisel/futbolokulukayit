@@ -185,83 +185,93 @@ export function SezonAyar({ admin, saltOkunur }) {
             </Btn>
           </div>
         </div>
-        {filtreli && (
-          <div style={{ fontSize: 13, color: "var(--soluk)" }}>
-            {gorunen.length} / {adaylar.length} oyuncu gösteriliyor · işaretler ve özet tüm liste için geçerli
-          </div>
-        )}
+        <div style={{ fontSize: 13, color: "var(--soluk)" }}>
+          {filtreli
+            ? `${gorunen.length} / ${adaylar.length} oyuncu gösteriliyor · işaretler ve özet tüm liste için geçerli`
+            : `${adaylar.length} oyuncu`}
+        </div>
         {adaylar.length === 0 ? (
           <Bos metin="Aktif oyuncu yok." />
         ) : (
-          <table>
-            <thead style={{ position: "sticky", top: 74, zIndex: 1, background: "#fff" }}>
-              <tr>
-                <th>Yeniledi</th>
-                <th>Oyuncu</th>
-                <th>Mevcut grup</th>
-                <th>Yeni sezon grubu</th>
-                <th>Ödenmemiş aidat</th>
-              </tr>
-            </thead>
-            <tbody>
-              {gorunen.length === 0 && (
+          <div
+            style={{
+              overflow: "auto",
+              maxHeight: "calc(100vh - 420px)",
+              minHeight: 240,
+              border: "1px solid var(--cizgi)",
+              borderRadius: 10,
+            }}
+          >
+            <table>
+              <thead style={{ position: "sticky", top: 0, zIndex: 1, background: "#fff" }}>
                 <tr>
-                  <td colSpan={5} style={{ color: "var(--soluk)" }}>
-                    Filtreye uyan oyuncu yok.
-                  </td>
+                  <th>Yeniledi</th>
+                  <th>Oyuncu</th>
+                  <th>Mevcut grup</th>
+                  <th>Yeni sezon grubu</th>
+                  <th>Ödenmemiş aidat</th>
                 </tr>
-              )}
-              {gorunen.map((o) => {
-                const sc = secim[o.id];
-                return (
-                  <tr key={o.id} style={{ background: sc?.yeniledi ? "var(--yesil-acik)" : undefined }}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={!!sc?.yeniledi}
-                        onChange={(e) => setSecim({ ...secim, [o.id]: { ...sc, yeniledi: e.target.checked } })}
-                        aria-label={`${o.ad_soyad} yeniledi`}
-                        disabled={saltOkunur}
-                        style={{ width: 20, height: 20 }}
-                      />
-                    </td>
-                    <td style={{ fontWeight: 600 }}>
-                      {o.ad_soyad}
-                      {o.durum !== "aktif" && (
-                        <span style={{ color: "var(--soluk)", fontWeight: 400 }}> · {o.durum === "deneme" ? "Deneme" : "Sakat"}</span>
-                      )}
-                    </td>
-                    <td>{o.yas_grubu_ad || "—"}</td>
-                    <td>
-                      {sc?.yeniledi ? (
-                        <Secim
-                          secenekler={gruplar.filter((g) => g.aktif)}
-                          bos="Grup yok"
-                          value={sc.yas_grubu_id || ""}
-                          onChange={(e) =>
-                            setSecim({ ...secim, [o.id]: { ...sc, yas_grubu_id: e.target.value ? Number(e.target.value) : null } })
-                          }
-                          aria-label={`${o.ad_soyad} yeni grup`}
-                          style={{ height: 36, width: 150 }}
-                        />
-                      ) : (
-                        <span style={{ color: "var(--soluk)" }}>Pasife alınacak</span>
-                      )}
-                    </td>
-                    <td>
-                      {o.borc_adet > 0 ? (
-                        <Rozet ton="red">
-                          {o.borc_adet} ay · {paraTR(o.borc_tutar)}
-                        </Rozet>
-                      ) : (
-                        <span style={{ color: "var(--soluk)" }}>—</span>
-                      )}
+              </thead>
+              <tbody>
+                {gorunen.length === 0 && (
+                  <tr>
+                    <td colSpan={5} style={{ color: "var(--soluk)" }}>
+                      Filtreye uyan oyuncu yok.
                     </td>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                )}
+                {gorunen.map((o) => {
+                  const sc = secim[o.id];
+                  return (
+                    <tr key={o.id} style={{ background: sc?.yeniledi ? "var(--yesil-acik)" : undefined }}>
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={!!sc?.yeniledi}
+                          onChange={(e) => setSecim({ ...secim, [o.id]: { ...sc, yeniledi: e.target.checked } })}
+                          aria-label={`${o.ad_soyad} yeniledi`}
+                          disabled={saltOkunur}
+                          style={{ width: 20, height: 20 }}
+                        />
+                      </td>
+                      <td style={{ fontWeight: 600 }}>
+                        {o.ad_soyad}
+                        {o.durum !== "aktif" && (
+                          <span style={{ color: "var(--soluk)", fontWeight: 400 }}> · {o.durum === "deneme" ? "Deneme" : "Sakat"}</span>
+                        )}
+                      </td>
+                      <td>{o.yas_grubu_ad || "—"}</td>
+                      <td>
+                        {sc?.yeniledi ? (
+                          <Secim
+                            secenekler={gruplar.filter((g) => g.aktif)}
+                            bos="Grup yok"
+                            value={sc.yas_grubu_id || ""}
+                            onChange={(e) =>
+                              setSecim({ ...secim, [o.id]: { ...sc, yas_grubu_id: e.target.value ? Number(e.target.value) : null } })
+                            }
+                            aria-label={`${o.ad_soyad} yeni grup`}
+                            style={{ height: 36, width: 150 }}
+                          />
+                        ) : (
+                          <span style={{ color: "var(--soluk)" }}>Pasife alınacak</span>
+                        )}
+                      </td>
+                      <td>
+                        {o.borc_adet > 0 ? (
+                          <Rozet ton="red">
+                            {o.borc_adet} ay · {paraTR(o.borc_tutar)}
+                          </Rozet>
+                        ) : (
+                          <span style={{ color: "var(--soluk)" }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
         {adaylar.length > 0 && (
           <div

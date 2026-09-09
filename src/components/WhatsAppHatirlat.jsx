@@ -245,7 +245,10 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
           </div>
         )}
         <div style={{ display: "flex", gap: 20, minHeight: 0, flex: 1 }}>
-          <div style={{ flex: 1, minWidth: 0, overflow: "auto" }}>
+          <div style={{ flex: 1, minWidth: 0, overflow: "auto", maxHeight: "calc(100vh - 320px)" }}>
+            <div style={{ fontSize: 13, color: "var(--soluk)", padding: "0 0 6px" }}>
+              {satirlar.length} alıcı{engelli ? ` · ${engelli} numarasız/onaysız` : ""}
+            </div>
             <table>
               <thead>
                 <tr>
