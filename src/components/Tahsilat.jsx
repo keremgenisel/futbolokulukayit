@@ -39,9 +39,11 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     db("listFeeItems")
       .then(setKalemler)
       .catch(() => {});
+    // Ayarlar > Kulüp ve Makbuz > "Varsayılan tahsil eden" ÖNCELİKLİ (Kerem, 09.09.2026); boşsa giriş yapan kullanıcının adı.
+    // Kutu makbuz kesmeden önce elle değiştirilebilir; makbuza kutudaki değer yazılır.
     db("getSetting", "tahsil_eden")
       .then((v) => {
-        if (v && !oturum?.ad_soyad) setTahsilEden(v);
+        if (v) setTahsilEden(v);
       })
       .catch(() => {});
     bugunkuYukle();
@@ -461,7 +463,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                   <Girdi type="date" value={tarih} onChange={(e) => setTarih(e.target.value)} />
                 </Alan>
                 <Alan etiket="Tahsil eden">
-                  <Girdi value={tahsilEden} onChange={(e) => setTahsilEden(e.target.value)} />
+                  <Girdi value={tahsilEden} onChange={(e) => setTahsilEden(e.target.value)} aria-label="Tahsil eden" />
                 </Alan>
               </div>
               <Alan etiket="Not">

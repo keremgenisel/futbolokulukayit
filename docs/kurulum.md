@@ -150,3 +150,6 @@ yoksa güncelleme denetlenemez, program normal çalışmaya devam eder.
   yeni parola. Kurtarma kodu yoksa bir yönetici Ayarlar > Kullanıcılar'dan "Parola sıfırla" ile geçici
   parola üretir. Hiçbir yöneticinin ne parolası ne kurtarma kodu varsa satıcıya başvurun.
   Yanlış kod denemeleri kullanıcı başına 15 dakikada 5 ile sınırlıdır.
+
+- **Makbuzdaki "Tahsil eden":** Ayarlar > Kulüp ve Makbuz > "Varsayılan tahsil eden" doluysa makbuza o isim yazılır; boşsa
+  giriş yapan kullanıcının adı. Tahsilat ekranındaki kutu makbuz kesmeden önce her zaman elle değiştirilebilir.

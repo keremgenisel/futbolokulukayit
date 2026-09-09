@@ -25,7 +25,7 @@ export function KulupAyar({ saltOkunur }) {
       <Alan etiket="Makbuzda görünen kulüp adı">
         <Girdi value={a.kulup_adi} onChange={(e) => setA({ ...a, kulup_adi: e.target.value })} placeholder="EYÜPSPOR FUTBOL OKULU" />
       </Alan>
-      <Alan etiket="Varsayılan tahsil eden (kullanıcı adı boşsa)">
+      <Alan etiket="Varsayılan tahsil eden (makbuzda; boşsa giriş yapan kullanıcı)">
         <Girdi value={a.tahsil_eden} onChange={(e) => setA({ ...a, tahsil_eden: e.target.value })} />
       </Alan>
       {!saltOkunur && (

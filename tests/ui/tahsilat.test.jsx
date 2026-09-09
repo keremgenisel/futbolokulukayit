@@ -113,4 +113,26 @@ describe("Tahsilat: tek makbuzda birden fazla aidat ayı", () => {
     fireEvent.click(within(dlg).getByRole("button", { name: "İptal Et" }));
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("cancelReceipt", 7, "Yanlış oyuncu"));
   });
+
+  it("'Tahsil eden' kutusu: ayar doluysa ayar (kullanıcı adı olsa da), boşsa giriş yapan kullanıcı", async () => {
+    window.okul = {
+      db: vi.fn(async (fn, k) => (fn === "getSetting" && k === "tahsil_eden" ? "Şerif Çelik" : fn === "getSetting" ? "" : [])),
+      cikti: { yazdir: vi.fn() },
+      files: { open: vi.fn() },
+    };
+    const { unmount } = render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ username: "admin", ad_soyad: "Yönetici" }} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Şerif Çelik"));
+    unmount();
+    window.okul.db = vi.fn(async () => "");
+    render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ username: "admin", ad_soyad: "Yönetici" }} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Yönetici"));
+  });
 });
