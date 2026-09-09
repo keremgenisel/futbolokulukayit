@@ -1,5 +1,5 @@
 {
-  "name": "eyupspor-futbol-okulu",
+  "name": "futbol-okulu-kayit-programi",
   "productName": "Futbol Okulu Kayıt Programı",
   "version": "0.1.0",
   "description": "Futbol Okulu Kayıt Programı — oyuncu kayıt, aidat, makbuz ve yoklama",
@@ -74,8 +74,9 @@
     "body-parser": "^1.20.6"
   },
   "build": {
-    "appId": "com.eyupspor.futbolokulu",
+    "appId": "com.keremgenisel.futbolokulu",
     "productName": "Futbol Okulu Kayıt Programı",
+    "artifactName": "Futbol-Okulu-Kayit-Programi-Setup-${version}.${ext}",
     "directories": {
       "output": "release"
     },
@@ -126,7 +127,7 @@
     ],
     "icon": "build/icon.png",
     "extraMetadata": {
-      "author": "Eyüpspor Kulübü"
+      "author": "Kerem Genişel"
     }
   },
   "author": {

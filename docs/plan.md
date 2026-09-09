@@ -1025,3 +1025,32 @@ döndürdüğü 2. sayfa), Önizle ilk sayfa, kart makbuz/yoklama "Tümünü gö
 numarasız/onaysız". Önceden var olan: `tests/ui/sayfalama.test.jsx` (bileşen, Oyuncular, Raporlar), `oyuncu-aktar.test.jsx`,
 `db-roundtrip` (`playersPage` offset/taşma, `listDues`/`listReceipts` limit).
 
+## 23. Kurulum kimliği ve uygulama adı (09.09.2026)
+
+Kerem: uygulamanın adı "Futbol Okulu Kayıt Programı" olsun; kulüpten bağımsız kimlik. Uygulanan:
+- `productName` / NSIS kısayol adı / pencere ve sayfa başlığı / Hakkında: **Futbol Okulu Kayıt Programı**; açıklama güncellendi.
+- Kurulum dosyası adı ASCII: `build.artifactName = "Futbol-Okulu-Kayit-Programi-Setup-${version}.${ext}"` (Türkçe harf GitHub
+  asset adında bozulur, electron-updater latest.yml url'i ile uyuşmazdı). `scripts/publish-release.cjs` `exeLocalName` ile aynı adı
+  türetir; test `tests/publish-release.test.js` package.json'daki adın ASCII olduğunu denetler.
+- `appId = com.keremgenisel.futbolokulu` (henüz kurulu kullanıcı yok; sonradan değişse ikinci kurulum oluşurdu).
+- `package.json name = futbol-okulu-kayit-programi`; `extraMetadata.author = Kerem Genişel`.
+- Veri klasörü productName'den türer: Windows'ta `%APPDATA%\Futbol Okulu Kayıt Programı`.
+- Değişmeyen teknik kimlikler: lisans önekleri `EYUPSPOR.`/`EYUPLEASE.`, yedek/paket önekleri `eyupspor-yedek-`, `.eyupspor`,
+  `.eyupyedek`, sunucu-istemci el sıkışma adı `/saglik ad = eyupspor-futbol-okulu` (istemci bunu karşılaştırır). Değiştirmek eski
+  yedek/lisansları geçersiz kılar.
+
+### 23.1 Sonraya bırakılanlar (Kerem, 09.09.2026: "planlara ekle")
+1. **Giriş ekranı ve kenar menü markası:** "EYÜPSPOR / Futbol Okulu" yazısı ve `build/icon.png` logosu sabit. Öneri: Ayarlar >
+   Kulüp'teki `kulup_adi` (ve yüklenebilir kulüp logosu) gösterilsin; ayar boşsa "Futbol Okulu Kayıt Programı".
+2. **Varsayılan kulüp adı sabitleri:** `src/lib/whatsapp.js VARSAYILAN_KULUP`, `makbuzHtml.js`/`yoklamaFormuHtml.js`/`yazdir.js`
+   "EYÜPSPOR FUTBOL OKULU", `raporHtml.js` altbilgi "Eyüpspor Futbol Okulu", Kulüp ayarı ve İlk Kurulum yer tutucuları
+   "EYÜPSPOR FUTBOL OKULU", Excel `wb.creator`, kurtarma kodları çıktısı başlığı, `serverTls.cjs` sertifika adı, `istemci.cjs`
+   "Eyüpspor programı değil" hata metni. Öneri: tek kaynak `src/lib/marka.js` (`UYGULAMA_ADI`, `varsayilanKulup`), hepsi
+   `kulup_adi` ayarına düşsün. Testler (`whatsapp.test.js`, `rapor-html.test.js`, kalıcılık yer tutucusu) birlikte güncellenir.
+3. **Teknik önekler:** lisans/yedek/paket önekleri ve sunucu el sıkışma adı — bilinçli olarak bırakıldı; yeniden adlandırılırsa
+   eski dosyaları da tanıyan geçiş kodu gerekir.
+4. **Belgeler:** `README.md` ve `docs/kurulum.md` başlıkları "Eyüpspor Futbol Okulu"; kurulum rehberindeki exe adı artık
+   `Futbol-Okulu-Kayit-Programi-Setup-x.y.z.exe`.
+5. **Sürüm ve yayın:** `version 0.1.0` → ilk dağıtımda `1.0.0` + `v1.0.0` etiketi (release.yml uyumu denetler). Kod imzalama
+   sertifikası yok: SmartScreen ilk açılışta uyarır; sertifika alınırsa `win.certificateFile`/`signtool` ayarı.
+

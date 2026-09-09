@@ -4,7 +4,7 @@ Bu dosya Claude Code'a bu depoda çalışırken rehberlik eder.
 
 ## Bu nedir
 
-"Eyüpspor Futbol Okulu" — kulübün futbol okulu için Windows masaüstü kayıt programı. React (Vite)
+"Futbol Okulu Kayıt Programı" (productName; ilk müşteri Eyüpspor, arayüz markası hâlâ Eyüpspor — plan §23.1) — futbol okulu için Windows masaüstü kayıt programı. React (Vite)
 arayüz, Electron kabuk, SQLite (`better-sqlite3-multiple-ciphers`, at-rest şifreli) veritabanı.
 Oyuncu kaydı, aile ve acil kişiler, belgeler, aylık aidat takibi, tahsilat makbuzu (yazdırma + PDF),
 antrenman yoklaması, Excel/PDF raporlar. Şimdilik tek PC; Faz 2'de gömülü Express sunucu ile
@@ -37,7 +37,7 @@ aktivasyon sunucusu kodu hazır (deploy bekliyor: `aktivasyon-sunucu/deploy.sh`)
 kimliksiz indirir, özel depo olmaz; publish-release.cjs özelse durur). Güncelleme arayüzü Ayarlar > Hakkında (`Guncelleme`,
 IPC `updater:*`, `electron/ipc/guncelleme.cjs`) + `GuncellemeSeridi` (App'te `main`in EN ÜSTÜNDE, başlığın üzerinde, kenar menüyü
 etkilemez, içerikle kaydırılmaz; `updater:available` gelince yöneticiye: İndir → ilerleme → Yeniden Başlat ve Kur; sarı zemin ("Makbuz Kes" sarısı), hata kırmızı, Kapat oturumluk). Windows yayını `.github/workflows/release.yml`
-(tag push) veya `npm run build:win` (macOS'ta da çalışır; ardından `node scripts/ensure-native.cjs`
+(tag push; kurulum dosyası `Futbol-Okulu-Kayit-Programi-Setup-<v>.exe`, `build.artifactName` ASCII, appId `com.keremgenisel.futbolokulu`, plan §23) veya `npm run build:win` (macOS'ta da çalışır; ardından `node scripts/ensure-native.cjs`
 ile mac native modüllerini geri derle, yoksa Electron testleri düşer).
 
 Faz 1 tamam: giriş + zorunlu parola değişimi, yaş grupları, oyuncu kaydı (aile, acil kişiler, belgeler),

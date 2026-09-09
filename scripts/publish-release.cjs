@@ -33,6 +33,12 @@ const RELEASE_DIR = path.join(__dirname, "..", "release");
 function assetNameFromLocal(basename) {
   return basename.replace(/ /g, "-");
 }
+// electron-builder'ın yerel dosya adı: build.artifactName varsa ("${version}"/"${ext}" yer tutucuları) o, yoksa
+// varsayılan "<productName> Setup <version>.exe". artifactName ASCII tutulur (Türkçe harf GitHub asset adında bozulur).
+function exeLocalName({ artifactName, productName, version }) {
+  if (artifactName) return artifactName.replace(/\$\{version\}/g, version).replace(/\$\{ext\}/g, "exe");
+  return `${productName} Setup ${version}.exe`;
+}
 
 // electron-updater'ın beklediği latest.yml biçimi (electron-builder çıktısıyla aynı düzen).
 function buildLatestYml({ version, exeAssetName, sha512, size, releaseDate }) {
@@ -174,7 +180,10 @@ async function main() {
     );
   if (!OWNER || !REPO) throw new Error("package.json build.publish owner/repo eksik.");
 
-  const exeLocal = path.join(RELEASE_DIR, `${PRODUCT} Setup ${VERSION}.exe`);
+  const exeLocal = path.join(
+    RELEASE_DIR,
+    exeLocalName({ artifactName: pkg.build && pkg.build.artifactName, productName: PRODUCT, version: VERSION }),
+  );
   const blockmapLocal = `${exeLocal}.blockmap`;
   for (const f of [exeLocal, blockmapLocal]) {
     if (!fs.existsSync(f)) throw new Error(`Beklenen build dosyası yok: ${f}\nÖnce "electron-builder --win --publish never" ile derleyin.`);
@@ -217,7 +226,7 @@ async function main() {
   console.log(`✓ ${TAG} yayınlandı — 3 dosya doğrulandı: ${names.join(", ")}`);
 }
 
-module.exports = { assetNameFromLocal, buildLatestYml };
+module.exports = { assetNameFromLocal, buildLatestYml, exeLocalName };
 
 if (require.main === module) {
   main().catch((err) => {
