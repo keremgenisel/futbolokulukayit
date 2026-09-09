@@ -677,3 +677,62 @@ testleri (40 dk) → smoke ekran görüntüsü. Toplam ~1,5 saat. Davranış de�
 ### 15.5 Karar (Kerem, 09.09.2026)
 İki seçenek (aktif + sonraki sezon) ve eski kayıt değeri üçüncü seçenek olarak: üçü de uygulandı. Henüz kullanıcı olmadığı
 için geriye uyumluluk kaygısı yok; göç 12 yine de boş sezonlu aktif grupları doldurur.
+
+## 16. Ayarlar menüsü — başlıklar altında gruplama (PLANLANDI, 09.09.2026)
+
+**Sorun:** Sol menüde 9 (çoklu PC açıkken 10) bölüm düz liste hâlinde; ilgisiz maddeler yan yana (Yeni Sezon → Yedekleme →
+Optimizasyon → WhatsApp → Lisans). İlk Kurulum Sihirbazı ise menüde yok; Kulüp ve Makbuz bölümünün altında bir düğme.
+
+### 16.1 Yeni düzen (menü, üstten alta)
+
+```
+KULÜP
+  ▪ Kulüp ve Makbuz
+  ▪ Aidat Kalemleri
+  ▪ WhatsApp Mesajları
+SEZON VE VERİ
+  ▪ Yeni Sezon
+  ▪ Yedekleme
+  ▪ Resim ve Belge Optimizasyonu
+KULLANICILAR VE ERİŞİM
+  ▪ Kullanıcılar
+  ▪ Sunucu / Çoklu PC        (yalnız COKLU_PC_ACIK)
+UYGULAMA
+  ▪ İlk Kurulum Sihirbazı    (yeni: menü öğesi, bölüm açmaz, sihirbaz penceresini açar)
+  ▪ Lisans
+  ▪ Hakkında
+```
+
+- Grup başlıkları tıklanmaz; küçük, büyük harfli, soluk etiket (ekrandaki "ÖNİZLEME", "OTOMATİK YEDEKLEME SIKLIĞI" etiketleriyle
+  aynı stil). Gruplar arasında 10 px boşluk; ilk grubun üstünde etiket yok kabul edilmez, hepsi etiketli.
+- **İlk Kurulum Sihirbazı** menüde öğe olur: tıklanınca `onKurulumAc()` çağrılır, seçili bölüm değişmez (sihirbaz kapanınca
+  kullanıcı kaldığı bölümde). Kulüp ve Makbuz'daki "Kurulum Sihirbazını Aç" düğmesi kaldırılır (tek giriş noktası). Yalnız
+  yönetici görür (zaten Ayarlar'ı yalnız yönetici görüyor; `admin` şartı yine de kalır).
+- Bölüm kodları (`kulup`, `kalem`, `whatsapp`, `sezon`, `yedek`, `optimize`, `kullanici`, `sunucu`, `lisans`, `hakkinda`) ve
+  `baslangicBolum` prop'u değişmez; App.jsx'teki "Lisans'a git" gibi yönlendirmeler çalışmaya devam eder. Varsayılan bölüm
+  yine Kulüp ve Makbuz.
+- Kaydedilmemiş değişiklik uyarısı (`onKirli`) sihirbaz öğesi için de geçerli: kirli bölümden sihirbaza geçerken önce onay.
+
+### 16.2 Teknik
+- `Ayarlar.jsx`: `BOLUMLER` düz dizi yerine `GRUPLAR = [{ baslik, bolumler: [...] }]`; render iki seviyeli. Öğe tipi:
+  `{ kod, ad, ikon }` bölüm ya da `{ kod: "sihirbaz", ad, ikon, eylem: "kurulum" }`. `bolumeGit` eylemli öğede bölüm
+  değiştirmez, kirli kontrolünden sonra `onKurulumAc()` çağırır.
+- `KulupAyar.jsx`: sihirbaz düğmesi ve `onKurulumAc` prop'u kalkar.
+- İkon: sihirbaz için mevcut set içinden `takvim` yerine daha uygun olanı (`yildiz` yoksa `dosya`); yeni ikon çizilmez.
+- `docs/kurulum.md`: "Ayarlar > Kulüp ve Makbuz > Kurulum Sihirbazını Aç" → "Ayarlar > Uygulama > İlk Kurulum Sihirbazı".
+
+### 16.3 Testler
+- `tests/ui/ayarlar-menu.test.jsx` (yeni): dört grup başlığı görünür; öğeler doğru grupta ve sırada; "İlk Kurulum Sihirbazı"
+  tıklanınca `onKurulumAc` çağrılır ve seçili bölüm değişmez; kirli bölümdeyken sihirbaz tıklanınca onay çıkar;
+  `baslangicBolum="lisans"` ile Lisans açılır.
+- Mevcut Ayarlar testleri (aidat-ayar, sezon, yedek-siklik, whatsapp, guncelleme, kurtarma, ozellikler) bölüm adlarını
+  aradığı için değişmez; `ozellikler.test.jsx` Sunucu öğesinin bayrakla görünürlüğünü zaten kontrol ediyor.
+- Smoke ekran görüntüsü: menüde grup başlıkları.
+
+### 16.4 Süre
+~45 dk (menü + sihirbaz öğesi 20, test 15, belge/smoke 10). Davranış değişikliği yalnız sihirbazın giriş yeri.
+
+### 16.5 Karar bekleyen
+- Grup adları ve dağılım yukarıdaki gibi mi? Alternatif: WhatsApp Mesajları "SEZON VE VERİ" yerine "KULÜP" altında (öneri:
+  KULÜP, çünkü şablon metinleri kulübün dili). "Yedekleme" ve "Optimizasyon" için "VERİ" yeterli olabilir; "SEZON VE VERİ"
+  tek kelimeye inebilir ("VERİ").
