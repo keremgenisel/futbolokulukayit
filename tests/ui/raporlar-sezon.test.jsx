@@ -152,6 +152,15 @@ describe("Raporlar sezon + ay filtresi", () => {
     expect(await screen.findByText(/Ekim 2026 · 2026-2027 sezonu/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "11" } });
     expect(screen.getByText("Filtre değişti")).toBeInTheDocument();
+    // Rapor da değişince pil "Filtre ve rapor değişti"; filtre geri alınıp yalnız rapor farklıysa "Rapor değişti"
+    rapor("Borçlu Listesi");
+    expect(screen.getByText("Filtre ve rapor değişti")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
+    expect(screen.getByText("Rapor değişti")).toBeInTheDocument();
+    expect(screen.queryByText("Filtre değişti")).toBeNull();
+    onizle();
+    await screen.findByText(/Ekim 2026 · 2026-2027 sezonu · 0 oyuncu/);
+    expect(screen.queryByText(/değişti/)).toBeNull();
   });
 
   it("tarih aralığı modu her raporda: oyuncu listesi ay aralığı özeti, borçlu listesi aralık borçluları, yoklama aralık, sağlık bitiş tarihi", async () => {

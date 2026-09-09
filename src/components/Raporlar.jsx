@@ -124,11 +124,11 @@ export function Raporlar() {
   const onizle = async () => {
     setSayfa(1);
     const v = await hazirla();
-    setVeri(v ? { ...v, filtreImzasi } : v);
+    setVeri(v ? { ...v, filtreImzasi, rapor } : v);
   };
   const gorunenSatirlar = veri ? veri.satirlar.slice((sayfa - 1) * ONIZLEME_BOYU, sayfa * ONIZLEME_BOYU) : [];
   // Önizleme hangi rapor + filtreyle alındı? Değiştiyse "Yeniden Önizle" (plan §20.1)
-  const filtreImzasi = JSON.stringify({ rapor, seciliSezon, ayS, grup, yoklamaMod, from, to });
+  const filtreImzasi = JSON.stringify({ seciliSezon, ayS, grup, yoklamaMod, from, to }); // rapor ayrı izlenir (mesaj için)
   const excel = async () => {
     const v = veri || (await hazirla());
     if (!v) return;
@@ -156,7 +156,11 @@ export function Raporlar() {
     });
   };
 
-  const kirli = veri && veri.filtreImzasi !== filtreImzasi;
+  // Önizlemeden sonra ne değişti? "Filtre değişti" | "Rapor değişti" | "Filtre ve rapor değişti" (Önizle'nin üstünde kırmızı pil)
+  const filtreDegisti = !!veri && veri.filtreImzasi !== filtreImzasi;
+  const raporDegisti = !!veri && veri.rapor !== rapor;
+  const kirli =
+    filtreDegisti && raporDegisti ? "Filtre ve rapor değişti" : filtreDegisti ? "Filtre değişti" : raporDegisti ? "Rapor değişti" : "";
   const gorunen = raporFiltreleri(rapor, { mod: yoklamaMod });
   const saglikNotu =
     rapor === "saglik"
@@ -184,7 +188,7 @@ export function Raporlar() {
           aktifSezon={sezonDurum?.aktifSezon || seciliSezon}
           baslangicAyi={baslangicAyi}
           gruplar={gruplar}
-          kirli={!!kirli}
+          kirli={kirli}
           onOnizle={onizle}
           onExcel={excel}
           onPdf={pdf}

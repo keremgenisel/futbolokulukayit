@@ -1,6 +1,7 @@
 // Raporlar tek filtre çubuğu (plan §20): kutular sabit sırada, seçili raporda anlamsız olanlar gizlenir; seçimler raporlar
-// arasında korunur. Sağda Önizle / Excel / PDF; filtre değiştiyse Önizle sarı vurgulanır ve "Filtre değişti" notu çıkar.
-import { Btn, Alan, Girdi, Secim } from "./ui.jsx";
+// arasında korunur. Sağda Önizle / Excel / PDF; önizlemeden sonra filtre/rapor değiştiyse Önizle sarı vurgulanır ve üstünde kırmızı pil
+// ("Filtre değişti" | "Rapor değişti" | "Filtre ve rapor değişti"; `kirli` bu metindir, boşsa yok).
+import { Btn, Alan, Girdi, Secim, Rozet } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { SezonAySecim } from "./SezonAySecim.jsx";
 
@@ -68,21 +69,25 @@ export function RaporFiltre({
           </Alan>
         )}
         <div style={{ flex: 1 }} />
-        <Btn
-          ikon={<Ikon ad="goz" />}
-          onClick={onOnizle}
-          tur={kirli ? "sari" : "primary"}
-          title={kirli ? "Filtre değişti, yeniden önizleyin" : ""}
-        >
-          Önizle
-        </Btn>
-        {kirli && <span style={{ fontSize: 12, color: "var(--soluk)", alignSelf: "center" }}>Filtre değişti</span>}
-        <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={onExcel}>
-          Excel
-        </Btn>
-        <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={onPdf}>
-          PDF
-        </Btn>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+          {kirli ? <Rozet ton="red">{kirli}</Rozet> : <span style={{ height: 22 }} />}
+          <div style={{ display: "flex", gap: 8 }}>
+            <Btn
+              ikon={<Ikon ad="goz" />}
+              onClick={onOnizle}
+              tur={kirli ? "sari" : "primary"}
+              title={kirli ? `${kirli}, yeniden önizleyin` : ""}
+            >
+              Önizle
+            </Btn>
+            <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={onExcel}>
+              Excel
+            </Btn>
+            <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={onPdf}>
+              PDF
+            </Btn>
+          </div>
+        </div>
       </div>
       {not && <div style={{ fontSize: 13, color: "var(--soluk)" }}>{not}</div>}
     </div>
