@@ -31,7 +31,8 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
 
   const bugunkuYukle = useCallback(async () => {
     try {
-      setBugunku(await db("listReceiptsByDate", bugun().iso, bugun().iso));
+      const sd = await db("sezonDurumu"); // Bugün kesilenler: yalnız aktif sezonun makbuzları (plan §17.2)
+      setBugunku(await db("listReceiptsByDate", bugun().iso, bugun().iso, sd?.aktifSezon || null));
     } catch {}
   }, []);
   useEffect(() => {

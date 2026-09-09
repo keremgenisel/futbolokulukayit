@@ -36,7 +36,7 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = "EYÜPSPOR FUTBO
     <div class="ust">
       ${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}
       <div class="bas"><div class="t1">TAHSİLAT MAKBUZU</div><div class="t2">${esc(kulupAdi)}</div></div>
-      <div class="sag"><div><span>Makbuz No:</span> <b>${esc(makbuz.makbuz_no)}</b></div><div><span>Tarih:</span> <b>${esc(tarihTR(makbuz.tarih))}</b></div></div>
+      <div class="sag"><div><span>Makbuz No:</span> <b>${esc(makbuz.makbuz_no)}</b></div><div><span>Tarih:</span> <b>${esc(tarihTR(makbuz.tarih))}</b></div>${makbuz.sezon ? `<div><span>Sezon:</span> <b>${esc(makbuz.sezon)}</b></div>` : ""}</div>
     </div>
     <div class="cizgi"></div>
     <div class="tbl">

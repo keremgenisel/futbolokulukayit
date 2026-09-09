@@ -1,10 +1,14 @@
 // ── receipts ──
 const { db } = require("./baglanti.cjs");
+const { getSetting } = require("./meta.cjs");
+const { makbuzSezonu, makbuzOneki, sonrakiMakbuzNo } = require("../makbuzNo.cjs");
 
-function nextReceiptNo(yil) {
-  const last = db.prepare("SELECT makbuz_no FROM receipts WHERE makbuz_no LIKE ? ORDER BY makbuz_no DESC LIMIT 1").get(`${yil}-%`);
-  const n = last ? Number(last.makbuz_no.split("-")[1]) + 1 : 1;
-  return `${yil}-${String(n).padStart(4, "0")}`;
+// Makbuz numarası sezon bazlı (plan §17.2): önek sezonun ilk yılı, sayaç önek içinde artar.
+function nextReceiptNo(onek) {
+  const last = db
+    .prepare("SELECT makbuz_no FROM receipts WHERE makbuz_no LIKE ? ORDER BY length(makbuz_no) DESC, makbuz_no DESC LIMIT 1")
+    .get(`${onek}-%`);
+  return sonrakiMakbuzNo(onek, last?.makbuz_no);
 }
 // Ödenen tutara göre durumu yeniden hesapla (muaf değişmez).
 function aidatDurumGuncelle(pid, yil, ay) {
@@ -15,13 +19,14 @@ function aidatDurumGuncelle(pid, yil, ay) {
   db.prepare("UPDATE monthly_dues SET durum=? WHERE player_id=? AND yil=? AND ay=?").run(durum, pid, yil, ay);
 }
 function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden = "", not_ = "", satirlar = [] }) {
-  const yil = Number(String(tarih).slice(0, 4));
+  // Makbuz aktif sezona damgalanır (ayar yoksa tarihten); numara sezonun ilk yılıyla başlar
+  const sezon = makbuzSezonu(getSetting("aktif_sezon") || "", tarih, Number(getSetting("sezon_baslangic_ayi")) || 9);
   const toplam = satirlar.reduce((s, l) => s + Number(l.tutar || 0), 0);
   const tx = db.transaction(() => {
-    const makbuz_no = nextReceiptNo(yil);
+    const makbuz_no = nextReceiptNo(makbuzOneki(sezon, tarih));
     const r = db
-      .prepare("INSERT INTO receipts (makbuz_no,player_id,tarih,toplam,odeme_yontemi,tahsil_eden,not_) VALUES (?,?,?,?,?,?,?)")
-      .run(makbuz_no, player_id, tarih, toplam, odeme_yontemi, tahsil_eden, not_);
+      .prepare("INSERT INTO receipts (makbuz_no,player_id,tarih,toplam,odeme_yontemi,tahsil_eden,not_,sezon) VALUES (?,?,?,?,?,?,?,?)")
+      .run(makbuz_no, player_id, tarih, toplam, odeme_yontemi, tahsil_eden, not_, sezon);
     const rid = Number(r.lastInsertRowid);
     const insLine = db.prepare("INSERT INTO receipt_lines (receipt_id,fee_item_id,aciklama,tutar,yil,ay) VALUES (?,?,?,?,?,?)");
     const aidatId = db.prepare("SELECT id FROM fee_items WHERE kod='aidat'").get()?.id;
@@ -36,7 +41,7 @@ function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden 
         aidatDurumGuncelle(player_id, l.yil, l.ay);
       }
     }
-    return { id: rid, makbuz_no };
+    return { id: rid, makbuz_no, sezon };
   });
   return tx();
 }
@@ -58,18 +63,19 @@ const listReceipts = (pid, limit = null) =>
   limit
     ? db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC LIMIT ?").all(pid, Number(limit))
     : db.prepare("SELECT * FROM receipts WHERE player_id=? ORDER BY tarih DESC, id DESC").all(pid);
-const listCancelledReceipts = (from, to) =>
+// sezon verilirse yalnız o sezona damgalı makbuzlar (Tahsilat > Bugün Kesilen Makbuzlar: aktif sezon; plan §17.2)
+const listCancelledReceipts = (from, to, sezon = null) =>
   db
     .prepare(
-      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 ORDER BY r.tarih, r.id",
+      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 AND (? IS NULL OR r.sezon=?) ORDER BY r.tarih, r.id",
     )
-    .all(from, to);
-const listReceiptsByDate = (from, to) =>
+    .all(from, to, sezon, sezon);
+const listReceiptsByDate = (from, to, sezon = null) =>
   db
     .prepare(
-      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 ORDER BY r.tarih, r.id",
+      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 AND (? IS NULL OR r.sezon=?) ORDER BY r.tarih, r.id",
     )
-    .all(from, to);
+    .all(from, to, sezon, sezon);
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);
 
 // İptal: neden zorunlu; iptal eden ve zaman kaydedilir (muhasebe izi). Aidat ödenenleri düşer.

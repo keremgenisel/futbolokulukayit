@@ -4,7 +4,7 @@ const { getMetaValue, setMetaValue } = require("./meta.cjs");
 const { createUser } = require("./kullanicilar.cjs");
 const { araNormalize } = require("../metin.cjs");
 
-const SCHEMA_VERSION = 13; // 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
+const SCHEMA_VERSION = 14; // 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -150,6 +150,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   tahsil_eden TEXT DEFAULT '',
   not_ TEXT DEFAULT '',
   pdf_yolu TEXT DEFAULT '',
+  sezon TEXT NOT NULL DEFAULT '',                 -- makbuzun kesildiği sezon (şema 14; numara öneki sezonun ilk yılı)
   iptal INTEGER NOT NULL DEFAULT 0,
   iptal_nedeni TEXT DEFAULT '',
   iptal_eden TEXT DEFAULT '',
@@ -256,6 +257,7 @@ function migrate() {
   if (!makbuzKolon.has("iptal_nedeni")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_nedeni TEXT DEFAULT ''");
   if (!makbuzKolon.has("iptal_eden")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_eden TEXT DEFAULT ''");
   if (!makbuzKolon.has("iptal_zamani")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_zamani TEXT");
+  if (!makbuzKolon.has("sezon")) db.exec("ALTER TABLE receipts ADD COLUMN sezon TEXT NOT NULL DEFAULT ''"); // 14
   const dueKolon = new Set(
     db
       .prepare("PRAGMA table_info(monthly_dues)")
@@ -329,6 +331,13 @@ function migrate() {
   if (cur < 13) {
     const sira = db.prepare("UPDATE fee_types SET sira=? WHERE kod=?");
     FEE_TYPES.forEach(([kod], i) => sira.run(i, kod));
+  }
+  // 14: mevcut makbuzlara tarihlerinden sezon (başlangıç ayı ayarıyla); numaralar değişmez
+  if (cur < 14) {
+    const { tarihinSezonu } = require("../makbuzNo.cjs");
+    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const guncelle = db.prepare("UPDATE receipts SET sezon=? WHERE id=?");
+    for (const r of db.prepare("SELECT id, tarih FROM receipts WHERE sezon=''").all()) guncelle.run(tarihinSezonu(r.tarih, bas), r.id);
   }
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }

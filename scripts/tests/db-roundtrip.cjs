@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "13",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "14",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -279,8 +279,8 @@ app.whenReady().then(async () => {
       !!db.createPlayer({ uyruk: "yabanci", pasaport_no: "P7654321", ad_soyad: "Ana Silva", dogum_tarihi: "2015-03-03" }).id,
     );
     check(
-      "şema sürümü 13 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "13" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      "şema sürümü 14 ve pasaport sütunu var",
+      db.getMetaValue("schema_version") === "14" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -904,7 +904,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "13",
+        db.getMetaValue("schema_version") === "14",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1254,6 +1254,32 @@ app.whenReady().then(async () => {
         db.listFeeItems().some((k) => k.kod === "aidat"),
     );
 
+    // Plan §17.2: makbuz sezona damgalanır, numara sezonun ilk yılıyla başlar; liste sezon süzer
+    {
+      const p17 = db.createPlayer({ ad_soyad: "Sezon Makbuz", dogum_tarihi: "2015-01-01", aylik_aidat: 1000 });
+      db.setSetting("aktif_sezon", "2027-2028");
+      const m1 = db.createReceipt({ player_id: p17.id, tarih: "2026-09-09", satirlar: [{ tutar: 100 }] });
+      const m2 = db.createReceipt({ player_id: p17.id, tarih: "2028-01-10", satirlar: [{ tutar: 100 }] });
+      check(
+        "yeni sezonda makbuz 2027-0001 ile başlar, Ocak'ta da 2027 öneki sürer, sezon damgalı",
+        m1.makbuz_no === "2027-0001" &&
+          m2.makbuz_no === "2027-0002" &&
+          m1.sezon === "2027-2028" &&
+          db.getReceipt(m1.id).sezon === "2027-2028",
+      );
+      db.setSetting("aktif_sezon", "2026-2027");
+      const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;
+      check(
+        "bugün kesilenler sezon süzer: 2027-2028 → 1, 2026-2027 → eski sezon makbuzları, süzgeçsiz hepsi",
+        db.listReceiptsByDate("2026-09-09", "2026-09-09", "2027-2028").length === 1 &&
+          db.listReceiptsByDate("2026-09-09", "2026-09-09", "2026-2027").length === eskiSayi - 1,
+      );
+      check(
+        "göç 14: eski makbuzlar tarihten sezon aldı",
+        db.listReceipts(p17.id).every((r) => r.sezon) &&
+          db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts WHERE sezon=''").get().n === 0,
+      );
+    }
     db.close();
     // Anahtar varsa dosya şifreli olmalı: anahtarsız açılış sqlite_master okuyamamalı
     if (db.isEncrypted()) {
