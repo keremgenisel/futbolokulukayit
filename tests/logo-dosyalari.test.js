@@ -43,10 +43,14 @@ describe("Logo dosyaları", () => {
   });
 
   it("kaynak SVG'ler build/ altında ve kırmızı/beyaz paleti kullanır", () => {
-    for (const d of ["build/logo.svg", "build/logo-kirmizi.svg"]) {
+    for (const d of ["build/logo.svg", "build/logo-beyaz.svg", "build/logo-kirmizi.svg"]) {
       const svg = fs.readFileSync(path.join(kok, d), "utf-8");
       expect(svg).toContain('viewBox="0 0 512 512"');
       expect(svg).toMatch(/#E0101F|#7A0A12/);
     }
+    // kullanılan logo kırmızı zeminli: kök dikdörtgen dolgusu kırmızı
+    expect(fs.readFileSync(path.join(kok, "build/logo.svg"), "utf-8")).toMatch(
+      /<rect x="0" y="0" width="512" height="512" rx="112" fill="#E0101F"\/>/,
+    );
   });
 });

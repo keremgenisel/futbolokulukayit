@@ -1,34 +1,34 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-<rect x="0" y="0" width="512" height="512" rx="112" fill="#FFFFFF" stroke="#F3D7D9" stroke-width="8"/>
+<rect x="0" y="0" width="512" height="512" rx="112" fill="#E0101F"/>
 <rect x="176" y="62" width="250" height="268" rx="26" fill="#FFFFFF"/>
-<path d="M176 88 A26 26 0 0 1 202 62 L400 62 A26 26 0 0 1 426 88 L426 120 L176 120 Z" fill="#E0101F"/>
-<rect x="254" y="40" width="94" height="42" rx="14" fill="#E0101F"/>
+<path d="M176 88 A26 26 0 0 1 202 62 L400 62 A26 26 0 0 1 426 88 L426 120 L176 120 Z" fill="#7A0A12"/>
+<rect x="254" y="40" width="94" height="42" rx="14" fill="#7A0A12"/>
 <rect x="254" y="40" width="94" height="42" rx="14" fill="none" stroke="#FFFFFF" stroke-width="6"/>
-<rect x="208" y="146" width="176" height="20" rx="10" fill="#F3D7D9"/>
-<rect x="208" y="188" width="132" height="20" rx="10" fill="#F3D7D9"/>
-<rect x="208" y="230" width="156" height="20" rx="10" fill="#F3D7D9"/>
-<rect x="208" y="272" width="110" height="20" rx="10" fill="#F3D7D9"/>
-<path d="M40 340 L76 340 M30 372 L72 372 M40 404 L76 404" stroke="#E0101F" stroke-width="12" stroke-linecap="round"/>
+<rect x="208" y="146" width="176" height="20" rx="10" fill="#E8D4D6"/>
+<rect x="208" y="188" width="132" height="20" rx="10" fill="#E8D4D6"/>
+<rect x="208" y="230" width="156" height="20" rx="10" fill="#E8D4D6"/>
+<rect x="208" y="272" width="110" height="20" rx="10" fill="#E8D4D6"/>
+<path d="M40 340 L76 340 M30 372 L72 372 M40 404 L76 404" stroke="#FFFFFF" stroke-width="12" stroke-linecap="round"/>
 <g>
-  <path d="M104 300 L160 300 L172 336 C224 344 274 360 312 392 C330 408 324 430 300 430 L124 430 C94 430 82 402 88 366 Z" fill="#FFFFFF" stroke="#E0101F" stroke-width="12" stroke-linejoin="round"/>
-  <path d="M104 300 L160 300 L172 336 L120 336 Z" fill="#E0101F"/>
-  <path d="M124 430 L300 430 C324 430 330 408 312 392 L304 402 C310 414 300 418 292 418 L124 418 Z" fill="#E0101F"/>
-  <path d="M176 350 L238 362 M172 370 L236 380 M172 390 L232 398" stroke="#E0101F" stroke-width="9" stroke-linecap="round"/>
-  <g fill="#E0101F"><rect x="132" y="430" width="18" height="18" rx="4"/><rect x="176" y="430" width="18" height="18" rx="4"/><rect x="220" y="430" width="18" height="18" rx="4"/><rect x="264" y="430" width="18" height="18" rx="4"/></g>
-  <path d="M104 300 C126 308 146 308 160 300" fill="none" stroke="#E0101F" stroke-width="10" stroke-linecap="round"/>
+  <path d="M104 300 L160 300 L172 336 C224 344 274 360 312 392 C330 408 324 430 300 430 L124 430 C94 430 82 402 88 366 Z" fill="#FFFFFF" stroke="#7A0A12" stroke-width="12" stroke-linejoin="round"/>
+  <path d="M104 300 L160 300 L172 336 L120 336 Z" fill="#7A0A12"/>
+  <path d="M124 430 L300 430 C324 430 330 408 312 392 L304 402 C310 414 300 418 292 418 L124 418 Z" fill="#7A0A12"/>
+  <path d="M176 350 L238 362 M172 370 L236 380 M172 390 L232 398" stroke="#7A0A12" stroke-width="9" stroke-linecap="round"/>
+  <g fill="#7A0A12"><rect x="132" y="430" width="18" height="18" rx="4"/><rect x="176" y="430" width="18" height="18" rx="4"/><rect x="220" y="430" width="18" height="18" rx="4"/><rect x="264" y="430" width="18" height="18" rx="4"/></g>
+  <path d="M104 300 C126 308 146 308 160 300" fill="none" stroke="#7A0A12" stroke-width="10" stroke-linecap="round"/>
 </g>
 <clipPath id="c400372"><circle cx="400" cy="372" r="82"/></clipPath>
 <circle cx="400" cy="372" r="82" fill="#FFFFFF"/>
-<polygon points="409.1,343.9 429.5,372.0 409.1,400.1 376.1,389.4 376.1,354.6" fill="#E0101F"/>
-<line x1="409.1" y1="343.9" x2="425.3" y2="294.0" stroke="#E0101F" stroke-width="6.1" stroke-linecap="round"/>
-<polygon points="377.8,267.7 479.2,300.7 430.4,321.4 405.1,313.2" fill="#E0101F" clip-path="url(#c400372)"/>
-<line x1="429.5" y1="372.0" x2="482.0" y2="372.0" stroke="#E0101F" stroke-width="6.1" stroke-linecap="round"/>
-<polygon points="492.3,318.7 492.3,425.3 457.5,385.3 457.5,358.7" fill="#E0101F" clip-path="url(#c400372)"/>
-<line x1="409.1" y1="400.1" x2="425.3" y2="450.0" stroke="#E0101F" stroke-width="6.1" stroke-linecap="round"/>
-<polygon points="479.2,443.3 377.8,476.3 405.1,430.8 430.4,422.6" fill="#E0101F" clip-path="url(#c400372)"/>
-<line x1="376.1" y1="389.4" x2="333.7" y2="420.2" stroke="#E0101F" stroke-width="6.1" stroke-linecap="round"/>
-<polygon points="356.6,469.4 294.0,383.1 345.7,395.1 361.3,416.6" fill="#E0101F" clip-path="url(#c400372)"/>
-<line x1="376.1" y1="354.6" x2="333.7" y2="323.8" stroke="#E0101F" stroke-width="6.1" stroke-linecap="round"/>
-<polygon points="294.0,360.9 356.6,274.6 361.3,327.4 345.7,348.9" fill="#E0101F" clip-path="url(#c400372)"/>
-<circle cx="400" cy="372" r="82" fill="none" stroke="#E0101F" stroke-width="5.7"/>
+<polygon points="409.1,343.9 429.5,372.0 409.1,400.1 376.1,389.4 376.1,354.6" fill="#7A0A12"/>
+<line x1="409.1" y1="343.9" x2="425.3" y2="294.0" stroke="#7A0A12" stroke-width="6.1" stroke-linecap="round"/>
+<polygon points="377.8,267.7 479.2,300.7 430.4,321.4 405.1,313.2" fill="#7A0A12" clip-path="url(#c400372)"/>
+<line x1="429.5" y1="372.0" x2="482.0" y2="372.0" stroke="#7A0A12" stroke-width="6.1" stroke-linecap="round"/>
+<polygon points="492.3,318.7 492.3,425.3 457.5,385.3 457.5,358.7" fill="#7A0A12" clip-path="url(#c400372)"/>
+<line x1="409.1" y1="400.1" x2="425.3" y2="450.0" stroke="#7A0A12" stroke-width="6.1" stroke-linecap="round"/>
+<polygon points="479.2,443.3 377.8,476.3 405.1,430.8 430.4,422.6" fill="#7A0A12" clip-path="url(#c400372)"/>
+<line x1="376.1" y1="389.4" x2="333.7" y2="420.2" stroke="#7A0A12" stroke-width="6.1" stroke-linecap="round"/>
+<polygon points="356.6,469.4 294.0,383.1 345.7,395.1 361.3,416.6" fill="#7A0A12" clip-path="url(#c400372)"/>
+<line x1="376.1" y1="354.6" x2="333.7" y2="323.8" stroke="#7A0A12" stroke-width="6.1" stroke-linecap="round"/>
+<polygon points="294.0,360.9 356.6,274.6 361.3,327.4 345.7,348.9" fill="#7A0A12" clip-path="url(#c400372)"/>
+<circle cx="400" cy="372" r="82" fill="none" stroke="#7A0A12" stroke-width="5.7"/>
 </svg>

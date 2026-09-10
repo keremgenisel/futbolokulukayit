@@ -1435,3 +1435,49 @@ hash değişiyor → 403 "kayıtlı değil". Yerelde kanıtlandı (aynı anahtar
   kurmaya kalkıştı (wrangler.jsonc, `@cloudflare/vite-plugin`, package.json betikleri, .gitignore). Geri alındı; `deploy.sh`
   artık `--config ./wrangler.toml` ile ve aktivasyon-sunucu klasöründen çalışır (yorumda uyarı).
 
+
+## 34. Uygulama logosu v2 — daha modern (KARAR: mevcut logo, kırmızı zemin — 10.09.2026)
+
+Kerem: "uygulama logosunu daha modern bir hale getirmek için planlama ve sonra mockup yapalım." Mevcut (§30): kırmızı yuvarlak
+kare, beyaz kayıt kartı (koyu başlık + klips + 4 gri satır), sol altta krampon + hız çizgileri, sağ altta top. Palet kırmızı/beyaz
+korunur (Kerem'in seçimi).
+
+### 34.1 Mevcut logonun "modern" ölçütlerine göre eksikleri
+- **Öğe sayısı:** 6 ayrı nesne (kart, klips, satırlar, krampon, hız çizgileri, top) — modern uygulama ikonları 1–2 nesneyle
+  tek fikir anlatır; 32/16 px'te leke kalabalığı.
+- **Çizgi/detay:** 12 px konturlar, krampon çivileri, bağcık çizgileri — küçük boyutta gürültü; iOS/Windows 11 ikonları düz
+  dolgu + büyük negatif alan kullanır.
+- **Kompozisyon:** kart sağ üste, top sağ alta, krampon sol alta dağılmış; odak yok. Modern ikonlarda tek merkez, kararlı simetri
+  ya da bilinçli tek diyagonal.
+- **Yüzey:** düz kırmızı; hafif derinlik (çok ince dikey gradyan ya da tek ton üstü %8 açık "ışık") çağdaş görünümü verir,
+  ama flat kalmak da kabul edilir.
+- **Anlam:** "kayıt programı" (kart) + "futbol" (top/krampon). Modern yaklaşımda ikisi tek sembolde birleşir.
+
+### 34.2 Tasarım ilkeleri (v2)
+1. Tek fikir, en fazla 2 öğe; kontur yok, düz dolgu (beyaz üstüne kırmızı ya da tersi).
+2. 1024 ızgara, squircle (Apple tarzı süperelips ~ %22 yarıçap), öğeler ikonun %60–70'ini kaplar, kenar payı eşit.
+3. 16 px'te tanınır siluet (yalnız beyaz-kırmızı kontrastı), 32 px'te fikir okunur, 256 px'te detay (pentagon, tik).
+4. Yüzey: kırmızı #E0101F → altta #C00D1A çok hafif dikey gradyan (isteğe bağlı; flat sürüm de üretilir).
+5. Aynı sembol beyaz zeminli sürümde (giriş/kenar menü) kırmızı olarak kullanılır — tek SVG, iki renk seti.
+
+### 34.3 Yönler (mockup'ta gösterilecek)
+- **A · Top + Tik:** büyük top; pentagonların biri yerine kalın beyaz tik (onay/yoklama/kayıt). Tek nesne, çok güçlü siluet.
+- **B · Kart + Top (sadeleşmiş):** kartın yalnızca dış hatları (yuvarlak dikdörtgen, üstte tek klips çentiği) ve içinde tek
+  büyük top; satırlar/krampon yok. Mevcut fikrin düz versiyonu.
+- **C · Krampon silueti:** tek beyaz krampon silueti (düz, çivisiz), burnunda küçük kırmızı top negatif alan olarak. Spor
+  markası hissi, en "ikonik".
+- **D · FO monogram:** kalın kondanse "FO", O harfi top; kırmızı zemin. Metin tabanlı, marka gibi.
+
+### 34.4 Uygulama (onaydan sonra)
+`build/logo.svg` + `build/logo-kirmizi.svg` yenilenir; `build/icon.png` (1024) ve `public/logo.png` (512) yeniden üretilir
+(Electron canvas ile, §30 yöntemi); `tests/logo-dosyalari.test.js` boyut/alfa testi aynen; tuval `design/`e kopyalanır. Kulüp
+logosu yüklüyse ekranlarda zaten o görünür (§32); uygulama logosu yalnız exe/kurulum/masaüstü ikonu ve logosuz kurulumda
+giriş/kenar menü içindir.
+
+### 34.5 Karar (Kerem, 10.09.2026: "mevcutun arka planını kırmızı yapalım")
+Dört modern yön (tuval: https://claude.ai/code/artifact/54f6240d-883c-4b69-a2a4-f7e6df1af619) yerine mevcut kayıt kartı + krampon +
+top logosu korunur, zemin beyazdan KIRMIZIYA (#E0101F) alınır: beyaz kart, koyu kırmızı klips/başlık, beyaz krampon, beyaz hız
+çizgileri, top. `build/logo.svg` artık kırmızı sürüm (kaynağı `logo-kirmizi.svg`), eski beyaz sürüm `build/logo-beyaz.svg`;
+`build/icon.png` (1024) ve `public/logo.png` (512) yeniden üretildi; test `tests/logo-dosyalari.test.js` kırmızı zemini doğrular.
+Yeni ikon exe/kurulum/masaüstüne bir sonraki sürümle gider; giriş/kenar menüde hemen (logosuz kurulumda).
+

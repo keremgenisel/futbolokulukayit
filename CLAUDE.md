@@ -4,7 +4,7 @@ Bu dosya Claude Code'a bu depoda çalışırken rehberlik eder.
 
 ## Bu nedir
 
-"Futbol Okulu Kayıt Programı" (productName; ilk müşteri Eyüpspor; program kulüpten bağımsız: uygulama logosu `build/icon.png` kırmızı-beyaz kayıt kartı+krampon (plan §30), kulüp kimliği — ad, kısa ad, kuruluş yılı, logo `uploads/kulup/logo.*`, tema renkleri — Ayarlar > Kulüp ve Makbuz'dan, oturumsuz `app:marka` kanalı, saf `src/lib/tema.js` + `electron/tema.cjs`/`ayarDogrula.cjs`/`marka.cjs`/`kulupLogo.cjs`; plan §32) — futbol okulu için Windows masaüstü kayıt programı. React (Vite)
+"Futbol Okulu Kayıt Programı" (productName; ilk müşteri Eyüpspor; program kulüpten bağımsız: uygulama logosu `build/icon.png` kırmızı zeminli kayıt kartı+krampon+top (plan §30/§34.5; kaynak `build/logo.svg`), kulüp kimliği — ad, kısa ad, kuruluş yılı, logo `uploads/kulup/logo.*`, tema renkleri — Ayarlar > Kulüp ve Makbuz'dan, oturumsuz `app:marka` kanalı, saf `src/lib/tema.js` + `electron/tema.cjs`/`ayarDogrula.cjs`/`marka.cjs`/`kulupLogo.cjs`; plan §32) — futbol okulu için Windows masaüstü kayıt programı. React (Vite)
 arayüz, Electron kabuk, SQLite (`better-sqlite3-multiple-ciphers`, at-rest şifreli) veritabanı.
 Oyuncu kaydı, aile ve acil kişiler, belgeler, aylık aidat takibi, tahsilat makbuzu (yazdırma + PDF),
 antrenman yoklaması, Excel/PDF raporlar. Şimdilik tek PC; Faz 2'de gömülü Express sunucu ile
