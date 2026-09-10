@@ -62,6 +62,7 @@ const YAZMA = new Set([
   "grupBildirimKaydet",
   "grupBildirimSil",
   "ensureMonthlyDues",
+  "ensureMonthlyDuesAraligi",
   "createReceipt",
   "cancelReceipt",
   "createTraining",

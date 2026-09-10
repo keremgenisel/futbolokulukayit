@@ -48,7 +48,7 @@ function createReceipt({ player_id, tarih, odeme_yontemi = "nakit", tahsil_eden 
 function getReceipt(id) {
   const r = db
     .prepare(
-      "SELECT r.*, p.ad_soyad, p.dogum_tarihi, g.ad AS yas_grubu_ad FROM receipts r JOIN players p ON p.id=r.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE r.id=?",
+      "SELECT r.*, COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad) AS ad_soyad, p.dogum_tarihi, g.ad AS yas_grubu_ad FROM receipts r JOIN players p ON p.id=r.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE r.id=?",
     )
     .get(id);
   if (!r) return null;
@@ -68,13 +68,13 @@ const listReceipts = (pid, limit = null) =>
 const listCancelledReceipts = (from, to, sezon = null, grup = null) =>
   db
     .prepare(
-      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
+      "SELECT r.*, COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad) AS ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=1 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
     )
     .all(from, to, sezon, sezon, grup, grup);
 const listReceiptsByDate = (from, to, sezon = null, grup = null) =>
   db
     .prepare(
-      "SELECT r.*, p.ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
+      "SELECT r.*, COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad) AS ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
     )
     .all(from, to, sezon, sezon, grup, grup);
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);

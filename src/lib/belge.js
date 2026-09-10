@@ -44,3 +44,33 @@ export function uyariSirala(uyarilar) {
       String(a.ad_soyad || "").localeCompare(String(b.ad_soyad || ""), "tr"),
   );
 }
+
+/** Belge türleri (oyuncu kartı > Belgeler ile aynı liste). `istege`: isteğe bağlı — eksik sayılmaz. */
+export const BELGE_TIPLERI = [
+  { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true },
+  { kod: "foto", ad: "Vesikalık fotoğraf", tekil: true },
+  { kod: "sporcu_kimlik", ad: "Sporcu kimlik fotokopisi" },
+  { kod: "veli_kimlik", ad: "Veli kimlik fotokopisi" },
+  { kod: "kayit_formu", ad: "İmzalı kayıt formu" },
+  { kod: "diger", ad: "Diğer", istege: true }, // isteğe bağlı: yoksa "Eksik" değil "İsteğe bağlı" (09.09.2026)
+];
+/** Zorunlu belgeler: "Diğer" hariç hepsi (Kerem, 10.09.2026: eksik belge pili, diğeri dışında bırak). */
+export const ZORUNLU_BELGELER = BELGE_TIPLERI.filter((t) => !t.istege);
+
+/**
+ * Oyuncuda bulunmayan zorunlu belgeler. `tipler`: mevcut belge türleri — dizi ya da virgüllü metin
+ * (`playersPage` satırındaki `belge_tipleri`, group_concat); null/boş → hiç belge yok.
+ * @param {string[]|string|null|undefined} tipler
+ * @returns {{ kod: string, ad: string }[]}
+ */
+export function eksikBelgeler(tipler) {
+  const var_ = new Set(
+    Array.isArray(tipler)
+      ? tipler
+      : String(tipler || "")
+          .split(",")
+          .map((t) => t.trim())
+          .filter(Boolean),
+  );
+  return ZORUNLU_BELGELER.filter((t) => !var_.has(t.kod)).map(({ kod, ad }) => ({ kod, ad }));
+}

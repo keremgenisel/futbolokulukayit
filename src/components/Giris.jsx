@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Btn, Alan, girisStili } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { COKLU_PC_ACIK } from "../lib/ozellikler.js";
+import { VARSAYILAN_KULUP } from "../lib/marka.js";
 
 // Son başarılı giriş yapan kullanıcı adı (parola asla saklanmaz).
 const SON_KULLANICI = "sonKullanici";
@@ -20,7 +21,9 @@ function sonKullaniciYaz(ad) {
   }
 }
 
-export function Giris({ onGiris, mod, onModDegisti }) {
+export function Giris({ onGiris, mod, onModDegisti, marka }) {
+  // Marka (plan §32.5): kulüp logosu varsa uygulama logosunun yerine; kısa ad; kuruluş yılı boşsa satır yok
+  const kisaAd = (marka?.kisaAd || VARSAYILAN_KULUP).toLocaleUpperCase("tr-TR");
   const [baglanAcik, setBaglanAcik] = useState(false);
   const [url, setUrl] = useState("");
   const [fp, setFp] = useState(null);
@@ -77,7 +80,7 @@ export function Giris({ onGiris, mod, onModDegisti }) {
         style={{
           width: "42%",
           background: "var(--mor)",
-          color: "#fff",
+          color: "var(--ana-ustu, #fff)",
           display: "flex",
           flexDirection: "column",
           justifyContent: "space-between",
@@ -85,21 +88,30 @@ export function Giris({ onGiris, mod, onModDegisti }) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-          <img src="./logo.png" alt="Eyüpspor" style={{ width: 56, height: 56, objectFit: "contain" }} />
-          <span className="baslik" style={{ color: "#fff", fontSize: 24, fontWeight: 700, letterSpacing: ".06em" }}>
-            EYÜPSPOR
+          <img
+            src={marka?.logo || "./logo.png"}
+            alt={marka?.logo ? kisaAd : "Futbol Okulu Kayıt Programı"}
+            data-kulup-logo={marka?.logo ? "1" : "0"}
+            style={{ width: 56, height: 56, objectFit: "contain", borderRadius: marka?.logo ? 0 : 12 }}
+          />
+          <span className="baslik" style={{ color: "var(--ana-ustu, #fff)", fontSize: 24, fontWeight: 700, letterSpacing: ".06em" }}>
+            {kisaAd}
           </span>
         </div>
         <div>
-          <h1 style={{ color: "#fff", fontSize: 56, lineHeight: 0.95 }}>
+          <h1 style={{ color: "var(--ana-ustu, #fff)", fontSize: 56, lineHeight: 0.95 }}>
             Futbol Okulu
             <br />
             Kayıt Programı
           </h1>
         </div>
-        <span style={{ color: "var(--sari)", fontSize: 13, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 600 }}>
-          Kuruluş 1919
-        </span>
+        {marka?.kurulusYili ? (
+          <span style={{ color: "var(--sari)", fontSize: 13, letterSpacing: ".12em", textTransform: "uppercase", fontWeight: 600 }}>
+            Kuruluş {marka.kurulusYili}
+          </span>
+        ) : (
+          <span />
+        )}
       </div>
       {kurtarma ? (
         <form

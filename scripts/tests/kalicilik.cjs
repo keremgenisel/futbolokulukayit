@@ -287,6 +287,79 @@ app.on("browser-window-created", async (_e, win) => {
         "yeni sezon makbuzu 2027-0001 ve sezon damgalı",
         m27.makbuz_no === "2027-0001" && m27.sezon === "2027-2028" && sg.ilkAyBorcu >= 1,
       );
+      // ── 10.09.2026 eklemeleri: kulüp kimliği (§32), uzun dönem aidat (§24), sağlık belgesi (§25), kişisel veri silme (§31) ──
+      db.setSetting("kulup_kisa_ad", "Kalıcı SK");
+      db.setSetting("kurulus_yili", "1965");
+      db.setSetting("kulup_alt_yazi", "Akademi");
+      db.setSetting("kulup_slogan", "#KalıcıSlogan");
+      db.setSetting("tema_ana", "#0f7b3e");
+      db.setSetting("tema_vurgu", "#ffffff");
+      {
+        const { nativeImage } = require("electron");
+        const { kulupLogoKaydet } = require("../../electron/kulupLogo.cjs");
+        const bmp = Buffer.alloc(64 * 64 * 4);
+        for (let i = 0; i < bmp.length; i += 4) {
+          bmp[i] = 62;
+          bmp[i + 1] = 123;
+          bmp[i + 2] = 15;
+          bmp[i + 3] = 255;
+        }
+        kulupLogoKaydet(nativeImage.createFromBitmap(bmp, { width: 64, height: 64 }).toPNG(), ".png");
+      }
+      // Uzun dönem: 4 ay tek makbuzla (özet satır eşiği üstü)
+      const uzun = db.createPlayer({
+        ad_soyad: "Uzun Dönem Oyuncu",
+        dogum_tarihi: "2015-03-03",
+        yas_grubu_id: o.yas_grubu_id,
+        aylik_aidat: 1000,
+      });
+      const uzunAylar = [
+        [2027, 10],
+        [2027, 11],
+        [2027, 12],
+        [2028, 1],
+      ];
+      db.ensureMonthlyDuesAraligi(
+        uzun.id,
+        uzunAylar.map(([yil, ay]) => ({ yil, ay })),
+      );
+      const uzunMakbuz = db.createReceipt({
+        player_id: uzun.id,
+        tarih: "2027-11-11", // t2 değil: "bugün kesilenler" sayısı kontrolü bozulmasın
+        odeme_yontemi: "havale",
+        tahsil_eden: "T",
+        satirlar: uzunAylar.map(([yil, ay]) => ({ fee_item_id: aidat.id, tutar: 1000, aciklama: `${ay}/${yil}`, yil, ay })),
+      });
+      db.belgeEkle(uzun.id, {
+        tip: "saglik",
+        dosya_yolu: `oyuncu-${uzun.id}/1-saglik-r.pdf`,
+        orijinal_ad: "r.pdf",
+        gecerlilik_tarihi: "2028-06-30",
+      });
+      // Kişisel veri silme: makbuzlu oyuncu → ad makbuza damgalanır, kişisel alanlar gider
+      const kvkk = db.createPlayer({
+        ad_soyad: "Kvkk Kalıcı",
+        tc_no: "11111111110",
+        dogum_tarihi: "2014-04-04",
+        yas_grubu_id: o.yas_grubu_id,
+        gsm: "05550000000",
+      });
+      db.addGuardian(kvkk.id, { tip: "anne", ad_soyad: "Anne Kvkk", gsm: "05550000001" });
+      const kvkkMakbuz = db.createReceipt({
+        player_id: kvkk.id,
+        tarih: "2027-11-11", // t2 değil: "bugün kesilenler" sayısı kontrolü bozulmasın
+        odeme_yontemi: "nakit",
+        tahsil_eden: "T",
+        satirlar: [{ fee_item_id: aidat.id, tutar: 250, aciklama: "kvkk", yil: null, ay: null }],
+      });
+      db.oyuncuKisiselVeriSil(kvkk.id, "kalicilik");
+      check(
+        "yazım: uzun dönem 4 ay ödendi, sağlık belgesi var, kvkk anonim ama makbuz adı damgalı",
+        uzunAylar.every(([yil, ay]) => db.getDue(uzun.id, yil, ay)?.durum === "odendi") &&
+          db.listDocuments(uzun.id).some((d) => d.tip === "saglik") &&
+          db.getPlayer(kvkk.id).ad_soyad === `Silinmiş Oyuncu #${kvkk.id}` &&
+          db.getReceipt(kvkkMakbuz.id).ad_soyad === "Kvkk Kalıcı",
+      );
       await js(`document.querySelector("button[aria-label='Menüyü daralt']").click()`);
       await bekle(300);
       // Taşıma paketi (plan §14): tüm kayıtlardan sonra oluşturulur; yeniden açılışta parolayla açılıp sayıları beklenenle karşılaştırılır
@@ -327,6 +400,10 @@ app.on("browser-window-created", async (_e, win) => {
           makbuz27: m27.makbuz_no,
           ilkAyBorcu: sg.ilkAyBorcu,
           bugun: t2.toISOString().slice(0, 10),
+          uzun: uzun.id,
+          uzunMakbuz: uzunMakbuz.makbuz_no,
+          kvkk: kvkk.id,
+          kvkkMakbuz: kvkkMakbuz.id,
         }),
       );
       console.log("YAZ TAMAM");
@@ -418,7 +495,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 17 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "17");
+      check("şema sürümü 18 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "18");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",
@@ -535,6 +612,60 @@ app.on("browser-window-created", async (_e, win) => {
       check(
         "hiç oyuncu sezonsuz kalmadı (göç 15 + createPlayer damgası)",
         db.hamBaglanti().prepare("SELECT count(*) AS n FROM players WHERE sezon='' AND durum IN ('aktif','deneme','sakat')").get().n === 0,
+      );
+      // ── 10.09.2026 eklemeleri ──
+      check(
+        "kulüp kimliği ayarları kalıcı (kısa ad, kuruluş, alt yazı, tema)",
+        db.getSetting("kulup_kisa_ad") === "Kalıcı SK" &&
+          db.getSetting("kurulus_yili") === "1965" &&
+          db.getSetting("kulup_alt_yazi") === "Akademi" &&
+          db.getSetting("kulup_slogan") === "#KalıcıSlogan" &&
+          db.getSetting("tema_ana") === "#0f7b3e" &&
+          db.getSetting("tema_vurgu") === "#ffffff",
+      );
+      const { markaOku } = require("../../electron/marka.cjs");
+      const marka = markaOku({ getSetting: db.getSetting, uploadsDir: db.getUploadsDir() });
+      check(
+        "kulüp logosu dosyası ve ayarı kalıcı (yedek/geri yükleme sonrası da); marka kanalı okur",
+        db.getSetting("kulup_logo") === "kulup/logo.png" &&
+          fs.existsSync(path.join(db.getUploadsDir(), "kulup", "logo.png")) &&
+          marka.logo.startsWith("data:image/png;base64,") &&
+          marka.kisaAd === "Kalıcı SK" &&
+          marka.kurulusYili === "1965",
+      );
+      check(
+        "giriş ekranı (oturumsuz) kalıcı kimliği gösteriyor: kısa ad, kuruluş yılı, kulüp logosu, yeşil tema",
+        (await js(`document.body.textContent.includes("KALICI SK") && document.body.textContent.includes("Kuruluş 1965")`)) &&
+          (await js(`!!document.querySelector("img[data-kulup-logo='1']")`)) &&
+          (await js(`getComputedStyle(document.documentElement).getPropertyValue("--mor").trim()`)) === "#0f7b3e",
+      );
+      check(
+        "uzun dönem: 4 ayın aidatı ödendi ve tek makbuza bağlı kalıcı",
+        [
+          [2027, 10],
+          [2027, 11],
+          [2027, 12],
+          [2028, 1],
+        ].every(([yil, ay]) => db.getDue(b.uzun, yil, ay)?.durum === "odendi") &&
+          db.listReceipts(b.uzun).some((m) => m.makbuz_no === b.uzunMakbuz && m.toplam === 4000),
+      );
+      check(
+        "sağlık belgesi geçerlilik tarihiyle kalıcı; belge_tipleri listede",
+        db.listDocuments(b.uzun).some((d) => d.tip === "saglik" && d.gecerlilik_tarihi === "2028-06-30") &&
+          /saglik/.test(
+            db.getPlayer(b.uzun) &&
+              db.playersPage({ yil: 2027, ay: 10, sayfaBoyu: 100, durum: null }).liste.find((p) => p.id === b.uzun)?.belge_tipleri,
+          ),
+      );
+      const kv = db.getPlayer(b.kvkk);
+      check(
+        "kişisel veri silme kalıcı: oyuncu anonim, veli yok, makbuz adı damgayla duruyor",
+        kv.ad_soyad === `Silinmiş Oyuncu #${b.kvkk}` &&
+          kv.tc_no === "" &&
+          kv.durum === "ayrildi" &&
+          db.listGuardians(b.kvkk).length === 0 &&
+          db.getReceipt(b.kvkkMakbuz).ad_soyad === "Kvkk Kalıcı" &&
+          db.getReceipt(b.kvkkMakbuz).oyuncu_adi === "Kvkk Kalıcı",
       );
       // Arayüz: kullanıcı adı önceki oturumdan hatırlanıyor, giriş yeni parolayla
       check("kullanıcı adı yeniden açılışta hatırlanıyor", (await js(`document.querySelector("input").value`)) === "admin");

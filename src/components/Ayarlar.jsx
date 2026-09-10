@@ -50,7 +50,7 @@ const GRUPLAR = [
   },
 ];
 
-export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum, onKurulumAc }) {
+export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, baslangicBolum, onKurulumAc, onMarkaDegisti }) {
   const [bolum, setBolum] = useState(baslangicBolum || "kulup");
   const [kirli, setKirli] = useState(false); // açık bölümde kaydedilmemiş değişiklik var mı
   const [hedefBolum, setHedefBolum] = useState(null); // onay bekleyen bölüm geçişi
@@ -112,7 +112,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
         ))}
       </Kart>
       <Kart style={{ padding: 24 }}>
-        {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} admin={admin} />}
+        {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} admin={admin} onKirli={setKirli} onMarkaDegisti={onMarkaDegisti} />}
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "whatsapp" && <WhatsAppAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}

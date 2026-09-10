@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { belgeGecerlilik, belgeEtiketi, uyariSirala, onerilenGecerlilik } from "../src/lib/belge.js";
+import { belgeGecerlilik, belgeEtiketi, uyariSirala, onerilenGecerlilik, eksikBelgeler, ZORUNLU_BELGELER } from "../src/lib/belge.js";
 
 describe("sağlık raporu geçerliliği", () => {
   it("yok / geçerli / dolacak (≤30 gün) / doldu", () => {
@@ -35,5 +35,19 @@ describe("sağlık raporu geçerliliği", () => {
     expect(onerilenGecerlilik("2026-09-08")).toBe("2027-09-08");
     expect(onerilenGecerlilik("2028-02-29")).toBe("2029-03-01"); // 29 Şubat yoksa 1 Mart
     expect(onerilenGecerlilik("2026-12-31")).toBe("2027-12-31");
+  });
+});
+
+describe("eksikBelgeler (Oyuncular > eksik belge pili)", () => {
+  it("'Diğer' zorunlu değil; hiç belge yoksa 5 eksik", () => {
+    expect(ZORUNLU_BELGELER.map((t) => t.kod)).toEqual(["saglik", "foto", "sporcu_kimlik", "veli_kimlik", "kayit_formu"]);
+    expect(eksikBelgeler(null).length).toBe(5);
+    expect(eksikBelgeler("").length).toBe(5);
+  });
+  it("group_concat metni ve dizi aynı sonucu verir; diğer varken bile eksik sayılmaz", () => {
+    expect(eksikBelgeler("saglik,foto,diger").map((e) => e.kod)).toEqual(["sporcu_kimlik", "veli_kimlik", "kayit_formu"]);
+    expect(eksikBelgeler(["saglik", "foto", "diger"])).toEqual(eksikBelgeler("saglik,foto,diger"));
+    expect(eksikBelgeler("saglik,foto,sporcu_kimlik,veli_kimlik,kayit_formu")).toEqual([]);
+    expect(eksikBelgeler("diger")).toHaveLength(5);
   });
 });

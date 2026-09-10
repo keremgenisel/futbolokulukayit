@@ -159,6 +159,37 @@ app.whenReady().then(async () => {
     );
     check("yol geçişi reddedilir", (await istek("/api/files/dataUrl?yol=../../etc/passwd", { token: tok })).status === 400);
     check("lisans durumu okunur", (await istek("/api/lisans/durum", { token: tok })).body.durum.mod === "deneme");
+    // Kulüp kimliği (plan §32): marka oturumsuz okunur, yalnız marka alanları; logo yükleme yalnız yönetici
+    const markaR = await istek("/api/marka");
+    check(
+      "/api/marka oturumsuz 200, yalnız marka alanları",
+      markaR.status === 200 &&
+        markaR.body.marka.kulupAdi === "Futbol Okulu" &&
+        Object.keys(markaR.body.marka).sort().join() === "altYazi,kisaAd,kulupAdi,kurulusYili,logo,slogan,tema",
+    );
+    const pngB64 = require("electron")
+      .nativeImage.createFromBitmap(Buffer.alloc(64 * 64 * 4, 200), { width: 64, height: 64 })
+      .toPNG()
+      .toString("base64");
+    check(
+      "kulüp logosu yükleme yönetici olmayana 403",
+      (await istek("/api/files/kulupLogoSec", { method: "POST", body: { uzanti: ".png", base64: pngB64 }, token: pd.body.token }))
+        .status === 403,
+    );
+    const lg = await istek("/api/files/kulupLogoSec", { method: "POST", body: { uzanti: ".png", base64: pngB64 }, token: tok });
+    check(
+      "kulüp logosu yönetici yükler; /api/marka logoyu döner",
+      lg.status === 200 && lg.body.yol === "kulup/logo.png" && (await istek("/api/marka")).body.marka.logo.startsWith("data:image/png"),
+    );
+    check(
+      "yasak uzantıda logo 400",
+      (await istek("/api/files/kulupLogoSec", { method: "POST", body: { uzanti: ".svg", base64: "AA==" }, token: tok })).status === 400,
+    );
+    check(
+      "kulüp logosu kaldırma",
+      (await istek("/api/files/kulupLogoSil", { method: "POST", body: {}, token: tok })).status === 200 &&
+        (await istek("/api/marka")).body.marka.logo === "",
+    );
 
     // Kurtarma kodları: üretim oturum ister; kullanıcı başkası için üretemez; sıfırlama oturumsuz, 5 yanlışta 429
     check(
@@ -174,6 +205,20 @@ app.whenReady().then(async () => {
     check(
       "kullanıcı başkası için kod üretemez",
       (await istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId: 1 }, token: veliTok })).status === 403,
+    );
+    // Kişisel veri silme (plan §31): yalnız yönetici; belge dosyası ve oyuncu klasörü gider, kayıt anonim kalır
+    check(
+      "kişisel veri silme yönetici olmayana 403",
+      (await istek("/api/files/oyuncuKisiselVeriSil", { method: "POST", body: { playerId: oyuncu.body.sonuc.id }, token: veliTok }))
+        .status === 403,
+    );
+    const kvs = await istek("/api/files/oyuncuKisiselVeriSil", { method: "POST", body: { playerId: oyuncu.body.sonuc.id }, token: tok });
+    check(
+      "kişisel veri silme: dosya ve klasör silindi, ad anonim",
+      kvs.status === 200 &&
+        !fs.existsSync(path.join(db.getUploadsDir(), up.body.dosya_yolu)) &&
+        !fs.existsSync(path.join(db.getUploadsDir(), "oyuncu-" + oyuncu.body.sonuc.id)) &&
+        db.getPlayer(oyuncu.body.sonuc.id).ad_soyad === "Silinmiş Oyuncu #" + oyuncu.body.sonuc.id,
     );
     const kendi = await istek("/api/auth/kurtarmaUret", { method: "POST", body: { userId: kullanici.body.sonuc.id }, token: veliTok });
     check("kullanıcı kendisi için kod üretir", kendi.status === 200 && kendi.body.kodlar.length === 8);

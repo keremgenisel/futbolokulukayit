@@ -171,7 +171,7 @@ export function KalemAyar({ saltOkunur, onKirli }) {
             const d = satirDegisti(k);
             const sil = silKalem.has(k.id);
             return (
-              <tr key={k.id} style={{ background: d ? "var(--sari-acik)" : sil ? "var(--kirmizi-acik, #fdecec)" : undefined }}>
+              <tr key={k.id} style={{ background: d ? "var(--uyari-acik)" : sil ? "var(--kirmizi-acik, #fdecec)" : undefined }}>
                 <td style={sil ? silStil : undefined}>
                   {k.kod === "aidat" ? (
                     <b>{k.ad}</b>
@@ -224,7 +224,7 @@ export function KalemAyar({ saltOkunur, onKirli }) {
             );
           })}
           {yeniKalemler.map((k) => (
-            <tr key={"y" + k.tmp} style={{ background: "var(--sari-acik)" }}>
+            <tr key={"y" + k.tmp} style={{ background: "var(--uyari-acik)" }}>
               <td>
                 <b>{k.ad}</b> <Rozet ton="yellow">Yeni</Rozet>
               </td>
@@ -302,7 +302,7 @@ export function KalemAyar({ saltOkunur, onKirli }) {
                 return (
                   <tr
                     key={t.kod}
-                    style={{ background: tipDegisti(t) ? "var(--sari-acik)" : sil ? "var(--kirmizi-acik, #fdecec)" : undefined }}
+                    style={{ background: tipDegisti(t) ? "var(--uyari-acik)" : sil ? "var(--kirmizi-acik, #fdecec)" : undefined }}
                   >
                     <td style={sil ? silStil : undefined}>
                       <Girdi
@@ -362,7 +362,7 @@ export function KalemAyar({ saltOkunur, onKirli }) {
               {yeniTipler.map((t) => {
                 const hesap = aidatHesapla(taban, "yeni", { yeni: t.indirim });
                 return (
-                  <tr key={"y" + t.tmp} style={{ background: "var(--sari-acik)" }}>
+                  <tr key={"y" + t.tmp} style={{ background: "var(--uyari-acik)" }}>
                     <td>
                       <b>{t.ad}</b> <Rozet ton="yellow">Yeni</Rozet>
                     </td>
@@ -431,7 +431,7 @@ export function KalemAyar({ saltOkunur, onKirli }) {
             gap: 12,
             padding: "12px 16px",
             background: "#fff",
-            border: "1px solid var(--sari)",
+            border: "1px solid var(--uyari)",
             borderRadius: 10,
             boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
           }}

@@ -114,7 +114,7 @@ testle geldi (`tests/guvenlik-saf.test.js`, `tests/ui/parola-degistir.test.jsx`,
     Öneri: ana süreçte `randomBytes`, ≥10 karakter.
 19. Ham SQLite/Chromium hata metinleri kullanıcıya geçiyor (`api.js:42-45`). Öneri: eşleme tablosu.
 20. `logo` şablonlara kaçırılmadan giriyor (`makbuzHtml.js:35`, `raporHtml.js:27`, `yoklamaFormuHtml.js:70`); bugün
-    kaynak sabit `build/icon.png`. Öneri: `^data:image/(png|jpeg);base64,` doğrulaması (ileride logo yükleme gelirse).
+    kaynak sabit `build/kulup-logo.png` (10.09.2026'ya kadar `build/icon.png`; plan §30). Öneri: `^data:image/(png|jpeg);base64,` doğrulaması (ileride logo yükleme gelirse).
 21. `esc` tek tırnağı kaçırmıyor; tek yere toplanmalı (`src/lib/metin.js`).
 22. Resim optimizasyonu piksel sınırı yok (`imageOptimize.cjs:19`); 25 MB PNG çözümü ~1.6 GB RAM (yalnız DoS).
 23. `db-key.enc`/`lisans-meta.enc` `mode: 0o600` ile yazılmıyor (içerik zaten DPAPI/Keychain şifreli).

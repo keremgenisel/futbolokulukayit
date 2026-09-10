@@ -15,6 +15,9 @@ contextBridge.exposeInMainWorld("okul", {
   files: {
     addDocument: (playerId, tip, gecerlilik) => ipcRenderer.invoke("files:addDocument", playerId, tip, gecerlilik),
     deleteDocument: (docId) => ipcRenderer.invoke("files:deleteDocument", docId),
+    oyuncuKisiselVeriSil: (playerId) => ipcRenderer.invoke("files:oyuncuKisiselVeriSil", playerId),
+    kulupLogoSec: () => ipcRenderer.invoke("files:kulupLogoSec"),
+    kulupLogoSil: () => ipcRenderer.invoke("files:kulupLogoSil"),
     open: (yol) => ipcRenderer.invoke("files:open", yol),
     dataUrl: (yol) => ipcRenderer.invoke("files:dataUrl", yol),
   },
@@ -75,6 +78,7 @@ contextBridge.exposeInMainWorld("okul", {
   app: {
     version: () => ipcRenderer.invoke("app:version"),
     logo: () => ipcRenderer.invoke("app:logo"),
+    marka: () => ipcRenderer.invoke("app:marka"),
     whatsappAc: (numara, metin) => ipcRenderer.invoke("app:whatsappAc", numara, metin),
   },
 });

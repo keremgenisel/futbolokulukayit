@@ -1,8 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
-import { db, cikti, uygulama, bugun } from "../lib/api.js";
+import { db, cikti, bugun } from "../lib/api.js";
 import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
-import { htmlYazdir } from "../lib/yazdir.js";
+import { htmlYazdir, ciktiMarkasi } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
 import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi } from "../lib/takvim.js";
@@ -68,27 +68,35 @@ export function Yoklama({ saltOkunur }) {
     [dene],
   );
 
+  // Seçili düğmeye yeniden tıklamak işareti kaldırır (işaretlenmedi); aksi halde yeni durum yazılır.
   const isaretle = async (pid, durum) => {
     if (saltOkunur || aktif.iptal) return;
-    setYoklama({ ...yoklama, [pid]: durum });
+    const kaldir = yoklama[pid] === durum;
+    const n = { ...yoklama };
+    if (kaldir) delete n[pid];
+    else n[pid] = durum;
+    setYoklama(n);
     return dene(async () => {
-      await db("setAttendance", aktif.id, pid, durum);
+      await db("setAttendance", aktif.id, pid, kaldir ? null : durum);
       takvimYukle();
     });
   };
-  const tumuGeldi = async () => {
-    const n = { ...yoklama };
-    for (const o of oyuncular)
-      if (!n[o.id]) {
-        n[o.id] = "geldi";
-        return dene(async () => {
+  // Kalanları Geldi İşaretle: işaretlenmemiş HERKES kaydedilir (10.09.2026 düzeltmesi: döngü ilk oyuncuda return ediyordu —
+  // yalnız ilk oyuncu yazılıyor, ekran/sayaç güncellenmiyordu; gerçek pencere testinde bulundu).
+  const tumuGeldi = () =>
+    dene(async () => {
+      const n = { ...yoklama };
+      let sayi = 0;
+      for (const o of oyuncular)
+        if (!n[o.id]) {
+          n[o.id] = "geldi";
           await db("setAttendance", aktif.id, o.id, "geldi");
-        });
-      }
-    setYoklama(n);
-    takvimYukle();
-    toast("ok", "İşaretlenmemiş oyuncular geldi olarak kaydedildi");
-  };
+          sayi++;
+        }
+      setYoklama(n);
+      takvimYukle();
+      toast("ok", sayi ? `${sayi} oyuncu geldi olarak kaydedildi` : "İşaretlenmemiş oyuncu yok");
+    });
   const antrenmanEkle = async () => {
     if (!yeni.age_group_id) return toast("err", "Yaş grubu seçin");
     return dene(async () => {
@@ -183,18 +191,16 @@ export function Yoklama({ saltOkunur }) {
 
   // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
   const formHtml = async () => {
-    let logo = "";
-    try {
-      logo = await uygulama().logo();
-    } catch {
-      /* logosuz */
-    }
+    const { logo, kulup, tema, slogan } = await ciktiMarkasi(); // kanal yoksa logosuz, varsayılan ad/renk
     return yoklamaFormuHtml({
       grup: aktif.yas_grubu_ad || "",
       tarih: aktif.tarih,
       saat: aktif.saat,
       saha: aktif.saha,
       logo,
+      kulup,
+      tema,
+      slogan,
       oyuncular: oyuncular.map((o) => ({ ad_soyad: o.ad_soyad, durum: o.durum, isaret: yoklama[o.id] })),
     });
   };
@@ -219,6 +225,8 @@ export function Yoklama({ saltOkunur }) {
         type="button"
         onClick={() => isaretle(pid, durum)}
         disabled={saltOkunur || !!aktif?.iptal}
+        aria-pressed={on}
+        title={on ? "Tekrar tıklayınca işaret kaldırılır" : ""}
         style={{
           height: 36,
           width: 96,
@@ -484,7 +492,7 @@ export function Yoklama({ saltOkunur }) {
                   alignItems: "flex-end",
                   padding: "12px 16px",
                   borderBottom: "1px solid var(--cizgi)",
-                  background: "var(--sari-acik)",
+                  background: "var(--uyari-acik)",
                   flexWrap: "wrap",
                 }}
               >

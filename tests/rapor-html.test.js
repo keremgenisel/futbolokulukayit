@@ -41,4 +41,9 @@ describe("raporHtml", () => {
     );
     expect(raporHtml({ baslik: "x", sutunlar, satirlar, logo: "http://x/logo.png" })).not.toContain("<img");
   });
+  it("tema: rapor başlık çizgisi ve tablo başlığı kulüp renklerinde (plan §32.4)", () => {
+    const h = raporHtml({ baslik: "x", sutunlar, satirlar, tema: { ana: "#0f7b3e", vurgu: "#ffffff" } });
+    expect(h).toContain("border-bottom: 1mm solid #0f7b3e");
+    expect(h).not.toContain("#5b2d8e");
+  });
 });

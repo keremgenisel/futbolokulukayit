@@ -21,6 +21,9 @@ import {
   gsmGecerliMi,
   yasGrubuOner,
   UCRET_TIPLERI,
+  ayAraligi,
+  ayEkle,
+  gelecekAcikAidatMi,
 } from "../src/lib/aidat.js";
 
 describe("aidatBaslangicDurumu", () => {
@@ -218,5 +221,46 @@ describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
 
   it("varsayılan ücret tipi sırası: normal, ücretsiz, burslu, indirimli, kardeş (09.09.2026)", () => {
     expect(UCRET_TIPLERI.map((t) => t.kod)).toEqual(["normal", "ucretsiz", "burslu", "indirimli", "kardes"]);
+  });
+});
+
+describe("ayAraligi / ayEkle (Tahsilat > Uzun Dönem Seç, plan §24)", () => {
+  it("aynı yıl içinde ay listesi, kronolojik", () => {
+    expect(ayAraligi(2026, 9, 2026, 12)).toEqual([
+      { yil: 2026, ay: 9 },
+      { yil: 2026, ay: 10 },
+      { yil: 2026, ay: 11 },
+      { yil: 2026, ay: 12 },
+    ]);
+  });
+  it("yıl sınırını aşan aralık (Aralık → Şubat)", () => {
+    expect(ayAraligi(2026, 12, 2027, 2)).toEqual([
+      { yil: 2026, ay: 12 },
+      { yil: 2027, ay: 1 },
+      { yil: 2027, ay: 2 },
+    ]);
+  });
+  it("bitiş başlangıçtan önceyse yer değiştirir (elle aralıkta ters seçim)", () => {
+    expect(ayAraligi(2027, 2, 2026, 9)).toEqual(ayAraligi(2026, 9, 2027, 2));
+  });
+  it("tek ay (başlangıç=bitiş) tek elemanlı liste döner", () => {
+    expect(ayAraligi(2026, 9, 2026, 9)).toEqual([{ yil: 2026, ay: 9 }]);
+  });
+  it("ayEkle: N ay sonrası, yıl taşmasını doğru hesaplar", () => {
+    expect(ayEkle(2026, 9, 5)).toEqual({ yil: 2027, ay: 2 }); // 6 ay seçimi: Eylül + 5 = Şubat (6 ay toplam)
+    expect(ayEkle(2026, 9, 2)).toEqual({ yil: 2026, ay: 11 });
+    expect(ayEkle(2026, 12, 1)).toEqual({ yil: 2027, ay: 1 });
+  });
+});
+
+describe("gelecekAcikAidatMi (ileri tarihli açık ay borç değil, plan §24.3c)", () => {
+  it("ileri ay + ödenmedi + hiç ödeme yok → true; bu ay/geçmiş, kısmi, ödendi, muaf → false", () => {
+    expect(gelecekAcikAidatMi({ yil: 2027, ay: 3, durum: "odenmedi", odenen: 0 }, 2026, 9)).toBe(true);
+    expect(gelecekAcikAidatMi({ yil: 2026, ay: 10, durum: "odenmedi" }, 2026, 9)).toBe(true); // odenen alanı yoksa da
+    expect(gelecekAcikAidatMi({ yil: 2026, ay: 9, durum: "odenmedi", odenen: 0 }, 2026, 9)).toBe(false); // vadesi geldi
+    expect(gelecekAcikAidatMi({ yil: 2026, ay: 6, durum: "odenmedi", odenen: 0 }, 2026, 9)).toBe(false);
+    expect(gelecekAcikAidatMi({ yil: 2027, ay: 1, durum: "kismi", odenen: 1000 }, 2026, 9)).toBe(false);
+    expect(gelecekAcikAidatMi({ yil: 2027, ay: 1, durum: "odendi", odenen: 5000 }, 2026, 9)).toBe(false);
+    expect(gelecekAcikAidatMi({ yil: 2027, ay: 1, durum: "muaf", odenen: 0 }, 2026, 9)).toBe(false);
   });
 });

@@ -4,14 +4,19 @@ import { db, cikti, files, uygulama } from "./api.js";
 import { makbuzHtml } from "./makbuzHtml.js";
 import { VARSAYILAN_KULUP } from "./marka.js";
 
+/** Çıktı şablonları için marka: kulüp logosu (yoksa ""), kulüp adı, tema renkleri (plan §32). Kanal yoksa varsayılanlar. */
+export async function ciktiMarkasi() {
+  try {
+    const m = await uygulama().marka();
+    return { logo: m?.logo || "", kulup: m?.kulupAdi || VARSAYILAN_KULUP, tema: m?.tema, slogan: m?.slogan || "" };
+  } catch {
+    return { logo: "", kulup: VARSAYILAN_KULUP, tema: undefined, slogan: "" };
+  }
+}
+
 export async function makbuzHtmlUret(receiptId) {
-  const [m, kalemler, logo, kulup] = await Promise.all([
-    db("getReceipt", receiptId),
-    db("listFeeItems"),
-    uygulama().logo(),
-    db("getSetting", "kulup_adi"),
-  ]);
-  return makbuzHtml({ makbuz: m, kalemler, logo, kulupAdi: kulup || VARSAYILAN_KULUP });
+  const [m, kalemler, marka] = await Promise.all([db("getReceipt", receiptId), db("listFeeItems"), ciktiMarkasi()]);
+  return makbuzHtml({ makbuz: m, kalemler, logo: marka.logo, kulupAdi: marka.kulup, tema: marka.tema });
 }
 
 const HATA_TR = (h) => {

@@ -4,7 +4,7 @@ Bu dosya Claude Code'a bu depoda çalışırken rehberlik eder.
 
 ## Bu nedir
 
-"Futbol Okulu Kayıt Programı" (productName; ilk müşteri Eyüpspor, arayüz markası hâlâ Eyüpspor — plan §23.1) — futbol okulu için Windows masaüstü kayıt programı. React (Vite)
+"Futbol Okulu Kayıt Programı" (productName; ilk müşteri Eyüpspor; program kulüpten bağımsız: uygulama logosu `build/icon.png` kırmızı-beyaz kayıt kartı+krampon (plan §30), kulüp kimliği — ad, kısa ad, kuruluş yılı, logo `uploads/kulup/logo.*`, tema renkleri — Ayarlar > Kulüp ve Makbuz'dan, oturumsuz `app:marka` kanalı, saf `src/lib/tema.js` + `electron/tema.cjs`/`ayarDogrula.cjs`/`marka.cjs`/`kulupLogo.cjs`; plan §32) — futbol okulu için Windows masaüstü kayıt programı. React (Vite)
 arayüz, Electron kabuk, SQLite (`better-sqlite3-multiple-ciphers`, at-rest şifreli) veritabanı.
 Oyuncu kaydı, aile ve acil kişiler, belgeler, aylık aidat takibi, tahsilat makbuzu (yazdırma + PDF),
 antrenman yoklaması, Excel/PDF raporlar. Şimdilik tek PC; Faz 2'de gömülü Express sunucu ile
@@ -67,16 +67,18 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   değişince eski `db-key.enc` çözülmez → `getDbKey` dosyayı ASLA üzerine yazmaz, açık hata verir, `main.cjs` hata kutusu gösterip çıkar;
   kurtarma `npx electron scripts/anahtar-yeniden-sifrele.cjs "<eski ad>" "<yeni ad>" "<db-key.enc>"` (test `scripts/tests/anahtar-koruma.cjs`).
   Geliştirme verisi `~/Library/Application Support/<productName>/` (09.09.2026'da "Futbol Okulu Kayıt Programı"na taşındı).
-  Şema sürümü 17: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
+  Şema sürümü 18: 2 recovery_codes · 3 uyruk/pasaport · 4 players.sezon · 5 monthly_dues.odenen (kısmi) ·
   6 age_groups.program · 7 receipts.iptal_nedeni/eden/zamani · 8 fee_types (ücret tipleri
   tabloda; `players.ucret_tipi` = kod; normal/ucretsiz sabit; kod `electron/kodUret.cjs` ile addan üretilir) · 9 WhatsApp
-  (`guardians.mesaj_onayi` varsayılan 1, `message_log`, `trainings.bildirim_gerekli/degisiklik_notu`) · 10 `trainings.grup_bildirim` · 11 bildirim olayı (`trainings.bildirim_olay`, `message_log.olay`: her iptal/değişiklik ayrı olay, eski bildirim yeni olayda sayılmaz) · 12 sezonu boş aktif gruplara `aktif_sezon` (plan §15; grup sezonu ana süreçte `sezonDogrula` ile 2026-2027 biçimine zorlanır, arayüzde `SezonSecim`: aktif/sonraki sezon) · 13 varsayılan ücret tipi sırası (normal, ücretsiz, burslu, indirimli, kardeş) · 14 `receipts.sezon` (makbuz aktif sezona damgalı; numara öneki sezonun ilk yılı, saf `electron/makbuzNo.cjs`; "Bugün Kesilen Makbuzlar" aktif sezon) · 15 sezonu boş aktif oyunculara `aktif_sezon` (`createPlayer` sezon verilmezse aktif sezonu damgalar; Oyuncular ekranı sezon filtresi, plan §18) · 16 `player_seasons` (geçmiş sezon üyeliği; sezon süzgeci `players.sezon` VEYA bu tablo; göç aidat/makbuz kayıtlarından türetir, plan §18.1) · 17 `group_seasons` (grupların geçmiş sezon üyeliği; `listAgeGroups({ sezon })`, Yaş Grupları/Oyuncular/Raporlar yaş grubu kutuları sezona göre; göç antrenman tarihlerinden, plan §21). Göç `migrate()` PRAGMA
+  (`guardians.mesaj_onayi` varsayılan 1, `message_log`, `trainings.bildirim_gerekli/degisiklik_notu`) · 10 `trainings.grup_bildirim` · 11 bildirim olayı (`trainings.bildirim_olay`, `message_log.olay`: her iptal/değişiklik ayrı olay, eski bildirim yeni olayda sayılmaz) · 12 sezonu boş aktif gruplara `aktif_sezon` (plan §15; grup sezonu ana süreçte `sezonDogrula` ile 2026-2027 biçimine zorlanır, arayüzde `SezonSecim`: aktif/sonraki sezon) · 13 varsayılan ücret tipi sırası (normal, ücretsiz, burslu, indirimli, kardeş) · 14 `receipts.sezon` (makbuz aktif sezona damgalı; numara öneki sezonun ilk yılı, saf `electron/makbuzNo.cjs`; "Bugün Kesilen Makbuzlar" aktif sezon) · 15 sezonu boş aktif oyunculara `aktif_sezon` (`createPlayer` sezon verilmezse aktif sezonu damgalar; Oyuncular ekranı sezon filtresi, plan §18) · 16 `player_seasons` (geçmiş sezon üyeliği; sezon süzgeci `players.sezon` VEYA bu tablo; göç aidat/makbuz kayıtlarından türetir, plan §18.1) · 17 `group_seasons` (grupların geçmiş sezon üyeliği; `listAgeGroups({ sezon })`, Yaş Grupları/Oyuncular/Raporlar yaş grubu kutuları sezona göre; göç antrenman tarihlerinden, plan §21) · 18 `receipts.oyuncu_adi` (kişisel verisi silinen oyuncunun makbuzdaki adı; makbuz sorguları boş değilse bunu kullanır, plan §31). Göç `migrate()` PRAGMA
   table_info ile idempotent; varsayılan kalem/tip tohumu meta bayrağıyla TEK SEFER (silinen geri gelmez).
 - **WhatsApp (plan §13, API YOK):** `src/lib/whatsapp.js` SAF (wa numarası, şablon doldurma, uygunluk), `src/components/WhatsAppHatirlat.jsx`
   toplu pencere; ana süreç `app:whatsappAc` yalnız `https://wa.me/90…` açar (`shell.openExternal`). Kayıt `db.mesajKaydet`
   (kullanıcı oturumdan enjekte edilir, `cancelReceipt` gibi). Şablonlar `settings wa_sablon_*` (Ayarlar > WhatsApp Mesajları).
   Gayri resmi WhatsApp kütüphanesi (whatsapp-web.js/Baileys) ASLA: numara yasaklanır.
-- `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması. JPG/PNG
+- `electron/ipc/files.cjs` — belge/foto yükleme (`uploads/oyuncu-<id>/`), yol geçişi koruması; `files:oyuncuKisiselVeriSil`
+  (yalnız yönetici): makbuzlu oyuncu silinmez (`receipts` RESTRICT), kişisel verileri + dosyaları silinir, makbuzlar
+  adı (`receipts.oyuncu_adi` damgası), PDF'i ve tutarıyla olduğu gibi kalır; oyuncu kaydı "Silinmiş Oyuncu #id" olur (`db.oyuncuKisiselVeriSil`, plan §31; makbuzsuz oyuncu `deletePlayer` ile gerçekten silinir). JPG/PNG
   yükleme anında `electron/imageOptimize.cjs` ile nazikçe küçültülür (≤2000px, JPEG %82; yalnız küçülürse).
   `electron/ipc/optimize.cjs` — Ayarlar > Resim ve Belge Optimizasyonu (analiz/uygula, eski dosyalar için).
 - `electron/ipc/aktar.cjs` + `electron/oyuncuAktar.cjs` (saf satır çözümleme) — Excel'den oyuncu aktarımı
@@ -134,7 +136,11 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   12 dönem / 12 makbuz / 40 yoklama + "Tümünü göster", Excel aktarım önizlemesi 100/sayfa (aktarım tam liste); sabit
   yükseklikli kaydırma + yapışık başlık + sayaç: sezon sihirbazı aday listesi, WhatsApp toplu pencere, Tahsilat "Bugün
   Kesilen Makbuzlar" (plan §22; uçtan uca `scripts/tests/sayfalama-e2e.cjs`, sınır durumları `tests/ui/sayfalama-sinirlar.test.jsx`). Tüm stil inline; renkler
-  `src/ui.css` CSS değişkenlerinden (mor `#5B2D8E`, sarı `#F5D000`, kırmızı `#E0101F`).
+  `src/ui.css` CSS değişkenlerinden (varsayılan mor `#5B2D8E`, sarı `#F5D000`, kırmızı `#E0101F`; `--mor/--sari` ailesi ve
+  `--ana-ustu`/`--vurgu-ustu`/`--ana-ustu-soluk` çalışma anında kulüp temasıyla değişir — `temaUygula.js`; kırmızı/yeşil ve
+  `--uyari`/`--uyari-acik`/`--uyari-metin` (deneme/salt okunur şeridi, kaydedilmemiş satır, sarı rozet) anlam renkleri SABİT; marka
+  vurgusu (`--sari`: Makbuz Kes, menü alt yazısı, sekme çizgisi, güncelleme şeridi) temayla değişir. Ana renk üstündeki yazıya `#fff`
+  değil `var(--ana-ustu)` yaz; bileşene sabit marka hex'i yazma, şablonlara `tema` parametresi geçir).
 - `design/*.dc.html` — ekran tasarımları (Claude Design tuvali). Yeni ekran yaparken buna uy.
 
 ## Kurallar

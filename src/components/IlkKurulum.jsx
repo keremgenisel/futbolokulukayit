@@ -1,6 +1,9 @@
 import { useEffect, useState } from "react";
 import { Modal, Btn, Alan, Girdi, ParaGirdi, Rozet, useToast, useDene } from "./ui.jsx";
-import { db, yedek, bugun } from "../lib/api.js";
+import { db, yedek, bugun, files, uygulama } from "../lib/api.js";
+import { TemaSecici } from "./ayarlar/TemaSecici.jsx";
+import { VARSAYILAN_TEMA } from "../lib/tema.js";
+import { VARSAYILAN_KULUP } from "../lib/marka.js";
 import { UCRET_TIPLERI, SABIT_INDIRIM, VARSAYILAN_INDIRIM, aidatHesapla, paraTR } from "../lib/aidat.js";
 import { guncelSezon, sezonGecerliMi } from "../lib/sezon.js";
 import { SezonSecim } from "./SezonSecim.jsx";
@@ -13,9 +16,11 @@ import { Ikon } from "./Ikon.jsx";
 const ADIMLAR = ["Kulüp", "Aidat", "Yaş grupları", "Yedek", "Kurtarma kodları", "Bitti"];
 const HAZIR_GRUPLAR = ["U7", "U8", "U9", "U10", "U11", "U12", "U13", "U14", "U15"];
 
-export function IlkKurulum({ oturum, onBitti, onAktar }) {
+export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
   const [adim, setAdim] = useState(0);
-  const [kulup, setKulup] = useState({ kulup_adi: "", tahsil_eden: oturum?.ad_soyad || "" });
+  const [kulup, setKulup] = useState({ kulup_adi: "", kulup_kisa_ad: "", kurulus_yili: "", tahsil_eden: oturum?.ad_soyad || "" });
+  const [tema, setTema] = useState(null); // seçilmezse yazılmaz (varsayılan mor/sarı kalır)
+  const [logo, setLogo] = useState(""); // kulüp logosu data URL (plan §32; Logo Seç dosyayı hemen yazar)
   const [taban, setTaban] = useState("");
   const [tipler, setTipler] = useState(UCRET_TIPLERI);
   const [ind, setInd] = useState(Object.fromEntries(UCRET_TIPLERI.map((t) => [t.kod, String(VARSAYILAN_INDIRIM[t.kod] ?? 0)])));
@@ -57,7 +62,22 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
 
   const kaydetKulup = async () => {
     for (const [k, v] of Object.entries(kulup)) if (v.trim()) await db("setSetting", k, v.trim());
+    if (tema) {
+      await db("setSetting", "tema_ana", tema.ana);
+      await db("setSetting", "tema_vurgu", tema.vurgu);
+    }
+    onMarkaDegisti?.();
   };
+  const logoSec = () =>
+    dene(async () => {
+      const r = await files().kulupLogoSec();
+      if (r?.iptal) return;
+      if (r?.error) throw new Error(r.error);
+      const m = await uygulama().marka();
+      setLogo(m?.logo || "");
+      toast("ok", "Logo kaydedildi");
+      onMarkaDegisti?.();
+    });
   const kaydetAidat = async () => {
     const aidat = (await db("listFeeItems")).find((k) => k.kod === "aidat");
     const kalemler = aidat && Number(taban) > 0 ? [{ id: aidat.id, varsayilan_fiyat: Number(taban) }] : [];
@@ -207,6 +227,26 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
                 autoFocus
               />
             </Alan>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 130px", gap: 12 }}>
+              <Alan etiket="Kısa ad (giriş ekranı ve menü)">
+                <Girdi
+                  value={kulup.kulup_kisa_ad}
+                  onChange={(e) => setKulup({ ...kulup, kulup_kisa_ad: e.target.value })}
+                  placeholder={kulup.kulup_adi || VARSAYILAN_KULUP}
+                  aria-label="Kısa ad"
+                />
+              </Alan>
+              <Alan etiket="Kuruluş yılı">
+                <Girdi
+                  value={kulup.kurulus_yili}
+                  onChange={(e) => setKulup({ ...kulup, kurulus_yili: e.target.value })}
+                  placeholder="—"
+                  aria-label="Kuruluş yılı"
+                  maxLength={4}
+                  inputMode="numeric"
+                />
+              </Alan>
+            </div>
             <Alan etiket="Makbuzu kesen (varsayılan tahsil eden)">
               <Girdi
                 value={kulup.tahsil_eden}
@@ -214,6 +254,42 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
                 aria-label="Tahsil eden"
               />
             </Alan>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div
+                style={{
+                  width: 72,
+                  height: 72,
+                  border: "1px solid var(--cizgi)",
+                  borderRadius: 10,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {logo ? (
+                  <img src={logo} alt="Kulüp logosu" style={{ maxWidth: 60, maxHeight: 60, objectFit: "contain" }} />
+                ) : (
+                  <span style={{ fontSize: 11, color: "var(--soluk)" }}>Logo yok</span>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <div>
+                  <Btn tur="ghost" kucuk onClick={logoSec} ikon={<Ikon ad="yukle" />}>
+                    Kulüp logosu seç…
+                  </Btn>
+                </div>
+                <span style={{ fontSize: 12.5, color: "var(--soluk)" }}>
+                  PNG/JPEG; makbuz, form ve giriş ekranında kullanılır. Sonradan Ayarlar'dan değiştirilebilir.
+                </span>
+              </div>
+            </div>
+            <TemaSecici
+              tema={tema || VARSAYILAN_TEMA}
+              onDegis={setTema}
+              logo={logo}
+              kisaAd={(kulup.kulup_kisa_ad || kulup.kulup_adi || VARSAYILAN_KULUP).toLocaleUpperCase("tr-TR")}
+            />
           </div>
         )}
 
@@ -316,8 +392,8 @@ export function IlkKurulum({ oturum, onBitti, onAktar }) {
               style={{
                 fontSize: 13,
                 color: "var(--mor-koyu)",
-                background: "var(--sari-acik)",
-                border: "1px solid var(--sari)",
+                background: "var(--uyari-acik)",
+                border: "1px solid var(--uyari)",
                 borderRadius: 10,
                 padding: "10px 14px",
                 lineHeight: 1.45,

@@ -59,6 +59,7 @@ module.exports = {
   getPlayer: m.getPlayer,
   listPlayers: m.listPlayers,
   deletePlayer: m.deletePlayer,
+  oyuncuKisiselVeriSil: m.oyuncuKisiselVeriSil, // db:call beyaz listesinde DEĞİL: dosya silme ile birlikte files:oyuncuKisiselVeriSil
   listGuardians: m.listGuardians,
   addGuardian: m.addGuardian,
   updateGuardian: m.updateGuardian,
@@ -87,6 +88,7 @@ module.exports = {
   updateFeeItem: m.updateFeeItem,
   listFeeTypes: m.listFeeTypes,
   ensureMonthlyDues: m.ensureMonthlyDues,
+  ensureMonthlyDuesAraligi: m.ensureMonthlyDuesAraligi,
   getDue: m.getDue,
   listDues: m.listDues,
   listUnpaid: m.listUnpaid,

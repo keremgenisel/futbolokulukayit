@@ -1,12 +1,15 @@
 // Oyuncular ekranı filtreleri uçtan uca: GERÇEK main.cjs + gerçek DB. İki sezon, iki grup, her durumdan oyuncu, ödenen/ödenmeyen
 // aidat, sağlık raporu (geçerli / süresi dolmuş / tarihsiz / yok), yabancı uyruklu. Arama (Türkçe harf, TC, pasaport), sezon,
 // yaş grubu, durum, "Bu ay ödemeyenler", "Sağlık raporu olmayanlar", birleşimler ve Pano'dan gelen "Tümü" bağlantıları.
-// Kullanım: electron scripts/tests/oyuncular-e2e.cjs <dizin>
+// Ek (10.09.2026): satır rozetleri (durum/ücret/aidat/grup, sağlık pili, "Eksik belge (N)" pili), "Eksik belgesi olanlar"
+// filtresi, veli adı/telefonu, satıra tıklayınca oyuncu kartı, Yeni Oyuncu formu. [ekranGoruntusuDizini] verilirse görüntü yazar.
+// Kullanım: electron scripts/tests/oyuncular-e2e.cjs <dizin> [ekranGoruntusuDizini]
 const { app } = require("electron");
 const path = require("path");
 const fs = require("fs");
-const [dizin] = process.argv.slice(2);
+const [dizin, shotDir] = process.argv.slice(2);
 app.setPath("userData", dizin);
+if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
 const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 let fail = 0;
 const check = (ad, k, ek = "") => {
@@ -21,6 +24,10 @@ app.on("browser-window-created", async (_e, win) => {
     await new Promise((r) => win.webContents.once("did-finish-load", r));
     await bekle(700);
     const js = (k) => win.webContents.executeJavaScript(k, true);
+    const shot = async (ad) => {
+      if (!shotDir) return;
+      fs.writeFileSync(path.join(shotDir, ad + ".png"), (await win.webContents.capturePage()).toPNG());
+    };
     const tikla = async (metin) => {
       const ok = await js(
         `(() => { const b = [...document.querySelectorAll("button")].find(x => x.textContent.trim().startsWith(${JSON.stringify(metin)})); if (!b) return false; b.click(); return true; })()`,
@@ -254,6 +261,164 @@ app.on("browser-window-created", async (_e, win) => {
       (await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "✕ Sağlık raporu olmayanlar")`)) &&
         !(await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "✕ Bu ay ödemeyenler")`)),
     );
+
+    // ── Satır rozetleri, piller, veli, kart, yeni oyuncu (10.09.2026) ──
+    await js(`document.querySelector("button[aria-label='Oyuncular']").click()`);
+    await bekle(900);
+    await bekleListe(["Ali Aktif", "İbrahim Deneme", "Berk Yeni", "Deniz Sakat", "John Yabancı"]);
+    const satir = (ad) =>
+      js(
+        `([...document.querySelectorAll("table tbody tr")].find((tr) => tr.textContent.includes(${JSON.stringify(ad)}))?.textContent) || ""`,
+      );
+    const ali_ = await satir("Ali Aktif");
+    check(
+      "Ali satırı: U11, Aktif, Normal, Ödendi rozetleri; sağlık pili yok",
+      /U11/.test(ali_) && /Aktif/.test(ali_) && /Normal/.test(ali_) && /Ödendi/.test(ali_) && !/rapor|Süresi|tarihsiz/i.test(ali_),
+      ali_,
+    );
+    const deniz_ = await satir("Deniz Sakat");
+    check(
+      "Deniz satırı: Sakat, Ücretsiz, Muaf, 'Rapor tarihsiz' pili",
+      /Sakat/.test(deniz_) && /Ücretsiz/.test(deniz_) && /Muaf/.test(deniz_) && /Rapor tarihsiz/.test(deniz_),
+      deniz_,
+    );
+    check(
+      "Berk satırı: 'Süresi doldu' pili, Ödenmedi",
+      /Süresi doldu/.test(await satir("Berk Yeni")) && /Ödenmedi/.test(await satir("Berk Yeni")),
+      await satir("Berk Yeni"),
+    );
+    check(
+      "İbrahim satırı: 'Sağlık raporu yok' pili, Deneme",
+      /Sağlık raporu yok/.test(await satir("İbrahim Deneme")) && /Deneme/.test(await satir("İbrahim Deneme")),
+    );
+    // Eksik belge pili: Ali'de yalnız sağlık var → 4 eksik; İbrahim'de hiç → 5
+    check(
+      "eksik belge pili: Ali (4), İbrahim (5)",
+      /Eksik belge \(4\)/.test(ali_) && /Eksik belge \(5\)/.test(await satir("İbrahim Deneme")),
+      ali_,
+    );
+    check(
+      "eksik belge pili ipucu: eksik türlerin adları",
+      /Vesikalık fotoğraf, Sporcu kimlik fotokopisi, Veli kimlik fotokopisi, İmzalı kayıt formu$/.test(
+        await js(
+          `[...document.querySelectorAll("table tbody tr")].find((tr) => tr.textContent.includes("Ali Aktif")).querySelector("[aria-label^='Eksik belge']")?.getAttribute("aria-label") || ""`,
+        ),
+      ),
+    );
+    const tam = P({ ad_soyad: "Tam Belgeli", yas_grubu_id: g11.id, durum: "aktif" });
+    for (const tip of ["saglik", "foto", "sporcu_kimlik", "veli_kimlik", "kayit_formu"])
+      db.belgeEkle(tam.id, {
+        tip,
+        dosya_yolu: `oyuncu-${tam.id}/${tip}.pdf`,
+        orijinal_ad: `${tip}.pdf`,
+        gecerlilik_tarihi: tip === "saglik" ? "2027-06-01" : null,
+      });
+    const digerli = P({ ad_soyad: "Diğer Belgeli", yas_grubu_id: g11.id, durum: "aktif" });
+    db.belgeEkle(digerli.id, { tip: "diger", dosya_yolu: `oyuncu-${digerli.id}/d.pdf`, orijinal_ad: "d.pdf" });
+    db.addGuardian(ali.id, { tip: "anne", ad_soyad: "Ayşe Veli", gsm: "05321112233", whatsapp_no: "", veli_mi: 1 });
+    await yaz("Ara", "x");
+    await yaz("Ara", "");
+    await liste("yeni oyuncular listede", [
+      "Ali Aktif",
+      "İbrahim Deneme",
+      "Berk Yeni",
+      "Deniz Sakat",
+      "John Yabancı",
+      "Tam Belgeli",
+      "Diğer Belgeli",
+    ]);
+    check(
+      "tam belgeli oyuncuda pil yok; yalnız 'Diğer' olanda 5 eksik",
+      !/Eksik belge/.test(await satir("Tam Belgeli")) && /Eksik belge \(5\)/.test(await satir("Diğer Belgeli")),
+    );
+    check(
+      "veli adı ve telefonu satırda",
+      /Ayşe Veli/.test(await satir("Ali Aktif")) && /0532 111 22 33|05321112233/.test(await satir("Ali Aktif")),
+      await satir("Ali Aktif"),
+    );
+    await shot("01-liste-rozetler");
+    // Eksik belge filtresi
+    await tikla("Eksik belgesi olanlar");
+    await liste("Eksik belgesi olanlar: tam belgeli hariç herkes", [
+      "Ali Aktif",
+      "İbrahim Deneme",
+      "Berk Yeni",
+      "Deniz Sakat",
+      "John Yabancı",
+      "Diğer Belgeli",
+    ]);
+    check(
+      "eksik belge düğmesi işaretli (✕)",
+      await js(`!![...document.querySelectorAll("button")].find((b) => b.textContent.trim() === "✕ Eksik belgesi olanlar")`),
+    );
+    await yaz("Ara", "tam");
+    await liste("eksik belge + arama 'tam' → boş", []);
+    await yaz("Ara", "");
+    await tikla("Sağlık raporu olmayanlar");
+    await liste("eksik belge + sağlık raporu olmayanlar birleşimi (Diğer Belgeli'nin de raporu yok)", [
+      "İbrahim Deneme",
+      "Berk Yeni",
+      "Deniz Sakat",
+      "John Yabancı",
+      "Diğer Belgeli",
+    ]);
+    await shot("02-eksik-belge-filtresi");
+    await tikla("✕ Sağlık raporu olmayanlar");
+    await tikla("✕ Eksik belgesi olanlar");
+    await liste("filtreler kapanınca tam liste", [
+      "Ali Aktif",
+      "İbrahim Deneme",
+      "Berk Yeni",
+      "Deniz Sakat",
+      "John Yabancı",
+      "Tam Belgeli",
+      "Diğer Belgeli",
+    ]);
+    // Satıra tıkla → oyuncu kartı
+    await js(`[...document.querySelectorAll("table tbody tr")].find((tr) => tr.textContent.includes("Ali Aktif")).click()`);
+    await bekle(900);
+    check(
+      "satıra tıklayınca oyuncu kartı açılır",
+      /Ali Aktif/.test(await js(`document.querySelector("[role=dialog]")?.textContent || ""`)) &&
+        /Ödemeler/.test(await js(`document.querySelector("[role=dialog]")?.textContent || ""`)),
+    );
+    await shot("03-oyuncu-karti");
+    await js(`document.querySelector("[role=dialog] button[aria-label='Kapat']")?.click()`);
+    await bekle(400);
+    check("kart kapanır", !(await js(`!!document.querySelector("[role=dialog]")`)));
+    // Yeni Oyuncu
+    await tikla("Yeni Oyuncu");
+    await bekle(500);
+    check(
+      "Yeni Oyuncu formu açılır",
+      /Yeni Oyuncu/.test(await js(`document.querySelector("[role=dialog]")?.getAttribute("aria-label") || ""`)),
+    );
+    await js(
+      `(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const dlg = document.querySelector("[role=dialog]"); const al = (b) => [...dlg.querySelectorAll("label")].find((l) => l.textContent.startsWith(b)).querySelector("input,select"); set.call(al("Adı Soyadı"), "Zeynep Yeni"); al("Adı Soyadı").dispatchEvent(new Event("input", { bubbles: true })); set.call(al("Doğum Tarihi"), "2016-03-03"); al("Doğum Tarihi").dispatchEvent(new Event("input", { bubbles: true })); const g = dlg.querySelector("select[aria-label='Yaş grubu']"); g.value = String(${g12.id}); g.dispatchEvent(new Event("change", { bubbles: true })); })()`,
+    );
+    await shot("04-yeni-oyuncu-form");
+    await tikla("Oyuncuyu Kaydet");
+    await bekle(900);
+    await liste("yeni oyuncu kaydedilince listede", [
+      "Ali Aktif",
+      "İbrahim Deneme",
+      "Berk Yeni",
+      "Deniz Sakat",
+      "John Yabancı",
+      "Tam Belgeli",
+      "Diğer Belgeli",
+      "Zeynep Yeni",
+    ]);
+    check(
+      "yeni oyuncu: U12, Aktif, aidat girilmediği için Muaf, 'Sağlık raporu yok', eksik belge (5)",
+      /U12/.test(await satir("Zeynep Yeni")) &&
+        /Aktif/.test(await satir("Zeynep Yeni")) &&
+        /Muaf/.test(await satir("Zeynep Yeni")) &&
+        /Sağlık raporu yok/.test(await satir("Zeynep Yeni")) &&
+        /Eksik belge \(5\)/.test(await satir("Zeynep Yeni")),
+      await satir("Zeynep Yeni"),
+    );
+    await shot("05-yeni-oyuncu-listede");
 
     if (fail === 0) console.log("TUM KONTROLLER GECTI");
     app.exit(fail === 0 ? 0 : 1);

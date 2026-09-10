@@ -6,7 +6,7 @@ import { tarihTR } from "../lib/aidat.js";
 
 const MOD = {
   lisansli: { ad: "Lisanslı", renk: "var(--yesil)", zemin: "var(--yesil-acik)" },
-  deneme: { ad: "Deneme sürümü", renk: "#7A6300", zemin: "var(--sari-acik)" },
+  deneme: { ad: "Deneme sürümü", renk: "var(--uyari-metin)", zemin: "var(--uyari-acik)" },
   saltOkunur: { ad: "Salt okunur (lisans gerekli)", renk: "var(--kirmizi)", zemin: "var(--kirmizi-acik)" },
 };
 const alanStili = {

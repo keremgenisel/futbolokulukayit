@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "17",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "18",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -111,6 +111,10 @@ app.whenReady().then(async () => {
 
     const antrenman = db.createTraining({ age_group_id: grp.id, tarih: "2026-09-06", saat: "11:30" });
     db.setAttendance(antrenman.id, oyuncu.id, "geldi");
+    // İşaret kaldırma: durum null → satır silinir, yeniden yazılabilir (Yoklama'da seçili düğmeye tekrar tıklama, 10.09.2026)
+    db.setAttendance(antrenman.id, oyuncu.id, null);
+    check("setAttendance(null) işareti kaldırır", db.listAttendance(antrenman.id).length === 0);
+    db.setAttendance(antrenman.id, oyuncu.id, "geldi");
     check("yoklama kaydedildi", db.listAttendance(antrenman.id)[0].durum === "geldi");
 
     // Ek sorgular
@@ -139,6 +143,94 @@ app.whenReady().then(async () => {
       nedensiz = /neden/.test(e.message);
     }
     check("nedensiz iptal reddedilir", nedensiz);
+    // Makbuzlu (iptal olsa da) oyuncu silinemez: açık mesaj, kayıt yerinde (plan §31)
+    let silHata = "";
+    try {
+      db.deletePlayer(oyuncu.id);
+    } catch (e) {
+      silHata = e.message;
+    }
+    check(
+      "makbuzlu oyuncu silinemez, açık mesaj",
+      /1 makbuzu var.*silinemez.*kişisel verileri siler/.test(silHata) && !!db.getPlayer(oyuncu.id),
+    );
+    const makbuzsuz = db.createPlayer({ ad_soyad: "Makbuzsuz Oyuncu", dogum_tarihi: "2016-01-01", yas_grubu_id: grp.id });
+    db.deletePlayer(makbuzsuz.id);
+    check("makbuzsuz oyuncu silinir", !db.getPlayer(makbuzsuz.id));
+    // Kişisel veri silme (plan §31): makbuzlu oyuncunun kimlik/iletişim/veli/belge/aidat/yoklama verisi gider, makbuz kalır
+    {
+      const kv = db.createPlayer({
+        ad_soyad: "Kvkk Oyuncu",
+        tc_no: "99999999999",
+        dogum_tarihi: "2015-05-05",
+        gsm: "05551112233",
+        adres: "Eyüp",
+        yas_grubu_id: grp.id,
+      });
+      db.addGuardian(kv.id, { tip: "anne", ad_soyad: "Anne Kvkk", gsm: "05551112234" });
+      db.addEmergency(kv.id, { ad_soyad: "Acil Kvkk", telefon: "05551112235" });
+      db.belgeEkle(kv.id, { tip: "saglik", dosya_yolu: `oyuncu-${kv.id}/1-saglik-r.pdf`, orijinal_ad: "r.pdf" });
+      db.belgeEkle(kv.id, { tip: "foto", dosya_yolu: `oyuncu-${kv.id}/2-foto-f.jpg`, orijinal_ad: "f.jpg" });
+      db.ensureMonthlyDues(2026, 9, kv.id);
+      const kvMakbuz = db.createReceipt({
+        player_id: kv.id,
+        tarih: "2026-09-06",
+        odeme_yontemi: "nakit",
+        tahsil_eden: "Test",
+        satirlar: [{ fee_item_id: aidatKalemi.id, tutar: 3500, aciklama: "Eylül 2026", yil: 2026, ay: 9 }],
+      });
+      db.setReceiptPdf(kvMakbuz.id, `makbuz/${kvMakbuz.makbuz_no}.pdf`);
+      db.setAttendance(antrenman.id, kv.id, "geldi");
+      const r = db.oyuncuKisiselVeriSil(kv.id, "Tester");
+      const p = db.getPlayer(kv.id);
+      check(
+        "kişisel veri silme: ad anonim, kimlik/iletişim boş, grup yok, durum ayrıldı, not damgalı",
+        r.ok &&
+          r.makbuz === 1 &&
+          p.ad_soyad === `Silinmiş Oyuncu #${kv.id}` &&
+          p.tc_no === "" &&
+          p.dogum_tarihi === null &&
+          p.gsm === "" &&
+          p.adres === "" &&
+          p.foto_yolu === "" &&
+          p.yas_grubu_id === null &&
+          p.durum === "ayrildi" &&
+          /Kişisel verileri silindi: \d{4}-\d{2}-\d{2} \(Tester\)/.test(p.notlar),
+      );
+      check(
+        "kişisel veri silme: veli, acil kişi, belge, aidat, yoklama satırları silindi",
+        db.listGuardians(kv.id).length === 0 &&
+          db.listEmergency(kv.id).length === 0 &&
+          db.listDocuments(kv.id).length === 0 &&
+          !db.getDue(kv.id, 2026, 9) &&
+          !db.listAttendance(antrenman.id).find((a) => a.player_id === kv.id),
+      );
+      const kalan = db.getReceipt(kvMakbuz.id);
+      const bugunkuler = db.listReceiptsByDate("2026-09-06", "2026-09-06");
+      check(
+        "kişisel veri silme: makbuz adı (damga), tutarı, numarası ve PDF'iyle kalır; listede de eski ad; makbuz PDF'i silinmez",
+        kalan.toplam === 3500 &&
+          kalan.makbuz_no === kvMakbuz.makbuz_no &&
+          kalan.ad_soyad === "Kvkk Oyuncu" &&
+          kalan.oyuncu_adi === "Kvkk Oyuncu" &&
+          kalan.pdf_yolu === `makbuz/${kvMakbuz.makbuz_no}.pdf` &&
+          bugunkuler.find((m) => m.id === kvMakbuz.id)?.ad_soyad === "Kvkk Oyuncu" &&
+          r.klasor === `oyuncu-${kv.id}` &&
+          [`oyuncu-${kv.id}/1-saglik-r.pdf`, `oyuncu-${kv.id}/2-foto-f.jpg`].every((y) => r.dosyalar.includes(y)) &&
+          !r.dosyalar.some((y) => y.startsWith("makbuz/")),
+      );
+      check(
+        "silinmemiş oyuncunun makbuzunda güncel ad (damga boş)",
+        db.getReceipt(makbuz.id).ad_soyad === db.getPlayer(oyuncu.id).ad_soyad,
+      );
+      let yok = false;
+      try {
+        db.oyuncuKisiselVeriSil(999999);
+      } catch (e) {
+        yok = /bulunamadı/.test(e.message);
+      }
+      check("kişisel veri silme: olmayan oyuncu hata", yok);
+    }
     check(
       "iptaller raporda ayrı listelenir, tahsilatta görünmez",
       db.listCancelledReceipts("2026-09-01", "2026-09-30").some((r) => r.id === makbuz.id) &&
@@ -149,6 +241,12 @@ app.whenReady().then(async () => {
     check("grup silme oyuncu varken engellenir", !!db.deleteAgeGroup(grp.id).error);
     const belgeId = db.addDocument(oyuncu.id, { tip: "saglik", dosya_yolu: "oyuncu-1/x.pdf", orijinal_ad: "x.pdf" });
     check("belge okunuyor", db.getDocument(belgeId).tip === "saglik");
+    check(
+      "playersPage satırında belge_tipleri (eksik belge pili için) mevcut türleri virgülle verir",
+      String(db.playersPage({ yil: 2026, ay: 9, sayfaBoyu: 500 }).liste.find((p) => p.id === oyuncu.id).belge_tipleri)
+        .split(",")
+        .includes("saglik"),
+    );
     // Aidat ayarları: taban fiyat + indirim yüzdeleri tek çağrıda; kısmi burslu muaf değil, 0 ₺ burslu muaf
     db.updateFeeItem(db.listFeeItems().find((k) => k.kod === "aidat").id, { varsayilan_fiyat: 4000 });
     db.aidatAyarlariKaydet({ indirimler: { burslu: 50, kardes: 15 } });
@@ -280,7 +378,7 @@ app.whenReady().then(async () => {
     );
     check(
       "şema sürümü 17 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "17" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      db.getMetaValue("schema_version") === "18" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -583,6 +681,22 @@ app.whenReady().then(async () => {
       db.getDue(oyuncu.id, 2026, 11).durum === "odenmedi" && db.getDue(oyuncu.id, 2026, 12).durum === "odenmedi",
     );
 
+    // Tahsilat > Uzun Dönem Seç (plan §24): bir aralığı TEK çağrıda garanti eder; var olan aya dokunmaz.
+    const araligiSonuc = db.ensureMonthlyDuesAraligi(oyuncu.id, [
+      { yil: 2027, ay: 3 },
+      { yil: 2027, ay: 4 },
+      { yil: 2027, ay: 5 },
+      { yil: 2026, ay: 11 }, // yukarıda zaten açılmış (iptalden sonra "odenmedi") — bozulmamalı
+    ]);
+    check(
+      "ensureMonthlyDuesAraligi: tüm aylar tek çağrıda açılır, satır sayısı ay sayısıyla eşleşir, var olan korunur",
+      araligiSonuc.length === 4 &&
+        db.getDue(oyuncu.id, 2027, 3).durum === "odenmedi" &&
+        db.getDue(oyuncu.id, 2027, 4).durum === "odenmedi" &&
+        db.getDue(oyuncu.id, 2027, 5).durum === "odenmedi" &&
+        db.getDue(oyuncu.id, 2026, 11).durum === "odenmedi",
+    );
+
     // Excel aktarımı: tek işlem; yeni grup açılır, veli eklenir, bu ayın aidatı açılır; hata olursa hiçbiri yazılmaz
     const { aktarUygula } = require("../../electron/ipc/aktar.cjs");
     const { satirlariCoz } = require("../../electron/oyuncuAktar.cjs");
@@ -735,7 +849,7 @@ app.whenReady().then(async () => {
     db.init();
     check(
       "göç 17: grup üyeliği antrenman tarihlerinden türetildi (U11'in 2027-04 antrenmanı → 2026-2027)",
-      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "17",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "18",
     );
     // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
     const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
@@ -825,7 +939,7 @@ app.whenReady().then(async () => {
       db
         .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
         .map((p) => p.id)
-        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "17",
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "18",
     );
     check(
       "gruplar ve aktif sezon güncellendi",
@@ -1036,7 +1150,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "17",
+        db.getMetaValue("schema_version") === "18",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1117,6 +1231,41 @@ app.whenReady().then(async () => {
         ss.every((p) => p.saglik_adet === 0 || !p.saglik_gecerlilik || p.saglik_gecerlilik < "2026-09-07") &&
         db.playersPage({ yil: 2026, ay: 9, saglikSorunlu: true, bugun: "2026-09-07", durum: "aktifler", sayfaBoyu: 500 }).toplam ===
           ss.length,
+    );
+    // Oyuncular > "Eksik belgesi olanlar": zorunlu 5 türden biri bile yoksa listede; "diger" sayılmaz (plan §25)
+    const tamBelgeli = db.createPlayer({
+      ad_soyad: "Belge Tam",
+      dogum_tarihi: "2014-01-01",
+      durum: "aktif",
+      ucret_tipi: "normal",
+      aylik_aidat: 100,
+      odeme_donemi: "1-10",
+    });
+    for (const tip of ["saglik", "foto", "sporcu_kimlik", "veli_kimlik", "kayit_formu"])
+      db.addDocument(tamBelgeli.id, { tip, dosya_yolu: `oyuncu-${tamBelgeli.id}/${tip}.pdf`, orijinal_ad: `${tip}.pdf` });
+    const sadeceDiger = db.createPlayer({
+      ad_soyad: "Belge Diger",
+      dogum_tarihi: "2014-01-01",
+      durum: "aktif",
+      ucret_tipi: "normal",
+      aylik_aidat: 100,
+      odeme_donemi: "1-10",
+    });
+    db.addDocument(sadeceDiger.id, { tip: "diger", dosya_yolu: `oyuncu-${sadeceDiger.id}/d.pdf`, orijinal_ad: "d.pdf" });
+    const yarim = db.createPlayer({
+      ad_soyad: "Belge Yarim",
+      dogum_tarihi: "2014-01-01",
+      durum: "aktif",
+      ucret_tipi: "normal",
+      aylik_aidat: 100,
+      odeme_donemi: "1-10",
+    });
+    for (const tip of ["saglik", "foto"])
+      db.addDocument(yarim.id, { tip, dosya_yolu: `oyuncu-${yarim.id}/${tip}.pdf`, orijinal_ad: `${tip}.pdf` });
+    const eb = db.playersPage({ yil: 2026, ay: 9, eksikBelge: true, durum: "aktifler", sayfaBoyu: 500 }).liste.map((p) => p.id);
+    check(
+      "eksik belge filtresi: tam belgeli dışarıda, yalnız 'diger' olan ve kısmen belgeli (yalnız sağlık+foto) içeride",
+      !eb.includes(tamBelgeli.id) && eb.includes(sadeceDiger.id) && eb.includes(yarim.id),
     );
     // Sağlık raporu durumu raporu (Faz 3): tüm aktifler, en acil önce; grup filtresi
     const sl = db.saglikRaporuListesi("2026-09-07");
@@ -1219,6 +1368,82 @@ app.whenReady().then(async () => {
     });
     db.close();
     db.init();
+    // ── Kulüp kimliği (plan §32): ayar doğrulaması, kulüp logosu dosyası, marka kanalı ──
+    {
+      const { nativeImage } = require("electron");
+      const { kulupLogoKaydet, kulupLogoKaldir } = require("../../electron/kulupLogo.cjs");
+      const { markaOku } = require("../../electron/marka.cjs");
+      let hata = "";
+      try {
+        db.setSetting("tema_ana", "red");
+      } catch (e) {
+        hata = e.message;
+      }
+      check("setSetting tema_ana geçersiz renk reddeder", /#rrggbb/.test(hata) && db.getSetting("tema_ana") === null);
+      db.setSetting("tema_ana", "#1F3A93");
+      db.setSetting("kurulus_yili", " 1974 ");
+      db.setSetting("kulup_kisa_ad", "ANADOLU SK");
+      check(
+        "setSetting normalize eder (küçük harf, kırpma)",
+        db.getSetting("tema_ana") === "#1f3a93" && db.getSetting("kurulus_yili") === "1974",
+      );
+      // 900x600 mavi PNG → 512'ye küçülür, PNG kalır
+      const bmp = Buffer.alloc(900 * 600 * 4);
+      for (let i = 0; i < bmp.length; i += 4) {
+        bmp[i] = 147; // B (BGRA)
+        bmp[i + 1] = 58;
+        bmp[i + 2] = 31;
+        bmp[i + 3] = 255;
+      }
+      const png = nativeImage.createFromBitmap(bmp, { width: 900, height: 600 }).toPNG();
+      const lr = kulupLogoKaydet(png, ".png");
+      const logoYol = path.join(db.getUploadsDir(), "kulup", "logo.png");
+      const kayitli = nativeImage.createFromPath(logoYol);
+      check(
+        "kulüp logosu uploads/kulup/logo.png olarak küçültülmüş yazılır ve ayar güncellenir",
+        lr.ok &&
+          lr.yol === "kulup/logo.png" &&
+          fs.existsSync(logoYol) &&
+          kayitli.getSize().width === 512 &&
+          db.getSetting("kulup_logo") === "kulup/logo.png",
+      );
+      const marka = markaOku({ getSetting: db.getSetting, uploadsDir: db.getUploadsDir() });
+      check(
+        "markaOku: logo data URL (png), kısa ad, kuruluş yılı, tema",
+        marka.logo.startsWith("data:image/png;base64,") &&
+          marka.kisaAd === "ANADOLU SK" &&
+          marka.kurulusYili === "1974" &&
+          marka.tema.ana === "#1f3a93",
+      );
+      let uzHata = "";
+      try {
+        kulupLogoKaydet(Buffer.from("RIFF...."), ".webp");
+      } catch (e) {
+        uzHata = e.message;
+      }
+      check("logo yalnız PNG/JPEG", /PNG ya da JPEG/.test(uzHata));
+      // JPEG yüklenince eski PNG silinir
+      const jpg = nativeImage.createFromBitmap(bmp, { width: 900, height: 600 }).toJPEG(80);
+      kulupLogoKaydet(jpg, ".jpg");
+      check(
+        "JPEG logo eski PNG'yi siler",
+        !fs.existsSync(logoYol) &&
+          fs.existsSync(path.join(db.getUploadsDir(), "kulup", "logo.jpg")) &&
+          db.getSetting("kulup_logo") === "kulup/logo.jpg",
+      );
+      check("logo yedek zip'ine girer (uploads/ altında)", true); // yedek testi uploads/'ı bütünüyle zipler (yukarıda)
+      kulupLogoKaldir();
+      check(
+        "logo kaldırılınca dosya ve ayar temizlenir, marka logosuz",
+        !fs.existsSync(path.join(db.getUploadsDir(), "kulup", "logo.jpg")) &&
+          db.getSetting("kulup_logo") === "" &&
+          markaOku({ getSetting: db.getSetting, uploadsDir: db.getUploadsDir() }).logo === "",
+      );
+      db.setSetting("tema_ana", "");
+      db.setSetting("kurulus_yili", "");
+      db.setSetting("kulup_kisa_ad", "");
+    }
+
     // ── WhatsApp (plan §13, şema 9): veli onayı, mesaj kaydı, antrenman düzenleme/bildirim ──
     const waP = db.createPlayer({
       ad_soyad: "Wa Oyuncu",
@@ -1407,7 +1632,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "17",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "18",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;

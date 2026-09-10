@@ -13,6 +13,12 @@
   --metin: #1b1530;
   --soluk: #6b6480;
   --cizgi: #e2dcec;
+  --ana-ustu: #ffffff; /* ana renk (--mor) üstündeki yazı; tema açıksa koyuya döner (temaUygula) */
+  --vurgu-ustu: #3f1d66; /* vurgu rengi (--sari) üstündeki yazı */
+  --ana-ustu-soluk: #d8cce9; /* ana renk üstünde ikincil yazı (menü pasif öğe) */
+  --uyari: #f5d000; /* UYARI anlam rengi: deneme/salt okunur şeridi, kaydedilmemiş satır, sarı rozet — temayla DEĞİŞMEZ */
+  --uyari-acik: #fff7c2;
+  --uyari-metin: #7a6300;
   --font: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-baslik: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
 }

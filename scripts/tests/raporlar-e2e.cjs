@@ -1,11 +1,21 @@
 // Raporlar filtreleri uçtan uca (plan §20): GERÇEK main.cjs + gerçek DB. Bilinen veri (iki sezon, iki grup, ödenen/ödenmeyen aidat,
 // makbuz, yoklama, sağlık raporu) kurulur; her rapor "Sezon ve ay" (ay / Tümü / eski sezon / yaş grubu) ve "Tarih aralığı"
 // modunda önizlenir, tablo satırları okunup beklenenle karşılaştırılır. Kullanım: electron scripts/tests/raporlar-e2e.cjs <dizin>
-const { app } = require("electron");
+const { app, dialog, shell } = require("electron");
+const os = require("os");
 const path = require("path");
 const fs = require("fs");
-const [dizin] = process.argv.slice(2);
+const [dizin, shotDir] = process.argv.slice(2);
 app.setPath("userData", dizin);
+if (shotDir) fs.mkdirSync(shotDir, { recursive: true });
+// Excel/PDF kaydetme diyaloğu: test dosya yolu; açma yok
+const ciktiDir = fs.mkdtempSync(path.join(os.tmpdir(), "fok-rapor-cikti-"));
+let sonCikti = "";
+dialog.showSaveDialog = async (_w, o) => {
+  sonCikti = path.join(ciktiDir, path.basename(o?.defaultPath || "rapor"));
+  return { canceled: false, filePath: sonCikti };
+};
+shell.openPath = async () => "";
 const bekle = (ms) => new Promise((r) => setTimeout(r, ms));
 let fail = 0;
 const check = (ad, k, ek = "") => {
@@ -15,7 +25,10 @@ const check = (ad, k, ek = "") => {
 const db = require("../../electron/db.cjs");
 require("../../electron/main.cjs");
 
+let basladi = false;
 app.on("browser-window-created", async (_e, win) => {
+  if (basladi) return; // PDF dışa aktarımının gizli penceresi de bu olayı tetikler
+  basladi = true;
   try {
     await new Promise((r) => win.webContents.once("did-finish-load", r));
     await bekle(700);
@@ -146,6 +159,25 @@ app.on("browser-window-created", async (_e, win) => {
     // ── Raporlar ──
     await js(`document.querySelector("button[aria-label='Raporlar']").click()`);
     await bekle(800);
+    const shot = async (ad) => {
+      if (!shotDir) return;
+      fs.writeFileSync(path.join(shotDir, ad + ".png"), (await win.webContents.capturePage()).toPNG());
+    };
+    check(
+      "başlangıç: önizleme yok — 'Filtreleri seçip Önizle'ye basın.'",
+      /Filtreleri seçip Önizle'ye basın/.test(await js(`document.body.textContent`)),
+    );
+    check(
+      "rapor kartları: 5 rapor, açıklamalarıyla; ilk (Oyuncu Listesi) seçili vurgulu",
+      (await js(
+        `[...document.querySelectorAll("button")].filter((b) => /Oyuncu Listesi|Borçlu Listesi|Tahsilat Raporu|Yoklama Özeti|Sağlık Raporu/.test(b.textContent)).length`,
+      )) === 5 &&
+        (await js(
+          `[...document.querySelectorAll("button")].find((b) => b.textContent.startsWith("Oyuncu Listesi")).style.border.includes("var(--mor)")`,
+        )) &&
+        /Tarih aralığında kesilen makbuzlar/.test(await js(`document.body.textContent`)),
+    );
+    await shot("01-baslangic");
     check(
       "varsayılan filtre: sezon ve ay, aktif sezon, bu ay (Eylül 2026)",
       (await js(`document.querySelector("select[aria-label='Sezon']").value`)) === "2026-2027" &&
@@ -301,6 +333,96 @@ app.on("browser-window-created", async (_e, win) => {
       "sağlık tarih aralığı (bitiş 31 Ekim) → tüm oyuncular: Ali Süresi doldu, pasif Ceren de listede",
       durumSutunu(r)["Ali Aktif"] === "Süresi doldu" && durumSutunu(r)["Ceren Eski"] === "Rapor yok",
       JSON.stringify(durumSutunu(r)) + " | " + r.alt,
+    );
+
+    // ── Ek durumlar (10.09.2026): kirli filtre uyarısı, Excel/PDF dışa aktarım, iptal makbuzu, kısmi ödeme, yoklama yüzdesi ──
+    await sec("Dönem seçimi", "sezon");
+    await sec("Sezon", "2026-2027");
+    await sec("Ay", "9");
+    await rapor("Oyuncu Listesi");
+    r = await onizle();
+    check("önizleme sonrası kirli uyarısı yok", !/Filtre değişti|Rapor değişti/.test(await js(`document.body.textContent`)));
+    await sec("Ay", "10");
+    check("filtre değişince 'Filtre değişti' pili", /Filtre değişti/.test(await js(`document.body.textContent`)));
+    await rapor("Borçlu Listesi");
+    check("rapor da değişince 'Filtre ve rapor değişti'", /Filtre ve rapor değişti/.test(await js(`document.body.textContent`)));
+    await shot("02-filtre-degisti");
+    await sec("Ay", "9");
+    await rapor("Oyuncu Listesi");
+    r = await onizle();
+    // Excel
+    await tikla("Excel");
+    await bekle(1200);
+    check(
+      "Excel: dosya yazıldı (oyuncu.xlsx)",
+      /oyuncu\.xlsx$/.test(sonCikti) && fs.existsSync(sonCikti) && fs.statSync(sonCikti).size > 1000,
+      sonCikti,
+    );
+    const ExcelJS = require("exceljs");
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(sonCikti);
+    const ws = wb.worksheets[0];
+    const basliklar = ws.getRow(1).values.slice(1);
+    check(
+      "Excel: sayfa adı, başlık satırı ve satır sayısı önizlemeyle uyumlu, oluşturan kulüp adı",
+      ws.name === "Oyuncu Listesi" && basliklar[0] === "Ad Soyad" && ws.rowCount - 1 === r.satirlar.length && wb.creator === "Futbol Okulu",
+      `${ws.name} | ${JSON.stringify(basliklar)} | ${ws.rowCount - 1}/${r.satirlar.length} | ${wb.creator}`,
+    );
+    // PDF
+    await tikla("PDF");
+    await bekle(2500);
+    check(
+      "PDF: dosya yazıldı (oyuncu.pdf) ve PDF imzası",
+      /oyuncu\.pdf$/.test(sonCikti) && fs.existsSync(sonCikti) && fs.readFileSync(sonCikti).slice(0, 5).toString() === "%PDF-",
+      sonCikti,
+    );
+    await shot("03-excel-pdf");
+    // Tahsilat: iptal edilen makbuz ayrı satır ve alt başlıkta "iptal: 1 makbuz"
+    const m2 = db.createReceipt({
+      player_id: b.id,
+      tarih: "2026-09-10",
+      odeme_yontemi: "havale",
+      tahsil_eden: "T",
+      satirlar: [{ fee_item_id: aidat.id, tutar: 700, yil: null, ay: null }],
+    });
+    db.cancelReceipt(m2.id, "yanlış tutar", "Tester");
+    await rapor("Tahsilat Raporu");
+    r = await onizle();
+    const iptalSatir = r.satirlar.find((s) => s.some((h) => /İptal: yanlış tutar/.test(h)));
+    check(
+      "tahsilat: iptal makbuzu 'İptal: yanlış tutar · Tester · asıl tutar 700 ₺' notuyla, alt başlıkta iptal sayısı",
+      !!iptalSatir && /asıl tutar 700 ₺/.test(iptalSatir.join(" ")) && /iptal: 1 makbuz \(700 ₺\)/.test(r.alt),
+      r.alt,
+    );
+    await shot("04-tahsilat-iptal");
+    // Borçlu listesi: kısmi ödeme → kalan
+    db.createReceipt({
+      player_id: b.id,
+      tarih: "2026-09-10",
+      odeme_yontemi: "nakit",
+      tahsil_eden: "T",
+      satirlar: [{ fee_item_id: aidat.id, tutar: 300, yil: 2026, ay: 9 }],
+    });
+    await rapor("Borçlu Listesi");
+    r = await onizle();
+    const berkSatir = r.satirlar.find((s) => s[0] === "Berk Yeni");
+    check(
+      "borçlu listesi: kısmi ödeyen Berk kalan 700 ₺ ile listede",
+      !!berkSatir && berkSatir.some((h) => /700/.test(h)),
+      JSON.stringify(berkSatir),
+    );
+    // Yoklama özeti: katılım yüzdesi (Ali: Eylül'de 1 geldi → %100)
+    await rapor("Yoklama Özeti");
+    r = await onizle();
+    const aliSatir = r.satirlar.find((s) => s[0] === "Ali Aktif");
+    check("yoklama özeti: Ali Eylül 2026 → 1 geldi, katılım %100", !!aliSatir && aliSatir.includes("100"), JSON.stringify(aliSatir));
+    await shot("05-yoklama-ozeti");
+    // Yaş grubu kutusu seçili sezonun gruplarını listeler
+    check(
+      "yaş grubu kutusunda U11 ve U12",
+      (await js(`[...document.querySelector("select[aria-label='Yaş grubu']").options].map((o) => o.textContent).join(",")`)).includes(
+        "U11",
+      ),
     );
 
     if (fail === 0) console.log("TUM KONTROLLER GECTI");

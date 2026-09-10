@@ -63,12 +63,15 @@ function grupBildirimKaydet(id, kullanici = "") {
 }
 // Geri al: grup kaydı silinir; bildirim gereği yeniden açılır (tek tek bildirilenler pencere kapanışında yeniden değerlendirilir)
 const grupBildirimSil = (id) => db.prepare("UPDATE trainings SET grup_bildirim='', bildirim_gerekli=1 WHERE id=?").run(Number(id));
+// durum boş/null → işaret kaldırılır (satır silinir): seçili düğmeye yeniden tıklayınca "işaretlenmedi"ye döner (Kerem, 10.09.2026).
 const setAttendance = (tid, pid, durum) =>
-  db
-    .prepare(
-      "INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum",
-    )
-    .run(tid, pid, durum);
+  durum
+    ? db
+        .prepare(
+          "INSERT INTO attendance (training_id,player_id,durum) VALUES (?,?,?) ON CONFLICT(training_id,player_id) DO UPDATE SET durum=excluded.durum",
+        )
+        .run(tid, pid, durum)
+    : db.prepare("DELETE FROM attendance WHERE training_id=? AND player_id=?").run(tid, pid);
 const listAttendance = (tid) =>
   db
     .prepare("SELECT a.*, p.ad_soyad FROM attendance a JOIN players p ON p.id=a.player_id WHERE a.training_id=? ORDER BY p.ad_soyad")

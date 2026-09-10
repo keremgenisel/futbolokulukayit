@@ -4,16 +4,7 @@ import { Btn, Rozet, Girdi } from "../ui.jsx";
 import { files, bugun } from "../../lib/api.js";
 import { tarihTR } from "../../lib/aidat.js";
 import { Ikon } from "../Ikon.jsx";
-import { belgeGecerlilik, belgeEtiketi, onerilenGecerlilik } from "../../lib/belge.js";
-
-const BELGE_TIPLERI = [
-  { kod: "saglik", ad: "Sağlık raporu", gecerlilik: true },
-  { kod: "foto", ad: "Vesikalık fotoğraf", tekil: true },
-  { kod: "sporcu_kimlik", ad: "Sporcu kimlik fotokopisi" },
-  { kod: "veli_kimlik", ad: "Veli kimlik fotokopisi" },
-  { kod: "kayit_formu", ad: "İmzalı kayıt formu" },
-  { kod: "diger", ad: "Diğer", istege: true }, // isteğe bağlı: yoksa "Eksik" değil "İsteğe bağlı" (09.09.2026)
-];
+import { belgeGecerlilik, belgeEtiketi, onerilenGecerlilik, BELGE_TIPLERI } from "../../lib/belge.js";
 
 // Mevcut belgenin geçerlilik tarihi: "Tarih gir" / "Tarihi değiştir" → satır içi tarih kutusu + Kaydet (dosyayı yeniden yüklemeden).
 function BelgeTarihDuzenle({ belge, onKaydet }) {

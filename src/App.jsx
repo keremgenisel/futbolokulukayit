@@ -15,7 +15,9 @@ import { GuncellemeSeridi } from "./components/GuncellemeSeridi.jsx";
 import { IlkKurulum } from "./components/IlkKurulum.jsx";
 import { HizliArama } from "./components/HizliArama.jsx";
 import { tarihTR } from "./lib/aidat.js";
-import { bugun } from "./lib/api.js";
+import { bugun, uygulama } from "./lib/api.js";
+import { temaUygula } from "./lib/temaUygula.js";
+import { VARSAYILAN_TEMA } from "./lib/tema.js";
 
 // Yönlendirici yok: sekme bir string, TABS'a göre koşullu render.
 export const TABS = [
@@ -38,6 +40,24 @@ export function App() {
   const [sekmeKey, setSekmeKey] = useState(0); // aynı sekmeye tekrar geçişte ekranı tazelemek için
   const [mod, setMod] = useState(null); // { mode, serverUrl, sunucu }
   const [arama, setArama] = useState(false); // Ctrl/Cmd+K hızlı oyuncu arama
+  // Marka (plan §32): kulüp adı/kısa ad/kuruluş yılı/logo/tema — oturumsuz kanal; giriş ekranı ve kenar menü buradan okur.
+  const [marka, setMarka] = useState(null);
+  const markaYenile = useCallback(() => {
+    const uygula = (m) => {
+      setMarka(m);
+      temaUygula(m?.tema || VARSAYILAN_TEMA);
+    };
+    try {
+      const p = uygulama().marka?.();
+      if (p && typeof p.then === "function") p.then(uygula).catch(() => uygula(null));
+      else uygula(null);
+    } catch {
+      uygula(null);
+    }
+  }, []);
+  useEffect(() => {
+    markaYenile();
+  }, [markaYenile]);
   useEffect(() => {
     const onKey = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
@@ -136,7 +156,7 @@ export function App() {
   if (!oturum)
     return (
       <ToastSaglayici>
-        <Giris onGiris={setOturum} mod={mod} onModDegisti={modDegisti} />
+        <Giris onGiris={setOturum} mod={mod} onModDegisti={modDegisti} marka={marka} />
       </ToastSaglayici>
     );
 
@@ -149,6 +169,7 @@ export function App() {
           onSec={git}
           oturum={oturum}
           mod={mod}
+          marka={marka}
           onAra={() => setArama(true)}
           onCikis={async () => {
             await window.okul.auth.logout();
@@ -193,8 +214,8 @@ export function App() {
             {!saltOkunur && lisans?.mod === "deneme" && (
               <div
                 style={{
-                  background: "var(--sari-acik)",
-                  border: "1.5px solid var(--sari)",
+                  background: "var(--uyari-acik)",
+                  border: "1.5px solid var(--uyari)",
                   borderRadius: 10,
                   padding: "10px 16px",
                   marginBottom: 20,
@@ -207,8 +228,8 @@ export function App() {
             {!saltOkunur && lisans?.mod === "lisansli" && lisans.kalanGun != null && lisans.kalanGun <= 30 && (
               <div
                 style={{
-                  background: "var(--sari-acik)",
-                  border: "1.5px solid var(--sari)",
+                  background: "var(--uyari-acik)",
+                  border: "1.5px solid var(--uyari)",
                   borderRadius: 10,
                   padding: "10px 16px",
                   marginBottom: 20,
@@ -264,6 +285,7 @@ export function App() {
                 onModDegisti={modDegisti}
                 baslangicBolum={ayarBolum}
                 onKurulumAc={() => setKurulum(true)}
+                onMarkaDegisti={markaYenile}
               />
             )}
           </section>
@@ -275,7 +297,9 @@ export function App() {
         {kurulum && !oturum.must_change_password && (
           <IlkKurulum
             oturum={oturum}
+            onMarkaDegisti={markaYenile}
             onBitti={() => {
+              markaYenile();
               setKurulum(false);
               setTab("pano");
               setSekmeKey((k) => k + 1);

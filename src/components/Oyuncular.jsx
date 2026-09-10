@@ -15,11 +15,11 @@ import {
   Sayfalama,
   Telefon,
 } from "./ui.jsx";
-import { db, cikti, uygulama, bugun } from "../lib/api.js";
-import { VARSAYILAN_KULUP } from "../lib/marka.js";
+import { db, cikti, bugun } from "../lib/api.js";
+import { ciktiMarkasi } from "../lib/yazdir.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
-import { belgeGecerlilik, belgeEtiketi } from "../lib/belge.js";
+import { belgeGecerlilik, belgeEtiketi, eksikBelgeler } from "../lib/belge.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
 import { OyuncuAktar } from "./OyuncuAktar.jsx";
 import { OyuncuKarti } from "./OyuncuKarti.jsx";
@@ -42,6 +42,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [durum, setDurum] = useState("aktifler"); // varsayılan: aktif + deneme + sakat (sahadaki herkes); pasif/ayrıldı/dondurma filtreyle görülür
   const [odemeyen, setOdemeyen] = useState(false);
   const [saglik, setSaglik] = useState(false); // sağlık raporu yok / tarihsiz / süresi dolmuş
+  const [eksikBelge, setEksikBelge] = useState(false); // zorunlu belgelerden ("Diğer" hariç) biri eksik (plan §25)
   const [yeni, setYeni] = useState(false);
   const [aktarAcik, setAktarAcik] = useState(false);
   const [acik, setAcik] = useState(null);
@@ -60,6 +61,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     ay,
     sadeceOdemeyen: odemeyen,
     saglikSorunlu: saglik,
+    eksikBelge,
     bugun: iso,
   });
   const yukle = useCallback(async () => {
@@ -69,11 +71,11 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       setToplam(r.toplam);
       if (r.sayfa !== sayfa) setSayfa(r.sayfa); // sayfa taşarsa sunucu son sayfaya çeker
     });
-  }, [q, seciliSezon, grup, durum, odemeyen, saglik, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, seciliSezon, grup, durum, odemeyen, saglik, eksikBelge, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   // Filtre değişince ilk sayfaya dön.
   useEffect(() => {
     setSayfa(1);
-  }, [q, seciliSezon, grup, durum, odemeyen, saglik]);
+  }, [q, seciliSezon, grup, durum, odemeyen, saglik, eksikBelge]);
 
   // Yaş grubu kutusu seçili sezonun gruplarını listeler (plan §21.3); "Tüm sezonlar"da hepsi
   useEffect(() => {
@@ -154,8 +156,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const pdf = () =>
     dene(async () => {
       const v = await raporVerisi();
-      const logo = await uygulama().logo();
-      const kulup = (await db("getSetting", "kulup_adi")) || VARSAYILAN_KULUP;
+      const { logo, kulup, tema } = await ciktiMarkasi();
       await cikti().pdfKaydet(
         raporHtml({
           baslik: "Oyuncu Listesi",
@@ -164,6 +165,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
           satirlar: v.satirlar,
           logo,
           kulup,
+          tema,
           yatay: true,
         }),
         "oyuncular.pdf",
@@ -245,6 +247,15 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         >
           {saglik ? "✕ " : ""}Sağlık raporu olmayanlar
         </Btn>
+        <Btn
+          kucuk
+          tur={eksikBelge ? "danger" : "ghost"}
+          onClick={() => setEksikBelge(!eksikBelge)}
+          style={{ height: 40 }}
+          title="Zorunlu belgelerden (sağlık raporu, vesikalık, sporcu/veli kimlik fotokopisi, imzalı kayıt formu) en az biri yüklenmemiş oyuncular; 'Diğer' sayılmaz"
+        >
+          {eksikBelge ? "✕ " : ""}Eksik belgesi olanlar
+        </Btn>
         <div style={{ flex: 1 }} />
         <span style={{ color: "var(--soluk)", fontSize: 14 }}>{toplam} oyuncu</span>
       </Kart>
@@ -282,6 +293,20 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
                                 {o.saglik_adet === 0 ? "Sağlık raporu yok" : g.durum === "yok" ? "Rapor tarihsiz" : belgeEtiketi(g)}
                               </Rozet>
                             );
+                          })()}
+                          {(() => {
+                            // Eksik belge pili: "Diğer" hariç zorunlu belgelerden yüklenmemiş olanlar (Kerem, 10.09.2026)
+                            if (o.belge_tipleri === undefined) return null;
+                            const eksik = eksikBelgeler(o.belge_tipleri);
+                            return eksik.length ? (
+                              <Rozet
+                                ton="yellow"
+                                title={eksik.map((e) => e.ad).join(", ")}
+                                aria-label={`Eksik belge: ${eksik.map((e) => e.ad).join(", ")}`}
+                              >
+                                Eksik belge ({eksik.length})
+                              </Rozet>
+                            ) : null;
                           })()}
                         </div>
                         <div style={{ fontSize: 12, color: "var(--soluk)" }}>{kimlikKisa(o)}</div>

@@ -5,7 +5,7 @@
 2. Masaüstündeki simgeyle açın. İlk giriş: kullanıcı adı **admin**, parola **admin**.
 3. Program sizden hemen yeni bir parola isteyecek. En az 8 karakter girin. (Sonraki parola değişimlerinde
    mevcut parolanız da sorulur. Üst üste 8 yanlış girişte kullanıcı 15 dakika kilitlenir.)
-4. Ardından **İlk Kurulum** sihirbazı açılır: kulüp adı → aidat taban fiyatı ve indirimler → yaş grupları
+4. Ardından **İlk Kurulum** sihirbazı açılır: kulüp adı, kısa ad, kuruluş yılı, logo ve renkler → aidat taban fiyatı ve indirimler → yaş grupları
    ve sezon → yedek klasörü → kurtarma kodları (8 kod, bir kez gösterilir; yazdırıp saklayın) → Excel'den
    oyuncu aktarımı. Her adım atlanabilir; hepsi sonradan Ayarlar'dan değiştirilebilir (sihirbazı yeniden açmak için
    Ayarlar > Uygulama > İlk Kurulum Sihirbazı). "Şimdi değil"
@@ -133,6 +133,24 @@ ya da bozulma ihtimaline karşı düzenli olarak:
 3. Ayarlar > Yedekleme > **Taşıma paketinden geri yükle**: paket dosyasını seçin, parolayı girin, özeti onaylayın. Program
    yeniden başlar; tüm oyuncular, makbuzlar, belgeler ve ayarlar yerine gelir. Lisans anahtarını yeniden girmeniz
    gerekebilir (lisans makineye bağlıdır).
+
+## 3f. Kulüp kimliği: logo, renkler, giriş ekranı
+
+**Ayarlar > Kulüp ve Makbuz** tek yerden:
+
+- **Kulüp adı** makbuz ve raporlara; **kısa ad** giriş ekranı ve sol menü başlığına (ör. "ANADOLU SK"); **kuruluş yılı**
+  giriş ekranının altına ("Kuruluş 1974"; boş bırakılırsa satır görünmez); **menü alt yazısı** kısa adın altındaki küçük yazı;
+  **yoklama formu alt yazısı** formun dibindeki slogan (boşsa basılmaz).
+- **Logo Seç…**: PNG (şeffaf zemin önerilir) ya da JPEG dosyanızı seçin. Logo otomatik küçültülür (512 px) ve giriş ekranında,
+  sol menüde, makbuzda, yoklama formunda ve rapor başlığında kullanılır. Logo yüklenmemişse belgelerde yalnız kulüp adı yazılır.
+  Logo yedek dosyasına ve taşıma paketine girer. **Kaldır** ile silinir.
+- **Uygulama renkleri**: logo yüklüyse program logodan baskın renkleri çıkarıp sarı şeritte önerir ("Bu renkleri kullan");
+  hazır paletlerden birini seçebilir ya da "Ana renk" / "Vurgu rengi" ile kendi renginizi girebilirsiniz. Canlı önizleme
+  kutusu sonucu gösterir; ana renk çok açıksa program uyarır (yazılar okunmayabilir). Kırmızı (borç), yeşil (ödendi) gibi
+  anlam renkleri değişmez. **Kaydet** ile tüm program — giriş ekranı, menü, düğmeler, makbuz ve rapor başlıkları, Excel başlık
+  satırı — yeni renklere geçer.
+- Eski sürümden güncelleyen kulüpler için not: sürüm 1.1'den itibaren programda hazır bir kulüp arması yoktur; güncellemeden
+  sonra makbuzlarda logo görünmesi için Ayarlar > Kulüp ve Makbuz'dan logonuzu bir kez yükleyin.
 
 ## 3e. Program güncellemesi
 

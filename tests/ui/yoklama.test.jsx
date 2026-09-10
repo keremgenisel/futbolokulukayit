@@ -15,7 +15,14 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
       { id: 5, age_group_id: 1, tarih: t, saat: "17:00", saha: "Saha 1", iptal: 0, yas_grubu_ad: "U11", oyuncu: 2, isaretli: 0, geldi: 0 },
     ];
     window.okul = {
-      app: { logo: vi.fn(async () => "data:image/png;base64,LOGO") },
+      app: {
+        logo: vi.fn(async () => "data:image/png;base64,LOGO"),
+        marka: vi.fn(async () => ({
+          logo: "data:image/png;base64,LOGO",
+          kulupAdi: "Test Kulübü",
+          tema: { ana: "#1f3a93", vurgu: "#f58220" },
+        })),
+      },
       cikti: { yazdir: vi.fn(async () => ({ ok: true })), pdfKaydet: vi.fn(async () => ({ ok: true })) },
       db: vi.fn(async (fn, ...args) => {
         if (fn === "listAgeGroups") return [{ id: 1, ad: "U11", aktif: 1 }];
@@ -27,7 +34,7 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
           ];
         if (fn === "listAttendance") return [];
         if (fn === "setAttendance") {
-          antrenmanlar[0].isaretli += 1;
+          antrenmanlar[0].isaretli += args[2] ? 1 : -1; // null → işaret kaldırıldı
           return {};
         }
         if (fn === "createTraining") {
@@ -57,6 +64,36 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.click(geldi);
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("setAttendance", 5, 10, "geldi"));
     await waitFor(() => expect(screen.getByRole("button", { name: /U11 · 17:00/ })).toHaveTextContent("1/2 işaretli"));
+    // Seçili "Geldi"ye yeniden tıklayınca işaret kaldırılır: setAttendance(…, null), düğme sönük, sayaç 0/2 (10.09.2026)
+    // Dugme render içinde tanımlı bileşen: her render'da yeniden mount olur, düğme her seferinde yeniden bulunur
+    const geldiDugme = () => screen.getAllByRole("button", { name: "Geldi" })[0];
+    expect(geldiDugme()).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(geldiDugme());
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("setAttendance", 5, 10, null));
+    expect(geldiDugme()).toHaveAttribute("aria-pressed", "false");
+    await waitFor(() => expect(screen.getByRole("button", { name: /U11 · 17:00/ })).toHaveTextContent("0/2 işaretli"));
+    // Başka duruma geçiş kaldırmaz, değiştirir
+    fireEvent.click(screen.getAllByRole("button", { name: "Gelmedi" })[0]);
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("setAttendance", 5, 10, "gelmedi"));
+    fireEvent.click(screen.getAllByRole("button", { name: "Geldi" })[0]);
+    await waitFor(() => expect(window.okul.db).toHaveBeenLastCalledWith("setAttendance", 5, 10, "geldi"));
+  });
+
+  it("'Kalanları Geldi İşaretle' işaretlenmemiş HERKESİ kaydeder, ekran ve sayaç güncellenir (10.09.2026 hatası)", async () => {
+    kur();
+    fireEvent.click(await screen.findByRole("button", { name: /U11 · 17:00/ }));
+    await screen.findByText("Ada Kaya");
+    fireEvent.click(screen.getAllByRole("button", { name: "Gelmedi" })[1]); // Barış gelmedi → yalnız Ada kaldı
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("setAttendance", 5, 11, "gelmedi"));
+    fireEvent.click(screen.getByRole("button", { name: "Kalanları Geldi İşaretle" }));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("setAttendance", 5, 10, "geldi"));
+    expect(window.okul.db.mock.calls.filter((c) => c[0] === "setAttendance" && c[3] === "geldi")).toHaveLength(1); // gelmedi olan dokunulmaz
+    expect(screen.getAllByRole("button", { name: "Geldi" })[0]).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getAllByRole("button", { name: "Gelmedi" })[1]).toHaveAttribute("aria-pressed", "true");
+    await waitFor(() => expect(screen.getByRole("button", { name: /U11 · 17:00/ })).toHaveTextContent("2/2 işaretli"));
+    expect(screen.getByText("1 oyuncu geldi olarak kaydedildi")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Kalanları Geldi İşaretle" }));
+    expect(await screen.findByText("İşaretlenmemiş oyuncu yok")).toBeInTheDocument();
   });
 
   it("başka güne geçince 'antrenman yok' görünür; satır içi formla antrenman eklenir ve seçili gelir", async () => {

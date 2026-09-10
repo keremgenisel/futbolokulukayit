@@ -1,7 +1,6 @@
 const { app, BrowserWindow, ipcMain, shell, Menu, session, dialog } = require("electron");
 const { pathToFileURL } = require("url");
 const path = require("path");
-const fs = require("fs");
 const db = require("./db.cjs");
 const { registerDataHandlers, getSession } = require("./ipc/data.cjs");
 const { registerGuncellemeHandlers } = require("./ipc/guncelleme.cjs");
@@ -12,6 +11,8 @@ const { registerOptimizeHandlers } = require("./ipc/optimize.cjs");
 const { registerAktarHandlers } = require("./ipc/aktar.cjs");
 const config = require("./config.cjs");
 const server = require("./server.cjs");
+const istemci = require("./istemci.cjs");
+const { markaOku } = require("./marka.cjs");
 
 // ── Otomatik güncelleme (yalnızca paketlenmiş uygulamada) ──
 let autoUpdater = null;
@@ -140,16 +141,32 @@ if (!app.requestSingleInstanceLock()) {
         return { error: "WhatsApp açılamadı: " + e.message };
       }
     });
-    let logoCache = null;
-    ipcMain.handle("app:logo", () => {
-      if (!logoCache) {
+    // Marka (plan §32.5): giriş ekranı oturumsuzdur; yalnız kulüp adı/kısa ad/kuruluş yılı/logo/iki renk döner (kişisel veri yok).
+    // İstemci modunda sunucunun oturumsuz /api/marka ucu; ulaşılamazsa uygulama varsayılanı.
+    const yerelMarka = () => markaOku({ getSetting: db.getSetting, uploadsDir: db.getUploadsDir() });
+    ipcMain.handle("app:marka", async () => {
+      if (config.istemciMi()) {
         try {
-          logoCache = "data:image/png;base64," + fs.readFileSync(path.join(__dirname, "../build/icon.png")).toString("base64");
+          const r = await istemci.istek("/api/marka", { auth: false, timeoutMs: 5000 });
+          if (r && r.ok && r.marka) return r.marka;
         } catch {
-          logoCache = "";
+          /* sunucuya ulaşılamadı */
+        }
+        return markaOku({ getSetting: () => null, uploadsDir: "" });
+      }
+      return yerelMarka();
+    });
+    // Kulüp logosu (makbuz/yoklama formu/rapor başlığı): Ayarlar > Kulüp'ten yüklenen dosya; yoksa "" (logosuz basılır)
+    ipcMain.handle("app:logo", async () => {
+      if (config.istemciMi()) {
+        try {
+          const r = await istemci.istek("/api/marka", { auth: false, timeoutMs: 5000 });
+          return (r && r.ok && r.marka && r.marka.logo) || "";
+        } catch {
+          return "";
         }
       }
-      return logoCache;
+      return yerelMarka().logo;
     });
 
     createWindow();

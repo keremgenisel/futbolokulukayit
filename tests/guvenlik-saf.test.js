@@ -1,7 +1,8 @@
 // Güvenlik incelemesi (08.09.2026) saf yardımcıları: makbuz PDF izni (#4), belge girdi doğrulama (#15), resim boyutu (#22).
 import { describe, it, expect } from "vitest";
 import { makbuzPdfIzni } from "../electron/makbuzIzin.cjs";
-import { belgeGirdiDogrula, BELGE_TIPLERI } from "../electron/belgeDogrula.cjs";
+import { belgeGirdiDogrula, BELGE_TIPLERI, ZORUNLU_BELGELER } from "../electron/belgeDogrula.cjs";
+import { ZORUNLU_BELGELER as ZORUNLU_ESM } from "../src/lib/belge.js";
 import { resimBoyutu, MAX_PIKSEL } from "../electron/imageOptimize.cjs";
 
 describe("makbuzPdfIzni", () => {
@@ -29,6 +30,8 @@ describe("belgeGirdiDogrula", () => {
     });
     expect(belgeGirdiDogrula({ playerId: 3, tip: "foto" })).toEqual({ playerId: 3, tip: "foto", gecerlilik: null });
     expect([...BELGE_TIPLERI]).toEqual(["saglik", "foto", "sporcu_kimlik", "veli_kimlik", "kayit_formu", "diger"]);
+    // Ana süreç (filtre SQL'i) ile renderer (pil) aynı zorunlu listeyi kullanmalı; "diger" hariç
+    expect(ZORUNLU_BELGELER).toEqual(ZORUNLU_ESM.map((t) => t.kod));
   });
   it("yol geçişi / bilinmeyen tip / geçersiz id ve tarih reddedilir", () => {
     expect(() => belgeGirdiDogrula({ playerId: 1, tip: "../x" })).toThrow("Geçersiz belge türü");

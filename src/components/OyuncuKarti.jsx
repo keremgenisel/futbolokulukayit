@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, useDene, OYUNCU_MODAL } from "./ui.jsx";
 import { db, files, bugun } from "../lib/api.js";
-import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
+import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { aidatDegerleri } from "../lib/whatsapp.js";
@@ -57,7 +57,11 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       setVeliler(await db("listGuardians", oyuncuId));
       setAcil(await db("listEmergency", oyuncuId));
       setBelgeler(await db("listDocuments", oyuncuId));
-      setAidatlar(await db("listDues", oyuncuId, tumu.aidat ? null : SON.aidat));
+      // İleri tarihli hiç ödenmemiş aylar (iptal edilen uzun dönem makbuzundan kalan) vadesi gelmediği için gösterilmez;
+      // "son 12 dönem" penceresini onlar doldurmasın diye biraz fazla çekilip süzülür (plan §24.3c).
+      const { yil: buYil, ay: buAy } = bugun();
+      const dues = (await db("listDues", oyuncuId, tumu.aidat ? null : SON.aidat + 24)).filter((a) => !gelecekAcikAidatMi(a, buYil, buAy));
+      setAidatlar(tumu.aidat ? dues : dues.slice(0, SON.aidat));
       setMakbuzlar(await db("listReceipts", oyuncuId, tumu.makbuz ? null : SON.makbuz));
       setYoklama(
         tumu.yoklama
@@ -100,6 +104,13 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       if (sil.tip === "oyuncu") {
         await db("deletePlayer", sil.id);
         toast("ok", "Oyuncu silindi");
+        onKapat();
+        return;
+      }
+      if (sil.tip === "kisisel") {
+        // Makbuzlu oyuncu: kişisel veriler ve dosyalar silinir, makbuzlar tutar/numarasıyla kalır (plan §31)
+        await files().oyuncuKisiselVeriSil(sil.id);
+        toast("ok", "Oyuncunun kişisel verileri silindi; makbuzlar korundu");
         onKapat();
         return;
       }
@@ -247,11 +258,17 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
             <Btn
               tur="danger"
               onClick={() =>
-                setSil({
-                  tip: "oyuncu",
-                  id: o.id,
-                  mesaj: `${o.ad_soyad} kaydı tüm belgeleri ve makbuzlarıyla silinecek. Emin misiniz? (Ayrılan oyuncular için "Ayrıldı" durumu önerilir.)`,
-                })
+                makbuzlar.length > 0
+                  ? setSil({
+                      tip: "kisisel",
+                      id: o.id,
+                      mesaj: `${o.ad_soyad} adına ${makbuzlar.length} makbuz kesilmiş. Makbuzlar adı, tutarı ve numarasıyla olduğu gibi korunur (tahsilat raporu bozulmaz); oyuncunun diğer kişisel verileri — kimlik, iletişim, veli ve acil kişiler, belgeler, fotoğraf, aidat ve yoklama kayıtları — kalıcı olarak silinir ve oyuncu kaydı "${"Silinmiş Oyuncu #" + o.id}" olarak kalır. Bu işlem geri alınamaz. Emin misiniz? (Sadece ayrıldıysa "Ayrıldı" durumu yeterlidir.)`,
+                    })
+                  : setSil({
+                      tip: "oyuncu",
+                      id: o.id,
+                      mesaj: `${o.ad_soyad} kaydı tüm belgeleri, aidat ve yoklama kayıtlarıyla silinecek. Emin misiniz? (Ayrılan oyuncular için "Ayrıldı" durumu önerilir.)`,
+                    })
               }
             >
               Sil

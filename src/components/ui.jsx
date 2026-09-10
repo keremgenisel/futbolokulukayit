@@ -5,8 +5,8 @@ import { hataMetni } from "../lib/api.js";
 
 export function Btn({ tur = "primary", children, ikon, style, kucuk, ...rest }) {
   const turler = {
-    primary: { background: "var(--mor)", color: "#fff", border: "1px solid var(--mor)" },
-    sari: { background: "var(--sari)", color: "var(--mor-koyu)", border: "1px solid var(--sari)" },
+    primary: { background: "var(--mor)", color: "var(--ana-ustu, #fff)", border: "1px solid var(--mor)" },
+    sari: { background: "var(--sari)", color: "var(--vurgu-ustu, var(--mor-koyu))", border: "1px solid var(--sari)" },
     ghost: { background: "#fff", color: "var(--mor-koyu)", border: "1px solid var(--cizgi)" },
     danger: { background: "#fff", color: "var(--kirmizi)", border: "1px solid var(--kirmizi)" },
     yesil: { background: "var(--yesil)", color: "#fff", border: "1px solid var(--yesil)" },
@@ -38,17 +38,18 @@ export function Btn({ tur = "primary", children, ikon, style, kucuk, ...rest }) 
   );
 }
 
-export function Rozet({ ton = "gray", children, style }) {
+export function Rozet({ ton = "gray", children, style, ...rest }) {
   const tonlar = {
     green: ["var(--yesil-acik)", "var(--yesil)"],
     red: ["var(--kirmizi-acik)", "var(--kirmizi)"],
-    yellow: ["var(--sari-acik)", "#7A6300"],
+    yellow: ["var(--uyari-acik)", "var(--uyari-metin)"], // uyarı anlamı: temayla değişmez
     purple: ["var(--mor-acik)", "var(--mor)"],
     gray: ["#EEECF2", "var(--soluk)"],
   };
   const [bg, fg] = tonlar[ton] || tonlar.gray;
   return (
     <span
+      {...rest}
       style={{
         display: "inline-flex",
         alignItems: "center",
@@ -159,17 +160,17 @@ export function Modal({ baslik, ust, children, altBar, onKapat, genislik = 900, 
               justifyContent: "space-between",
               padding: "18px 24px",
               background: "var(--mor)",
-              color: "#fff",
+              color: "var(--ana-ustu, #fff)",
             }}
           >
-            <span className="baslik" style={{ color: "#fff", fontSize: 26, fontWeight: 700 }}>
+            <span className="baslik" style={{ color: "var(--ana-ustu, #fff)", fontSize: 26, fontWeight: 700 }}>
               {baslik}
             </span>
             <button
               type="button"
               onClick={onKapat}
               aria-label="Kapat"
-              style={{ background: "none", border: 0, color: "#D8CCE9", fontSize: 22, cursor: "pointer" }}
+              style={{ background: "none", border: 0, color: "var(--ana-ustu-soluk, #d8cce9)", fontSize: 22, cursor: "pointer" }}
             >
               ×
             </button>

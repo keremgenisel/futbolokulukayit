@@ -260,7 +260,7 @@ const SABLON_ORNEK = [
   "Ayşe Yıldız",
   "05329876543",
   "Evet",
-  "Eyüp İlkokulu",
+  "Atatürk İlkokulu",
   "İstanbul",
   "",
   "A Rh+",

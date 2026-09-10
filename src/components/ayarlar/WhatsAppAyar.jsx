@@ -112,7 +112,7 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
                     lineHeight: 1.45,
                     fontFamily: "inherit",
                     resize: "vertical",
-                    background: taslak[t] !== kayitli[t] ? "var(--sari-acik)" : "#fff",
+                    background: taslak[t] !== kayitli[t] ? "var(--uyari-acik)" : "#fff",
                   }}
                 />
               </label>
@@ -173,8 +173,8 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
             )}
             <div
               style={{
-                border: "1px solid var(--sari)",
-                background: "var(--sari-acik)",
+                border: "1px solid var(--uyari)",
+                background: "var(--uyari-acik)",
                 borderRadius: 10,
                 padding: "12px 14px",
                 fontSize: 13,
@@ -199,7 +199,7 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
             gap: 12,
             padding: "12px 16px",
             background: "#fff",
-            border: "1px solid var(--sari)",
+            border: "1px solid var(--uyari)",
             borderRadius: 10,
             boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
           }}

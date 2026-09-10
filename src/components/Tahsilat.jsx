@@ -1,9 +1,21 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Modal, Bos, useToast, useDene, ParaGirdi } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
-import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
+import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
+import { UzunDonemModal } from "./UzunDonemModal.jsx";
+
+// Bugünden ileriye (12 ay) ilk ödenmemiş/muaf olmayan ay; hepsi ödenmişse null. dues: listDues çıktısı.
+function ilkOdenmemisAy(dues, yil, ay) {
+  for (let i = 0; i < 12; i++) {
+    const t = yil * 12 + (ay - 1) + i;
+    const d = { yil: Math.floor(t / 12), ay: (t % 12) + 1 };
+    const due = dues.find((x) => x.yil === d.yil && x.ay === d.ay);
+    if (!due || due.durum === "odenmedi" || due.durum === "kismi") return d;
+  }
+  return null;
+}
 
 export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSecildi }) {
   const [q, setQ] = useState("");
@@ -25,6 +37,8 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [bugunku, setBugunku] = useState([]);
   const [iptal, setIptal] = useState(null);
   const [bekliyor, setBekliyor] = useState(false);
+  const [uzunDonemAcik, setUzunDonemAcik] = useState(false); // Uzun Dönem Seç modalı (plan §24)
+  const [aktifSezon, setAktifSezon] = useState("");
   const toast = useToast();
   const dene = useDene();
   const { yil, ay } = bugun();
@@ -32,6 +46,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const bugunkuYukle = useCallback(async () => {
     try {
       const sd = await db("sezonDurumu"); // Bugün kesilenler: yalnız aktif sezonun makbuzları (plan §17.2)
+      setAktifSezon(sd?.aktifSezon || "");
       setBugunku(await db("listReceiptsByDate", bugun().iso, bugun().iso, sd?.aktifSezon || null));
     } catch {}
   }, []);
@@ -74,9 +89,11 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
         const d = await db("listDues", id);
         setAidatlar(d);
         const ilkBorc = [...d].reverse().find((x) => x.durum === "odenmedi" || x.durum === "kismi"); // en eski borç önce
-        const secim = ilkBorc ? { yil: ilkBorc.yil, ay: ilkBorc.ay } : { yil, ay };
+        // Borç yoksa: bugünden ileriye ilk ÖDENMEMİŞ ay (bu ay peşin ödenmişse bir sonraki; 12 ay ileriye kadar bakılır) —
+        // ödenmiş ay seçili gelmesin (Kerem, 10.09.2026).
+        const secim = ilkBorc ? { yil: ilkBorc.yil, ay: ilkBorc.ay } : ilkOdenmemisAy(d, yil, ay);
         const muaf = p.ucret_tipi === "ucretsiz" || !(p.aylik_aidat > 0);
-        setAidatAylar(muaf ? {} : { [ayAnahtar(secim.yil, secim.ay)]: String(ilkBorc ? aidatKalan(ilkBorc) : p.aylik_aidat) });
+        setAidatAylar(muaf || !secim ? {} : { [ayAnahtar(secim.yil, secim.ay)]: String(ilkBorc ? aidatKalan(ilkBorc) : p.aylik_aidat) });
         setSecili({});
       });
     },
@@ -91,26 +108,37 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   }, [secilenOyuncuId, kalemler, oyuncuSec, onSecildi]);
 
   const donemSecenekleri = (() => {
+    // Borç = vadesi gelmiş (bu ay ve öncesi) ödenmemiş/kısmi aylar. İleri tarihli "odenmedi" satırları (iptal edilen uzun
+    // dönem makbuzunun açtığı ya da peşin ödeme için oluşturulan aylar) borç DEĞİL: kırmızı listelenmez, aşağıdaki
+    // "gelecek" kümesinde sade seçenek olarak yer alır (Kerem, 10.09.2026: iptal sonrası tüm gelecek aylar kırmızıydı).
+    const acik = (a) => a.durum === "odenmedi" || a.durum === "kismi";
     const borclar = aidatlar
-      .filter((a) => a.durum === "odenmedi" || a.durum === "kismi")
+      .filter((a) => acik(a) && !gelecekAcikAidatMi(a, yil, ay))
       .map((a) => ({ yil: a.yil, ay: a.ay, borc: true, kismi: a.durum === "kismi", kalan: aidatKalan(a) }))
       .sort((a, b) => a.yil - b.yil || a.ay - b.ay);
+    // Bugünden ileriye 3 seçilebilir ay: ödenmiş/muaf aylar atlanır (peşin ödeyen oyuncuda pil boş kalmasın), 12 ay ileriye kadar.
     const gelecek = [];
     let y = yil,
       m = ay;
-    for (let i = 0; i < 3; i++) {
-      if (
-        !aidatlar.some((a) => a.yil === y && a.ay === m && a.durum !== "odenmedi" && a.durum !== "kismi") &&
-        !borclar.some((b) => b.yil === y && b.ay === m)
-      )
-        gelecek.push({ yil: y, ay: m });
+    for (let i = 0; i < 12 && gelecek.length < 3; i++) {
+      const due = aidatlar.find((a) => a.yil === y && a.ay === m);
+      if ((!due || acik(due)) && !borclar.some((b) => b.yil === y && b.ay === m))
+        gelecek.push({ yil: y, ay: m, borc: false, kismi: due?.durum === "kismi", kalan: due ? aidatKalan(due) : null });
       m++;
       if (m > 12) {
         m = 1;
         y++;
       }
     }
-    return [...borclar, ...gelecek];
+    // Uzun Dönem ile seçilmiş ama yukarıdaki pencereye girmeyen aylar da pil olarak görünsün (görüp kaldırabilmek için).
+    const ekstra = Object.keys(aidatAylar)
+      .map(ayCoz)
+      .filter((d) => !borclar.some((b) => b.yil === d.yil && b.ay === d.ay) && !gelecek.some((g) => g.yil === d.yil && g.ay === d.ay))
+      .map((d) => {
+        const due = aidatlar.find((a) => a.yil === d.yil && a.ay === d.ay);
+        return { ...d, borc: false, kismi: due?.durum === "kismi", kalan: due ? aidatKalan(due) : null };
+      });
+    return [...borclar, ...[...gelecek, ...ekstra].sort((a, b) => a.yil - b.yil || a.ay - b.ay)];
   })();
 
   const aidatKalem = kalemler.find((k) => k.kod === "aidat");
@@ -143,6 +171,30 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     .map(ayCoz)
     .sort((a, b) => a.yil - b.yil || a.ay - b.ay);
   const aidatEtiket = secliAylar.length ? "Aidat · " + secliAylar.map((d) => `${AY_ADLARI[d.ay - 1]} ${d.yil}`).join(", ") : "Aidat";
+  // Uzun Dönem Seç (plan §24): aralıktaki tüm ayları tek çağrıda garanti et, seçimi TAMAMEN bu aralıkla değiştir
+  // (mevcut tek tük seçimler yerine — modal genelde boş seçimden açılır); aidatlar de tazelenir ki sonraki
+  // elle aç/kapa (ayToggle) doğru "kalan" tutarı bulsun.
+  // Ödenmiş/muaf aylar aralığa girmez (Kerem, 10.09.2026: "ödenmiş olanlar gösterilmesin"): modal önizlemede atlar,
+  // burada da (aralık açılınca yeni öğrenilen bir ay ödenmiş çıkarsa) kalanı 0 olan ay listeye alınmaz.
+  const odenmisAylar = new Set(aidatlar.filter((a) => a.durum === "odendi" || a.durum === "muaf").map((a) => ayAnahtar(a.yil, a.ay)));
+  const uzunDonemUygula = (aylar) =>
+    dene(async () => {
+      await db("ensureMonthlyDuesAraligi", oyuncu.id, aylar);
+      const d = await db("listDues", oyuncu.id);
+      setAidatlar(d);
+      const n = {};
+      for (const { yil: y, ay: a } of aylar) {
+        const due = d.find((x) => x.yil === y && x.ay === a);
+        const kalan = due ? aidatKalan(due) : Number(oyuncu.aylik_aidat) || 0;
+        if (kalan > 0) n[ayAnahtar(y, a)] = String(kalan);
+      }
+      const sayi = Object.keys(n).length;
+      setAidatAylar(n);
+      setUzunDonemAcik(false);
+      toast(sayi ? "ok" : "err", sayi ? `${sayi} ay seçildi` : "Seçilen aralıkta ödenmemiş ay yok");
+    });
+  // Modala varsayılan başlangıç: en eski ödenmemiş/kısmi ay (borç varsa önce o kapanmalı), yoksa bugün.
+  const enEskiBorc = [...aidatlar].reverse().find((a) => a.durum === "odenmedi" || a.durum === "kismi");
 
   const kaydet = async (yazdir) => {
     if (!oyuncu) return toast("err", "Önce oyuncu seçin");
@@ -317,20 +369,42 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             )}
             {oyuncu && aidatKalem && (
               <div>
-                <div
-                  style={{
-                    fontSize: 12,
-                    color: "var(--soluk)",
-                    fontWeight: 600,
-                    textTransform: "uppercase",
-                    letterSpacing: ".05em",
-                    marginBottom: 8,
-                  }}
-                >
-                  Aidat dönemi{" "}
-                  <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
-                    · birden fazla ay seçilebilir, tek makbuz kesilir
-                  </span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--soluk)",
+                      fontWeight: 600,
+                      textTransform: "uppercase",
+                      letterSpacing: ".05em",
+                    }}
+                  >
+                    Aidat dönemi{" "}
+                    <span style={{ fontWeight: 400, textTransform: "none", letterSpacing: 0 }}>
+                      · birden fazla ay seçilebilir, tek makbuz kesilir
+                    </span>
+                  </div>
+                  {!saltOkunur && (
+                    <button
+                      type="button"
+                      onClick={() => setUzunDonemAcik(true)}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        background: "none",
+                        border: "none",
+                        padding: "4px 6px",
+                        cursor: "pointer",
+                        color: "var(--mor)",
+                        fontSize: 13,
+                        fontWeight: 600,
+                      }}
+                    >
+                      <Ikon ad="takvim" boyut={16} />
+                      <span>Uzun Dönem Seç</span>
+                    </button>
+                  )}
                 </div>
                 <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
                   {donemSecenekleri.map((d) => {
@@ -358,7 +432,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                       >
                         {d.borc ? <Ikon ad="uyari" boyut={16} /> : null}
                         {AY_ADLARI[d.ay - 1]} {d.yil}
-                        {d.borc ? (d.kismi ? ` · kalan ${paraTR(d.kalan)}` : " · ödenmedi") : ""}
+                        {d.kismi ? ` · kalan ${paraTR(d.kalan)}` : d.borc ? " · ödenmedi" : ""}
                       </button>
                     );
                   })}
@@ -627,6 +701,17 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             </Alan>
           </div>
         </Modal>
+      )}
+      {uzunDonemAcik && oyuncu && (
+        <UzunDonemModal
+          oyuncuAdi={oyuncu.ad_soyad}
+          aylikAidat={oyuncu.aylik_aidat}
+          baslangic={enEskiBorc ? { yil: enEskiBorc.yil, ay: enEskiBorc.ay } : undefined}
+          sezon={aktifSezon}
+          odenmisAylar={odenmisAylar}
+          onUygula={uzunDonemUygula}
+          onKapat={() => setUzunDonemAcik(false)}
+        />
       )}
     </div>
   );

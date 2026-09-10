@@ -179,8 +179,8 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         <div
           role="alert"
           style={{
-            background: "var(--sari-acik)",
-            border: "1.5px solid var(--sari)",
+            background: "var(--uyari-acik)",
+            border: "1.5px solid var(--uyari)",
             borderRadius: 10,
             padding: "12px 16px",
             display: "flex",

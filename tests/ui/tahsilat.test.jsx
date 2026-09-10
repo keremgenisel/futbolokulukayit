@@ -76,6 +76,137 @@ describe("Tahsilat: tek makbuzda birden fazla aidat ayı", () => {
     );
   });
 
+  it("Uzun Dönem Seç: ödenmiş aylar aralıktan atlanır, kalanı 0 olan ay listeye girmez (10.09.2026 hatası)", async () => {
+    const kalemler = [{ id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 5000, aktif: 1 }];
+    const oyuncu = { id: 7, ad_soyad: "Kerem Genisel", dogum_tarihi: "2018-12-13", ucret_tipi: "normal", aylik_aidat: 5000 };
+    // Eylül–Kasım 2026 ödenmiş, Aralık 2026 borç; modal 6 ay seçse de yalnız ödenmemişler kalmalı.
+    const dues = [
+      { id: 1, player_id: 7, yil: 2026, ay: 9, tutar: 5000, odenen: 5000, durum: "odendi" },
+      { id: 2, player_id: 7, yil: 2026, ay: 10, tutar: 5000, odenen: 5000, durum: "odendi" },
+      { id: 3, player_id: 7, yil: 2026, ay: 11, tutar: 5000, odenen: 5000, durum: "odendi" },
+      { id: 4, player_id: 7, yil: 2026, ay: 12, tutar: 5000, odenen: 0, durum: "odenmedi" },
+    ];
+    window.okul = {
+      db: vi.fn(async (fn, ...a) => {
+        if (fn === "listFeeItems") return kalemler;
+        if (fn === "getSetting") return "";
+        if (fn === "listReceiptsByDate") return [];
+        if (fn === "sezonDurumu") return { aktifSezon: "2026-2027" };
+        if (fn === "getPlayer") return oyuncu;
+        if (fn === "listDues") return [...dues].sort((x, y) => y.yil - x.yil || y.ay - x.ay);
+        if (fn === "ensureMonthlyDuesAraligi") {
+          for (const d of a[1])
+            if (!dues.some((x) => x.yil === d.yil && x.ay === d.ay))
+              dues.push({ id: dues.length + 1, player_id: 7, yil: d.yil, ay: d.ay, tutar: 5000, odenen: 0, durum: "odenmedi" });
+          return a[1].map((d) => dues.find((x) => x.yil === d.yil && x.ay === d.ay));
+        }
+        return [];
+      }),
+      cikti: { yazdir: vi.fn() },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ ad_soyad: "Yönetici" }} saltOkunur={false} secilenOyuncuId={7} onSecildi={() => {}} />
+      </ToastSaglayici>,
+    );
+    fireEvent.click(await screen.findByText("Uzun Dönem Seç"));
+    const dlg = await screen.findByRole("dialog", { name: "Uzun Dönem Seç" });
+    // Varsayılan başlangıç en eski borç (Aralık 2026); aralığı elle Eylül 2026'dan başlatıp ödenmişleri kapsat
+    fireEvent.change(within(dlg).getByLabelText("Başlangıç ayı"), { target: { value: "2026-9" } });
+    fireEvent.change(within(dlg).getByLabelText("Bitiş ayı"), { target: { value: "2027-2" } });
+    expect(dlg).toHaveTextContent("3 ay seçilecek: Aralık 2026 – Şubat 2027");
+    expect(dlg).toHaveTextContent("3 ay zaten ödenmiş, atlandı");
+    expect(dlg).toHaveTextContent("15.000 ₺");
+    fireEvent.click(within(dlg).getByRole("button", { name: "Uygula" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Uzun Dönem Seç" })).not.toBeInTheDocument());
+    expect(screen.queryByLabelText("Eylül 2026 aidat tutarı")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Kasım 2026 aidat tutarı")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Aralık 2026 aidat tutarı")).toHaveValue("5.000");
+    expect(screen.getByLabelText("Şubat 2027 aidat tutarı")).toHaveValue("5.000");
+    expect(screen.getByText("TOPLAM").parentElement).toHaveTextContent("15.000 ₺");
+    // Aralık tamamen ödenmiş olsaydı: aralıkta hiç ay kalmaz, Uygula kapalı
+  });
+
+  it("bu ay peşin ödenmişse seçili gelen ay bir sonraki ödenmemiş ay; piller ödenmiş ayları atlar", async () => {
+    const t = new Date();
+    const yil = t.getFullYear(),
+      ay = t.getMonth() + 1;
+    const ekle = (n) => {
+      const x = yil * 12 + (ay - 1) + n;
+      return { yil: Math.floor(x / 12), ay: (x % 12) + 1 };
+    };
+    const AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    const ad = (d) => `${AYLAR[d.ay - 1]} ${d.yil}`;
+    const dues = [0, 1].map((n) => ({ id: n + 1, player_id: 9, ...ekle(n), tutar: 5000, odenen: 5000, durum: "odendi" }));
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "listFeeItems") return [{ id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 5000, aktif: 1 }];
+        if (fn === "getSetting") return "";
+        if (fn === "getPlayer") return { id: 9, ad_soyad: "Peşin Ödeyen", ucret_tipi: "normal", aylik_aidat: 5000 };
+        if (fn === "listDues") return dues;
+        return [];
+      }),
+      cikti: { yazdir: vi.fn() },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ ad_soyad: "Yönetici" }} saltOkunur={false} secilenOyuncuId={9} onSecildi={() => {}} />
+      </ToastSaglayici>,
+    );
+    const secili = await screen.findByRole("button", { pressed: true });
+    expect(secili).toHaveAccessibleName(ad(ekle(2))); // bu ay ve sonraki ödenmiş → 3. ay
+    expect(screen.queryByRole("button", { name: ad(ekle(0)) })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { pressed: false }).filter((b) => /\d{4}$/.test(b.getAttribute("aria-label") || "")).length).toBe(
+      2,
+    );
+    expect(screen.getByLabelText(`${ad(ekle(2))} aidat tutarı`)).toHaveValue("5.000");
+  });
+
+  it("iptalle geri açılan gelecek aylar borç değil: yalnız vadesi gelmiş ay kırmızı, ileri aylar sade ve en fazla 3 (10.09.2026)", async () => {
+    const t = new Date();
+    const yil = t.getFullYear(),
+      ay = t.getMonth() + 1;
+    const ekle = (n) => {
+      const x = yil * 12 + (ay - 1) + n;
+      return { yil: Math.floor(x / 12), ay: (x % 12) + 1 };
+    };
+    const AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    const ad = (d) => `${AYLAR[d.ay - 1]} ${d.yil}`;
+    // Geçen ay + bu ay borç; iptal edilen 12 aylık makbuzdan kalan 10 gelecek ay "odenmedi" satırı
+    const dues = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n, i) => ({
+      id: i + 1,
+      player_id: 3,
+      ...ekle(n),
+      tutar: 5000,
+      odenen: 0,
+      durum: "odenmedi",
+    }));
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "listFeeItems") return [{ id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 5000, aktif: 1 }];
+        if (fn === "getSetting") return "";
+        if (fn === "getPlayer") return { id: 3, ad_soyad: "İptal Sonrası", ucret_tipi: "normal", aylik_aidat: 5000 };
+        if (fn === "listDues") return [...dues].reverse();
+        return [];
+      }),
+      cikti: { yazdir: vi.fn() },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ ad_soyad: "Yönetici" }} saltOkunur={false} secilenOyuncuId={3} onSecildi={() => {}} />
+      </ToastSaglayici>,
+    );
+    const secili = await screen.findByRole("button", { pressed: true });
+    expect(secili).toHaveAccessibleName(ad(ekle(-1))); // en eski borç
+    const piller = screen.getAllByRole("button").filter((b) => b.hasAttribute("aria-pressed"));
+    expect(piller.map((b) => b.getAttribute("aria-label"))).toEqual([ad(ekle(-1)), ad(ekle(0)), ad(ekle(1)), ad(ekle(2)), ad(ekle(3))]);
+    expect(piller.filter((b) => b.textContent.includes("ödenmedi")).length).toBe(2); // geçen ay + bu ay
+    expect(piller[2].textContent).toBe(ad(ekle(1))); // gelecek ay sade
+  });
+
   it("makbuz iptali neden ister; nedensiz iptal gönderilmez, nedenle cancelReceipt(id, neden) çağrılır", async () => {
     window.okul = {
       db: vi.fn(async (fn) => {

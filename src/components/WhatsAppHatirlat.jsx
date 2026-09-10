@@ -145,7 +145,7 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
                 data-testid="wa-sayac"
                 style={{
                   background: "var(--sari)",
-                  color: "var(--mor-koyu)",
+                  color: "var(--vurgu-ustu, var(--mor-koyu))",
                   fontWeight: 700,
                   fontSize: 14,
                   padding: "6px 12px",
@@ -204,8 +204,8 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
               gap: 14,
               padding: "12px 16px",
               borderRadius: 10,
-              border: `1px solid ${grupGonderildi ? "var(--yesil)" : "var(--sari)"}`,
-              background: grupGonderildi ? "#EAF7EE" : "var(--sari-acik)",
+              border: `1px solid ${grupGonderildi ? "var(--yesil)" : "var(--uyari)"}`,
+              background: grupGonderildi ? "#EAF7EE" : "var(--uyari-acik)",
             }}
           >
             <div style={{ flex: 1, minWidth: 0 }}>

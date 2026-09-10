@@ -139,6 +139,16 @@ function ensureMonthlyDues(yil, ay, pid = null) {
   tx();
   return n;
 }
+// Bir aralıktaki TÜM ayları tek işlemde garanti eder (Tahsilat > Uzun Dönem Seç, plan §24): N ayrı
+// ensureMonthlyDues çağrısı yerine tek transaction; sonuçta oluşan/var olan satırları döner (renderer
+// her ay için ayrıca getDue çağırmasın). aylar: [{ yil, ay }, ...] — sırası önemli değil.
+function ensureMonthlyDuesAraligi(pid, aylar) {
+  const tx = db.transaction(() => {
+    for (const { yil, ay } of aylar) ensureMonthlyDues(yil, ay, pid);
+  });
+  tx();
+  return aylar.map(({ yil, ay }) => getDue(pid, yil, ay));
+}
 const getDue = (pid, yil, ay) => db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay) || null;
 // limit verilirse yalnız son N dönem (oyuncu kartı); verilmezse tümü.
 const listDues = (pid, limit = null) =>
@@ -204,6 +214,7 @@ module.exports = {
   updateFeeItem,
   aidatAyarlariKaydet,
   ensureMonthlyDues,
+  ensureMonthlyDuesAraligi,
   getDue,
   listDues,
   listUnpaid,

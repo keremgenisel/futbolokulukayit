@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Ikon } from "./Ikon.jsx";
+import { VARSAYILAN_KULUP } from "../lib/marka.js";
 
 // Kenar menü: sola doğru daraltılır (yalnız ikonlar), sağa doğru genişletilir — GenCRM'deki gibi.
 // Tercih bu bilgisayara özel (localStorage); sunucuya gitmez.
@@ -19,7 +20,9 @@ function menuDarYaz(dar) {
   }
 }
 
-export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra }) {
+export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra, marka }) {
+  const kisaAd = (marka?.kisaAd || VARSAYILAN_KULUP).toLocaleUpperCase("tr-TR");
+  const altYazi = marka?.altYazi || "Kayıt Programı";
   const [dar, setDar] = useState(menuDarOku);
   const degistir = () =>
     setDar((v) => {
@@ -40,7 +43,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
         borderRadius: 8,
         border: "1px solid rgba(255,255,255,.25)",
         background: "rgba(255,255,255,.1)",
-        color: "#fff",
+        color: "var(--ana-ustu, #fff)",
         cursor: "pointer",
         display: "grid",
         placeItems: "center",
@@ -76,14 +79,32 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
           marginBottom: 16,
         }}
       >
-        <img src="./logo.png" alt="" style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0 }} />
+        <img
+          src={marka?.logo || "./logo.png"}
+          alt=""
+          data-kulup-logo={marka?.logo ? "1" : "0"}
+          style={{ width: 44, height: 44, objectFit: "contain", flexShrink: 0, borderRadius: marka?.logo ? 0 : 10 }}
+        />
         {!dar && (
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span className="baslik" style={{ color: "#fff", fontSize: 20, fontWeight: 700, letterSpacing: ".04em", lineHeight: 1 }}>
-              EYÜPSPOR
+          <div style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+            <span
+              className="baslik"
+              title={kisaAd}
+              style={{
+                color: "var(--ana-ustu, #fff)",
+                fontSize: kisaAd.length > 12 ? 16 : 20,
+                fontWeight: 700,
+                letterSpacing: ".04em",
+                lineHeight: 1,
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
+              {kisaAd}
             </span>
             <span style={{ color: "var(--sari)", fontSize: 12, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" }}>
-              Futbol Okulu
+              {altYazi}
             </span>
           </div>
         )}
@@ -105,7 +126,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
             borderRadius: 8,
             border: "1px solid rgba(255,255,255,.25)",
             background: "rgba(255,255,255,.12)",
-            color: "#fff",
+            color: "var(--ana-ustu, #fff)",
             cursor: "pointer",
             fontSize: 14,
           }}
@@ -113,9 +134,15 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
           <Ikon ad="ara" boyut={18} />
           {!dar && (
             <>
-              <span style={{ flex: 1, textAlign: "left", color: "#D8CCE9" }}>Oyuncu ara…</span>
+              <span style={{ flex: 1, textAlign: "left", color: "var(--ana-ustu-soluk, #d8cce9)" }}>Oyuncu ara…</span>
               <span
-                style={{ fontSize: 11, border: "1px solid rgba(255,255,255,.3)", borderRadius: 6, padding: "1px 6px", color: "#D8CCE9" }}
+                style={{
+                  fontSize: 11,
+                  border: "1px solid rgba(255,255,255,.3)",
+                  borderRadius: 6,
+                  padding: "1px 6px",
+                  color: "var(--ana-ustu-soluk, #d8cce9)",
+                }}
               >
                 Ctrl K
               </span>
@@ -138,7 +165,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
               fontSize: 15,
               cursor: "pointer",
               background: tab === t.kod ? "rgba(255,255,255,.14)" : "transparent",
-              color: tab === t.kod ? "#fff" : "#D8CCE9",
+              color: tab === t.kod ? "var(--ana-ustu, #fff)" : "var(--ana-ustu-soluk, #d8cce9)",
               fontWeight: tab === t.kod ? 600 : 400,
               border: 0,
               borderLeft: `3px solid ${tab === t.kod ? "var(--sari)" : "transparent"}`,
@@ -169,7 +196,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
             onClick={onCikis}
             title="Çıkış"
             aria-label="Çıkış"
-            style={{ background: "none", border: 0, color: "#D8CCE9", padding: 4, cursor: "pointer" }}
+            style={{ background: "none", border: 0, color: "var(--ana-ustu-soluk, #d8cce9)", padding: 4, cursor: "pointer" }}
           >
             <Ikon ad="cikis" boyut={16} />
           </button>
@@ -179,7 +206,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
           style={{
             borderTop: "1px solid rgba(255,255,255,.15)",
             padding: "12px 10px",
-            color: "#D8CCE9",
+            color: "var(--ana-ustu-soluk, #d8cce9)",
             fontSize: 14,
             display: "flex",
             alignItems: "flex-start",
@@ -187,7 +214,15 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
           }}
         >
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: "#fff", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div
+              style={{
+                color: "var(--ana-ustu, #fff)",
+                fontWeight: 600,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {oturum.ad_soyad || oturum.username}
             </div>
             <div style={{ fontSize: 12 }}>{oturum.role === "admin" ? "Yönetici" : "Kullanıcı"}</div>
@@ -203,7 +238,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra })
               style={{
                 background: "none",
                 border: 0,
-                color: "#D8CCE9",
+                color: "var(--ana-ustu-soluk, #d8cce9)",
                 padding: 0,
                 cursor: "pointer",
                 fontSize: 12,

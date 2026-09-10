@@ -113,8 +113,8 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
             {(onizleme.hatalar.length > 0 || onizleme.uyarilar.length > 0) && (
               <div
                 style={{
-                  background: "var(--sari-acik)",
-                  border: "1px solid var(--sari)",
+                  background: "var(--uyari-acik)",
+                  border: "1px solid var(--uyari)",
                   borderRadius: 10,
                   padding: "10px 14px",
                   fontSize: 13,

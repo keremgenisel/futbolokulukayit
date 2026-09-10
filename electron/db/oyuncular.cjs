@@ -1,5 +1,6 @@
 // ── players, guardians, emergency contacts, liste/sayfa sorguları ──
 const { db } = require("./baglanti.cjs");
+const { ZORUNLU_BELGELER } = require("../belgeDogrula.cjs");
 const { ensureMonthlyDues } = require("./aidat.cjs");
 const { getSetting } = require("./meta.cjs");
 const { tarihinSezonu } = require("../makbuzNo.cjs");
@@ -89,7 +90,45 @@ function listPlayers({ q = "", yas_grubu_id = null, durum = null } = {}) {
   const sql = `SELECT p.*, g.ad AS yas_grubu_ad FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY p.ad_soyad`;
   return db.prepare(sql).all(...args);
 }
-const deletePlayer = (id) => db.prepare("DELETE FROM players WHERE id=?").run(id);
+// Makbuz kesilmiş oyuncu silinmez (receipts ON DELETE RESTRICT: makbuz numarası sırası ve tahsilat raporu bozulmaz; iptal
+// makbuz da sayılır). Ham "FOREIGN KEY constraint failed" yerine açık mesaj; arayüz "Ayrıldı" durumunu önerir (plan §31).
+function deletePlayer(id) {
+  const n = db.prepare("SELECT count(*) AS n FROM receipts WHERE player_id=?").get(id).n;
+  if (n > 0)
+    throw new Error(
+      `Bu oyuncunun ${n} makbuzu var; makbuz kesilmiş oyuncu silinemez. Oyuncu kartındaki "Sil" kişisel verileri siler, makbuzları korur.`,
+    );
+  return db.prepare("DELETE FROM players WHERE id=?").run(id);
+}
+
+const anonimAd = (id) => `Silinmiş Oyuncu #${id}`;
+// Makbuzlu oyuncunun kişisel verilerini siler, makbuzları korur (KVKK "silme"; plan §31). Tek işlemde: kimlik/iletişim
+// alanları boşaltılır, ad "Silinmiş Oyuncu #id" olur, grup bağı kalkar, durum 'ayrildi'; veli/acil kişi/belge/aidat/yoklama/
+// mesaj/sezon üyeliği satırları silinir; makbuzlar adı (receipts.oyuncu_adi damgası), tutarı, numarası ve PDF'iyle olduğu gibi kalır.
+// Dosya silme ana süreçte (ipc/files.cjs) yapılır: dönüşteki `dosyalar` (uploads'a göreli) ve `klasor` (oyuncu-<id>) kaldırılır.
+function oyuncuKisiselVeriSil(id, kullanici = "") {
+  id = Number(id);
+  return db.transaction(() => {
+    const p = db.prepare("SELECT id, ad_soyad, foto_yolu FROM players WHERE id=?").get(id);
+    if (!p) throw new Error("Oyuncu bulunamadı");
+    const dosyalar = db
+      .prepare("SELECT dosya_yolu AS y FROM documents WHERE player_id=?")
+      .all(id)
+      .map((r) => r.y)
+      .filter(Boolean);
+    if (p.foto_yolu) dosyalar.push(p.foto_yolu);
+    for (const t of ["documents", "guardians", "emergency_contacts", "monthly_dues", "attendance", "message_log", "player_seasons"])
+      db.prepare(`DELETE FROM ${t} WHERE player_id=?`).run(id);
+    // Makbuz mali belgedir: kesildiği andaki ad damgalanır (Kerem, 10.09.2026: "oyuncunun adı makbuzda kalsın"); PDF'ler de kalır
+    db.prepare("UPDATE receipts SET oyuncu_adi=? WHERE player_id=? AND oyuncu_adi=''").run(p.ad_soyad, id);
+    const makbuz = db.prepare("SELECT count(*) AS n FROM receipts WHERE player_id=?").get(id).n;
+    db.prepare(
+      `UPDATE players SET ad_soyad=?, tc_no='', pasaport_no='', dogum_tarihi=NULL, dogum_yeri='', okul='', gsm='', adres='',
+       kan_grubu='', foto_yolu='', yas_grubu_id=NULL, durum='ayrildi', notlar=?, updated_at=datetime('now') WHERE id=?`,
+    ).run(anonimAd(id), `Kişisel verileri silindi: ${new Date().toISOString().slice(0, 10)} (${String(kullanici || "")})`, id);
+    return { ok: true, dosyalar: [...new Set(dosyalar)], klasor: "oyuncu-" + id, makbuz };
+  })();
+}
 
 // ── guardians / emergency ──
 const listGuardians = (pid) => db.prepare("SELECT * FROM guardians WHERE player_id=? ORDER BY veli_mi DESC, id").all(pid);
@@ -139,6 +178,7 @@ function playersWhere({
   ay,
   sadeceOdemeyen = false,
   saglikSorunlu = false,
+  eksikBelge = false, // zorunlu belgelerden ("diger" hariç) en az biri yüklenmemiş (plan §25)
   bugun = null,
   sezon = null, // raporlar: yalnız o sezonun oyuncuları (players.sezon; plan §17.5)
 } = {}) {
@@ -172,13 +212,18 @@ function playersWhere({
     );
     args.push(String(bugun || new Date().toISOString().slice(0, 10)));
   }
+  if (eksikBelge) {
+    const yer = ZORUNLU_BELGELER.map(() => "?").join(",");
+    where.push(`(SELECT count(DISTINCT dd.tip) FROM documents dd WHERE dd.player_id=p.id AND dd.tip IN (${yer})) < ?`);
+    args.push(...ZORUNLU_BELGELER, ZORUNLU_BELGELER.length);
+  }
   const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
     ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
   return { govde, args };
 }
 const PLAYER_SELECT =
-  "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
+  "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT group_concat(DISTINCT dd.tip) FROM documents dd WHERE dd.player_id=p.id) AS belge_tipleri, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
 function listPlayersWithDue(opts = {}) {
   const { govde, args } = playersWhere(opts);
   return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
@@ -202,6 +247,8 @@ module.exports = {
   getPlayer,
   listPlayers,
   deletePlayer,
+  oyuncuKisiselVeriSil,
+  anonimAd,
   listGuardians,
   addGuardian,
   updateGuardian,

@@ -5,6 +5,7 @@ const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
 const db = require("../db.cjs");
+const { acikTon } = require("../tema.cjs");
 const config = require("../config.cjs");
 const koruma = require("./koruma.cjs");
 const istemci = require("../istemci.cjs");
@@ -117,7 +118,11 @@ function registerCiktiHandlers(getSession) {
     const ws = wb.addWorksheet(String(veri.sayfa || "Rapor").slice(0, 30));
     ws.columns = veri.sutunlar.map((c) => ({ header: c.baslik, key: c.anahtar, width: c.genislik || 18 }));
     ws.getRow(1).font = { bold: true };
-    ws.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFEDE6F6" } };
+    ws.getRow(1).fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF" + acikTon(db.getSetting("tema_ana")).slice(1).toUpperCase() },
+    }; // kulüp ana renginin açık tonu (plan §32.4)
     for (const s of veri.satirlar) ws.addRow(s);
     await wb.xlsx.writeFile(r.filePath);
     shell.openPath(r.filePath).catch(() => {});
@@ -125,4 +130,4 @@ function registerCiktiHandlers(getSession) {
   });
 }
 
-module.exports = { registerCiktiHandlers };
+module.exports = { registerCiktiHandlers, htmlToPdf }; // htmlToPdf: e2e PDF doğrulaması için

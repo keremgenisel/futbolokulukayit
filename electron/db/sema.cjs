@@ -4,7 +4,7 @@ const { getMetaValue, setMetaValue } = require("./meta.cjs");
 const { createUser } = require("./kullanicilar.cjs");
 const { araNormalize } = require("../metin.cjs");
 
-const SCHEMA_VERSION = 17; // 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
+const SCHEMA_VERSION = 18; // 18: receipts.oyuncu_adi (kişisel veri silinen oyuncunun makbuzdaki adı; plan §31); 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -155,6 +155,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   iptal_nedeni TEXT DEFAULT '',
   iptal_eden TEXT DEFAULT '',
   iptal_zamani TEXT,
+  oyuncu_adi TEXT NOT NULL DEFAULT '',            -- şema 18: kişisel verisi silinen oyuncunun makbuz kesildiği andaki adı (boşsa players.ad_soyad)
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -273,6 +274,7 @@ function migrate() {
   if (!makbuzKolon.has("iptal_eden")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_eden TEXT DEFAULT ''");
   if (!makbuzKolon.has("iptal_zamani")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_zamani TEXT");
   if (!makbuzKolon.has("sezon")) db.exec("ALTER TABLE receipts ADD COLUMN sezon TEXT NOT NULL DEFAULT ''"); // 14
+  if (!makbuzKolon.has("oyuncu_adi")) db.exec("ALTER TABLE receipts ADD COLUMN oyuncu_adi TEXT NOT NULL DEFAULT ''"); // 18
   const dueKolon = new Set(
     db
       .prepare("PRAGMA table_info(monthly_dues)")

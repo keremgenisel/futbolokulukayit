@@ -9,6 +9,7 @@ const koruma = require("./koruma.cjs");
 const istemci = require("../istemci.cjs");
 const { optimizeImage } = require("../imageOptimize.cjs");
 const { belgeGirdiDogrula } = require("../belgeDogrula.cjs");
+const { kulupLogoKaydet, kulupLogoKaldir, LOGO_MAX_BAYT } = require("../kulupLogo.cjs");
 
 const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
@@ -37,8 +38,21 @@ function uploadsIci(p) {
   return tam;
 }
 
+// Kişisel veri silme çekirdeği (IPC ve sunucu ortak): DB işlemi, ardından dosyalar ve oyuncu klasörü.
+function kisiselVeriSilCekirdek(playerId, kullanici) {
+  const r = db.oyuncuKisiselVeriSil(playerId, kullanici);
+  eskiDosyalariSil(r.dosyalar);
+  try {
+    fs.rmSync(uploadsIci(r.klasor), { recursive: true, force: true });
+  } catch {
+    /* klasör yok */
+  }
+  return { ok: true, makbuz: r.makbuz };
+}
+
 function registerFileHandlers(getSession) {
   const yetki = koruma.firlatarak(getSession, { saltOkunurMu: () => !config.istemciMi() && db.lisansSaltOkunurMu() });
+  const yonetici = koruma.firlatarak(getSession, { yonetici: true, saltOkunurMu: () => !config.istemciMi() && db.lisansSaltOkunurMu() });
   const oturum = koruma.firlatarak(getSession);
 
   // Belge yükle: dialog aç, kopyala, kaydet. Dönüş: yeni belge kaydı veya { iptal: true }.
@@ -100,6 +114,43 @@ function registerFileHandlers(getSession) {
     return { ok: true };
   });
 
+  // Makbuzlu oyuncunun kişisel verilerini sil (plan §31): yalnız yönetici; DB satırları + belge/foto/makbuz PDF dosyaları +
+  // uploads/oyuncu-<id>/ klasörü. Makbuzlar kalır. İstemci modunda sunucu yapar.
+  ipcMain.handle("files:oyuncuKisiselVeriSil", async (_e, playerId) => {
+    yonetici();
+    if (config.istemciMi())
+      return istemci.istek("/api/files/oyuncuKisiselVeriSil", { method: "POST", body: { playerId: Number(playerId) } });
+    const s = getSession();
+    return kisiselVeriSilCekirdek(Number(playerId), s.ad_soyad || s.username);
+  });
+
+  // Kulüp logosu (plan §32.3): yalnız yönetici; diyalogdan PNG/JPEG seçilir, küçültülüp uploads/kulup/ altına yazılır
+  ipcMain.handle("files:kulupLogoSec", async (e) => {
+    yonetici();
+    const win = BrowserWindow.fromWebContents(e.sender);
+    const r = await dialog.showOpenDialog(win, {
+      title: "Kulüp logosu seç",
+      properties: ["openFile"],
+      filters: [{ name: "Logo (PNG, JPEG)", extensions: ["png", "jpg", "jpeg"] }],
+    });
+    if (r.canceled || !r.filePaths[0]) return { iptal: true };
+    const kaynak = r.filePaths[0];
+    const uz = path.extname(kaynak).toLowerCase();
+    if (fs.statSync(kaynak).size > LOGO_MAX_BAYT) throw new Error("Logo 5 MB'tan büyük");
+    if (config.istemciMi())
+      return istemci.istek("/api/files/kulupLogoSec", {
+        method: "POST",
+        timeoutMs: 60000,
+        body: { uzanti: uz, base64: fs.readFileSync(kaynak).toString("base64") },
+      });
+    return kulupLogoKaydet(fs.readFileSync(kaynak), uz);
+  });
+  ipcMain.handle("files:kulupLogoSil", async () => {
+    yonetici();
+    if (config.istemciMi()) return istemci.istek("/api/files/kulupLogoSil", { method: "POST", body: {} });
+    return kulupLogoKaldir();
+  });
+
   ipcMain.handle("files:open", async (_e, yol) => {
     oturum();
     if (config.istemciMi()) return shell.openPath(await istemci.dosyaIndir(String(yol)));
@@ -118,4 +169,4 @@ function registerFileHandlers(getSession) {
   });
 }
 
-module.exports = { registerFileHandlers, uploadsIci, eskiDosyalariSil };
+module.exports = { registerFileHandlers, uploadsIci, eskiDosyalariSil, kisiselVeriSilCekirdek };

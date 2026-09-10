@@ -8,4 +8,6 @@ function belgeGirdiDogrula({ playerId, tip, gecerlilik }) {
   if (g && !/^\d{4}-\d{2}-\d{2}$/.test(g)) throw new Error("Geçerlilik tarihi geçersiz");
   return { playerId: id, tip: String(tip), gecerlilik: g };
 }
-module.exports = { belgeGirdiDogrula, BELGE_TIPLERI };
+// Zorunlu belgeler: "diger" hariç (src/lib/belge.js ZORUNLU_BELGELER ile aynı; test bunu denetler). Oyuncular > "Eksik belgesi olanlar".
+const ZORUNLU_BELGELER = [...BELGE_TIPLERI].filter((t) => t !== "diger");
+module.exports = { belgeGirdiDogrula, BELGE_TIPLERI, ZORUNLU_BELGELER };

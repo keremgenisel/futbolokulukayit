@@ -732,7 +732,7 @@ UYGULAMA
 ### 16.4 Süre
 ~45 dk (menü + sihirbaz öğesi 20, test 15, belge/smoke 10). Davranış değişikliği yalnız sihirbazın giriş yeri.
 
-### 16.5 Karar bekleyen
+### 16.5 Karar bekleyen — KAPANDI 10.09.2026 (uygulanan gruplama: WhatsApp Mesajları KULÜP altında; SEZON VE VERİ adı kaldı)
 - Grup adları ve dağılım yukarıdaki gibi mi? Alternatif: WhatsApp Mesajları "SEZON VE VERİ" yerine "KULÜP" altında (öneri:
   KULÜP, çünkü şablon metinleri kulübün dili). "Yedekleme" ve "Optimizasyon" için "VERİ" yeterli olabilir; "SEZON VE VERİ"
   tek kelimeye inebilir ("VERİ").
@@ -1057,8 +1057,9 @@ eski adla çözülüp yeni adla yeniden şifrelendi; `baglanti.getDbKey` artık 
 taşınır (kurulu kullanıcı yok).
 
 ### 23.1 Sonraya bırakılanlar (Kerem, 09.09.2026: "planlara ekle")
-1. **Giriş ekranı ve kenar menü markası:** "EYÜPSPOR / Futbol Okulu" yazısı ve `build/icon.png` logosu sabit. Öneri: Ayarlar >
-   Kulüp'teki `kulup_adi` (ve yüklenebilir kulüp logosu) gösterilsin; ayar boşsa "Futbol Okulu Kayıt Programı".
+1. **Giriş ekranı ve kenar menü markası:** "EYÜPSPOR / Futbol Okulu" yazısı sabit. Öneri: Ayarlar > Kulüp'teki `kulup_adi`
+   (ve yüklenebilir kulüp logosu) gösterilsin; ayar boşsa "Futbol Okulu Kayıt Programı". — KAPANDI 10.09.2026 (§32: kısa ad,
+   kuruluş yılı, kulüp logosu ve renkler Ayarlar > Kulüp'ten; oturumsuz `app:marka`).
 2. ~~**Varsayılan kulüp adı sabitleri:** `src/lib/whatsapp.js VARSAYILAN_KULUP`, `makbuzHtml.js`/`yoklamaFormuHtml.js`/`yazdir.js`
    "EYÜPSPOR FUTBOL OKULU", `raporHtml.js` altbilgi "Eyüpspor Futbol Okulu", Kulüp ayarı ve İlk Kurulum yer tutucuları
    "EYÜPSPOR FUTBOL OKULU", Excel `wb.creator`, kurtarma kodları çıktısı başlığı, `serverTls.cjs` sertifika adı, `istemci.cjs`
@@ -1080,3 +1081,340 @@ taşınır (kurulu kullanıcı yok).
    10.09.2026 (§8.1 madde 8). Kod imzalama sertifikası hâlâ yok: SmartScreen ilk açılışta uyarır; sertifika alınırsa
    `win.certificateFile`/`signtool` ayarı (§8.1 madde 10, bütçe kararı).
 
+## 24. Tahsilat — Uzun Dönem Seç (çok aylık/sezonluk ödeme) ve makbuzda özet satırı (PLANLANDI ve UYGULANDI, 10.09.2026)
+
+Kerem: bir oyuncu tüm sezonu ya da 6 ay gibi uzun bir dönemi tek makbuzda ödemek isterse Tahsilat ekranında ve makbuzda
+nasıl gösterelim — 6 ay tek tek yazılırsa makbuz 2 sayfaya taşıyor, bunun önüne geçelim.
+
+### 24.1 Sorun
+Tahsilat'taki ay seçimi (`donemSecenekleri`) yalnız borçlu aylar + bugünden itibaren 3 gelecek ay öneriyordu; "sezonu
+öde"/"6 ay öde" arayüzde mümkün değildi. Makbuzda (`makbuzHtml.js`) her seçili ay ayrı tam-genişlik satır açıyordu;
+6-10 ay + diğer kalemler eklenince iki kopyayı (kulüp+veli) tek A4'e sığdıran şablon ikinci sayfaya taşıyordu.
+
+### 24.2 Karar (Kerem, 10.09.2026)
+- **Eşik: 3 ve altı ay tek tek satırda (bugünkü gibi); 4+ ay tek özet satırda** ("AİDAT · İLK AY–SON AY (N AY)" + toplam).
+  Veritabanında her ay hâlâ ayrı `receipt_lines` satırı — yalnız kağıda basılan görünüm değişti.
+- Tahsilat'a **"Uzun Dönem Seç"** bağlantısı (Modal, sayfa değil — uygulamada router yok, her yerde Modal kullanılıyor):
+  hızlı seçim (3 Ay / 6 Ay / Sezon Sonuna Kadar) veya elle başlangıç-bitiş ayı; "Uygula" seçilen aralığı doldurur,
+  kullanıcı geri kalan ekranda (ödeme yöntemi, diğer kalemler) tek tek ay/tutar düzenlemeye devam edebilir.
+- **"Sezon Sonuna Kadar" ve modalın varsayılan başlangıcı, oyuncunun en eski ödenmemiş/kısmi ayından başlar** (borç
+  varsa önce o kapanmalı), borç yoksa bugünden.
+- Önce mockup (Claude Design canvas, 4 artboard: bağlantı eklenmiş ekran, modal, 6 ay seçili ekran, özet makbuz),
+  sonra bu plan bölümü, sonra uygulama — Kerem'in istediği sıra.
+
+### 24.3 Teknik
+- `src/lib/aidat.js`: SAF `ayAraligi(yilBas, ayBas, yilBit, ayBit)` (kronolojik ay listesi, ters aralığı düzeltir) ve
+  `ayEkle(yil, ay, n)` (N ay sonrası, yıl taşması dahil) — hızlı seçim ve elle aralık aynı yolu kullanır.
+- `electron/db/aidat.cjs`: `ensureMonthlyDuesAraligi(pid, aylar)` — bir aralıktaki TÜM ayları tek transaction'da
+  garanti eder (N ayrı `ensureMonthlyDues` çağrısı yerine), oluşan/var olan satırları döner; `db.cjs` dış API'sine ve
+  `yetki.cjs` beyaz listesine eklendi (mevcut kullanıcı de çağırabilir, `ensureMonthlyDues` ile aynı sınıf).
+- `src/components/UzunDonemModal.jsx` (yeni): hızlı seçim + elle aralık + önizleme ("N ay seçilecek: … · Toplam …"),
+  `onUygula(aylar)` ile ay listesini parent'a döner (veritabanı yazma ve `aidatAylar` doldurma `Tahsilat.jsx`'te).
+- `src/components/Tahsilat.jsx`: "Aidat dönemi" başlığının yanına bağlantı; `uzunDonemUygula` → `ensureMonthlyDuesAraligi`
+  + `listDues` yenile + `aidatAylar`'ı tamamen yeni aralıkla değiştir (modal genelde boş seçimden açıldığı için birleştirme
+  yerine değiştirme tercih edildi).
+- `src/lib/makbuzHtml.js`: `AY_OZET_ESIGI = 3`; `aidatSatirlari.length > eşik` ise kalem tablosunda tek özet satır +
+  toplam, "Dönem:" bilgi satırı da tam liste yerine aralık (`İlk Ay – Son Ay`) gösterir.
+
+### 24.3a Düzeltme: ödenmiş aylar aralıktan atlanır (Kerem, 10.09.2026: "ödenmiş olanlar gösterilmesin")
+İlk sürümde aralık ödenmiş ayları da kapsıyordu; `aidatKalan` bu aylar için doğru olarak 0 döndürdüğünden listede
+"Eylül 2026 → 0" gibi satırlar görünüyor, toplam yanlış anlaşılıyordu ("3 ay seçilince ücret 0"). Şimdi: `Tahsilat.jsx`
+ödenmiş/muaf ayların "yil-ay" kümesini (`odenmisAylar`) modala verir; modal aralığı bu kümeyle süzer, önizleme yalnız
+tahsil edilecek ayları sayar ("N ay zaten ödenmiş, atlandı"), hiç ay kalmazsa Uygula kapalı. `uzunDonemUygula` da
+(aralık açılınca yeni öğrenilen bir ay ödenmiş çıkarsa diye) kalanı 0 olan ayı listeye almaz. Test:
+`tests/ui/tahsilat.test.jsx` "Uzun Dönem Seç: ödenmiş aylar aralıktan atlanır".
+
+### 24.3b Düzeltme: peşin ödenmiş ay seçili gelmesin, piller ödenmişleri atlasın (10.09.2026, gerçek pencere testinde bulundu)
+Oyuncunun borcu yoksa Tahsilat bu ayı seçili getiriyordu — bu ay peşin ödenmişse 5.000 ₺'lik ödenmiş ay seçili geliyor,
+"gelecek ay" pilleri de yalnız 3 ay ileriye bakıp ödenmişleri sayınca boş kalabiliyordu. Şimdi `ilkOdenmemisAy` bugünden
+ileriye (12 ay) ilk ödenmemiş/muaf olmayan ayı seçer; pil listesi de 12 ay içinde ödenmemiş 3 ay bulana kadar tarar.
+Test: `tests/ui/tahsilat.test.jsx` "bu ay peşin ödenmişse…".
+
+### 24.3c Düzeltme: gelecek aylar borç değil (Kerem, 10.09.2026: iptal sonrası ekran görüntüsü)
+Uzun dönem makbuzu iptal edilince (ya da peşin ödeme için aralık açılınca) ileri tarihli aylar veritabanında "odenmedi"
+kalıyor; Tahsilat bunların hepsini kırmızı "ödenmedi" pili olarak listeliyordu (Ağustos 2028'e kadar). Karar: borç =
+vadesi gelmiş (bu ay ve öncesi) ödenmemiş/kısmi aylar; ileri tarihli açık aylar borç sayılmaz, "gelecek" kümesinde
+(en fazla 3, ödenmişler atlanarak) sade seçenek olarak durur; kısmi ödenmiş ileri ay "kalan …" ile gösterilir. Veri
+silinmez (ay gelince zaten oluşturulacaktı; raporlar etkilenmez). Kural tek saf yardımcıda: `aidat.js gelecekAcikAidatMi`;
+oyuncu kartı Ödemeler sekmesi de bu ayları listelemez ve "N borç" rozeti saymaz (ödenmiş/kısmi ileri ay görünür; son 12
+dönem penceresi süzmeden sonra uygulanır). Testler: `tests/ui/tahsilat.test.jsx` "iptalle geri açılan gelecek aylar borç
+değil", `tests/ui/oyuncu-karti-sekmeler.test.jsx` "ileri tarihli açık aylar listelenmez", e2e "iptal sonrası: yalnız bu ay
+'ödenmedi'".
+
+### 24.4 Testler
+- `tests/aidat.test.js`: `ayAraligi` (aynı yıl, yıl sınırı aşan, ters aralık, tek ay), `ayEkle` (yıl taşması).
+- `tests/makbuz-html.test.js`: 3 ay ve altı hâlâ ayrı satır; 4+ ay tek özet satır + doğru toplam + aralık gösteren
+  "Dönem:" satırı.
+- `scripts/tests/db-roundtrip.cjs` (Electron altında gerçek SQLite, `tests/db-electron.test.js` sarmalar):
+  `ensureMonthlyDuesAraligi` tek çağrıda tüm ayları açar, var olan ayı bozmaz.
+- `scripts/tests/tahsilat-durumlar.cjs` (gerçek main.cjs + pencere, `tests/tahsilat-e2e.test.js` sarmalar; `npm run build`
+  gerekir, test:saf dışında): 34 kontrol — borçsuz/borçlu/peşin ödenmiş/kısmi/ücretsiz oyuncu, elle 3 ay + makbuz (ayrı
+  satırlar, PDF), Uzun Dönem 3 Ay / 6 Ay (makbuzda tek özet satır) / Sezon Sonuna Kadar / elle aralık (ödenmişler atlanır,
+  tümü ödenmişse Uygula kapalı), makbuz iptali (aylar geri açılır), bugünkü tahsilat rozeti. `[ekranGoruntusuDizini]`
+  verilirse her adımın ekran görüntüsünü yazar.
+
+### 24.5 Mockup
+Claude Design canvas'ı (dört artboard: bağlantı eklenmiş Tahsilat, Uzun Dönem Seç modalı, 6 ay seçili Tahsilat, özet
+satırlı makbuz) — oturum içinde yayınlandı, uygulamadan önce Kerem'e onaylatıldı.
+
+## 25. Oyuncular — "Eksik belge" pili (UYGULANDI, 10.09.2026)
+
+Kerem: eksik belgesi olan oyuncularda "eksik belge" pili olsun; belge türlerinden "Diğer" bunun dışında kalsın.
+- SAF: `src/lib/belge.js` `BELGE_TIPLERI` (oyuncu kartı > Belgeler ile tek liste; sekme artık buradan alır), `ZORUNLU_BELGELER`
+  (`istege` olmayanlar: sağlık raporu, vesikalık, sporcu kimlik, veli kimlik, imzalı kayıt formu), `eksikBelgeler(tipler)`
+  (dizi ya da virgüllü metin → eksik türler).
+- DB: `playersPage`/`listPlayersWithDue` satırına `belge_tipleri` (`group_concat(DISTINCT tip)`).
+- Arayüz: `Oyuncular.jsx` ad yanında sarı "Eksik belge (N)" rozeti; üzerine gelince ve erişilebilirlik adında eksik türlerin
+  adları. Sağlık raporu kendi kırmızı pilini korur (eksikse iki pil de görünür). `Rozet` artık `title`/`aria-label` gibi
+  ek nitelikleri geçirir.
+- Testler: `tests/belge.test.js`, `tests/ui/oyuncular-eksik-belge.test.jsx`, `scripts/tests/db-roundtrip.cjs` (`belge_tipleri`).
+- Filtre (Kerem, 10.09.2026): "Sağlık raporu olmayanlar"ın yanında "Eksik belgesi olanlar" düğmesi; `playersWhere` `eksikBelge`
+  (zorunlu türlerden `count(DISTINCT tip) < 5`; liste `electron/belgeDogrula.cjs ZORUNLU_BELGELER`, ESM listesiyle eşitliği
+  `tests/guvenlik-saf.test.js` denetler). Sayfalama DB'de olduğu için süzme de DB'de.
+
+## 26. Yoklama — seçili düğmeye yeniden tıklayınca işaret kaldırılır (UYGULANDI, 10.09.2026)
+
+Kerem: "Geldi" seçildikten sonra üstüne bir daha tıklanınca seçili olmasın; şu an hiçbir şekilde boş olmuyor.
+- `Yoklama.jsx isaretle`: seçili durumla aynı düğmeye tıklama → işaret kaldırılır (işaretlenmedi); farklı düğme → durum değişir.
+  Düğmelerde `aria-pressed` ve ipucu.
+- `db.setAttendance(tid, pid, null)`: satırı siler (takvim/kart sayaçları ve raporlar buna göre düşer). Sunucu modu aynı
+  beyaz liste üzerinden aynı davranır.
+- Testler: `tests/ui/yoklama.test.jsx` (kaldır/yeniden işaretle/durum değiştir), `scripts/tests/db-roundtrip.cjs`.
+- Gerçek pencere testi genişletildi (10.09.2026, `scripts/tests/oyuncular-e2e.cjs`, `tests/oyuncular-e2e.test.js` sarmalar,
+  `[ekranGoruntusuDizini]` ile görüntü): satır rozetleri (grup/durum/ücret/aidat), sağlık pilleri (yok/tarihsiz/süresi doldu),
+  "Eksik belge (N)" pili ve ipucu, tam belgeli oyuncuda pil yok, yalnız "Diğer" olanda 5, "Eksik belgesi olanlar" filtresi
+  (arama ve sağlık filtresiyle birleşim), veli adı/telefonu, satıra tıklayınca oyuncu kartı, Yeni Oyuncu formuyla kayıt.
+
+## 27. Yaş Grupları — gerçek pencere testi (10.09.2026)
+
+`scripts/tests/yas-gruplari-e2e.cjs` (`tests/yas-gruplari-e2e.test.js` sarmalar; `npm run build` gerekir, test:saf dışında;
+`[ekranGoruntusuDizini]` ile görüntü): varsayılan liste (aktif sezon + yalnız aktif gruplar, "(aktif sezon)" etiketi, "N grup ·
+M gizli" özeti), aktif oyuncu sayısı (pasif oyuncu sayılmaz), program özeti, "Pasif grupları da göster" (kutu işaretliyken
+pasife alınan grup listede kalır, kutu kapatılınca düşer, pasif kalmayınca kutu kaybolur), durum rozetiyle Aktif↔Pasif, Grup
+Ekle (düğme / Enter / boş ad kapalı / sonraki sezona ekleyince süzgeç o sezona geçer ve "(gelecek)"), sezon süzgeci (eski sezon
+"(eski)"), Düzenle (ad/sıra/program/sezon) + Vazgeç, Sil (oyuncusu olan grup silinemez; boş grup silinir). Not: sezonu
+sonraki sezona taşınan grup, §21 üyelik geçmişi gereği eski sezon listesinde "(gelecek)" etiketiyle kalır.
+
+## 28. Yoklama — gerçek pencere testi ve "Kalanları Geldi İşaretle" düzeltmesi (10.09.2026)
+
+- **Hata (gerçek pencere testinde bulundu):** "Kalanları Geldi İşaretle" döngü içinde ilk işaretsiz oyuncuda `return` ediyordu —
+  yalnız ilk oyuncu kaydediliyor, ekran/sayaç/takvim güncellenmiyordu. Şimdi işaretsiz herkes sırayla kaydedilir, toast "N oyuncu
+  geldi olarak kaydedildi" (kimse yoksa "İşaretlenmemiş oyuncu yok"). Test: `tests/ui/yoklama.test.jsx`.
+- `scripts/tests/yoklama-e2e.cjs` (`tests/yoklama-e2e.test.js` sarmalar; `npm run build` gerekir, test:saf dışında;
+  `[ekranGoruntusuDizini]` ile görüntü): takvim şeridi (bugün seçili, gri/mor/yeşil/kırmızı noktalar, hafta okları, Bugün, Tarihe
+  git), boş gün, Antrenman Ekle formu (grup seçilmeden uyarı), kart (grup · saat, saha, x/y işaretli, seçili), oyuncu listesi
+  (pasif oyuncu yok, "Aidat" rozeti, "n aidat borcu"), Geldi/Gelmedi/İzinli + yeniden tıklayınca kaldırma, sayaçlar, Kalanları
+  Geldi İşaretle, Düzenle (yoklama alınmışsa tarih kilitli; "Değişiklik yok"; saat/saha değişince bildirim sorusu, kartta
+  "Velilere bildirilmedi", "Velilere Bildir" penceresi), Haftayı Programdan Doldur (ekleme / tekrar → atlanan / programsız grup),
+  İptal Et (onay, Vazgeç, "İptal" rozeti, düğmeler kapalı, kırmızı nokta, veritabanı).
+
+## 29. Raporlar — gerçek pencere testi genişletildi (10.09.2026)
+
+`scripts/tests/raporlar-e2e.cjs` (`tests/raporlar-e2e.test.js` sarmalar; `[ekranGoruntusuDizini]` ile görüntü) eskiden yalnız
+filtreleri sınıyordu; eklenenler: başlangıç boş durumu ("Filtreleri seçip Önizle'ye basın"), 5 rapor kartı + seçili vurgu +
+açıklamalar, önizleme sonrası "Filtre değişti" / "Filtre ve rapor değişti" pili, **Excel dışa aktarımı** (kaydetme diyaloğu
+test dosyasına yönlendirilir; exceljs ile sayfa adı, başlık satırı, satır sayısı, `creator` = kulüp adı doğrulanır), **PDF dışa
+aktarımı** (dosya + `%PDF-` imzası), tahsilat raporunda iptal makbuzu (not + alt başlıkta iptal sayısı/tutarı), borçlu listesinde
+kısmi ödeme (kalan), yoklama özetinde katılım yüzdesi, yaş grubu kutusu. Betik artık PDF'in gizli penceresini yok sayar
+(`basladi` koruması).
+
+## 30. Uygulama logosu (UYGULANDI, 10.09.2026)
+
+Kerem: "logo renkleri kırmızı beyaz olsun, C logosunu seçiyorum ve futbol topuna vuran bir krampon olsun" → "beyaz zemin
+sürümünü uygula". Tasarım tuvali: https://claude.ai/code/artifact/54f6240d-883c-4b69-a2a4-f7e6df1af619 (yön C "Kayıt Kartı":
+beyaz pano + koyu kırmızı başlık/klips, sol altta topa vuran krampon + hız çizgileri, sağ altta top; palet #E0101F / #7A0A12 / beyaz).
+
+- **Uygulama ikonu ≠ kulüp arması.** `build/icon.png` (1024×1024 RGBA, beyaz zemin sürümü) exe / kurulum sihirbazı / masaüstü
+  kısayolu (electron-builder `win.icon`, .ico'yu üretir) ve pencere ikonu (`main.cjs`). Eski Eyüpspor arması `build/kulup-logo.png`
+  oldu; makbuz / yoklama formu / rapor başlığındaki `app:logo` artık onu okur (`electron/kulupLogo.cjs kulupLogoYolu`).
+- **Paketli sürüm hatası düzeltildi:** `build/` asar'a girmiyor (`files` yalnız dist+electron); eski kod `../build/icon.png`'yi
+  okuyamayıp makbuzları logosuz basıyordu. Artık `extraResources` armayı `resources/kulup-logo.png`'ye kopyalar ve paketli
+  uygulamada `process.resourcesPath` kullanılır.
+- `public/logo.png` (512) giriş ekranı + kenar menü (`Giris.jsx`, `KenarMenu.jsx`; köşe yarıçapı ile).
+- Kaynak SVG'ler `build/logo.svg` (beyaz zemin, kullanılan) ve `build/logo-kirmizi.svg` (kırmızı zemin, yedek). PNG üretimi
+  Electron canvas ile (SVG → PNG; makinede rsvg/magick yok).
+- Test `tests/logo-dosyalari.test.js` (boyut/alfa, package.json ve main.cjs bağlantıları, `kulupLogoYolu`).
+- Açık: §23.1 madde 1'in yazı kısmı — giriş/kenar menüdeki "EYÜPSPOR" sabit metni hâlâ duruyor (kulüp adı ayarından gelmeli).
+
+## 31. Makbuzlu oyuncu: silme yerine kişisel veri silme (UYGULANDI, 10.09.2026)
+
+Kerem (yeni PC'de deneme): "oyuncuyu silmeye çalıştım, bağlı kayıtlar olduğu için oyuncu silinemedi hatası veriyor." →
+"oyuncuyu silmek istersek?" → seçim: **kişisel veriyi sil, makbuzları koru** (KVKK silme; tahsilat raporu ve makbuz numarası
+sırası bozulmaz). Sebep: `receipts.player_id` bilerek `ON DELETE RESTRICT`; onay mesajı ise "makbuzlarıyla silinecek" diyordu
+ve hata ham FK hatasının çevirisiydi.
+
+- **Makbuzsuz oyuncu** (yanlış kayıt, deneme): eskisi gibi `deletePlayer` — belge/aidat/yoklama/veli/mesaj CASCADE ile gider.
+  Makbuz varsa `deletePlayer` açık mesajla reddeder.
+- **Makbuzlu oyuncu**: kartta "Sil" → onay ("N makbuz kesilmiş; makbuzlar tutar ve numarasıyla korunur; kişisel veriler kalıcı
+  silinir; kayıt 'Silinmiş Oyuncu #id' olarak kalır; geri alınamaz") → `files.oyuncuKisiselVeriSil(id)` (yalnız yönetici, salt
+  okunurda red): `db.oyuncuKisiselVeriSil` tek işlemde ad → "Silinmiş Oyuncu #id", TC/pasaport/doğum tarihi-yeri/okul/GSM/adres/
+  kan grubu/foto boş, grup bağı NULL, durum `ayrildi`, not "Kişisel verileri silindi: <tarih> (<kullanıcı>)"; `documents`,
+  `guardians`, `emergency_contacts`, `monthly_dues`, `attendance`, `message_log`, `player_seasons` satırları silinir.
+  **Makbuzlar olduğu gibi kalır** (Kerem: "oyuncunun adı makbuzda kalsın"): silme anında oyuncunun adı `receipts.oyuncu_adi`
+  damgasına yazılır (şema 18; boşsa sorgular `players.ad_soyad` kullanır: `COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad)`),
+  makbuz PDF'leri de silinmez. Ana süreç (`ipc/files.cjs kisiselVeriSilCekirdek`, sunucuda `/api/files/oyuncuKisiselVeriSil`)
+  dönen dosya listesini (belge, foto) ve `uploads/oyuncu-<id>/` klasörünü siler. `db:call` beyaz listesinde değil.
+- Makbuz ekranları ve tahsilat raporu o makbuzları eski adıyla gösterir; Oyuncular > Ayrıldı süzgecinde oyuncu
+  "Silinmiş Oyuncu #id" adıyla listelenir.
+- Testler: `scripts/tests/db-roundtrip.cjs` (makbuzlu → deletePlayer hatası; makbuzsuz → silinir; kişisel veri silme: alanlar,
+  bağlı satırlar, makbuz kalır, dosya listesi, olmayan oyuncu), `scripts/tests/server-security.cjs` (yönetici olmayana 403;
+  dosya+klasör silinir, ad anonim), `tests/ui/oyuncu-karti-sil.test.jsx` (4).
+
+## 32. Kulüp kimliği: logo, renkler, giriş ekranı markası (UYGULANDI, 10.09.2026)
+
+Kerem: "Ayarlardan kulüp kendi logosunu koyabilmeli ve bu logo tahsilat makbuzunda da olmalı (şu an Eyüpspor logosu var);
+uygulama renklerini kendi istediği gibi seçebilmeli; giriş ekranındaki kulüp adını ve kuruluş tarihini değiştirebilmeli."
+Amaç: program kulüpten tamamen bağımsız olsun (Eyüpspor sabitleri bitsin — §23.1 madde 1 buna dahil), her kurulum kendi
+kimliğini Ayarlar > Kulüp'ten versin.
+
+### 32.1 Bugünkü durum (neden gerekli)
+- Logo: `app:logo` sabit `build/kulup-logo.png` (Eyüpspor arması) okur; makbuz, yoklama formu ve rapor başlığı onu basar.
+  Giriş ekranı ve kenar menü artık uygulama logosunu (`public/logo.png`, §30) gösteriyor; kulüp logosuna yer yok.
+- Marka yazısı: `Giris.jsx` "EYÜPSPOR" + "Kuruluş 1919", `KenarMenu.jsx` "EYÜPSPOR / Futbol Okulu" — sabit metin.
+- Renkler: `src/ui.css` CSS değişkenleri (`--mor`, `--mor-koyu`, `--mor-acik`, `--sari`, `--sari-acik`, `--kirmizi`, `--yesil`,
+  `--zemin`, `--metin`, `--soluk`, `--cizgi`); bileşenlerin çoğu `var(--…)` kullanıyor (~400 kullanım) ama ~21 yerde sabit hex
+  (`#5B2D8E` ×6, `#3F1D66` ×9, `#EDE6F6` ×3, `#F5D000` ×2, `#E0101F` ×1) var; makbuz/rapor/yoklama HTML şablonları ve Excel
+  başlık dolgusu (`cikti.cjs:120` `FFEDE6F6`) sabit hex.
+- Giriş ekranı oturumsuzdur: `db:call getSetting` oturum ister (yetki.cjs). Marka bilgisi için oturumsuz bir kanal yok.
+
+### 32.2 Ayar anahtarları (settings tablosu; hepsi yönetici, `setSetting` ADMIN setinde)
+| Anahtar | Anlam | Varsayılan |
+|---|---|---|
+| `kulup_adi` | tam ad (makbuz, rapor altbilgi, Excel creator) — VAR | "" → "Futbol Okulu" |
+| `kulup_kisa_ad` | giriş ekranı ve kenar menü büyük başlığı ("EYÜPSPOR") | boşsa `kulup_adi`, o da boşsa "Futbol Okulu" |
+| `kulup_alt_yazi` | kenar menü alt satırı ("Futbol Okulu") | "Futbol Okulu" |
+| `kurulus_yili` | giriş ekranı "Kuruluş 1919" | boş → satır gizlenir |
+| `kulup_logo` | uploads'a göreli yol (`kulup/logo.png`) | boş → makbuz/formda logo yok (yalnız ad) |
+| `tema_ana` | ana renk (`--mor`) | `#5b2d8e` |
+| `tema_vurgu` | vurgu rengi (`--sari`, "Makbuz Kes", kenar menü alt yazısı) | `#f5d000` |
+| `tema_preset` | seçilen hazır paletin adı (yalnız arayüz için) | "mor-sari" |
+Türetilenler ayar değil, hesaplanır (32.4): `--mor-koyu`, `--mor-acik`, `--sari-acik`, ana renk üstü metin rengi.
+
+### 32.3 Kulüp logosu
+- Dosya: `uploads/kulup/logo.png` (yedek ve taşıma paketi `uploads/`'ı zaten kapsar → logo otomatik yedeklenir/taşınır).
+- IPC `files:kulupLogoSec` (yönetici; diyalog PNG/JPEG; ≤ 5 MB; `resimBoyutu` ≤ 50 MP; `imageOptimize` ile ≤ 512 px'e küçült,
+  PNG ise PNG kalır (şeffaflık), JPEG ise JPEG) → `uploads/kulup/logo.<png|jpg>` yazar, `kulup_logo` ayarını yazar, eski dosyayı
+  siler. `files:kulupLogoSil` → dosya + ayar temizlenir. İstemci modunda sunucu uçları (`/api/files/kulupLogo*`).
+- `app:logo` → önce `kulup_logo` (dosya varsa data URL), yoksa "" (logo yok). `guvenliLogo` yalnız png/jpeg data URL kabul
+  eder — WebP/HEIC seçilirse JPEG'e dönüştürülür (imageOptimize ile), bu yüzden regex değişmez.
+- **Eyüpspor geçişi (karar gerekiyor):** güncellemeden sonra Eyüpspor kurulumunda makbuz logosu kaybolmasın diye bir sürüm boyunca
+  `build/kulup-logo.png` yedek kalır mı, yoksa Ayarlar'da tek seferlik "logo yükleyin" uyarısıyla (SifresizUyari benzeri şerit)
+  hemen mi kalkar? Öneri: yedek KALKSIN, `build/kulup-logo.png` depodan silinsin (ürün kulüpten bağımsız), Eyüpspor PC'sinde
+  güncellemeden sonra Ayarlar > Kulüp'ten arma yüklensin (docs/kurulum.md'ye adım). `extraResources` ve `kulupLogo.cjs` kalkar.
+- Kullanıldığı yerler: makbuz (`makbuzHtml`), yoklama formu, rapor PDF başlığı, **giriş ekranı** (uygulama logosunun yanında
+  ya da yerine — karar: kulüp logosu varsa onu, yoksa uygulama logosunu göster; öneri bu), kenar menü (aynı kural).
+- Excel'e logo konmaz (exceljs görsel destekler ama gereksiz).
+
+### 32.4 Renk teması
+- Saf modül `src/lib/tema.js` (`// @ts-check`, vitest): `temaTuret({ ana, vurgu })` → `{ mor, morKoyu, morAcik, sari, sariAcik,
+  anaUstuMetin }` (HSL ile koyu %25, açık %92 karışım; ana üstü metin: WCAG kontrast ≥ 4.5 ise beyaz, değilse `--metin`),
+  `renkGecerliMi(s)` (`^#[0-9a-f]{6}$`), `PRESETLER` (Mor-Sarı [bugünkü], Kırmızı-Beyaz, Lacivert-Turuncu, Yeşil-Beyaz,
+  Siyah-Sarı, Mavi-Beyaz; her biri `{ ad, ana, vurgu }`).
+- Uygulama: `src/lib/temaUygula.js` → `document.documentElement.style.setProperty("--mor", …)` vb.; `App.jsx` oturum
+  açılınca ayarlardan, giriş ekranı `app:marka` ile (32.5) oturumsuz uygular; Ayarlar'da seçim anında canlı önizleme, "Kaydet"
+  ile kalıcı, "Vazgeç" eskiyi geri koyar.
+- Sabit hex temizliği: 21 bileşen kullanımı `var(--…)`'a çevrilir (davranış değişmez; kontrol: `grep -rE "#(5B2D8E|3F1D66|EDE6F6|
+  F5D000|E0101F)" src` → 0, test `tests/tema-sabit-renk.test.js` bunu sınar). Kenar menü/giriş ekranı zemini `--mor`.
+- Şablonlar: `makbuzHtml`, `raporHtml`, `yoklamaFormuHtml` `tema` parametresi alır (varsayılan bugünkü palet); `yazdir.js`/
+  `Raporlar.jsx`/`Oyuncular.jsx`/`Yoklama.jsx` ayardan geçirir. Excel başlık dolgusu `tema_ana` açık tonundan (`cikti.cjs`
+  `getSetting`). Güncelleme şeridi sarısı `--sari` (zaten değişken).
+- Ana süreç doğrulaması: `setSetting` `tema_*` için `renkGecerliMi` (CJS ikizi `electron/tema.cjs` ya da regex tek yerde;
+  `tests/guvenlik-saf.test.js` ikiz eşitliği), `kurulus_yili` 4 hane ya da boş, `kulup_kisa_ad` ≤ 40 karakter. Renk değeri
+  CSS'e `setProperty` ile girer (metin olarak; enjeksiyon yok) ve şablonlara regex'ten geçmiş değer girer.
+- Kontrast koruması: ana renk çok açıksa (beyaz metin okunmuyorsa) Ayarlar uyarır ("Bu renkte yazılar okunmayabilir") ve
+  `anaUstuMetin` koyu olur; kırmızı/yeşil/uyarı renkleri sabit kalır (anlam taşır).
+
+### 32.5 Giriş ekranı (oturumsuz marka kanalı)
+- Yeni IPC `app:marka` (oturum GEREKMEZ; yalnız marka verisi, kişisel veri yok): `{ kulupAdi, kisaAd, altYazi, kurulusYili,
+  logo (data URL | ""), tema: { ana, vurgu } }`. Preload `app.marka()`. İstemci modunda sunucuda oturumsuz `GET /api/marka`
+  (`/saglik` gibi; yalnız bu alanlar) — TOFU parmak izi onayından sonra çekilir; sunucuya bağlı değilken uygulama varsayılanı.
+- `Giris.jsx`: logo (kulüp logosu varsa o, yoksa uygulama logosu) + `kisaAd` + "Kuruluş <yıl>" (yıl boşsa satır yok); tema
+  renkleri uygulanır (sol panel `--mor`). `KenarMenu.jsx`: logo + `kisaAd` + `altYazi`.
+- `App.jsx` oturum sonrası ayarlar değişince (Ayarlar Kaydet) `marka` yeniden yüklenir (basit: `onMarkaDegisti` geri çağrısı).
+
+### 32.6 Ayarlar > Kulüp ve Makbuz (KulupAyar.jsx) — yeni yerleşim
+1. **Kimlik:** Kulüp adı (makbuz/rapor) · Kısa ad (giriş ekranı ve menü) · Alt yazı · Kuruluş yılı.
+2. **Logo:** önizleme (128 px, yoksa "Logo yok" kutusu) · "Logo Seç…" · "Kaldır" · not: "PNG önerilir (şeffaf zemin), makbuz ve
+   formlarda 28 mm yükseklikte basılır".
+3. **Renkler:** hazır palet kartları (6) + "Özel": iki `<input type="color">` (Ana, Vurgu) · canlı önizleme kutusu (kenar menü
+   parçası + "Makbuz Kes" düğmesi + makbuz başlığı minyatürü) · kontrast uyarısı.
+4. Tahsil eden (mevcut).
+Tek "Kaydet" (kural: satır başına kaydet yok; `onKirli` uyarısı). Logo seçimi dosya yazdığı için anında uygulanır (Kaydet
+beklemez; kullanıcıya "Logo kaydedildi" toast'ı) — diğer alanlar Kaydet ile.
+- **İlk Kurulum sihirbazı** kulüp adımına aynı alanlar (logo seç, kısa ad, kuruluş yılı, palet) eklenir; "Bu adımı atla" korunur.
+- `design/` tuvaline KulupAyar yeni yerleşimi ve giriş ekranı varyantı (logo var/yok, farklı palet) eklenir — önce tasarım onayı.
+
+### 32.7 Uygulama sırası ve tahmin
+1. **Marka metinleri + oturumsuz kanal** (32.2 metin anahtarları, 32.5 `app:marka`, Giris/KenarMenu, KulupAyar 1. bölüm,
+   sihirbaz alanları) — küçük; §23.1 madde 1 kapanır. Test: `tests/ui/giris-marka.test.jsx`, `kulup-ayar.test.jsx`, Electron
+   `app:marka` (db-electron ya da smoke-ui'de giriş görüntüsü), sunucu `/api/marka` (server-security: oturumsuz 200, yalnız marka
+   alanları).
+2. **Kulüp logosu** (32.3) — orta. Test: `files:kulupLogoSec` diyalog yaması (Electron; PNG şeffaflık korunur, JPEG'e dönüşüm,
+   büyük dosya reddi), makbuz HTML'de logo, yedeğe girer (db-roundtrip yedek kontrolüne `uploads/kulup/logo.png`).
+3. **Renk teması** (32.4) — orta/büyük (sabit hex temizliği + şablon parametreleri + Ayarlar paleti). Test: `tema.test.js`
+   (türetme, kontrast, preset geçerliliği), sabit hex sıfır testi, makbuz/rapor HTML tema parametresi, smoke-ui'de farklı paletle
+   ekran görüntüsü (`scripts/tests/smoke-ui.cjs` tema ayarını yazıp giriş + pano görüntüsü).
+4. **Eyüpspor geçişi + belgeler:** `build/kulup-logo.png` kaldırma kararı (32.3), docs/kurulum.md "Kulüp kimliği" bölümü,
+   CLAUDE.md, §23.1 madde 1 kapanış notu.
+
+### 32.8 Kararlar (Kerem, 10.09.2026: "logo olmasın hiç yüklenmemişse, kalksın, ikisi de olsun hatta yüklenen logodan renkler
+önersin, yerine geçsin. önce mockup'ları göster")
+1. Logo yüklenmemişse makbuz/formlarda **hiç logo yok** (yalnız kulüp adı). ✔
+2. Eyüpspor arması **hemen kalkar**: `build/kulup-logo.png`, `extraResources`, `kulupLogo.cjs` silinir; kurulum rehberine
+   "güncellemeden sonra Ayarlar > Kulüp'ten logo yükleyin" adımı. ✔
+3. Renk: hazır paletler + serbest seçici, **ayrıca yüklenen logodan baskın renkler çıkarılıp palet olarak önerilir**
+   (renderer'da canvas ile: logo data URL → 64×64 örnekleme → HSL kümeleme, gri/beyaz/şeffaf pikseller atılır → en baskın 2–3
+   doygun renk; `src/lib/tema.js logodanRenkler(pikseller)` SAF, canvas okuma `temaUygula.js`'te). ✔
+4. Giriş ekranı ve kenar menüde kulüp logosu uygulama logosunun **yerine** geçer (yoksa uygulama logosu). ✔
+5. Sıra: önce tasarım tuvalinde mockup'lar (KulupAyar yeni yerleşim, giriş ekranı logo var/yok + farklı palet, kenar menü,
+   makbuz başlığı), onaydan sonra 32.7 adımları.
+
+Mockup: https://claude.ai/code/artifact/7f2057c6-3959-409e-a25a-c2bfc6cd6370 (Ayarlar yerleşimi, giriş logolu/logosuz, makbuz başlığı).
+
+### 32.9 Uygulama notları (10.09.2026)
+- Saf: `src/lib/tema.js` (temaTuret/kontrast/PRESETLER/logodanRenkler/logodanPalet), CJS ikizi `electron/tema.cjs` (acikTon:
+  Excel başlık dolgusu), `electron/ayarDogrula.cjs` (`db.setSetting` her yazımda çağırır: tema_* #rrggbb, kurulus_yili 4 hane,
+  kulup_* uzunluk, kulup_logo yol), `electron/marka.cjs` (markaHesapla/markaOku). Renderer: `src/lib/temaUygula.js` (CSS
+  değişkenleri `--mor …` + yeni `--ana-ustu`, `--vurgu-ustu`; logodan renk okuma canvas ile).
+- Kanallar: `app:marka` (oturumsuz; istemci modunda sunucunun oturumsuz `GET /api/marka`'sı), `app:logo` artık kulüp logosu
+  (yoksa ""), `files:kulupLogoSec` / `files:kulupLogoSil` (yönetici; `electron/kulupLogo.cjs` çekirdeği; sunucu
+  `/api/files/kulupLogoSec|Sil`). Bileşenlerde sabit marka hex'i yoktu; şablonlar (`makbuzHtml`, `raporHtml`,
+  `yoklamaFormuHtml`) `tema` parametresi alır, çağrılar `yazdir.js ciktiMarkasi()` üzerinden.
+- Arayüz: `App.jsx` marka yükler/uygular (`markaYenile`), `Giris`/`KenarMenu` `marka` prop'u, `KulupAyar` yeni yerleşim
+  (`TemaSecici` + `TemaOnizleme` bileşenleri; İlk Kurulum kulüp adımı da kullanır).
+- Kaldırılanlar: `build/kulup-logo.png`, `extraResources`, eski `kulupLogo.cjs` yol yardımcısı (dosya adı aynı kaldı, içeriği
+  artık logo kaydet/kaldır). §23.1 madde 1 kapandı.
+- Testler: `tests/tema.test.js` (tema, CJS ikizi, ayarDogrula, markaHesapla), `tests/ui/giris-marka.test.jsx`,
+  `tests/ui/kulup-ayar.test.jsx`, makbuz/rapor HTML tema testleri, `db-roundtrip` (setSetting doğrulama, logo kaydet/küçült/
+  JPEG-PNG değişimi/kaldır, markaOku), `server-security` (/api/marka oturumsuz + yalnız marka alanları, logo yükleme 403/200/400).
+
+- Düzeltme (Kerem, 10.09.2026: "logo yüklenince daha önce girdiğim bilgiler gitti"): `KulupAyar` logo seç/kaldır sonrası tüm
+  alanları DB'den yeniden yüklüyordu; artık yalnız logoyu yeniler (`logoYenile`), kaydedilmemiş girdiler ve seçili palet korunur.
+  Test `tests/ui/kulup-ayar.test.jsx` "logo seçmek ve kaldırmak kaydedilmemiş alanları SİLMEZ".
+
+- Kalıcılık (Kerem, 10.09.2026: "kapatılıp açılınca kaybolan veri var mı kontrol et"): `scripts/tests/kalicilik.cjs` genişletildi —
+  yaz adımında kulüp kimliği ayarları + logo dosyası, 4 aylık tek makbuz (§24), geçerlilik tarihli sağlık belgesi (§25), kişisel
+  veri silme (§31) yazılır; yedek + iki geri yükleme + taşıma paketi bunları kapsar; oku adımında (düzgün kapanış VE SIGKILL sonrası)
+  hepsi DB'de, logo dosyası diskte, giriş ekranı oturumsuz kimliği (kısa ad, kuruluş, logo, yeşil tema) gösteriyor. Kayıp yok.
+
+- Çıktı doğrulaması (Kerem, 10.09.2026: "makbuz, raporlar, yoklama formu yazdırılabilir renkler ve logo değişiyor mu?"):
+  `kulup-kimligi-e2e` gerçek pencerede `cikti:yazdir`/`cikti:pdfKaydet` HTML'ini yakalar — makbuz (Tahsilat > Yazdır), yoklama formu,
+  oyuncu listesi PDF'i kulüp logosu + tema rengini içeriyor, eski mor yok; Excel başlık dolgusu tema ana renginin açık tonu. Kurtarma
+  kodları çıktısı bilerek sade (yalnız kulüp adı). Daha önce üretilmiş makbuz PDF'leri (uploads/makbuz) eski görünümde kalır (yeniden
+  yazdırınca yeni). Tarama sonucu düzeltilenler: kenar menü/modal/giriş paneli sabit `#fff`/`#D8CCE9` → `--ana-ustu`/`--ana-ustu-soluk`
+  (koyu olmayan ana renkte okunur); **uyarı anlamı** taşıyan sarılar (deneme/salt okunur şeridi, kaydedilmemiş satır/çubuk, KVKK notu,
+  sarı rozet, lisans "Deneme" rengi, aktarım/sezon uyarı kutuları) temadan ayrıldı → sabit `--uyari*`; marka vurgusu (`--sari`) yalnız
+  Makbuz Kes, menü alt yazısı/aktif çizgi, kuruluş satırı, sekme çizgisi, takvim "bugün", güncelleme şeridi, WhatsApp sayacı.
+
+- PDF doğrulaması (Kerem: "indirilen PDF'ler?"): `htmlToPdf` (`printBackground: true`) dışa verildi; e2e yakalanan HTML'den gerçek
+  makbuz/yoklama formu/oyuncu listesi PDF'lerini üretir (görüntü dizinine yazar; QuickLook ile bakıldı: logo, kırmızı tema, zemin
+  renkleri basılıyor). Bulunan kalıntı: yoklama formu dibindeki sabit Eyüpspor hashtag'leri → yeni ayar `kulup_slogan` ("Yoklama
+  formu alt yazısı", ≤120; boşsa satır yok; marka kanalı `slogan`); Excel aktarım şablonu örneği "Eyüp İlkokulu" → "Atatürk İlkokulu".
+
+Eski soru listesi:
+1. Logo yüklenmemişse makbuz/formlarda **hiç logo mu**, **uygulama logosu mu** basılsın? (Öneri: hiç logo; uygulama logosu
+   kulübün belgesine ait değil.)
+2. Eyüpspor arması yedek olarak bir sürüm daha kalsın mı, hemen kalksın mı? (Öneri: kalksın; güncellemeden sonra Ayarlar'dan
+   yüklenir, kurulum rehberine yazılır.)
+3. Renk seçimi yalnız hazır paletler mi, serbest renk seçici de mi? (Öneri: ikisi de; kontrast uyarısıyla.)
+4. Giriş ekranı ve kenar menüde kulüp logosu varsa uygulama logosunun yerine mi geçsin, yanında mı dursun? (Öneri: yerine.)

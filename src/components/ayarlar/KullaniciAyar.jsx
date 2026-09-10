@@ -255,8 +255,8 @@ export function KurtarmaKodlari({ username, kodlar, onKapat, kapatMetni = "Kayde
         <div
           role="alert"
           style={{
-            background: "var(--sari-acik)",
-            border: "1.5px solid var(--sari)",
+            background: "var(--uyari-acik)",
+            border: "1.5px solid var(--uyari)",
             borderRadius: 10,
             padding: "10px 14px",
             fontSize: 14,

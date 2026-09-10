@@ -5,19 +5,29 @@ import { paraTR, tarihTR, AY_ADLARI, ODEME_YONTEMLERI } from "./aidat.js";
 
 import { esc, guvenliLogo } from "./metin.js";
 import { VARSAYILAN_KULUP } from "./marka.js";
+import { temaTuret } from "./tema.js";
+
+// 3 ve altı ay: her ay kendi satırında (bugünkü davranış). 4+ ay: tek özet satır + toplam — aksi halde
+// iki kopyayı (kulüp+veli) tek A4'e sığdıran makbuz taşıp ikinci sayfaya geçer (plan §24).
+const AY_OZET_ESIGI = 3;
 
 /**
- * @param {{ makbuz: any, kalemler: any[], logo: string, kulupAdi?: string }} p
+ * @param {{ makbuz: any, kalemler: any[], logo: string, kulupAdi?: string, tema?: {ana?: string, vurgu?: string} }} p
  */
-export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = VARSAYILAN_KULUP }) {
+export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = VARSAYILAN_KULUP, tema = undefined }) {
+  const t = temaTuret(tema || {}); // kulüp renkleri (plan §32.4); verilmezse varsayılan mor/sarı
   /** @type {any[]} */
   const satirlar_ = makbuz.satirlar || [];
   const satirMap = new Map(satirlar_.filter((l) => l.kalem_kod !== "aidat").map((l) => [l.fee_item_id, l]));
   // Aidat: birden fazla ay tek makbuzda olabilir → her ay ayrı satır (eskiden yeniye)
   const aidatSatirlari = satirlar_.filter((l) => l.kalem_kod === "aidat").sort((a, b) => a.yil - b.yil || a.ay - b.ay);
+  const cokAylik = aidatSatirlari.length > AY_OZET_ESIGI;
   /** @param {any} l */
   const ayAdi = (l) => (l.yil && l.ay ? `${AY_ADLARI[l.ay - 1]} ${l.yil}` : "");
-  const donem = aidatSatirlari.map(ayAdi).filter(Boolean).join(", ");
+  // Uzun dönemde "Dönem:" bilgisi de tam liste yerine aralık gösterir (aksi halde tek satırda taşabilir).
+  const donem = cokAylik
+    ? `${ayAdi(aidatSatirlari[0])} – ${ayAdi(aidatSatirlari[aidatSatirlari.length - 1])}`
+    : aidatSatirlari.map(ayAdi).filter(Boolean).join(", ");
   const yontem = ODEME_YONTEMLERI.find((y) => y.kod === makbuz.odeme_yontemi)?.ad || makbuz.odeme_yontemi;
   /** @param {string} ad @param {any} l */
   const satir = (ad, l) =>
@@ -26,6 +36,12 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = VARSAYILAN_KULUP
     .map((k) => {
       if (k.kod === "aidat") {
         if (!aidatSatirlari.length) return satir("AİDAT", null);
+        if (cokAylik) {
+          const ilk = ayAdi(aidatSatirlari[0]).toLocaleUpperCase("tr-TR");
+          const son = ayAdi(aidatSatirlari[aidatSatirlari.length - 1]).toLocaleUpperCase("tr-TR");
+          const toplam = aidatSatirlari.reduce((s, l) => s + Number(l.tutar || 0), 0);
+          return satir(`AİDAT · ${ilk}–${son} (${aidatSatirlari.length} AY)`, { tutar: toplam });
+        }
         return aidatSatirlari.map((l) => satir(ayAdi(l) ? `AİDAT · ${ayAdi(l).toLocaleUpperCase("tr-TR")}` : "AİDAT", l)).join("");
       }
       return satir(k.ad.toLocaleUpperCase("tr-TR"), satirMap.get(k.id));
@@ -59,26 +75,26 @@ export function makbuzHtml({ makbuz, kalemler, logo, kulupAdi = VARSAYILAN_KULUP
   * { box-sizing: border-box; }
   body { margin: 0; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1B1530; }
   .sayfa { width: 210mm; height: 297mm; padding: 8mm 11mm; display: flex; flex-direction: column; gap: 4mm; }
-  .mk { border: 2px solid #3F1D66; border-radius: 2mm; padding: 4mm 6mm; display: flex; flex-direction: column; gap: 3mm; }
+  .mk { border: 2px solid ${t.morKoyu}; border-radius: 2mm; padding: 4mm 6mm; display: flex; flex-direction: column; gap: 3mm; }
   .ust { display: flex; align-items: center; gap: 5mm; }
   .ust img { width: 16mm; height: 16mm; object-fit: contain; }
   .bas { flex: 1; }
-  .t1 { font-size: 18pt; font-weight: 800; color: #3F1D66; line-height: 1; letter-spacing: .02em; }
-  .t2 { font-size: 11pt; font-weight: 700; color: #5B2D8E; letter-spacing: .04em; margin-top: 1mm; }
+  .t1 { font-size: 18pt; font-weight: 800; color: ${t.morKoyu}; line-height: 1; letter-spacing: .02em; }
+  .t2 { font-size: 11pt; font-weight: 700; color: ${t.mor}; letter-spacing: .04em; margin-top: 1mm; }
   .sag { text-align: right; font-size: 10pt; line-height: 1.6; }
   .sag span { color: #6B6480; }
-  .cizgi { height: 1mm; background: linear-gradient(90deg, #5B2D8E 0 50%, #F5D000 50% 100%); }
+  .cizgi { height: 1mm; background: linear-gradient(90deg, ${t.mor} 0 50%, ${t.sari} 50% 100%); }
   .tbl { border: 1px solid #CFC7DC; border-bottom: none; }
   .r { display: flex; align-items: center; border-bottom: 1px solid #CFC7DC; }
-  .k { width: 52mm; padding: 1.4mm 3mm; font-weight: 700; font-size: 9.5pt; background: #EDE6F6; color: #3F1D66; border-right: 1px solid #CFC7DC; letter-spacing: .03em; }
+  .k { width: 52mm; padding: 1.4mm 3mm; font-weight: 700; font-size: 9.5pt; background: ${t.morAcik}; color: ${t.morKoyu}; border-right: 1px solid #CFC7DC; letter-spacing: .03em; }
   .v { flex: 1; padding: 1.4mm 3mm; font-size: 10pt; text-align: right; }
   .v.sol { text-align: left; }
   .v.b { font-weight: 700; }
   .alt { display: flex; gap: 6mm; }
   .kal { flex: 3; }
-  .top { background: #FFF7C2; }
+  .top { background: ${t.sariAcik}; }
   .top .k { font-size: 12pt; color: #E0101F; }
-  .top .v { font-size: 14pt; font-weight: 800; color: #3F1D66; }
+  .top .v { font-size: 14pt; font-weight: 800; color: ${t.morKoyu}; }
   .imza { flex: 2; display: flex; flex-direction: column; justify-content: space-between; padding: 1mm 0; }
   .bilgi { font-size: 10pt; line-height: 1.7; }
   .bilgi span { color: #6B6480; }

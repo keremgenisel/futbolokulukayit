@@ -16,6 +16,8 @@ const { rateAllow, rateHit, rateRetryAfter, rateReset } = require("./rateLimit.c
 const { cagriYetkisi } = require("./yetki.cjs");
 const { belgeGirdiDogrula } = require("./belgeDogrula.cjs");
 const { optimizeImage } = require("./imageOptimize.cjs");
+const { markaOku } = require("./marka.cjs");
+const { kulupLogoKaydet, kulupLogoKaldir } = require("./kulupLogo.cjs");
 
 let srv = null;
 let bilgi = null; // { port, fp, adresler }
@@ -74,6 +76,10 @@ function buildApp({ surum = "" } = {}) {
   app.use(express.json({ limit: "40mb" }));
 
   app.get("/saglik", (_req, res) => res.json({ ok: true, ad: "futbol-okulu-kayit-programi", surum }));
+  // Marka (plan §32.5): istemci PC'nin giriş ekranı için oturumsuz; yalnız kulüp adı/kısa ad/kuruluş yılı/logo/iki renk
+  app.get("/api/marka", (_req, res) =>
+    res.json({ ok: true, marka: markaOku({ getSetting: db.getSetting, uploadsDir: db.getUploadsDir() }) }),
+  );
 
   app.post("/api/auth/login", (req, res) => {
     const ip = req.socket.remoteAddress || "?";
@@ -221,6 +227,39 @@ function buildApp({ surum = "" } = {}) {
       db.deleteDocument(belge.id);
     }
     res.json({ ok: true });
+  });
+  // Makbuzlu oyuncunun kişisel verilerini sil (plan §31): yalnız yönetici; ipc/files.cjs ile aynı adımlar
+  app.post("/api/files/oyuncuKisiselVeriSil", requireAuth, requireAdmin, (req, res) => {
+    if (!yazmaKontrol(res)) return;
+    try {
+      const r = db.oyuncuKisiselVeriSil(Number(req.body?.playerId), req.user.ad_soyad || req.user.username);
+      for (const y of r.dosyalar) {
+        try {
+          fs.unlinkSync(uploadsIci(y));
+        } catch {}
+      }
+      try {
+        fs.rmSync(uploadsIci(r.klasor), { recursive: true, force: true });
+      } catch {}
+      res.json({ ok: true, makbuz: r.makbuz });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+  // Kulüp logosu (plan §32.3): yalnız yönetici; base64 gövde, sunucu küçültüp uploads/kulup/ altına yazar
+  app.post("/api/files/kulupLogoSec", requireAuth, requireAdmin, (req, res) => {
+    if (!yazmaKontrol(res)) return;
+    try {
+      const b64 = String(req.body?.base64 || "");
+      if (b64.length > 8 * 1024 * 1024) return res.status(400).json({ error: "Logo 5 MB'tan büyük" });
+      res.json(kulupLogoKaydet(Buffer.from(b64, "base64"), String(req.body?.uzanti || "")));
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+  app.post("/api/files/kulupLogoSil", requireAuth, requireAdmin, (_req, res) => {
+    if (!yazmaKontrol(res)) return;
+    res.json(kulupLogoKaldir());
   });
   app.get("/api/files/dataUrl", requireAuth, (req, res) => {
     try {

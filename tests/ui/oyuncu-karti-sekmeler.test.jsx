@@ -89,6 +89,36 @@ describe("Oyuncu kartı sekmeleri", () => {
     fireEvent.click(screen.getAllByRole("button", { name: "Tümünü göster" })[0]);
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listDues", 7, null));
   });
+  it("Ödemeler: iptal edilen uzun dönem makbuzundan kalan ileri tarihli açık aylar listelenmez, borç rozeti saymaz (10.09.2026)", async () => {
+    kur();
+    const t = new Date();
+    const yil = t.getFullYear(),
+      ay = t.getMonth() + 1;
+    const ekle = (n) => {
+      const x = yil * 12 + (ay - 1) + n;
+      return { yil: Math.floor(x / 12), ay: (x % 12) + 1 };
+    };
+    const AYLAR = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
+    const ad = (d) => `${AYLAR[d.ay - 1]} ${d.yil}`;
+    // bu ay borç + 1 ay sonrası kısmi + 10 ileri açık ay (iptalden kalan) + 1 ileri ay ödenmiş
+    const liste = [
+      { id: 1, ...ekle(0), tutar: 5000, odenen: 0, durum: "odenmedi" },
+      { id: 2, ...ekle(1), tutar: 5000, odenen: 1000, durum: "kismi" },
+      ...Array.from({ length: 10 }, (_, i) => ({ id: 10 + i, ...ekle(i + 2), tutar: 5000, odenen: 0, durum: "odenmedi" })),
+      { id: 30, ...ekle(12), tutar: 5000, odenen: 5000, durum: "odendi" },
+    ].sort((a, b) => b.yil - a.yil || b.ay - a.ay);
+    const eski = window.okul.db;
+    window.okul.db = vi.fn(async (fn, ...a) => (fn === "listDues" ? liste : eski(fn, ...a)));
+    ac();
+    fireEvent.click(await screen.findByRole("button", { name: /Ödemeler/ }));
+    expect(await screen.findByText(ad(ekle(0)))).toBeInTheDocument();
+    expect(screen.getByText(ad(ekle(1)))).toBeInTheDocument(); // kısmi ileri ay görünür
+    expect(screen.getByText(ad(ekle(12)))).toBeInTheDocument(); // ödenmiş ileri ay görünür
+    expect(screen.queryByText(ad(ekle(2)))).not.toBeInTheDocument();
+    expect(screen.queryByText(ad(ekle(11)))).not.toBeInTheDocument();
+    expect(screen.getByText("1 borç")).toBeInTheDocument();
+    expect(screen.queryByText("Son 12 dönem gösteriliyor")).not.toBeInTheDocument(); // 3 görünür satır < 12
+  });
   it("Yoklama: özet sayılar ve son kayıtlar", async () => {
     ac();
     fireEvent.click(await screen.findByRole("button", { name: "Yoklama" }));

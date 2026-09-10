@@ -5,6 +5,7 @@ import { uzunTarih } from "./takvim.js";
 
 import { esc, guvenliLogo } from "./metin.js";
 import { VARSAYILAN_KULUP } from "./marka.js";
+import { temaTuret } from "./tema.js";
 
 /** Boş satır sayısı: sonradan gelen/deneme oyuncular elle yazılır. */
 export const EK_BOS_SATIR = 0; // 09.09.2026: sonda boş satır istenmedi (plan §17.3)
@@ -26,9 +27,20 @@ const kutu = (sutun, isaret) =>
   `<td class="k"><div class="kutu${isaret === sutun ? " dolu" : ""}">${isaret === sutun ? KUTU_IC[sutun] : ""}</div></td>`;
 
 /**
- * @param {{ grup: string, tarih: string, saat?: string, saha?: string, oyuncular: { ad_soyad: string, durum?: string, isaret?: string }[], logo?: string, kulup?: string }} p
+ * @param {{ grup: string, tarih: string, saat?: string, saha?: string, oyuncular: { ad_soyad: string, durum?: string, isaret?: string }[], logo?: string, kulup?: string, tema?: {ana?: string, vurgu?: string}, slogan?: string }} p
  */
-export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular, logo = "", kulup = VARSAYILAN_KULUP }) {
+export function yoklamaFormuHtml({
+  grup,
+  tarih,
+  saat = "",
+  saha = "",
+  oyuncular,
+  logo = "",
+  kulup = VARSAYILAN_KULUP,
+  tema = undefined,
+  slogan = "",
+}) {
+  const t = temaTuret(tema || {});
   /** @param {number} no @param {{ ad_soyad: string, durum?: string, isaret?: string } | null} o */
   const satir = (no, o) => {
     const et = o && ETIKET[o.durum || ""] ? ` <span class="etiket">(${ETIKET[o.durum || ""]})</span>` : "";
@@ -44,17 +56,17 @@ export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular,
   .ust { display: flex; align-items: center; gap: 5mm; }
   .ust img { width: 16mm; height: 16mm; object-fit: contain; }
   .baslik { flex: 1; display: flex; flex-direction: column; gap: 1mm; }
-  h1 { font-size: 18pt; margin: 0; color: #3F1D66; line-height: 1; }
-  .kulup { font-size: 11pt; color: #5B2D8E; font-weight: 600; letter-spacing: .04em; }
+  h1 { font-size: 18pt; margin: 0; color: ${t.morKoyu}; line-height: 1; }
+  .kulup { font-size: 11pt; color: ${t.mor}; font-weight: 600; letter-spacing: .04em; }
   .sag { display: flex; flex-direction: column; align-items: flex-end; gap: 1mm; font-size: 10.5pt; }
-  .grup { font-size: 22pt; font-weight: 700; color: #3F1D66; line-height: 1; }
-  .bant { height: 1mm; background: linear-gradient(90deg, #5B2D8E 0 50%, #F5D000 50% 100%); margin: 3mm 0; }
+  .grup { font-size: 22pt; font-weight: 700; color: ${t.morKoyu}; line-height: 1; }
+  .bant { height: 1mm; background: linear-gradient(90deg, ${t.mor} 0 50%, ${t.sari} 50% 100%); margin: 3mm 0; }
   .antrenor { display: flex; align-items: flex-end; gap: 3mm; font-size: 10.5pt; margin-bottom: 3mm; }
   .antrenor .ipucu { margin-left: auto; font-size: 8.5pt; color: #6B6480; }
   .cizgi { display: inline-block; border-bottom: .3mm solid #1B1530; height: 5mm; }
   .soluk { color: #6B6480; }
   table { width: 100%; border-collapse: collapse; }
-  th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .06em; color: #3F1D66; background: #EDE6F6; padding: 2mm; border: .25mm solid #CFC7DC; text-align: center; }
+  th { font-size: 8.5pt; text-transform: uppercase; letter-spacing: .06em; color: ${t.morKoyu}; background: ${t.morAcik}; padding: 2mm; border: .25mm solid #CFC7DC; text-align: center; }
   th.ad { text-align: left; }
   td { padding: 0 2.5mm; height: 8mm; border: .25mm solid #CFC7DC; vertical-align: middle; }
   td.no { width: 7mm; text-align: center; color: #6B6480; font-size: 9.5pt; }
@@ -67,7 +79,7 @@ export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular,
   .izin { font-weight: 700; font-size: 11pt; line-height: 1; }
   .alt { display: flex; align-items: flex-end; gap: 6mm; font-size: 10.5pt; margin-top: 4mm; }
   .alt .imza { margin-left: auto; }
-  .dip { margin-top: 5mm; text-align: center; font-size: 8.5pt; color: #5B2D8E; font-weight: 600; }
+  .dip { margin-top: 5mm; text-align: center; font-size: 8.5pt; color: ${t.mor}; font-weight: 600; }
   tr { page-break-inside: avoid; }
 </style></head><body>
 <div class="ust">${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}<div class="baslik"><h1>YOKLAMA FORMU</h1><span class="kulup">${esc(kulup)}</span></div>
@@ -76,6 +88,6 @@ export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular,
 <div class="antrenor"><span class="soluk">Antrenör:</span>${cizgi(60)}<span class="ipucu">Programda işaretli olanlar dolu gelir; kalanları sahada işaretleyin.</span></div>
 <table><thead><tr><th>#</th><th class="ad">Ad Soyad</th><th>Geldi</th><th>Gelmedi</th><th>İzinli</th><th>Not</th></tr></thead><tbody>${satirlar.join("")}</tbody></table>
 <div class="alt"><span><span class="soluk">Toplam:</span> <b>${oyuncular.length} oyuncu</b></span><span><span class="soluk">Geldi</span> ${cizgi(10)}</span><span><span class="soluk">Gelmedi</span> ${cizgi(10)}</span><span><span class="soluk">İzinli</span> ${cizgi(10)}</span><span class="imza"><span class="soluk">İmza</span> ${cizgi(45)}</span></div>
-<div class="dip">#BirSemtinRüyası #SemtiMukaddes #HayaleAşıkOl</div>
+${slogan ? `<div class="dip">${esc(slogan)}</div>` : ""}
 </body></html>`;
 }

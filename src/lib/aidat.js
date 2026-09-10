@@ -150,6 +150,37 @@ export function tarihTR(iso) {
 
 export const AY_ADLARI = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 
+/**
+ * Başlangıçtan bitişe (dahil) ay listesi, kronolojik sırayla; bitiş başlangıçtan önceyse ikisi yer değiştirir.
+ * Tahsilat > Uzun Dönem Seç için (plan §24): hızlı seçim (N ay) ve elle aralık, tek yolla ay listesi üretir.
+ * @param {number} yilBas @param {number} ayBas @param {number} yilBit @param {number} ayBit
+ * @returns {{ yil: number, ay: number }[]}
+ */
+export function ayAraligi(yilBas, ayBas, yilBit, ayBit) {
+  let b = yilBas * 12 + (ayBas - 1);
+  let s = yilBit * 12 + (ayBit - 1);
+  if (s < b) [b, s] = [s, b];
+  const liste = [];
+  for (let i = b; i <= s; i++) liste.push({ yil: Math.floor(i / 12), ay: (i % 12) + 1 });
+  return liste;
+}
+
+/**
+ * İleri tarihli, hiç ödenmemiş aidat kaydı mı? (Uzun dönem makbuzu iptal edilince ya da peşin ödeme için aralık
+ * açılınca oluşan "odenmedi" satırları.) Vadesi gelmediği için BORÇ sayılmaz: oyuncu kartı/Tahsilat listelemez,
+ * borç rozeti saymaz (Kerem, 10.09.2026). Kısmi ödenmiş ya da ödenmiş ileri ay gösterilmeye devam eder.
+ * @param {{ yil: number, ay: number, durum?: string, odenen?: number }} a @param {number} yil bugünün yılı @param {number} ay bugünün ayı
+ */
+export function gelecekAcikAidatMi(a, yil, ay) {
+  return a.durum === "odenmedi" && !(Number(a.odenen) > 0) && a.yil * 12 + a.ay > yil * 12 + ay;
+}
+
+/** N ay sonrasının (yil, ay) çifti — "3 Ay"/"6 Ay" hızlı seçimi için. @param {number} yil @param {number} ay @param {number} n */
+export function ayEkle(yil, ay, n) {
+  const t = yil * 12 + (ay - 1) + n;
+  return { yil: Math.floor(t / 12), ay: (t % 12) + 1 };
+}
+
 // ── Kimlik: TC vatandaşı → TC kimlik no; yabancı uyruklu → pasaport no ──
 export const UYRUKLAR = [
   { kod: "tc", ad: "T.C. vatandaşı" },
