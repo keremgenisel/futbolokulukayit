@@ -129,7 +129,17 @@ testle geldi (`tests/guvenlik-saf.test.js`, `tests/ui/parola-degistir.test.jsx`,
 
 ## Doğrulanamayanlar
 sqlite3mc WAL şifrelemesinin çalışma zamanında etkinliği (kaynak yorumlarına dayanıyor); Windows'ta `db-key.enc` ACL'si;
-GitHub hesabında 2FA/korumalı etiket; `data:` kaynağından `file://` alt kaynak engeli.
+~~GitHub hesabında 2FA~~; ~~korumalı etiket~~; `data:` kaynağından `file://` alt kaynak engeli.
+
+**Doğrulananlar (10.09.2026):**
+- **Korumalı etiket kuralı çalışıyor:** `v1.0.0` etiketi push edilirken GitHub "Bypassed rule violations... Cannot
+  create ref due to creations being restricted" uyarısı verdi — kural aktif, yalnız admin rolü (Kerem) bypass edebiliyor;
+  gerçek bir push denemesiyle doğrulandı (plan §8.1 madde 4).
+- **GitHub hesabında 2FA açık** (Kerem, 10.09.2026 doğruladı — github.com/settings/security'de gözle kontrol edildi;
+  API/CLI bu bilgiyi dışarıya vermiyor, gözle teyit tek yol).
+
+**Hâlâ Windows'ta canlı test gerektiren iki madde kaldı:** sqlite3mc WAL şifrelemesi, yazdırma penceresinin `file://`
+alt kaynak engeli (bkz. plan §8.1 madde 9, kurulum günü kontrol listesi).
 
 ## Önerilen düzeltme sırası
 1. Taşıma paketinden lisans/makine kimliğini çıkar (Yüksek, yarım saat).
