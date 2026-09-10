@@ -38,6 +38,12 @@ describe("imzala/dogrula", () => {
     const sahte = `${on}.${Buffer.from(JSON.stringify(kurcalanmis)).toString("base64url")}.${sig}`;
     expect(dogrula(sahte)).toEqual({ gecerli: false, neden: "imza" });
   });
+  it("içinde satır sonu/boşluk olan anahtar (sohbetten kopya) doğrulanır", () => {
+    const anahtar = imzala(ornekPayload, privatePem);
+    const bozuk = anahtar.slice(0, 40) + "\n" + anahtar.slice(40, 120) + " " + anahtar.slice(120) + "\n";
+    expect(dogrula(bozuk).gecerli).toBe(true);
+    expect(dogrula(bozuk).payload).toEqual(dogrula(anahtar).payload);
+  });
   it("bozuk biçim ve boş anahtar reddedilir", () => {
     expect(dogrula("FOKLISANS.abc").gecerli).toBe(false);
     expect(dogrula("").gecerli).toBe(false);

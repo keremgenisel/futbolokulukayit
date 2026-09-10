@@ -1,5 +1,7 @@
 #!/bin/sh
 # Futbol Okulu Kayıt Programı aktivasyon sunucusunu Cloudflare'a ilk kez kurar. Bir kez `npx wrangler login` gerekir.
+# NOT: wrangler 4.13x kökteki vite.config.js'i görüp ANA PROJEYİ Cloudflare'a kurmaya kalkışır (wrangler.jsonc, vite eklentisi,
+# package.json betikleri ekler — 10.09.2026'da yaşandı). Bu yüzden deploy HER ZAMAN --config ./wrangler.toml ile ve bu klasörden.
 # Adımlar: D1 oluştur → database_id'yi wrangler.toml'a yaz → şema → secrets → deploy → AKTIVASYON_URL'i uygulamaya göm.
 set -e
 cd "$(dirname "$0")"
@@ -21,7 +23,7 @@ cat ../scripts/keys/lisans-lease-private.pem | npx wrangler secret put LEASE_PRI
 [ -f ../scripts/keys/admin-token.txt ] || node -e "console.log(require('crypto').randomBytes(24).toString('hex'))" > ../scripts/keys/admin-token.txt
 cat ../scripts/keys/admin-token.txt | npx wrangler secret put ADMIN_TOKEN
 
-npx wrangler deploy
+npx wrangler deploy --config ./wrangler.toml
 echo
 echo "Deploy tamam. Çıktıdaki https://futbol-okulu-aktivasyon.<hesap>.workers.dev adresini"
 echo "electron/aktivasyonIstemci.cjs içindeki AKTIVASYON_URL'e yazıp uygulamayı yeniden derleyin."

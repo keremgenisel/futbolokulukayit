@@ -25,7 +25,12 @@ const json = (obj, status = 200) =>
   new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
 // Anahtarı doğrula + kayıtlı lisansı getir (aktivasyon/yenile ortak ön adım).
-async function anahtarVeLisans(env, anahtar) {
+// Anahtar sohbet/e-postadan kopyalanırken araya satır sonu/boşluk girebilir: base64 çözücü bunları yok sayar (imza yine
+// doğrulanır) ama SHA-256 değişir ve lisans "kayıtlı değil" görünürdü (10.09.2026). Her girişte tüm boşluklar atılır.
+const anahtarTemizle = (a) => String(a || "").replace(/\s+/g, "");
+
+async function anahtarVeLisans(env, anahtarHam) {
+  const anahtar = anahtarTemizle(anahtarHam);
   const pub = await acikAnahtarYukle(env.LISANS_PUBLIC_PEM);
   const d = await lisansDogrula(anahtar, pub);
   if (!d.gecerli) return { hata: json({ error: "anahtar geçersiz" }, 403) };
@@ -76,7 +81,8 @@ async function yenile(request, env) {
 // maksKullanici imzalı payload'dan okunur (değiştirilemez), maksKurulum/iptal D1'de tutulur (dinamik).
 async function adminLisans(request, env) {
   if (!tokenEsit(request.headers.get("x-admin-token"), env.ADMIN_TOKEN)) return json({ error: "yetkisiz" }, 401);
-  const { anahtar, maksKurulum, iptal } = await request.json().catch(() => ({}));
+  const { anahtar: anahtarHam, maksKurulum, iptal } = await request.json().catch(() => ({}));
+  const anahtar = anahtarTemizle(anahtarHam);
   const pub = await acikAnahtarYukle(env.LISANS_PUBLIC_PEM);
   const d = await lisansDogrula(anahtar || "", pub);
   if (!d.gecerli) return json({ error: "anahtar geçersiz" }, 400);
@@ -99,7 +105,7 @@ async function adminHepsi(request, env) {
 
 async function adminListe(request, env) {
   if (!tokenEsit(request.headers.get("x-admin-token"), env.ADMIN_TOKEN)) return json({ error: "yetkisiz" }, 401);
-  const anahtar = new URL(request.url).searchParams.get("anahtar");
+  const anahtar = anahtarTemizle(new URL(request.url).searchParams.get("anahtar"));
   if (!anahtar) return json({ error: "anahtar gerekli" }, 400);
   const lisans = await lisansBul(env, await sha256hex(anahtar));
   if (!lisans) return json({ error: "lisans kayıtlı değil" }, 404);

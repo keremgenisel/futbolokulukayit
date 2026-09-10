@@ -79,7 +79,7 @@ function lisansDurumu() {
 function lisansKaydet(anahtar) {
   const d = lisansM.dogrula(anahtar);
   if (!d.gecerli) return { error: d.neden === "imza" ? "Anahtar imzası geçersiz" : "Anahtar biçimi geçersiz" };
-  setMetaValue("lisansAnahtari", String(anahtar).trim());
+  setMetaValue("lisansAnahtari", String(anahtar).replace(/\s+/g, "")); // sohbetten yapıştırılan anahtarda satır sonu olabilir; sunucu hash'i tam metne bakar
   lisansCache = null;
   return { ok: true, durum: lisansDurumu() };
 }

@@ -101,10 +101,29 @@ describe("Aktivasyon sunucusu — kurulum limiti + iptal + admin", () => {
     expect(r.body.ok).toBe(true);
   });
 
+  it("bozuk base64'lü anahtar 403 'anahtar geçersiz' (500 değil)", async () => {
+    const r = await call("/aktivasyon", "POST", { anahtar: "FOKLISANS.a.b", makineId: "X" });
+    expect(r.status).toBe(403);
+    expect(r.body.error).toMatch(/anahtar geçersiz/);
+  });
+
   it("kayıtlı OLMAYAN anahtar aktivasyonda 403", async () => {
     const r = await call("/aktivasyon", "POST", { anahtar: baskaAnahtar, makineId: "X" });
     expect(r.status).toBe(403);
     expect(r.body.error).toMatch(/kayıtlı değil/);
+  });
+
+  it("satır sonu/boşlukla yapıştırılan anahtar da bulunur (hash temiz metinden; 10.09.2026 'kayıtlı değil' hatası)", async () => {
+    const bozuk = anahtar.slice(0, 60) + "\n" + anahtar.slice(60, 150) + "  " + anahtar.slice(150) + "\r\n";
+    const r = await call("/aktivasyon", "POST", { anahtar: bozuk, makineId: "MAK-BOSLUK" });
+    expect(r.status).toBe(200);
+    expect(r.body.lease.startsWith("FOKLEASE.")).toBe(true);
+    // aynı makine tekrar → yeni kurulum saymaz; admin liste de boşluklu anahtarla çalışır
+    const l = await call("/admin/liste?anahtar=" + encodeURIComponent(bozuk), "GET", undefined, { "x-admin-token": "gizli" });
+    expect(l.status).toBe(200);
+    expect(l.body.kurulumlar.some((k) => k.makineId === "MAK-BOSLUK")).toBe(true);
+    // temizlik: bu makine limiti doldurmasın diye limit 2 → sonraki testler MAK-A/MAK-B ile devam eder
+    await call("/admin/lisans", "POST", { anahtar, maksKurulum: 3 }, { "x-admin-token": "gizli" });
   });
 
   it("ilk iki makine aktive olur, imzalı lease döner", async () => {

@@ -50,7 +50,7 @@ function imzala(payload, privatePem) {
 function dogrula(anahtar) {
   try {
     const parcalar = String(anahtar || "")
-      .trim()
+      .replace(/\s+/g, "") // içerideki satır sonu/boşluk (sohbetten kopya) yok sayılır
       .split(".");
     if (parcalar.length !== 3 || parcalar[0] !== "FOKLISANS") return { gecerli: false, neden: "bicim" };
     const veri = Buffer.from(parcalar[1], "base64url");

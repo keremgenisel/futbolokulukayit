@@ -64,7 +64,7 @@ const mevcutKurulum = async (anahtar) =>
   (await get("/admin/liste?anahtar=" + encodeURIComponent(anahtar))).body?.lisans?.maksKurulum ?? null;
 
 (async () => {
-  const anahtar = arg("anahtar");
+  const anahtar = String(arg("anahtar") || "").replace(/\s+/g, ""); // yapıştırma kaynaklı boşluklar
   if (komut !== "tumu" && !anahtar) {
     console.error("HATA: --anahtar gerekli");
     process.exit(1);

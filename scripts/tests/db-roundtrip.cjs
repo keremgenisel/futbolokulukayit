@@ -999,6 +999,16 @@ app.whenReady().then(async () => {
     const ld = db.lisansDurumu();
     check("lisans temiz kurulumda deneme", ld.mod === "deneme" && ld.kalanGun === 30 && !!ld.makineId);
     check("geçersiz anahtar reddedilir", !!db.lisansKaydet("FOKLISANS.bozuk.anahtar").error);
+    {
+      // Yapıştırmada araya giren satır sonu/boşluk kaydedilen anahtardan atılır (sunucu hash'i tam metne bakar; §7 10.09.2026)
+      const { imzala } = require("../../electron/lisans.cjs");
+      const cr = require("crypto");
+      const { privateKey } = cr.generateKeyPairSync("ed25519");
+      const temiz = imzala({ firma: "Boşluk Testi", bitis: "2099-01-01" }, privateKey.export({ type: "pkcs8", format: "pem" }));
+      const bozuk = temiz.slice(0, 50) + "\n" + temiz.slice(50, 120) + " " + temiz.slice(120) + "\n";
+      const r = db.lisansKaydet(bozuk); // imza gömülü açık anahtarla eşleşmez → hata beklenir; biçim değil imza nedeni
+      check("boşluklu anahtar biçim hatası vermez (imza aşamasına gelir)", !!r.error && /imza/i.test(r.error));
+    }
     check("salt okunur değil", db.lisansSaltOkunurMu() === false);
     check("makineId kalıcı", db.lisansDurumu().makineId === ld.makineId);
 

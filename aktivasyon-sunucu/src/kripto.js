@@ -39,13 +39,14 @@ export const ozelAnahtarYukle = (pem) => crypto.subtle.importKey("pkcs8", pemDer
 // İMZA, iletilen ham baytlar üzerinde doğrulanır (yeniden serileştirme YOK) → JSON kanonikleştirme derdi olmaz.
 export async function lisansDogrula(anahtar, acikAnahtar) {
   const p = String(anahtar || "")
-    .trim()
+    .replace(/\s+/g, "") // yapıştırma kaynaklı satır sonu/boşluk (electron/lisans.cjs ile aynı)
     .split(".");
   if (p.length !== 3 || p[0] !== "FOKLISANS") return { gecerli: false, neden: "bicim" };
-  const veri = b64urlToBuf(p[1]);
-  const ok = await crypto.subtle.verify({ name: "Ed25519" }, acikAnahtar, b64urlToBuf(p[2]), veri);
-  if (!ok) return { gecerli: false, neden: "imza" };
   try {
+    // bozuk base64 / bozuk imza uzunluğu fırlatabilir → "sunucu hatası" (500) değil, "anahtar geçersiz" (403)
+    const veri = b64urlToBuf(p[1]);
+    const ok = await crypto.subtle.verify({ name: "Ed25519" }, acikAnahtar, b64urlToBuf(p[2]), veri);
+    if (!ok) return { gecerli: false, neden: "imza" };
     return { gecerli: true, payload: JSON.parse(dec.decode(veri)) };
   } catch {
     return { gecerli: false, neden: "bicim" };

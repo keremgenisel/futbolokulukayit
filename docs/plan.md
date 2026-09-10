@@ -1418,3 +1418,20 @@ Eski soru listesi:
    yüklenir, kurulum rehberine yazılır.)
 3. Renk seçimi yalnız hazır paletler mi, serbest renk seçici de mi? (Öneri: ikisi de; kontrast uyarısıyla.)
 4. Giriş ekranı ve kenar menüde kulüp logosu varsa uygulama logosunun yerine mi geçsin, yanında mı dursun? (Öneri: yerine.)
+
+## 33. Aktivasyon "lisans kayıtlı değil" hatası — anahtar boşluk temizliği (UYGULANDI, 10.09.2026)
+
+Kerem (deneme lisansını aktive ederken): "lisans kayıtlı değil, satıcıya başvurun diyor". Sunucuda lisans kayıtlıydı (0/1
+kurulum). Sebep: sunucu lisansı anahtar METNİNİN SHA-256'sıyla arar; anahtar sohbet/e-postadan kopyalanırken araya satır
+sonu/boşluk giriyor, base64 çözücü bunları yok saydığı için imza yine doğrulanıyor (uygulama "Anahtarı Kaydet"i geçiyor) ama
+hash değişiyor → 403 "kayıtlı değil". Yerelde kanıtlandı (aynı anahtar satır sonlu: doğrulama true, sha farklı).
+- Sunucu (`aktivasyon-sunucu/src/index.js` `anahtarTemizle`, `kripto.js`): /aktivasyon, /yenile, /admin/lisans, /admin/liste
+  anahtarı tüm boşluklardan arındırıp öyle hash'ler; bozuk base64'lü anahtar 500 yerine 403 "anahtar geçersiz". Deploy edildi
+  (canlıda boşluklu anahtarla /admin/liste doğrulandı). Uygulama tarafı (`lisansDurum.cjs lisansKaydet`, `lisans.cjs dogrula`)
+  ve `lisans-yonet.cjs` de aynı temizliği yapar (bir sonraki sürümle gider; sunucu düzeltmesi tek başına yeterli).
+- Testler: `tests/aktivasyon-sunucu.test.js` (boşluklu anahtarla aktivasyon + admin liste; bozuk base64 403),
+  `tests/lisans.test.js` (boşluklu anahtar doğrulanır), `db-roundtrip` (kayıtta boşluk atılır).
+- Yan olay: `npx wrangler deploy` kökte çalışınca wrangler 4.13x kökteki `vite.config.js`'i görüp ANA PROJEYİ Cloudflare'a
+  kurmaya kalkıştı (wrangler.jsonc, `@cloudflare/vite-plugin`, package.json betikleri, .gitignore). Geri alındı; `deploy.sh`
+  artık `--config ./wrangler.toml` ile ve aktivasyon-sunucu klasöründen çalışır (yorumda uyarı).
+
