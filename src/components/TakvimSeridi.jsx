@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Btn, Girdi } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
-import { gunSeridi, gunKaydir, varsayilanBaslangic, gunNoktalari } from "../lib/takvim.js";
+import { gunSeridi, gunKaydir, varsayilanBaslangic, gunNoktalari, sezonDisiMi } from "../lib/takvim.js";
 
 export const SERIT_GUN = 14;
 const NOKTA_RENK = { gri: "#C9C2D6", mor: "var(--mor)", yesil: "var(--yesil)", kirmizi: "var(--kirmizi)" };
@@ -13,9 +13,11 @@ const NOKTA_AD = { gri: "yoklama alınmadı", mor: "kısmen alındı", yesil: "t
  * Havayolu tarzı yatay gün şeridi. 14 gün görünür; oklar 7 gün kaydırır, Bugün düğmesi şeridi
  * bugüne getirir, tarih girdisiyle uzak tarihe atlanır. Klavye: ← → gün, Home bugün.
  * @param {{ secili: string, bugun: string, baslangic: string, onSec: (iso: string) => void,
- *   onBaslangic: (iso: string) => void, gunOzetleri: Record<string, {iptal:number, oyuncu:number, isaretli:number}[]> }} p
+ *   onBaslangic: (iso: string) => void, gunOzetleri: Record<string, {iptal:number, oyuncu:number, isaretli:number}[]>,
+ *   sezon?: { baslangic?: string, bitis?: string } | null }} p
+ * `sezon` verilirse aralık dışındaki günler soluk çizilir (plan §37.6); tıklanabilir kalır, antrenman eklenebilir.
  */
-export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gunOzetleri }) {
+export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gunOzetleri, sezon = null }) {
   const hucreler = gunSeridi(baslangic, SERIT_GUN, bugun);
   const kok = useRef(null);
 
@@ -88,7 +90,8 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
         {hucreler.map((h) => {
           const on = h.iso === secili;
           const noktalar = gunNoktalari(gunOzetleri[h.iso] || []);
-          const etiket = `${h.gun} ${h.ay}${h.bugunMu ? " (bugün)" : ""}${noktalar.length ? ` · ${noktalar.length} antrenman` : ""}`;
+          const sezonDisi = sezonDisiMi(h.iso, sezon);
+          const etiket = `${h.gun} ${h.ay}${h.bugunMu ? " (bugün)" : ""}${noktalar.length ? ` · ${noktalar.length} antrenman` : ""}${sezonDisi ? " · sezon dışı" : ""}`;
           return (
             <button
               key={h.iso}
@@ -97,7 +100,10 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
               aria-label={etiket}
               aria-pressed={on}
               data-iso={h.iso}
+              data-sezon-disi={sezonDisi ? "1" : "0"}
+              title={sezonDisi ? "Sezon dışı gün (antrenman eklenebilir)" : undefined}
               style={{
+                opacity: sezonDisi && !on ? 0.5 : 1,
                 position: "relative",
                 flex: "1 1 0",
                 minWidth: 0,
@@ -177,6 +183,12 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
               {NOKTA_AD[k][0].toLocaleUpperCase("tr-TR") + NOKTA_AD[k].slice(1)}
             </span>
           ))}
+          {sezon?.baslangic && sezon?.bitis && (
+            <span style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--soluk)" }}>
+              <span style={{ width: 8, height: 8, borderRadius: 2, border: "1px solid var(--cizgi)", opacity: 0.5 }} />
+              Soluk gün: sezon dışı
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Btn kucuk tur="ghost" ikon={<Ikon ad="takvim" boyut={16} />} onClick={bugune}>

@@ -58,6 +58,24 @@ export function gunSeridi(baslangic, adet, bugun) {
   return out;
 }
 
+/**
+ * Gün sezon tarihlerinin dışında mı (plan §37.6; bilgi amaçlı, engel değil). Tarihler yoksa hiçbir gün sezon dışı sayılmaz.
+ * @param {string} iso @param {{ baslangic?: string, bitis?: string } | null | undefined} tarihler
+ */
+export function sezonDisiMi(iso, tarihler) {
+  if (!tarihler || !tarihler.baslangic || !tarihler.bitis) return false;
+  return iso < tarihler.baslangic || iso > tarihler.bitis;
+}
+/**
+ * Pazartesi'den başlayan haftanın TAMAMI sezon dışında mı (kısmen dışarıda olan hafta sezon içi sayılır).
+ * @param {string} haftaBasiIso @param {{ baslangic?: string, bitis?: string } | null | undefined} tarihler
+ */
+export function haftaSezonDisiMi(haftaBasiIso, tarihler) {
+  if (!tarihler || !tarihler.baslangic || !tarihler.bitis) return false;
+  const son = gunKaydir(haftaBasiIso, 6);
+  return son < tarihler.baslangic || haftaBasiIso > tarihler.bitis;
+}
+
 /** Bugünü ortalayan 14 günlük şerit başlangıcı: bu haftanın pazartesisinden bir hafta önce. @param {string} bugun */
 export function varsayilanBaslangic(bugun) {
   return gunKaydir(haftaBasi(bugun), -7);

@@ -61,4 +61,28 @@ describe("Yoklama: haftayı programdan doldur", () => {
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("haftayiProgramdanDoldur", haftaBasi(t)));
     await screen.findByText("2 antrenman eklendi, 1 zaten vardı");
   });
+  it("seçili gün sezon dışındaysa başlıkta 'Sezon dışı' rozeti; doldurma sonucu 'bu hafta sezon dışında' notu taşır (plan §37.6)", async () => {
+    const t = bugun().iso;
+    // sezon bugünden bir yıl önce bitmiş olsun → bugün ve bu hafta sezon dışı
+    const bitis = `${Number(t.slice(0, 4)) - 1}-06-30`;
+    const baslangic = `${Number(t.slice(0, 4)) - 2}-09-01`;
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "listAgeGroups") return [{ id: 1, ad: "U11", aktif: 1 }];
+        if (fn === "trainingCalendar") return [];
+        if (fn === "sezonDurumu") return { aktifSezon: "x", tarihler: { baslangic, bitis, kayitli: true } };
+        if (fn === "haftayiProgramdanDoldur") return { ok: true, eklenen: 1, atlanan: 0, programsiz: 0 };
+        return [];
+      }),
+    };
+    render(
+      <ToastSaglayici>
+        <Yoklama saltOkunur={false} />
+      </ToastSaglayici>,
+    );
+    expect(await screen.findByText("Sezon dışı")).toBeInTheDocument();
+    expect(document.querySelector(`button[data-iso='${t}']`).dataset.sezonDisi).toBe("1");
+    fireEvent.click(screen.getByRole("button", { name: "Haftayı Programdan Doldur" }));
+    await screen.findByText("1 antrenman eklendi · bu hafta sezon dışında");
+  });
 });

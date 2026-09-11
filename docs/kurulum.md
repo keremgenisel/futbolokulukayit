@@ -73,7 +73,8 @@ ayarına Tailscale adresi (100.x.x.x) yazılır (satıcı ayarı; arayüzde alan
   "90 dk" gibi görünür); Yoklama'da "Haftayı Programdan Doldur" o haftanın antrenmanlarını tek tıkla açar (var olanlar atlanır).
 - **Antrenman saatleri:** Yoklama > Antrenman Ekle'de başlangıç ve bitiş saati girilir; kartta "17:00–18:30" görünür. Aynı gün
   aynı sahada saati çakışan başka antrenman varsa sarı uyarı çıkar, yine de ekleyebilirsiniz. Yoklama formu ve WhatsApp
-  mesajlarında saat aralığı yer alır.
+  mesajlarında saat aralığı yer alır. Sezon tarihleri dışındaki günler takvim şeridinde soluk görünür; yine de tıklanıp antrenman
+  eklenebilir (yaz antrenmanları için).
 - **Sağlık raporu:** panoda süresi dolan/dolacak raporlar listelenir; oyuncu kartında belge rozeti gösterir.
 - **Makbuz iptali** neden ister; iptal eden ve zaman kayda geçer, tahsilat raporunda ayrı görünür.
 - **WhatsApp ile hatırlatma (API yok, ücretsiz):** Pano'da borçlu satırındaki yeşil WhatsApp düğmesi ya da "Borçlulara Hatırlat";

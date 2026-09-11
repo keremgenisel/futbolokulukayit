@@ -298,6 +298,41 @@ app.on("browser-window-created", async (_e, win) => {
         return g.ad === "U11 A" && g.sira === 9 && /17:30/.test(g.program || "") && /"bitis":"19:00"/.test(g.program || "");
       })(),
     );
+    // plan §37: kayıtlı bitiş Düzenle'de dolu gelir; ikinci gün eklenince özet iki günü aralıklarıyla sıralar;
+    // bitiş temizlenince özet yalnız başlangıcı gösterir ve program JSON'da bitiş boş kalır
+    await satirDugme("U11 A", "Düzenle");
+    check(
+      "Düzenle: kayıtlı başlangıç/bitiş/saha dolu gelir",
+      (await js(`document.querySelector("input[aria-label='Pazartesi saati']").value`)) === "17:30" &&
+        (await js(`document.querySelector("input[aria-label='Pazartesi bitişi']").value`)) === "19:00" &&
+        (await js(`document.querySelector("input[aria-label='Pazartesi sahası']").value`)) === "Saha 2",
+    );
+    await js(
+      `(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const g = (sel, v) => { const i = document.querySelector(sel); set.call(i, v); i.dispatchEvent(new Event("input", { bubbles: true })); }; g("input[aria-label='Çarşamba saati']", "17:00"); g("input[aria-label='Çarşamba bitişi']", "18:30"); g("input[aria-label='Çarşamba sahası']", "Saha 1"); g("input[aria-label='Pazartesi bitişi']", ""); })()`,
+    );
+    check(
+      "bitiş silinince Pazartesi satırında süre yok, Çarşamba '90 dk'; Kaydet açık",
+      !/Bitiş başlangıçtan sonra olmalı/.test(await js(`document.querySelector("table tbody")?.textContent || ""`)) &&
+        /90 dk/.test(await js(`document.querySelector("input[aria-label='Çarşamba bitişi']").closest("tr").textContent`)) &&
+        !(await js(
+          `[...document.querySelectorAll("table tbody tr")].find((tr) => tr.querySelector("input"))?.querySelector("button[disabled]")`,
+        )),
+    );
+    await tikla("Kaydet", '[...document.querySelectorAll("table tbody tr")].find((tr) => tr.querySelector("input"))');
+    check(
+      "özet 'Pzt 17:30 · Çar 17:00–18:30' (bitişsiz gün yalnız başlangıç)",
+      /Pzt 17:30 · Çar 17:00–18:30/.test(await satir("U11 A")),
+      await satir("U11 A"),
+    );
+    check(
+      "veritabanı: Pazartesi bitişi boş, Çarşamba bitişi 18:30",
+      (() => {
+        const pr = JSON.parse(db.listAgeGroups().find((x) => x.id === u11.id).program || "[]");
+        return (
+          pr.length === 2 && pr[0].gun === 1 && pr[0].bitis === "" && pr[1].gun === 3 && pr[1].bitis === "18:30" && pr[1].saha === "Saha 1"
+        );
+      })(),
+    );
     // Düzenle ile sezonu sonraki sezona taşı (U13)
     await satirDugme("U13", "Düzenle");
     await js(

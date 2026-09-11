@@ -1,5 +1,15 @@
 import { describe, it, expect } from "vitest";
-import { gunKaydir, haftaGunu, haftaBasi, gunSeridi, varsayilanBaslangic, uzunTarih, gunNoktalari } from "../src/lib/takvim.js";
+import {
+  gunKaydir,
+  haftaGunu,
+  haftaBasi,
+  gunSeridi,
+  varsayilanBaslangic,
+  uzunTarih,
+  gunNoktalari,
+  sezonDisiMi,
+  haftaSezonDisiMi,
+} from "../src/lib/takvim.js";
 
 describe("takvim yardımcıları", () => {
   it("gün kaydırma ay ve yıl sınırlarını aşar", () => {
@@ -41,5 +51,22 @@ describe("takvim yardımcıları", () => {
       ]),
     ).toEqual(["kirmizi", "gri", "yesil", "mor"]);
     expect(gunNoktalari([])).toEqual([]);
+  });
+  it("sezon dışı gün: aralık dışı true, sınır günler içeride, tarih yoksa hiç (plan §37.6)", () => {
+    const t = { baslangic: "2026-09-01", bitis: "2027-06-30" };
+    expect(sezonDisiMi("2026-08-31", t)).toBe(true);
+    expect(sezonDisiMi("2026-09-01", t)).toBe(false);
+    expect(sezonDisiMi("2027-06-30", t)).toBe(false);
+    expect(sezonDisiMi("2027-07-01", t)).toBe(true);
+    expect(sezonDisiMi("2027-07-01", null)).toBe(false);
+    expect(sezonDisiMi("2027-07-01", { baslangic: "", bitis: "" })).toBe(false);
+  });
+  it("hafta sezon dışı: yalnız tamamı dışarıdaysa; kısmen kesişen hafta sezon içi", () => {
+    const t = { baslangic: "2026-09-01", bitis: "2027-06-30" };
+    expect(haftaSezonDisiMi("2026-08-24", t)).toBe(true); // 24–30 Ağu
+    expect(haftaSezonDisiMi("2026-08-31", t)).toBe(false); // 31 Ağu – 6 Eyl (1 Eyl içeride)
+    expect(haftaSezonDisiMi("2027-06-28", t)).toBe(false); // 28 Haz – 4 Tem
+    expect(haftaSezonDisiMi("2027-07-05", t)).toBe(true);
+    expect(haftaSezonDisiMi("2027-07-05", null)).toBe(false);
   });
 });

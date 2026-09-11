@@ -1632,7 +1632,13 @@ adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta
   Pano başlık satırında "Sezon 2026-2027 · 1 Eyl – 30 Haz · N gün kaldı", bitişe ≤30 gün kala hatırlatma şeridi ("Sezon Ayarları"
   düğmesi; "sezon bitti" şeridi varsa bu çıkmaz); Raporlar "Tümü" aralığı `sezonListesiTarihli`'den (kayıt yoksa 12 ay); Uzun Dönem
   "Sezon Sonuna Kadar" `sezonDurumu.tarihler.bitis` ayına kadar (`UzunDonemModal sezonBitis` prop'u).
-- ERTELENDİ (düşük öncelik): yoklama takviminde sezon dışı günün soluk gösterilmesi, "Haftayı Programdan Doldur" sezon dışı uyarısı.
+- Sezon dışı işaretleme (11.09.2026, Kerem onayı "tamamdır"): takvim şeridinde sezon tarihleri dışındaki gün soluk (opacity .5,
+  `data-sezon-disi`, etiket "· sezon dışı", gösterge "Soluk gün: sezon dışı") ama TIKLANABİLİR ve antrenman eklenebilir; seçili gün
+  sezon dışındaysa başlıkta gri "Sezon dışı" rozeti; "Haftayı Programdan Doldur" engellemez, haftanın TAMAMI sezon dışındaysa sonuç
+  toast'ına "· bu hafta sezon dışında" eklenir (kısmen kesişen hafta sezon içi sayılır). Saf `takvim.js sezonDisiMi`,
+  `haftaSezonDisiMi`; `TakvimSeridi` `sezon` prop'u; Yoklama `sezonDurumu().tarihler` okur (yoksa hiçbir gün soluk değil).
+- Yaş Grupları e2e (Kerem: "tüm durumlar için test et"): kayıtlı bitişin Düzenle'de dolu gelmesi, bitişi temizleme (özet yalnız
+  başlangıç, JSON `bitis: ""`), iki günlü özet "Pzt 17:30 · Çar 17:00–18:30" eklendi; toplam 48 kontrol.
 - Testler: saf 26 (program/sezon/whatsapp), UI (yoklama, yaş grupları, sezon, raporlar-sezon, tahsilat, pano), Electron
   db-roundtrip/kalıcılık şema 19, yoklama/yaş grupları e2e bitiş + saha çakışması. `tests/ui/tahsilat.test.jsx` "Tahsil eden"
   testindeki önceden var olan yakalanmamış hata (mock her çağrıya "" dönüyordu) düzeltildi.

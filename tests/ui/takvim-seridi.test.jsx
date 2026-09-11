@@ -74,4 +74,21 @@ describe("Takvim şeridi", () => {
     const q = kur({ secili: "2026-08-01" });
     expect(q.onBaslangic).toHaveBeenCalledWith("2026-07-19");
   });
+  it("sezon verilince aralık dışı günler soluk, etiketli ve yine tıklanabilir; sezonsuz şeritte hiçbiri soluk değil (plan §37.6)", () => {
+    const p = kur({ sezon: { baslangic: "2026-09-01", bitis: "2027-06-30" } });
+    const agu31 = document.querySelector("button[data-iso='2026-08-31']");
+    const eyl1 = document.querySelector("button[data-iso='2026-09-01']");
+    expect(agu31.dataset.sezonDisi).toBe("1");
+    expect(agu31.style.opacity).toBe("0.5");
+    expect(agu31).toHaveAccessibleName(/31 AĞU · sezon dışı/);
+    expect(eyl1.dataset.sezonDisi).toBe("0");
+    expect(eyl1.style.opacity).toBe("1");
+    fireEvent.click(agu31);
+    expect(p.onSec).toHaveBeenCalledWith("2026-08-31");
+    expect(screen.getByText("Soluk gün: sezon dışı")).toBeInTheDocument();
+    cleanup();
+    kur();
+    expect(document.querySelectorAll("button[data-sezon-disi='1']")).toHaveLength(0);
+    expect(screen.queryByText("Soluk gün: sezon dışı")).toBeNull();
+  });
 });
