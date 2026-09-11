@@ -113,8 +113,10 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
             <tbody>
               {liste.map((u) => (
                 <tr key={u.id}>
-                  <td style={{ fontWeight: 600 }}>{u.username}</td>
-                  <td>{u.ad_soyad}</td>
+                  <td className="tek-satir" style={{ fontWeight: 600 }}>
+                    {u.username}
+                  </td>
+                  <td className="tek-satir">{u.ad_soyad}</td>
                   <td>{u.role === "admin" ? "Yönetici" : "Kullanıcı"}</td>
                   <td>{u.is_active ? <Rozet ton="green">Aktif</Rozet> : <Rozet ton="gray">Pasif</Rozet>}</td>
                   <td>{u.kurtarma_kodu > 0 ? <Rozet ton="green">{u.kurtarma_kodu}</Rozet> : <Rozet ton="red">Yok</Rozet>}</td>

@@ -233,7 +233,7 @@ export function Raporlar() {
                   <thead>
                     <tr>
                       {veri.sutunlar.map((c) => (
-                        <th key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>
+                        <th key={c.anahtar} className="tek-satir" style={{ textAlign: c.sag ? "right" : "left" }}>
                           {c.baslik}
                         </th>
                       ))}
@@ -243,7 +243,7 @@ export function Raporlar() {
                     {gorunenSatirlar.map((s, i) => (
                       <tr key={(sayfa - 1) * ONIZLEME_BOYU + i}>
                         {veri.sutunlar.map((c) => (
-                          <td key={c.anahtar} style={{ textAlign: c.sag ? "right" : "left" }}>
+                          <td key={c.anahtar} className="tek-satir" style={{ textAlign: c.sag ? "right" : "left" }}>
                             {(typeof s[c.anahtar] === "number" && c.anahtar === "tutar") || c.anahtar === "aidat"
                               ? paraTR(s[c.anahtar])
                               : s[c.anahtar]}

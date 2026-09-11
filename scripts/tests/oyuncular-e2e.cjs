@@ -288,8 +288,10 @@ app.on("browser-window-created", async (_e, win) => {
       await satir("Berk Yeni"),
     );
     check(
-      "İbrahim satırı: 'Sağlık raporu yok' pili, Deneme",
-      /Sağlık raporu yok/.test(await satir("İbrahim Deneme")) && /Deneme/.test(await satir("İbrahim Deneme")),
+      "İbrahim satırı: sağlık raporu hiç yok → ayrı pil YOK, 'Eksik belge' kapsar (plan §36.1-2), Deneme",
+      !/Sağlık raporu yok/.test(await satir("İbrahim Deneme")) &&
+        /Eksik belge/.test(await satir("İbrahim Deneme")) &&
+        /Deneme/.test(await satir("İbrahim Deneme")),
     );
     // Eksik belge pili: Ali'de yalnız sağlık var → 4 eksik; İbrahim'de hiç → 5
     check(
@@ -410,11 +412,11 @@ app.on("browser-window-created", async (_e, win) => {
       "Zeynep Yeni",
     ]);
     check(
-      "yeni oyuncu: U12, Aktif, aidat girilmediği için Muaf, 'Sağlık raporu yok', eksik belge (5)",
+      "yeni oyuncu: U12, Aktif, aidat girilmediği için Muaf, eksik belge (5) (ayrı 'Sağlık raporu yok' pili yok)",
       /U12/.test(await satir("Zeynep Yeni")) &&
         /Aktif/.test(await satir("Zeynep Yeni")) &&
         /Muaf/.test(await satir("Zeynep Yeni")) &&
-        /Sağlık raporu yok/.test(await satir("Zeynep Yeni")) &&
+        !/Sağlık raporu yok/.test(await satir("Zeynep Yeni")) &&
         /Eksik belge \(5\)/.test(await satir("Zeynep Yeni")),
       await satir("Zeynep Yeni"),
     );

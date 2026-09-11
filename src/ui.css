@@ -22,6 +22,10 @@
   --font: "Source Sans 3", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
   --font-baslik: "Barlow Condensed", "Arial Narrow", Arial, sans-serif;
 }
+/* Tablo hücresi/ad tek satır: ad, tarih, tutar kırılmasın (plan §36.1-1) */
+.tek-satir {
+  white-space: nowrap;
+}
 * {
   box-sizing: border-box;
 }

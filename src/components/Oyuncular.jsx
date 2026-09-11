@@ -282,15 +282,26 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
                   <td>
                     <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                       <Avatar ad={o.ad_soyad} />
-                      <div>
-                        <div style={{ fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+                      <div style={{ minWidth: 0 }}>
+                        {/* Ad tek satırda (piller yüzünden kırılmasın, plan §36.1-1); piller kimlik satırında */}
+                        <div className="tek-satir" style={{ fontWeight: 700 }}>
                           {o.ad_soyad}
+                        </div>
+                        <div
+                          style={{ fontSize: 12, color: "var(--soluk)", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+                        >
+                          <span>{kimlikKisa(o)}</span>
                           {(() => {
+                            // Sağlık raporu pili yalnız rapor VARKEN süresi dolmuş/dolacak/tarihsizse; hiç yoksa "Eksik belge" kapsar
+                            // (plan §36.1-2). Liste belge bilgisi taşımıyorsa (belge_tipleri yok) eski "Sağlık raporu yok" pili kalır.
                             if (o.saglik_adet === undefined) return null;
-                            const g = o.saglik_adet === 0 ? { durum: "yok" } : belgeGecerlilik(o.saglik_gecerlilik, iso);
+                            if (o.saglik_adet === 0) {
+                              return o.belge_tipleri === undefined ? <Rozet ton="red">Sağlık raporu yok</Rozet> : null;
+                            }
+                            const g = belgeGecerlilik(o.saglik_gecerlilik, iso);
                             return g.durum === "gecerli" ? null : (
                               <Rozet ton={g.durum === "dolacak" ? "yellow" : "red"}>
-                                {o.saglik_adet === 0 ? "Sağlık raporu yok" : g.durum === "yok" ? "Rapor tarihsiz" : belgeEtiketi(g)}
+                                {g.durum === "yok" ? "Rapor tarihsiz" : belgeEtiketi(g)}
                               </Rozet>
                             );
                           })()}
@@ -309,11 +320,10 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
                             ) : null;
                           })()}
                         </div>
-                        <div style={{ fontSize: 12, color: "var(--soluk)" }}>{kimlikKisa(o)}</div>
                       </div>
                     </div>
                   </td>
-                  <td>{tarihTR(o.dogum_tarihi)}</td>
+                  <td className="tek-satir">{tarihTR(o.dogum_tarihi)}</td>
                   <td>
                     {o.yas_grubu_ad ? <Rozet ton="purple">{o.yas_grubu_ad}</Rozet> : <span style={{ color: "var(--soluk)" }}>—</span>}
                   </td>
