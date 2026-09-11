@@ -1639,6 +1639,10 @@ adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta
   `haftaSezonDisiMi`; `TakvimSeridi` `sezon` prop'u; Yoklama `sezonDurumu().tarihler` okur (yoksa hiçbir gün soluk değil).
 - Yaş Grupları e2e (Kerem: "tüm durumlar için test et"): kayıtlı bitişin Düzenle'de dolu gelmesi, bitişi temizleme (özet yalnız
   başlangıç, JSON `bitis: ""`), iki günlü özet "Pzt 17:30 · Çar 17:00–18:30" eklendi; toplam 48 kontrol.
+- Yoklama e2e (Kerem: "yoklamayı tüm durumlar için test et"): Düzenle'de kayıtlı bitiş dolu gelir, bitiş < başlangıç reddedilir,
+  kart/başlık "17:30–19:00 · 90 dk", değişiklik notu `eskiBitis`, bildirim penceresi alt başlığında aralık, programdan doldurmada
+  bitiş (bitişsiz gün yalnız başlangıç), +40 gün sezon dışı (soluk hücre, "Sezon dışı" rozeti, gösterge), sezon dışı güne ekleme,
+  sezon dışı haftada doldurma notu, bugün sezon içi; toplam 50 kontrol.
 - Testler: saf 26 (program/sezon/whatsapp), UI (yoklama, yaş grupları, sezon, raporlar-sezon, tahsilat, pano), Electron
   db-roundtrip/kalıcılık şema 19, yoklama/yaş grupları e2e bitiş + saha çakışması. `tests/ui/tahsilat.test.jsx` "Tahsil eden"
   testindeki önceden var olan yakalanmamış hata (mock her çağrıya "" dönüyordu) düzeltildi.

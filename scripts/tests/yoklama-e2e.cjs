@@ -4,7 +4,9 @@
 // kart (grup · saat, saha, x/y işaretli, seçili), oyuncu listesi (pasif oyuncu yok, "Aidat" rozeti, "n aidat borcu"), Geldi/
 // Gelmedi/İzinli işaretleme + yeniden tıklayınca kaldırma, sayaçlar, "Kalanları Geldi İşaretle", Düzenle (saat/saha; yoklama
 // alınmışsa tarih kilitli) + bildirim sorusu + "Velilere Bildir" penceresi, "Değişiklik yok", Haftayı Programdan Doldur (ekleme,
-// tekrar → atlanan, programsız grup), İptal Et (onay, rozet, düğmeler kapalı, kırmızı nokta). Çıktıda "TUM KONTROLLER GECTI" aranır.
+// tekrar → atlanan, programsız grup), İptal Et (onay, rozet, düğmeler kapalı, kırmızı nokta). Plan §37: bitiş saati (ekle/düzenle
+// doğrulama, kart/başlık aralığı + süre, değişiklik notu eski bitiş, bildirim penceresi aralığı, programdan doldurmada bitiş),
+// saha çakışma uyarısı, sezon dışı gün (soluk hücre, rozet, yine de ekleme, doldurma notu). Çıktıda "TUM KONTROLLER GECTI" aranır.
 const { app } = require("electron");
 const path = require("path");
 const fs = require("fs");
@@ -102,6 +104,9 @@ app.on("browser-window-created", async (_e, win) => {
       m = bugun.getMonth() + 1;
     const sezon = m >= 9 ? `${y}-${y + 1}` : `${y - 1}-${y}`;
     db.setSetting("aktif_sezon", sezon);
+    // plan §37.6: sezon 1 Eyl'de başlar, bugünden 30 gün sonra biter → "+40 gün" günü sezon dışı; bu hafta sezon içi
+    const sezonBitis = isoGun(new Date(bugun.getFullYear(), bugun.getMonth(), bugun.getDate() + 30));
+    db.sezonTarihKaydet(sezon, `${sezon.slice(0, 4)}-09-01`, sezonBitis);
     // Program günleri: bugünün haftasında bugün OLMAYAN iki gün (Pzt=1 … Paz=7)
     const bugunGun = ((bugun.getDay() + 6) % 7) + 1;
     const pg1 = (bugunGun % 7) + 1,
@@ -109,8 +114,8 @@ app.on("browser-window-created", async (_e, win) => {
     const u11 = db.createAgeGroup({ ad: "U11", sezon, sira: 1 });
     db.updateAgeGroup(u11.id, {
       program: [
-        { gun: pg1, saat: "18:00", saha: "Saha 1" },
-        { gun: pg2, saat: "18:00", saha: "Saha 1" },
+        { gun: pg1, saat: "18:00", bitis: "19:30", saha: "Saha 1" }, // plan §37: bitiş programdan doldurmaya taşınır
+        { gun: pg2, saat: "18:00", saha: "Saha 1" }, // bitişsiz: kart yalnız başlangıcı gösterir
       ],
     });
     const u12 = db.createAgeGroup({ ad: "U12", sezon, sira: 2 });
@@ -298,8 +303,19 @@ app.on("browser-window-created", async (_e, win) => {
     await tikla("Kaydet");
     check("değişiklik yapmadan Kaydet → 'Değişiklik yok'", /Değişiklik yok/.test(await govde()));
     await tikla("Düzenle");
+    check(
+      "Düzenle: kayıtlı bitiş 18:30 dolu gelir",
+      (await js(`document.querySelector("input[aria-label='Antrenman bitişi']").value`)) === "18:30",
+    );
     await setInput("input[aria-label='Antrenman saati']", "17:30");
+    await setInput("input[aria-label='Antrenman bitişi']", "17:00");
     await setInput("input[aria-label='Antrenman sahası']", "Saha 2");
+    await tikla("Kaydet");
+    check(
+      "Düzenle: bitiş başlangıçtan önce → uyarı, kaydedilmez (kart hâlâ 17:00–18:30)",
+      /Bitiş başlangıçtan sonra olmalı/.test(await govde()) && /U11 · 17:00–18:30/.test((await kartlar())[0].metin),
+    );
+    await setInput("input[aria-label='Antrenman bitişi']", "19:00");
     await shot("05-duzenle");
     await tikla("Kaydet");
     await bekle(500);
@@ -312,12 +328,22 @@ app.on("browser-window-created", async (_e, win) => {
     await bekle(400);
     k = await kartlar();
     check(
-      "kart: 'U11 · 17:30', Saha 2, 'Velilere bildirilmedi'; başlıkta 'Velilere Bildir' düğmesi",
-      /U11 · 17:30/.test(k[0].metin) &&
+      "kart: 'U11 · 17:30–19:00 · 90 dk', Saha 2, 'Velilere bildirilmedi'; başlıkta 'U11 Yoklama · 17:30–19:00' ve 'Velilere Bildir'",
+      /U11 · 17:30–19:00/.test(k[0].metin) &&
+        /90 dk/.test(k[0].metin) &&
+        /U11 Yoklama · 17:30–19:00/.test(await govde()) &&
         /Saha 2/.test(k[0].metin) &&
         /Velilere bildirilmedi/.test(k[0].metin) &&
         /Velilere Bildir/.test(await govde()),
       JSON.stringify(k),
+    );
+    check(
+      "veritabanı: bitiş 19:00, değişiklik notunda eski saat 17:00 ve eski bitiş 18:30",
+      (() => {
+        const t = db.listTrainings(bugunIso, bugunIso).find((x) => x.yas_grubu_ad === "U11");
+        const n = JSON.parse(t.degisiklik_notu || "{}");
+        return t.bitis_saat === "19:00" && t.saat === "17:30" && n.eskiSaat === "17:00" && n.eskiBitis === "18:30";
+      })(),
     );
     await tikla("Velilere Bildir");
     await bekle(500);
@@ -327,6 +353,7 @@ app.on("browser-window-created", async (_e, win) => {
       /Antrenman Değişikliği — Velilere Bildir/.test(wa) && /Ayşe Veli/.test(wa) && /Bora Veli/.test(wa) && /numar/i.test(wa),
       wa.slice(0, 300),
     );
+    check("bildirim penceresi alt başlığında saat aralığı 17:30–19:00", /17:30–19:00/.test(wa), wa.slice(0, 300));
     await shot("06-velilere-bildir");
     await tikla("Kapat", 'document.querySelector("[role=dialog]")');
     await bekle(400);
@@ -359,8 +386,13 @@ app.on("browser-window-created", async (_e, win) => {
     await bekle(700);
     k = await kartlar();
     check(
-      "program günü: 'U11 · 18:00', Saha 1, 0/3",
-      k.length === 1 && /U11 · 18:00/.test(k[0].metin) && /Saha 1/.test(k[0].metin) && /0\/3/.test(k[0].metin),
+      "program günü: 'U11 · 18:00–19:30 · 90 dk' (bitiş programdan), Saha 1, 0/3",
+      /U11 · 18:00–19:30/.test((await kartlar())[0]?.metin || "") &&
+        /90 dk/.test((await kartlar())[0]?.metin || "") &&
+        k.length === 1 &&
+        /U11 · 18:00/.test(k[0].metin) &&
+        /Saha 1/.test(k[0].metin) &&
+        /0\/3/.test(k[0].metin),
       JSON.stringify(k),
     );
     check("'Tarihe git' program gününü gösterir", (await js(`document.querySelector("input[aria-label='Tarihe git']").value`)) === pgIso);
@@ -390,7 +422,40 @@ app.on("browser-window-created", async (_e, win) => {
       (await gun(uzak))?.secili === "true" && /antrenman yok/.test(await govde()),
       JSON.stringify(await gun(uzak)),
     );
+    check(
+      "+40 gün sezon dışı (plan §37.6): hücre 'sezon dışı' etiketli ve soluk işaretli, başlıkta 'Sezon dışı' rozeti, gösterge satırı",
+      /sezon dışı/.test((await gun(uzak)).etiket) &&
+        (await js(`document.querySelector("button[data-iso='${uzak}']").dataset.sezonDisi`)) === "1" &&
+        /Sezon dışı/.test(await govde()) &&
+        /Soluk gün: sezon dışı/.test(await govde()),
+      (await gun(uzak)).etiket,
+    );
+    // Sezon dışı günde de antrenman eklenebilir (engel değil)
+    await tikla("Antrenman Ekle");
+    await sec("select[aria-label='Yaş grubu']", u12.id);
+    await setInput("input[aria-label='Saat']", "10:00");
+    await setInput("input[aria-label='Saha']", "Saha 3");
+    await tikla("Ekle");
+    await bekle(600);
+    check(
+      "sezon dışı güne antrenman eklendi: kart 'U12 · 10:00' ve şeritte nokta",
+      /U12 · 10:00/.test((await kartlar())[0]?.metin || "") && (await gun(uzak)).noktalar.length === 1,
+    );
+    await shot("07b-sezon-disi");
+    // "Haftayı Programdan Doldur" sezon dışı haftada: eklenmez (program günü eklenir!) — not: haftanın tamamı dışarıda → toast notu
+    await tikla("Haftayı Programdan Doldur");
+    await bekle(500);
+    check(
+      "sezon dışı haftada doldurma: sonuç toast'ı 'bu hafta sezon dışında' notu taşır",
+      /bu hafta sezon dışında/.test(await govde()),
+      (await govde()).match(/\d+ antrenman eklendi[^\n]*/)?.[0],
+    );
     await tikla("Bugün");
+    check(
+      "bugün sezon içi: hücre soluk değil, başlıkta 'Sezon dışı' rozeti yok",
+      (await js(`document.querySelector("button[data-iso='${bugunIso}']")?.dataset.sezonDisi`)) === "0" &&
+        !/Sezon dışı\b/.test(await js(`document.querySelector("h3")?.parentElement?.textContent || ""`)),
+    );
 
     // 7) İptal Et (program gününün antrenmanı)
     await js(`document.querySelector("button[data-iso='${pgIso}']").click()`);
