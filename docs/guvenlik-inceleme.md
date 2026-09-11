@@ -150,3 +150,106 @@ alt kaynak engeli (bkz. plan §8.1 madde 9, kurulum günü kontrol listesi).
 6. Yedek zip'ini şifrele; şifresiz DB uyarısı; geçici artık temizliği (Orta, iki saat).
 7. DevTools/menü/`will-navigate`/`must_change_password`/`addDocument` doğrulama/geçici parola (Düşük, toplam iki saat).
 8. Yayın: GitHub 2FA + korumalı etiketler (Kerem); kod imzası (bütçeye bağlı).
+
+---
+
+# 2. Güvenlik İncelemesi (11.09.2026, sürüm 1.1.0 + 32 commit, HEAD 4ea2ef6)
+
+Kerem: "güvenlik açısından uygulamayı analiz et". Kapsam: 08.09 incelemesinden sonra eklenen özellikler (WhatsApp §13, taşıma/yedek
+şifreleme §14, sezon/geçmiş §15–§22, uzun dönem §24, sağlık §25, KVKK silme §31, kulüp kimliği/logo/tema §32, aktivasyon boşluk
+düzeltmesi §33, sezon/antrenman saatleri §37, refactor 2. tur: ESM tek kaynak, `useSezonDurumu`, `UyariSeridi`, bölünmeler) ve çekirdek
+yolların yeniden okunması. Yöntem: kaynak okuma (`electron/`, `src/lib`, `aktivasyon-sunucu/`), `npm audit`, gitleaks (183 commit,
+sızıntı yok), tehlikeli kalıp taraması. Kod DEĞİŞTİRİLMEDİ; bu belge yalnız bulgu ve öneri.
+
+## 08.09 bulgularının bugünkü durumu
+Tamamı uygulanmış ve kodda doğrulandı: #1 `duzKopyaOlustur` paketten `makineId`/`lisansLease` siler (`db/yedek.cjs:24-28`) · #2 yerel
+login 8/15 dk + parola min 8 (`ipc/data.cjs:17-21,39-47`) · #3 `istemci:baglan` yönetici/ilk kurulum + bekleyen parmak izi
+(`data.cjs:222-247`) · #4 `makbuzPdfIzni` (`cikti.cjs:70`) · #5 yazdırma penceresi ayrı `cikti` bölümü, `data:/about:/blob:` dışı istek
+iptal, JS kapalı (`cikti.cjs:17-31`) · #6 yedek `.fokyedek` şifreli · #7 `SifresizUyari` · #8 `geciciArtiklariTemizle` +
+`tasimaPaketiOzet` bellek içi · #11 devTools/menü/izinler (`main.cjs:43,87-92`) · #12 gezinme yalnız `dist/index.html` (`main.cjs:52-63`)
+· #13 `must_change_password` `cagriYetkisi`'nde · #14 mevcut parola · #15 `belgeGirdiDogrula` · #16 yedek/paket yolu yalnız diyalogdan
+(`bekleyenYedek/bekleyenPaket`) · #18 geçici parola `randomBytes` · #20 `guvenliLogo` (yalnız base64 PNG/JPEG) · #21 `esc` tek tırnak dahil ·
+#22 `MAX_PIKSEL` 50 MP · #23 `db-key.enc` 0o600 · #24 taşıma parolası min 10, scrypt N=2^16 · #25 sabit zamanlı token + IP hız sınırı.
+Kalanlar (bilinçli): #9 kod imzası yok (`verifyUpdateCodeSignature: false`), #10 makine kimliği donanıma bağlı değil, #17 sunucu `0.0.0.0`
+(arayüzde çoklu PC kapalı), #19 ham hata metinleri.
+
+## Sağlam bulunanlar (yeni özellikler)
+- **Kulüp logosu:** yalnız `.png/.jpg/.jpeg` uzantı + 5 MB + 50 MP başlık kontrolü, `nativeImage` ile YENİDEN KODLANIR (meta veri, polyglot,
+  SVG/script olasılığı sıfır), ≤512 px (`kulupLogo.cjs:17-34`); ayar değeri `^kulup/logo\.(png|jpg)$` (`ayarDogrula.cjs:26`); şablonlara
+  yalnız `guvenliLogo` regex'inden geçen data URL girer; `<img>` içinde `alt=""`.
+- **Tema renkleri:** `setSetting` her yazımda `ayarDogrula` (`#rrggbb` regex), `markaHesapla`/`temaTuret` ikinci kez doğrular, CSS'e
+  `style.setProperty` ile gider (`temaUygula.js`), HTML şablonlarına türetilmiş hex girer — CSS enjeksiyonu yolu yok.
+- **Kulüp adı / kısa ad / kuruluş yılı:** uzunluk sınırı + satır sonu temizliği (`ayarDogrula.cjs:5,20-31`); React metin olarak basar,
+  şablonlarda `esc`. `app:marka` oturumsuz ama yalnız bu alanlar (kişisel veri yok).
+- **HTML şablonları:** `makbuzHtml`/`raporHtml`/`yoklamaFormuHtml` tüm kullanıcı alanlarında `esc`; `dangerouslySetInnerHTML` yalnız
+  `Ikon.jsx` sabit SVG yolları; `innerHTML/eval/javascript:` yok.
+- **WhatsApp:** ana süreç `^90\d{10}$` + `https://wa.me/` + `encodeURIComponent` (`main.cjs:126-137`); şablon yer tutucuları düz metin.
+- **KVKK silme (§31):** yalnız yönetici (`files.cjs:119-125`); tek işlemde belgeler/veliler/acil/aidat/yoklama/mesaj/sezon kayıtları
+  silinir, `players` kişisel sütunları boşaltılır, ad "Silinmiş Oyuncu #id" (`oyuncular.cjs:109-131`); dosyalar ve klasör
+  `uploadsIci` ile siliniyor. Makbuz adı damgası kulübün bilinçli kararı (mali belge).
+- **IPC:** `preload.cjs` yalnız sabit kanallar, `ipcRenderer` sızmıyor; `db:call` üç kümeli beyaz liste (`yetki.cjs`), prototype adları
+  kümelerde yok; yeni fonksiyonlar (`sezonTarihKaydet` ADMIN, `sezonTarihleri`/`sezonListesiTarihli` OKUMA) doğru kümede; `cancelReceipt`/
+  `mesajKaydet`/`grupBildirimKaydet` kullanıcıyı oturumdan enjekte eder (`data.cjs:126-131`).
+- **ESM tek kaynak (refactor §8.6):** ana süreç `src/lib/{sezon,program,tema}.js`'i `require(esm)` ile yükler; bu modüller saf, üst düzey
+  `await`/tarayıcı API'si yok; asar içinden yükleme doğrulandı. Saldırı yüzeyi değişmedi (aynı paket, aynı imza).
+- **SQL:** tüm kullanıcı verisi parametreli; dinamik parçalar yalnız iç sabitler (`PLAYER_FIELDS`, `DELETE FROM ${t}` sabit liste,
+  `kolonEkle` iç çağrı, `VACUUM INTO` tırnak kaçışlı iç yol).
+- **Aktivasyon sunucusu:** anahtar sha256 hash'iyle saklanır, imza ham bayt üzerinde, lease lisans bitişini aşmaz, admin token sabit zamanlı,
+  kalıcı lisans ÖZEL anahtarı sunucuda yok. Deploy gizlileri `wrangler secret`; repo/gitleaks temiz.
+- **Kimlik:** bcrypt cost 10, kurtarma kodları `randomBytes` + bcrypt + 5/15 dk, son aktif yönetici silinemez, kendi hesabı silinemez.
+- **Bağımlılıklar:** yüksek/kritik yok; 5 orta: `express/body-parser/qs` (yalnız sunucu modu, arayüzde kapalı) ve `exceljs → uuid` (v3/v5
+  buffer sınırı; uygulama uuid üretmez). Electron 42.11.2 / Node 24.19.
+
+## Yeni bulgular
+
+### Orta
+1. **`yedek_klasoru` ve `sunucu_adres` dahil HER ayar anahtarı `setSetting` ile yazılabilir.** `yetki.cjs` `setSetting`'i ADMIN kümesine
+   koyar ama anahtar beyaz listesi yok; `ayarDogrula` yalnız kulüp kimliği anahtarlarını süzer, "bilinmeyen anahtarlar olduğu gibi geçer"
+   (`ayarDogrula.cjs:33`). Yönetici oturumundan (DevTools kapalı olsa da renderer'daki bir hata/eklenti üzerinden) `yedek_klasoru`
+   diyalog dışı bir yola, `sunucu_adres` dış arabirime, `aktif_sezon`/`sezon_baslangic_ayi` bozuk değere yazılabilir. Etki sınırlı
+   (yönetici zaten yetkili), ama diyalogla korunan `yedek:klasorSec` (inceleme #16) bu yoldan atlanır. Öneri: `ayarDogrula`'ya
+   İZİNLİ_ANAHTARLAR kümesi (bilinmeyen anahtar reddi) + `yedek_klasoru` ve `sunucu_adres` yalnız kendi IPC'lerinden (setSetting'te reddet),
+   `aktif_sezon` `sezonGecerliMi`, `sezon_baslangic_ayi` 1–12.
+2. **Geçici PDF'ler temp klasöründe kalıyor.** `cikti:pdfAc` (yazıcı yokken yedek yol) makbuz/yoklama formunu
+   `temp/futbolokulu-<zaman>-<ad>.pdf` olarak yazar ve sistem görüntüleyicisinde açar (`cikti.cjs:84-94`); silinmez, `geciciArtiklariTemizle`
+   yalnız `futbolokulu-(tasima|geri)-` klasörlerini siler (`yedekCekirdek.cjs:77`). Kişisel veri (ad, aidat, sağlık formu) paylaşılan
+   PC'nin temp'inde birikir. Öneri: açılışta `futbolokulu-*.pdf` artıklarını (24 saatten eski) sil; ya da `app.getPath("temp")` altında
+   uygulama alt klasörü kullanıp açılışta boşalt.
+
+### Düşük
+3. **Üretim CSP'sinde dev sunucusu adresleri.** `dist/index.html` `connect-src 'self' http://localhost:5173 ws://localhost:5173` taşıyor;
+   paketli sürümde bir XSS (bugün yok) yerel 5173 portuna veri gönderebilir. Öneri: Vite build'de CSP'yi `connect-src 'self'` olarak yaz
+   (`vite.config` transformIndexHtml ya da iki ayrı meta).
+4. **Aktivasyonda kurulum limiti yarışı.** `aktivasyon()` önce `aktifKurulumSay` sonra `kurulumEkle` (`index.js:52-58`); eşzamanlı iki
+   ilk aktivasyon limiti aşabilir (D1'de işlem yok). Etki: 1 kurulumluk lisansla 2 kurulum. Öneri: `INSERT ... WHERE (SELECT COUNT(*)…) <
+   maksKurulum` tek ifade ya da `kurulumlar(lisansId, makineId)` UNIQUE + sayımı `batch` içinde.
+5. **Silinen kişisel veri yedeklerde ve `.pre-restore` kopyalarında yaşar.** KVKK silme DB'den siler ama 30 gün saklanan `.fokyedek`
+   dosyaları (`yedekCekirdek.cjs:135`), taşıma paketleri ve geri yüklemede kenara alınan `.pre-restore-*` kopyaları eski veriyi tutar. Bu
+   teknik olarak beklenen ama kullanıcı rehberinde yazmalı (veri sahibi talebinde yedek saklama süresi). Öneri: `docs/kurulum.md`'ye
+   "silme yedeklere işlemez, 30 gün" notu; `.pre-restore` için otomatik temizlik (30 gün).
+6. **`createUser` rolü doğrulanmıyor.** `kullanicilar.cjs:7` `role` her dize olabilir ("root" gibi); yetki kararı `role !== "admin"` olduğu
+   için etkisi "kullanıcı" gibi davranmasıdır; arayüz iki değer gönderir. Öneri: `role ∈ {admin, kullanici}` doğrulaması.
+7. **Hız sınırı haritaları sınırsız büyür.** `loginDenemeleri`/`kurtarmaDenemeleri` anahtarı renderer'dan gelen kullanıcı adı
+   (`data.cjs:38-46,111-119`); farklı adlarla spam bellek büyütür (yalnız yerel DoS). Sunucudaki `hizSayac` de isolate belleğinde. Öneri:
+   pencere dolan kayıtları periyodik temizle ya da en çok N anahtar.
+8. **`files:open` Office belgelerini sistem uygulamasıyla açar.** `IZINLI_UZANTI` `.doc/.docx` içeriyor (`files.cjs:14`); kulübün kendi
+   yüklediği bir dosya makro taşıyorsa açılışta çalışır. Öneri: `.doc/.docx` yüklemeyi kaldır ya da kurulum rehberine uyarı; PDF/görsel yeterli.
+9. **`must_change_password` oturumunda parola değişiminde mevcut parola istenmiyor** — tasarım gereği (ilk giriş). Ancak yönetici
+   `resetUserPassword` ile bayrağı açıp geçici parola verince aynı yol; kabul edilebilir. Bilgi olarak not.
+
+### Bilgi
+- `listUsers` OKUMA kümesinde: kullanıcı rolü tüm kullanıcı adlarını ve aktiflik durumunu görür (08.09'dan kalan).
+- `express.json({ limit: "40mb" })` ve `helmet` yok — sunucu modu arayüzde kapalı; açılırsa `helmet` + `Content-Type` sıkılaştırması.
+- `cikti:excelKaydet` satırları renderer'dan nesne olarak alır; ExcelJS `{ formula }` nesnesi verilirse formül hücresi yazılır. Renderer
+  güvenilir sınır içinde; yine de ana süreçte hücreleri `String/Number/Date` dışına indirgemek ucuz bir savunma.
+- Program JSON'unda öğe sayısı sınırı yok (`gruplar.cjs:44-66`); yalnız yönetici, etki DoS.
+- `.pre-restore` kopyaları ve `futbolokulu-yedek-*` 30 gün — disk dolabilir (08.09 Bilgi, hâlâ geçerli).
+- Ana süreç `src/lib`'i yüklediği için `src/lib` altına tarayıcı-yalnız kod eklenmemeli (CLAUDE.md kuralı yazıldı).
+
+## Önerilen sıra
+1. Ayar anahtarı beyaz listesi + `yedek_klasoru`/`sunucu_adres` kilidi (Orta, 1 saat, testli).
+2. Geçici PDF temizliği (Orta, yarım saat).
+3. Üretim CSP `connect-src 'self'` (Düşük, 15 dk).
+4. Aktivasyon kurulum limiti tek ifade (Düşük, yarım saat + deploy).
+5. `createUser` rol doğrulaması, hız sınırı temizliği, `.doc/.docx` kararı (Düşük, 1 saat).
+6. Kurulum rehberine KVKK/yedek notu (Düşük, 15 dk).
