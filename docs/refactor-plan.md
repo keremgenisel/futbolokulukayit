@@ -211,6 +211,11 @@ görüntüde çubuk görünür, metin bir kelime erken kırılır) — kod kayna
 `GOCLER = { 12: (db) => …, 13: …, 19: … }` haritası; `migrate()` sıralı uygular, `schema_version` yazar. Davranış aynı (idempotent
 PRAGMA kontrolleri korunur). Güvenlik ağı: db-roundtrip 7/11/15/16 → 19 yeniden göç kontrolleri, kalıcılık "şema 19".
 
+**Sonuç (11.09.2026):** `sema.cjs` — `kolonlar(tablo)`, `kolonEkle(tablo, kolon, tanim)`, `ayar`, `baslangicAyi` yardımcıları;
+`sutunGocleri()` (sürümden bağımsız idempotent sütun/indeks eklemeleri) + `VERI_GOCLERI = { 8, 12, 13, 14, 15, 16, 17, 19 }` (sürüm →
+veri göçü, dışa da verilir); `migrate()` 166 → 14 satır: sütunlar → tohum bayrağı → `cur < sürüm` olan göçler sırayla → `schema_version`.
+db-roundtrip (7/11/15/16 → 19 yeniden göç), kalıcılık, taşıma, sunucu güvenliği değişmeden geçti.
+
 ### 8.6 ESM/CJS ikizleri (5 çift)
 Elle senkron tutulan 5 çift, her yeni saf yardımcıda büyüyor. Seçenekler: (a) `electron/` tarafında `require` ile ESM'i yükleyemeyiz
 (CJS ana süreç) → tek kaynak `.cjs` yazıp Vite'ta `import x from "../../electron/x.cjs"` (Vite CJS interop ile çalışır; test edilmeli);

@@ -252,155 +252,117 @@ function init() {
   return conn;
 }
 
-function migrate() {
-  const cur = Number(getMetaValue("schema_version") || 0);
-  // 3: yabancı uyruklu oyuncular için pasaport no (eski DB'lerde sütun yoksa ekle; CREATE TABLE yenilerde zaten içerir)
-  const kolonlar = new Set(
+// ── Göç (refactor 2. tur §8.5, 11.09.2026): önce idempotent sütun/indeks eklemeleri (PRAGMA table_info ile; yeni DB'de
+// SCHEMA_SQL zaten içerir), sonra sürüm başına VERİ göçü haritası. `migrate()` `schema_version` < sürüm olan her göçü sırayla
+// uygular. Yeni şema: SCHEMA_VERSION'ı artır, gerekiyorsa sütunu hem SCHEMA_SQL'e hem `sutunGocleri()`ne, veri dönüşümünü
+// `VERI_GOCLERI[n]`e yaz. ──
+const kolonlar = (tablo) =>
+  new Set(
     db
-      .prepare("PRAGMA table_info(players)")
+      .prepare(`PRAGMA table_info(${tablo})`)
       .all()
       .map((c) => c.name),
   );
-  if (!kolonlar.has("uyruk")) db.exec("ALTER TABLE players ADD COLUMN uyruk TEXT NOT NULL DEFAULT 'tc'");
-  if (!kolonlar.has("pasaport_no")) db.exec("ALTER TABLE players ADD COLUMN pasaport_no TEXT");
-  if (!kolonlar.has("sezon")) db.exec("ALTER TABLE players ADD COLUMN sezon TEXT NOT NULL DEFAULT ''");
-  const grupKolon = new Set(
-    db
-      .prepare("PRAGMA table_info(age_groups)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!grupKolon.has("program")) db.exec("ALTER TABLE age_groups ADD COLUMN program TEXT NOT NULL DEFAULT '[]'");
-  const makbuzKolon = new Set(
-    db
-      .prepare("PRAGMA table_info(receipts)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!makbuzKolon.has("iptal_nedeni")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_nedeni TEXT DEFAULT ''");
-  if (!makbuzKolon.has("iptal_eden")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_eden TEXT DEFAULT ''");
-  if (!makbuzKolon.has("iptal_zamani")) db.exec("ALTER TABLE receipts ADD COLUMN iptal_zamani TEXT");
-  if (!makbuzKolon.has("sezon")) db.exec("ALTER TABLE receipts ADD COLUMN sezon TEXT NOT NULL DEFAULT ''"); // 14
-  if (!makbuzKolon.has("oyuncu_adi")) db.exec("ALTER TABLE receipts ADD COLUMN oyuncu_adi TEXT NOT NULL DEFAULT ''"); // 18
-  const dueKolon = new Set(
-    db
-      .prepare("PRAGMA table_info(monthly_dues)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!dueKolon.has("odenen")) {
+/** Sütun yoksa ekler. @param {string} tablo @param {string} kolon @param {string} tanim SQL tipi/varsayılan */
+const kolonEkle = (tablo, kolon, tanim) => {
+  if (!kolonlar(tablo).has(kolon)) db.exec(`ALTER TABLE ${tablo} ADD COLUMN ${kolon} ${tanim}`);
+};
+const ayar = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value || "";
+const baslangicAyi = () => Number(ayar("sezon_baslangic_ayi")) || 9;
+
+/** Sütun/indeks eklemeleri — sürümden bağımsız, her açılışta güvenle çalışır. */
+function sutunGocleri() {
+  // 3: yabancı uyruklu oyuncular için pasaport no; 4: players.sezon
+  kolonEkle("players", "uyruk", "TEXT NOT NULL DEFAULT 'tc'");
+  kolonEkle("players", "pasaport_no", "TEXT");
+  kolonEkle("players", "sezon", "TEXT NOT NULL DEFAULT ''");
+  kolonEkle("age_groups", "program", "TEXT NOT NULL DEFAULT '[]'"); // 6
+  kolonEkle("receipts", "iptal_nedeni", "TEXT DEFAULT ''"); // 7
+  kolonEkle("receipts", "iptal_eden", "TEXT DEFAULT ''");
+  kolonEkle("receipts", "iptal_zamani", "TEXT");
+  kolonEkle("receipts", "sezon", "TEXT NOT NULL DEFAULT ''"); // 14
+  kolonEkle("receipts", "oyuncu_adi", "TEXT NOT NULL DEFAULT ''"); // 18
+  if (!kolonlar("monthly_dues").has("odenen")) {
+    // 5: kısmi ödeme
     db.exec("ALTER TABLE monthly_dues ADD COLUMN odenen REAL NOT NULL DEFAULT 0");
     db.exec("UPDATE monthly_dues SET odenen=tutar WHERE durum='odendi'");
   }
   db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_players_pasaport ON players(pasaport_no) WHERE pasaport_no IS NOT NULL");
   // 9: WhatsApp — veli mesaj onayı (mevcut veliler onaylı: kulüp kararı 07.09.2026), antrenman bildirim alanları
-  const veliKolon = new Set(
-    db
-      .prepare("PRAGMA table_info(guardians)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!veliKolon.has("mesaj_onayi")) db.exec("ALTER TABLE guardians ADD COLUMN mesaj_onayi INTEGER NOT NULL DEFAULT 1");
-  const antKolon = new Set(
-    db
-      .prepare("PRAGMA table_info(trainings)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!antKolon.has("bildirim_gerekli")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_gerekli INTEGER NOT NULL DEFAULT 0");
-  if (!antKolon.has("degisiklik_notu")) db.exec("ALTER TABLE trainings ADD COLUMN degisiklik_notu TEXT DEFAULT ''");
-  if (!antKolon.has("grup_bildirim")) db.exec("ALTER TABLE trainings ADD COLUMN grup_bildirim TEXT DEFAULT ''"); // 10
-  if (!antKolon.has("bildirim_olay")) db.exec("ALTER TABLE trainings ADD COLUMN bildirim_olay TEXT DEFAULT ''"); // 11
-  const mlKolon = new Set(
-    db
-      .prepare("PRAGMA table_info(message_log)")
-      .all()
-      .map((c) => c.name),
-  );
+  kolonEkle("guardians", "mesaj_onayi", "INTEGER NOT NULL DEFAULT 1");
+  kolonEkle("trainings", "bildirim_gerekli", "INTEGER NOT NULL DEFAULT 0");
+  kolonEkle("trainings", "degisiklik_notu", "TEXT DEFAULT ''");
+  kolonEkle("trainings", "grup_bildirim", "TEXT DEFAULT ''"); // 10
+  kolonEkle("trainings", "bildirim_olay", "TEXT DEFAULT ''"); // 11
+  const mlKolon = kolonlar("message_log");
   if (mlKolon.size && !mlKolon.has("tur")) {
     // ilk iskeletin kullanılmayan message_log'u
     const dolu = db.prepare("SELECT count(*) AS n FROM message_log").get().n > 0;
     db.exec(dolu ? "ALTER TABLE message_log RENAME TO message_log_eski_v1" : "DROP TABLE message_log");
     db.exec(MESSAGE_LOG_SQL);
   }
-  const mlKolon2 = new Set(
-    db
-      .prepare("PRAGMA table_info(message_log)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!mlKolon2.has("olay")) db.exec("ALTER TABLE message_log ADD COLUMN olay TEXT DEFAULT ''"); // 11
+  kolonEkle("message_log", "olay", "TEXT DEFAULT ''"); // 11
   db.exec(
     "CREATE INDEX IF NOT EXISTS idx_message_log_player ON message_log(player_id, tur, yil, ay); CREATE INDEX IF NOT EXISTS idx_message_log_training ON message_log(training_id)",
   );
+  kolonEkle("trainings", "bitis_saat", "TEXT DEFAULT ''"); // 19
+}
+
+/** Sürüm → veri göçü. Anahtar: bu göçün getirdiği şema sürümü; `schema_version` ondan küçükse çalışır. */
+const VERI_GOCLERI = {
   // 8: ücret tipleri tabloya; eski `indirim_<kod>` ayarları bir kez taşınır (yalnız ilk geçişte, sonra tablo esastır)
-  // Varsayılan tipler YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
-  if (!getMetaValue("tohum_fee_types")) {
-    const insTip = db.prepare("INSERT OR IGNORE INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,?)");
-    FEE_TYPES.forEach(([kod, ad, ind, sabit], i) => insTip.run(kod, ad, ind, i, sabit));
-    setMetaValue("tohum_fee_types", "1");
-  }
-  if (cur < 8) {
+  8() {
     for (const r of db.prepare("SELECT key, value FROM settings WHERE key LIKE 'indirim_%'").all()) {
       const y = Math.min(100, Math.max(0, Math.round(Number(r.value) || 0)));
       db.prepare("UPDATE fee_types SET indirim=? WHERE kod=? AND sabit=0").run(y, r.key.slice(8));
     }
-  }
+  },
   // 12: sezonu boş olan AKTİF gruplara aktif sezon (plan §15); pasif gruplara ve dolu değerlere dokunulmaz
-  if (cur < 12) {
-    const aktifSezon = db.prepare("SELECT value FROM settings WHERE key='aktif_sezon'").get()?.value || "";
+  12() {
+    const aktifSezon = ayar("aktif_sezon");
     if (aktifSezon) db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1 AND sezon=''").run(aktifSezon);
-  }
+  },
   // 13: varsayılan ücret tiplerinin sırası FEE_TYPES ile aynı olsun (ücretsiz normalin hemen altında); kulübün eklediği tipler dokunulmaz
-  if (cur < 13) {
+  13() {
     const sira = db.prepare("UPDATE fee_types SET sira=? WHERE kod=?");
     FEE_TYPES.forEach(([kod], i) => sira.run(i, kod));
-  }
+  },
   // 14: mevcut makbuzlara tarihlerinden sezon (başlangıç ayı ayarıyla); numaralar değişmez
-  if (cur < 14) {
+  14() {
     const { tarihinSezonu } = require("../makbuzNo.cjs");
-    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const bas = baslangicAyi();
     const guncelle = db.prepare("UPDATE receipts SET sezon=? WHERE id=?");
     for (const r of db.prepare("SELECT id, tarih FROM receipts WHERE sezon=''").all()) guncelle.run(tarihinSezonu(r.tarih, bas), r.id);
-  }
+  },
   // 15: sezonu boş olan sahadaki oyunculara (aktif/deneme/sakat) aktif sezon; Oyuncular ekranı sezon filtresi (plan §18)
-  if (cur < 15) {
-    const ayar = (k) => db.prepare("SELECT value FROM settings WHERE key=?").get(k)?.value || "";
+  15() {
     const { tarihinSezonu } = require("../makbuzNo.cjs");
-    const aktifSezon =
-      ayar("aktif_sezon") || tarihinSezonu(new Date().toISOString().slice(0, 10), Number(ayar("sezon_baslangic_ayi")) || 9);
+    const aktifSezon = ayar("aktif_sezon") || tarihinSezonu(new Date().toISOString().slice(0, 10), baslangicAyi());
     db.prepare("UPDATE players SET sezon=? WHERE sezon='' AND durum IN ('aktif','deneme','sakat')").run(aktifSezon);
-  }
+  },
   // 16: player_seasons doldurulur — players.sezon + aidat kayıtlarının ait olduğu sezonlar (o ayda sahadaydı) + makbuz sezonları
-  if (cur < 16) {
+  16() {
     const { tarihinSezonu } = require("../makbuzNo.cjs");
-    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const bas = baslangicAyi();
     const ekle = db.prepare("INSERT OR IGNORE INTO player_seasons (player_id, sezon) VALUES (?,?)");
     for (const p of db.prepare("SELECT id, sezon FROM players WHERE sezon<>''").all()) ekle.run(p.id, p.sezon);
     for (const d of db.prepare("SELECT DISTINCT player_id, yil, ay FROM monthly_dues").all())
       ekle.run(d.player_id, tarihinSezonu(`${d.yil}-${String(d.ay).padStart(2, "0")}-01`, bas));
     for (const r of db.prepare("SELECT DISTINCT player_id, sezon FROM receipts WHERE sezon<>''").all()) ekle.run(r.player_id, r.sezon);
-  }
+  },
   // 17: group_seasons doldurulur — age_groups.sezon + grubun antrenman tarihlerinin düştüğü sezonlar (o sezonda çalışıyordu)
-  if (cur < 17) {
+  17() {
     const { tarihinSezonu } = require("../makbuzNo.cjs");
-    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const bas = baslangicAyi();
     const ekle = db.prepare("INSERT OR IGNORE INTO group_seasons (group_id, sezon) VALUES (?,?)");
     for (const g of db.prepare("SELECT id, sezon FROM age_groups WHERE sezon<>''").all()) ekle.run(g.id, g.sezon);
     for (const t of db.prepare("SELECT DISTINCT age_group_id, substr(tarih,1,7) AS ay FROM trainings").all())
       ekle.run(t.age_group_id, tarihinSezonu(t.ay + "-01", bas));
-  }
-  // 19: trainings.bitis_saat + seasons — bilinen her sezona varsayılan aralık (1 Eyl – 31 Ağu) yazılır; kullanıcı Ayarlar'dan düzeltir
-  const antKolon19 = new Set(
-    db
-      .prepare("PRAGMA table_info(trainings)")
-      .all()
-      .map((c) => c.name),
-  );
-  if (!antKolon19.has("bitis_saat")) db.exec("ALTER TABLE trainings ADD COLUMN bitis_saat TEXT DEFAULT ''");
-  if (cur < 19) {
+  },
+  // 19: seasons — bilinen her sezona varsayılan aralık (1 Eyl – 31 Ağu) yazılır; kullanıcı Ayarlar'dan düzeltir (plan §37)
+  19() {
     const { varsayilanSezonAraligi } = require("../../src/lib/sezon.js");
-    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const bas = baslangicAyi();
     const sezonlar = new Set(
       db
         .prepare(
@@ -409,14 +371,29 @@ function migrate() {
         .all()
         .map((r) => r.sezon),
     );
-    const aktif = db.prepare("SELECT value FROM settings WHERE key='aktif_sezon'").get()?.value;
+    const aktif = ayar("aktif_sezon");
     if (aktif) sezonlar.add(aktif);
     const ekle = db.prepare("INSERT OR IGNORE INTO seasons (sezon, baslangic, bitis) VALUES (?,?,?)");
     for (const sz of sezonlar) {
       const a = varsayilanSezonAraligi(sz, bas);
       if (a) ekle.run(sz, a.baslangic, a.bitis);
     }
+  },
+};
+
+function migrate() {
+  const cur = Number(getMetaValue("schema_version") || 0);
+  sutunGocleri();
+  // 8: varsayılan ücret tipleri YALNIZ BİR KEZ tohumlanır (meta bayrağı); yoksa kullanıcının sildiği tip her açılışta geri gelirdi.
+  if (!getMetaValue("tohum_fee_types")) {
+    const insTip = db.prepare("INSERT OR IGNORE INTO fee_types (kod, ad, indirim, sira, aktif, sabit) VALUES (?,?,?,?,1,?)");
+    FEE_TYPES.forEach(([kod, ad, ind, sabit], i) => insTip.run(kod, ad, ind, i, sabit));
+    setMetaValue("tohum_fee_types", "1");
   }
+  for (const surum of Object.keys(VERI_GOCLERI)
+    .map(Number)
+    .sort((a, b) => a - b))
+    if (cur < surum) VERI_GOCLERI[surum]();
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }
 
@@ -434,4 +411,4 @@ function seed() {
   }
 }
 
-module.exports = { SCHEMA_VERSION, init, migrate, seed, FEE_ITEMS, FEE_TYPES };
+module.exports = { SCHEMA_VERSION, init, migrate, seed, FEE_ITEMS, FEE_TYPES, VERI_GOCLERI };
