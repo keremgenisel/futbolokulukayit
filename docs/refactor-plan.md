@@ -262,3 +262,28 @@ refactor'da dokunulmayacak) · `Giris.jsx` kurtarma kodu akışı (%72; `kullani
 6. 8.5 `migrate()` sürüm haritası.
 7. 8.6 ikiz kararı (Kerem) → uygulanırsa modül başına commit.
 8. 8.7 küçük temizlikler; kapsama raporu yeniden; bu belgeye "sonrası" sütunu.
+
+## 11. Sonrası (11.09.2026, 2. tur — 9 commit, HEAD c4e0a25)
+
+Kerem: "v1.1.1'i şimdi çıkarma, ESM/CJS için tek kaynak denemesi yapılsın, diğerlerini de sırayla yap." Sürüm çıkarılmadı (§10 adım 0
+atlandı); 8.6 denemesi başarılı olup uygulandı; adımlar 1→8 sırayla, her biri ayrı commit, her commit'te `test:saf` + ilgili Electron
+paketleri yeşil; duman görüntüleri piksel karşılaştırmalı (kaydırma çubuğu gürültüsü hariç birebir).
+
+| Ölçü | Öncesi (§7) | Sonrası |
+|------|-------------|---------|
+| Kaynak satırı | 18.026 | 18.304 (bölünme başlıkları/JSDoc; davranış aynı) |
+| Test | 79 dosya / 412 test | **83 dosya / 416 süreç içi test** (+ `tahsilat-yazdir`, `use-sezon-durumu`, `uyari-seridi`, `tahsilat-saf`; Pano +4) + 16 Electron betiği |
+| Kapsama (süreç içi) | lib %97,3 · components %84,2 · electron %34,5 | lib %96,7 · **components %85,5** · electron %32,2 (yedek.cjs üçe bölününce ölçülmeyen ana süreç satırı arttı) |
+| En büyük dosyalar | Tahsilat 724 · Yoklama 661 · ui 519 · Pano 505 · IlkKurulum 474 · yedek.cjs 455 · sema 437 | **ui.jsx 553** (+UyariSeridi) · IlkKurulum 474 (dokunulmadı) · KalemAyar 428 · sema 414 · WhatsAppHatirlat 399 · Oyuncular 378; **Tahsilat 298 · Yoklama 344 · Pano 277 · SezonAyar 369 · yedek.cjs 165** |
+| `migrate()` | 166 satır, 9 blok | 14 satır; `sutunGocleri()` + `VERI_GOCLERI` haritası |
+| ESM/CJS ikizleri | 5 çift (3'ü gerçek ikiz) | **0** — ana süreç `src/lib`'i `require(esm)` ile yükler; `tema/sezonTarih/saatAralik.cjs` silindi |
+| `db("sezonDurumu")` bileşende | 8 | 1 (`useSezonDurumu`; SezonSecim prop alır) |
+| Uyarı şeridi kalıbı | 6 elle | `UyariSeridi` (Pano 2, App 3, SifresizUyari); GuncellemeSeridi ayrı |
+| `#fff` sabiti | 62 | 50 (kalanlar anlam rengi/kart zemini — bilinçli) |
+| Yeni saf modül | — | `src/lib/tahsilat.js` (8 fonksiyon), `useSezonDurumu.js` |
+| Yeni klasörler | — | `components/yoklama/` (4), `components/tahsilat/` (6), `components/pano/` (3), `ayarlar/SezonTarihleriKarti`, `ipc/yedekCekirdek.cjs` + `ipc/tasima.cjs` |
+
+Yapılmayanlar (bilinçli): `IlkKurulum` adım bileşenleri (14 useState; adım başına state kaldırma davranış riski — sonraki tur),
+`useYasGruplari` (çağrılar farklı parametreli), `KalemAyar`/`WhatsAppHatirlat`/`Oyuncular` (tek sorumluluk, bölme gerekmedi),
+`electron/db` süreç içi test altyapısı (kapsam dışı). Sürüm: biriken 22 commit v1.1.1 olarak Kerem'in kararıyla çıkar.
+

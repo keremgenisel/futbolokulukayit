@@ -47,7 +47,7 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 
 ## Refactor
 
-Yapısal iyileştirme planı, taban çizgisi, sonuç ölçüleri `docs/refactor-plan.md` (08.09.2026; 7 adım uygulandı; **2. tur hazırlığı §7–§10, 11.09.2026: yeni taban çizgisi, sıcak noktalar Yoklama/Tahsilat bölünmesi, `useSezonDurumu`, `UyariSeridi`, `migrate()` haritası, ESM/CJS ikiz kararı; önce v1.1.1**). Refactor commit'i
+Yapısal iyileştirme planı, taban çizgisi, sonuç ölçüleri `docs/refactor-plan.md` (08.09.2026; 7 adım uygulandı; **2. tur 11.09.2026 §7–§11 UYGULANDI:** `components/yoklama/`, `components/tahsilat/` + saf `src/lib/tahsilat.js`, `components/pano/`, `ayarlar/SezonTarihleriKarti`, `src/lib/useSezonDurumu.js` (sezon durumu TEK kanca — bileşende `db("sezonDurumu")` yazma), `ui.jsx UyariSeridi` (sayfa içi uyarı şeridi TEK kalıp: ton uyari|kirmizi, baslik, eylem, yogun, sessiz), `sema.cjs sutunGocleri()+VERI_GOCLERI` (yeni göç = harita girdisi), `ipc/yedek.cjs` → `yedekCekirdek.cjs` + `tasima.cjs` + işleyiciler (dış API aynı), ESM tek kaynak (CJS ikizi yok). Kalan: IlkKurulum adım bileşenleri). Refactor commit'i
 davranış değiştirmez; `db.cjs` dış API'si ve `yetki.cjs` beyaz listesi sabit kalır. Kalıplar: IPC handler ön koşulu
 `electron/ipc/koruma.cjs` (`donerek`/`firlatarak`); renderer'da hata yakalama `useDene()` (`ui.jsx`): `dene(async () => …)`
 hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e))` yerine bu kullanılır. Rapor üreticileri
@@ -89,7 +89,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   (rekey makine anahtarı). Başka PC'de açılır; normal yedek açılmaz. Plan §14. Uçtan uca test `scripts/tests/tasima-e2e.cjs`
   (gerçek main.cjs, iki userData, diyaloglar dosyaya yönlendirilir; test klasör adları `futbolokulu-tasima-`/`futbolokulu-geri-` ile
   BAŞLAYAMAZ: açılış temizliği siler).
-- `electron/ipc/yedek.cjs` — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip, makine anahtarıyla `tasimaKripto` YEDEK_MAGIC kabında şifreli `futbolokulu-yedek-<damga>.fokyedek`; anahtar yoksa düz `.zip`; eski düz zip'ler açılmaya devam eder,
+- `electron/ipc/yedek.cjs` (IPC işleyicileri + dış API; gövde `ipc/yedekCekirdek.cjs`, taşıma paketi `ipc/tasima.cjs`) — elle ve otomatik yedek (sıklık `yedek_sikligi`: acilis|gunluk|haftalik|kapali, saf karar `electron/yedekSiklik.cjs`) (data.db + uploads → TEK zip, makine anahtarıyla `tasimaKripto` YEDEK_MAGIC kabında şifreli `futbolokulu-yedek-<damga>.fokyedek`; anahtar yoksa düz `.zip`; eski düz zip'ler açılmaya devam eder,
   fflate, 30 gün saklama) ve
   geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
   Yedek aynı PC'nin safeStorage anahtarıyla şifreli; başka PC'de açılmaz (`db.yedekBilgisi` bunu raporlar).
@@ -116,6 +116,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
 - `src/components/IlkKurulum.jsx` — ilk kurulum sihirbazı (ilk parola değişiminden sonra, `kurulum_tamam` boş ve oyuncu
   yokken; kulüp adı → aidat/indirim → gruplar+sezon → yedek → kurtarma kodları → Excel aktarımı; son adım hariç her adımda
   "Bu adımı atla": hiçbir şey yazmadan ilerler, girilenler Geri ile korunur).
+- `src/components/Yoklama.jsx` — durum/veri/işlemler; çizim `yoklama/` (AntrenmanKarti, AntrenmanEkleFormu, AntrenmanDuzenle, YoklamaPaneli). `Tahsilat.jsx` — aynı kalıp: `tahsilat/` (OyuncuSecici, AidatAySecimi, KalemListesi, OdemePaneli, BugunKesilenler, MakbuzIptalModal) + saf hesaplar `src/lib/tahsilat.js`. `Pano.jsx` — kartlar `pano/` (SaglikUyarilari, BugunkuAntrenmanlar, BorcluListesi).
 - `src/components/Ayarlar.jsx` — yalnız kabuk (gruplu bölüm menüsü: Kulüp / Sezon ve Veri / Kullanıcılar ve Erişim / Uygulama;
   "İlk Kurulum Sihirbazı" menü öğesi bölüm değil eylem, `onKurulumAc`; `onKirli` uyarısı); bölümler `src/components/ayarlar/` (KulupAyar,
   KalemAyar, KullaniciAyar+KurtarmaKodlari, SezonAyar, YedekAyar, OptimizeAyar, WhatsAppAyar, Hakkinda+Guncelleme). Dış API
