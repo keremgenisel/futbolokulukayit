@@ -1486,3 +1486,16 @@ Yeni ikon exe/kurulum/masaüstüne bir sonraki sürümle gider; giriş/kenar men
 silindi; form artık dipsiz. Eski kurulumda ayarlar tablosunda kalmış bir `kulup_slogan` değeri zararsızdır (okunmaz). Testler
 ve kurulum rehberi buna göre güncellendi.
 
+
+## 35. Ayarlar > Kullanıcılar — gerçek pencere testi (11.09.2026)
+
+Kerem: "ayarlar, kullanıcılarda tüm durumları test et." `scripts/tests/kullanicilar-e2e.cjs` (`tests/kullanicilar-e2e.test.js`
+sarmalar; `[ekranGoruntusuDizini]` ile görüntü), 33 kontrol: Hesabım (ad/rol, "Kurtarma kodu yok" rozeti, Kurtarma Kodları Üret →
+onay metni, 8 kod XXXX-XXXX penceresi, Kopyala → pano, Yazdır → `cikti:yazdir` HTML'i, kapatınca "8 kurtarma kodu" ve "Yenile"
+düğmesi, yenilemede "Eski kodlar geçersiz olur", Vazgeç), Parolamı Değiştir (yanlış mevcut parola reddi, doğru → DB'de yeni
+parola), kullanıcı ekleme (boş/kısa parola reddi, kullanıcı ve yönetici ekleme, kopya ad reddi, form temizlenir,
+`must_change_password=1`), kendi satırında düğme yok / diğerlerinde 4 düğme, satır işlemleri (kurtarma kodu, parola sıfırla →
+"Geçici parola: ey-…" toast'ı ve DB'de geçerli, pasif yap → giriş reddedilir, aktif yap), silme (onay/Vazgeç/Evet, DB'de yok),
+DB kuralı "son aktif yönetici silinemez", IPC "kendi hesabınızı silemezsiniz", kullanıcı rolüyle giriş (zorunlu parola penceresi,
+Ayarlar sekmesi yok), yöneticinin yeni parolasıyla giriş. Bulunan/düzeltilen: geniş kenar menüdeki Çıkış düğmesinde `aria-label`
+yoktu (dar menüde vardı) — eklendi.

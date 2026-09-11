@@ -235,6 +235,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra, m
             <button
               type="button"
               onClick={onCikis}
+              aria-label="Çıkış"
               style={{
                 background: "none",
                 border: 0,
