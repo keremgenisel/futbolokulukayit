@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene } from "./ui.jsx";
+import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene, Bos } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun } from "../lib/api.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
@@ -284,7 +284,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
             </a>
           </div>
           {(ozet?.antrenmanlar || []).length === 0 ? (
-            <div style={{ color: "var(--soluk)" }}>Bugün antrenman yok.</div>
+            <Bos kucuk metin="Bugün antrenman yok." />
           ) : (
             ozet.antrenmanlar.map((t) => (
               <div
@@ -357,7 +357,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
             </div>
           </div>
           {borclular.length === 0 ? (
-            <div style={{ color: "var(--soluk)" }}>Borçlu oyuncu yok.</div>
+            <Bos kucuk metin="Borçlu oyuncu yok." />
           ) : (
             <table>
               <thead>

@@ -614,7 +614,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
       )}
       <Kart>
         <div style={{ padding: "16px 16px 8px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h3 style={{ fontSize: 20 }}>Bugün Kesilen Makbuzlar</h3>
+          <h3 style={{ fontSize: 22 }}>Bugün Kesilen Makbuzlar</h3>
           <span style={{ color: "var(--soluk)", fontSize: 14 }}>{bugunku.length} makbuz</span>
         </div>
         {bugunku.length === 0 ? (

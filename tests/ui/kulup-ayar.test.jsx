@@ -43,12 +43,12 @@ describe("KulupAyar", () => {
     expect(await screen.findByLabelText("Kulüp adı")).toHaveValue("Anadolu SK Futbol Okulu");
     expect(screen.getByLabelText("Kuruluş yılı")).toHaveValue("1974");
     expect(screen.getByText("Logo yok")).toBeInTheDocument();
-    const kaydet = screen.getByRole("button", { name: "Kaydet" });
-    expect(kaydet).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Kaydet" })).toBeNull(); // değişiklik yokken Kaydet çubuğu çizilmez (plan §36.1-6)
     fireEvent.change(screen.getByLabelText("Kısa ad"), { target: { value: "ANADOLU SK" } });
-    expect(kaydet).toBeEnabled();
+    expect(screen.getByText("1 değişiklik kaydedilmedi")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Vazgeç" }));
     expect(screen.getByLabelText("Kısa ad")).toHaveValue("");
+    expect(screen.queryByRole("button", { name: "Kaydet" })).toBeNull();
     fireEvent.change(screen.getByLabelText("Kısa ad"), { target: { value: "ANADOLU SK" } });
     fireEvent.change(screen.getByLabelText("Kuruluş yılı"), { target: { value: "1975" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
@@ -113,7 +113,7 @@ describe("KulupAyar", () => {
     fireEvent.click(screen.getByRole("button", { name: "Kaldır" }));
     await waitFor(() => expect(kulupLogoSil).toHaveBeenCalled());
     expect(screen.getByLabelText("Kısa ad")).toHaveValue("YENİ");
-    expect(screen.getByRole("button", { name: "Kaydet" })).toBeEnabled();
+    expect(screen.getByText(/değişiklik kaydedilmedi/)).toBeInTheDocument();
     expect(dbMock).not.toHaveBeenCalledWith("setSetting", expect.anything(), expect.anything()); // logo işlemi alanları yazmaz
   });
 

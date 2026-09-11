@@ -234,7 +234,7 @@ export function TemaSecici({ tema, onDegis, logo = "", kisaAd = "KULÜP", disabl
             ))}
           </div>
           {!disabled && (
-            <Btn tur="sari" kucuk style={{ marginLeft: "auto" }} onClick={() => onDegis({ ana: oneri.ana, vurgu: oneri.vurgu })}>
+            <Btn kucuk style={{ marginLeft: "auto" }} onClick={() => onDegis({ ana: oneri.ana, vurgu: oneri.vurgu })}>
               Bu renkleri kullan
             </Btn>
           )}

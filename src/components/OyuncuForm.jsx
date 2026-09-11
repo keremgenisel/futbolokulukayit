@@ -157,7 +157,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
             {hata}
           </div>
         )}
-        <h3 style={{ fontSize: 20 }}>Öğrenci</h3>
+        <h3 style={{ fontSize: 22 }}>Öğrenci</h3>
         <div style={satir}>
           <Alan etiket="Uyruk">
             <Secim secenekler={UYRUKLAR} {...g("uyruk")} aria-label="Uyruk" />
@@ -193,7 +193,7 @@ export function OyuncuForm({ oyuncu, gruplar, onKaydedildi, onKapat }) {
             <Girdi {...g("adres")} />
           </Alan>
         </div>
-        <h3 style={{ fontSize: 20 }}>Kayıt ve Ücret</h3>
+        <h3 style={{ fontSize: 22 }}>Kayıt ve Ücret</h3>
         <div style={satir}>
           <Alan etiket="Yaş Grubu">
             <Secim secenekler={gruplar.filter((x) => x.aktif)} bos="Seçin" {...g("yas_grubu_id")} aria-label="Yaş grubu" />

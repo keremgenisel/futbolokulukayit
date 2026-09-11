@@ -16,7 +16,7 @@ export function BilgiSekmesi({ o, veliler, ucretAd, sonMesaj }) {
   const veliAd = veliler.find((v) => v.veli_mi)?.ad_soyad;
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-      <h3 style={{ fontSize: 20 }}>Öğrenci</h3>
+      <h3 style={{ fontSize: 22 }}>Öğrenci</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 18 }}>
         <Bilgi etiket={kimlikBilgisi(o).etiket} deger={kimlikBilgisi(o).deger} />
         <Bilgi etiket="Adı Soyadı" deger={o.ad_soyad} />
@@ -28,7 +28,7 @@ export function BilgiSekmesi({ o, veliler, ucretAd, sonMesaj }) {
         <Bilgi etiket="Ev Adresi" deger={o.adres} genis />
       </div>
       <div style={{ height: 1, background: "var(--cizgi)" }} />
-      <h3 style={{ fontSize: 20 }}>Kayıt ve Ücret</h3>
+      <h3 style={{ fontSize: 22 }}>Kayıt ve Ücret</h3>
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0,1fr))", gap: 18 }}>
         <Bilgi etiket="Yaş Grubu" deger={o.yas_grubu_ad} />
         <Bilgi etiket="Ücret Tipi" deger={ucretAd(o.ucret_tipi)} />

@@ -12,7 +12,7 @@ export function OdemeSekmesi({ aidatlar, makbuzlar, tumu, son, onTumu, acikAidat
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 10 }}>
-          <h3 style={{ fontSize: 20 }}>Aylık Aidat</h3>
+          <h3 style={{ fontSize: 22 }}>Aylık Aidat</h3>
           {acikAidat &&
             (() => {
               const u = hatirlatmaUygunMu({
@@ -69,7 +69,7 @@ export function OdemeSekmesi({ aidatlar, makbuzlar, tumu, son, onTumu, acikAidat
         )}
       </div>
       <div>
-        <h3 style={{ fontSize: 20, marginBottom: 12 }}>Makbuzlar</h3>
+        <h3 style={{ fontSize: 22, marginBottom: 12 }}>Makbuzlar</h3>
         {makbuzlar.length === 0 ? (
           <Bos metin="Makbuz yok." />
         ) : (

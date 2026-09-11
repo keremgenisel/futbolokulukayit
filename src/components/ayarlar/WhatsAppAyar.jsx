@@ -1,6 +1,6 @@
 // Ayarlar > WhatsApp Mesajları
 import { useEffect, useState, useCallback } from "react";
-import { Btn, useToast, useDene } from "../ui.jsx";
+import { useToast, useDene, KaydetCubugu } from "../ui.jsx";
 import { db } from "../../lib/api.js";
 import {
   SABLON_ANAHTARLARI,
@@ -189,29 +189,12 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
         </div>
       )}
       {!saltOkunur && degisen.length > 0 && (
-        <div
-          role="status"
-          style={{
-            position: "sticky",
-            bottom: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "12px 16px",
-            background: "#fff",
-            border: "1px solid var(--uyari)",
-            borderRadius: 10,
-            boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
-          }}
-        >
-          <span style={{ flex: 1, fontWeight: 600 }}>{degisen.length} şablon kaydedilmedi</span>
-          <Btn tur="ghost" onClick={() => setTaslak(kayitli)} disabled={bekliyor}>
-            Vazgeç
-          </Btn>
-          <Btn onClick={kaydet} disabled={bekliyor}>
-            Kaydet
-          </Btn>
-        </div>
+        <KaydetCubugu
+          metin={`${degisen.length} şablon kaydedilmedi`}
+          onVazgec={() => setTaslak(kayitli)}
+          onKaydet={kaydet}
+          bekliyor={bekliyor}
+        />
       )}
     </div>
   );

@@ -1,6 +1,6 @@
 // Oyuncu kartı > Belgeler sekmesi: tip başına yükle/değiştir, geçerlilik tarihi, sil
 import { useState } from "react";
-import { Btn, Rozet, Girdi } from "../ui.jsx";
+import { Btn, Rozet, Girdi, Bos } from "../ui.jsx";
 import { files, bugun } from "../../lib/api.js";
 import { tarihTR } from "../../lib/aidat.js";
 import { Ikon } from "../Ikon.jsx";
@@ -128,7 +128,7 @@ export function BelgeSekmesi({ belgeler, saltOkunur, onYukle, onTarihKaydet, onS
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 600 }}>{t.ad}</div>
               {mevcut.length === 0 ? (
-                <div style={{ fontSize: 12, color: "var(--soluk)" }}>Henüz yüklenmedi</div>
+                <Bos kucuk metin="Henüz yüklenmedi" />
               ) : (
                 mevcut.map((b) => (
                   <div key={b.id} style={{ fontSize: 13, display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>

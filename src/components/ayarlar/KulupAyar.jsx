@@ -1,7 +1,7 @@
 // Ayarlar > Kulüp ve Makbuz (plan §32.6): kimlik (ad, kısa ad, alt yazı, kuruluş yılı, tahsil eden), kulüp logosu, renkler.
 // Logo seçimi dosya yazdığı için anında uygulanır; diğer alanlar tek Kaydet ile (satır başına kaydet yok; onKirli uyarısı).
 import { useCallback, useEffect, useState } from "react";
-import { Btn, Alan, Girdi, useToast, useDene } from "../ui.jsx";
+import { Btn, Alan, Girdi, useToast, useDene, KaydetCubugu } from "../ui.jsx";
 import { Ikon } from "../Ikon.jsx";
 import { db, files, uygulama } from "../../lib/api.js";
 import { VARSAYILAN_TEMA } from "../../lib/tema.js";
@@ -145,15 +145,12 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
         </div>
         <TemaSecici tema={tema} onDegis={temaDegis} logo={logo} kisaAd={kisaAd} disabled={kilitli} />
       </div>
-      {!kilitli && (
-        <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, borderTop: "1px solid var(--cizgi)", paddingTop: 14 }}>
-          <Btn tur="ghost" onClick={vazgec} disabled={!kirli}>
-            Vazgeç
-          </Btn>
-          <Btn onClick={kaydet} disabled={!kirli}>
-            Kaydet
-          </Btn>
-        </div>
+      {!kilitli && kirli && (
+        <KaydetCubugu
+          metin={`${ALANLAR.filter((k) => a[k] !== ilk[k]).length} değişiklik kaydedilmedi`}
+          onVazgec={vazgec}
+          onKaydet={kaydet}
+        />
       )}
     </div>
   );

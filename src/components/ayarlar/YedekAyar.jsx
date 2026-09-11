@@ -1,6 +1,6 @@
 // Ayarlar > Yedekleme (yedek klasörü/sıklık, geri yükleme, taşıma paketi)
 import { useEffect, useState } from "react";
-import { Btn, Alan, Girdi, Secim, Onay, useToast, useDene } from "../ui.jsx";
+import { Btn, Alan, Girdi, Secim, Onay, useToast, useDene, AltBaslik } from "../ui.jsx";
 import { yedek, hataMetni } from "../../lib/api.js";
 import { tarihTR } from "../../lib/aidat.js";
 import { Ikon } from "../Ikon.jsx";
@@ -174,7 +174,7 @@ export function YedekAyar({ admin }) {
       </div>
       {admin && !d.istemci && (
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>Yedekten geri yükle</div>
+          <AltBaslik>Yedekten geri yükle</AltBaslik>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
             Bir yedek dosyası (<code>.fokyedek</code> ya da eski <code>.zip</code>) seçin. Mevcut veriler silinmez,{" "}
             <code>.pre-restore</code> uzantısıyla kenara alınır. Geri yükleme bittiğinde program yeniden başlar. Yedek bu bilgisayarda
@@ -189,7 +189,7 @@ export function YedekAyar({ admin }) {
       )}
       {admin && !d.istemci && (
         <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ fontWeight: 700, fontSize: 16 }}>Yeni bilgisayara taşıma paketi</div>
+          <AltBaslik>Yeni bilgisayara taşıma paketi</AltBaslik>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
             Normal yedek yalnız bu bilgisayarda açılır (şifreleme anahtarı bu bilgisayara bağlıdır). Bilgisayar değişecekse ya da bozulma
             ihtimaline karşı, <b>parola korumalı</b> bir taşıma paketi (<code>futbolokulu-tasima-tarih.fokpaket</code>) alın: veritabanı,
@@ -218,7 +218,7 @@ export function YedekAyar({ admin }) {
               Taşıma Paketi Oluştur
             </Btn>
           </div>
-          <div style={{ fontWeight: 700, fontSize: 16, marginTop: 6 }}>Taşıma paketinden geri yükle (yeni bilgisayarda)</div>
+          <AltBaslik style={{ marginTop: 6 }}>Taşıma paketinden geri yükle (yeni bilgisayarda)</AltBaslik>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
             Paket dosyasını seçin, parolasını girin. Veriler bu bilgisayarın anahtarıyla yeniden şifrelenir; mevcut veriler{" "}
             <code>.pre-restore</code> ile kenara alınır ve program yeniden başlar.

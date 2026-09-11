@@ -86,24 +86,6 @@ export function YasGruplari({ saltOkunur }) {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {!saltOkunur && (
-        <Kart style={{ padding: 20, display: "flex", gap: 12, alignItems: "flex-end" }}>
-          <Alan etiket="Grup adı" style={{ width: 200 }}>
-            <Girdi
-              value={yeni.ad}
-              onChange={(e) => setYeni({ ...yeni, ad: e.target.value })}
-              placeholder="U11"
-              onKeyDown={(e) => e.key === "Enter" && ekle()}
-            />
-          </Alan>
-          <Alan etiket="Sezon" style={{ width: 220 }}>
-            <SezonSecim durum={sezonDurum} value={yeni.sezon} onChange={(v) => setYeni({ ...yeni, sezon: v })} aria-label="Sezon" />
-          </Alan>
-          <Btn onClick={ekle} disabled={!yeni.ad.trim()}>
-            Grup Ekle
-          </Btn>
-        </Kart>
-      )}
       <Kart>
         {/* Liste süzgeci: üstteki "Grup Ekle" formundan ayrışsın diye gri zeminli, ikonlu, kompakt bir çubuk (form beyaz kart + etiketli alanlar) */}
         <div
@@ -271,6 +253,24 @@ export function YasGruplari({ saltOkunur }) {
           </table>
         )}
       </Kart>
+      {!saltOkunur && (
+        <Kart style={{ padding: 20, display: "flex", gap: 12, alignItems: "flex-end" }}>
+          <Alan etiket="Grup adı" style={{ width: 200 }}>
+            <Girdi
+              value={yeni.ad}
+              onChange={(e) => setYeni({ ...yeni, ad: e.target.value })}
+              placeholder="U11"
+              onKeyDown={(e) => e.key === "Enter" && ekle()}
+            />
+          </Alan>
+          <Alan etiket="Sezon" style={{ width: 220 }}>
+            <SezonSecim durum={sezonDurum} value={yeni.sezon} onChange={(v) => setYeni({ ...yeni, sezon: v })} aria-label="Sezon" />
+          </Alan>
+          <Btn onClick={ekle} disabled={!yeni.ad.trim()}>
+            Grup Ekle
+          </Btn>
+        </Kart>
+      )}
       {sil && (
         <Onay
           tehlikeli

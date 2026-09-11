@@ -1,6 +1,6 @@
 // Ayarlar > Aidat Kalemleri (kalemler + ücret tipleri, tek Kaydet)
 import { useEffect, useState, useCallback } from "react";
-import { Btn, Girdi, ParaGirdi, Rozet, useToast, useDene } from "../ui.jsx";
+import { Btn, Girdi, ParaGirdi, Rozet, useToast, useDene, KaydetCubugu } from "../ui.jsx";
 import { db } from "../../lib/api.js";
 import { paraTR, UCRET_TIPLERI, SABIT_INDIRIM, indirimYuzdesi, aidatHesapla } from "../../lib/aidat.js";
 import { ucretTipleriYenile } from "../../lib/ucretTipleri.js";
@@ -421,29 +421,7 @@ export function KalemAyar({ saltOkunur, onKirli }) {
       )}
 
       {!saltOkunur && degisiklik > 0 && (
-        <div
-          role="status"
-          style={{
-            position: "sticky",
-            bottom: 0,
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            padding: "12px 16px",
-            background: "#fff",
-            border: "1px solid var(--uyari)",
-            borderRadius: 10,
-            boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
-          }}
-        >
-          <span style={{ flex: 1, fontWeight: 600 }}>{degisiklik} değişiklik kaydedilmedi</span>
-          <Btn tur="ghost" onClick={vazgec} disabled={bekliyor}>
-            Vazgeç
-          </Btn>
-          <Btn onClick={kaydet} disabled={bekliyor}>
-            Kaydet
-          </Btn>
-        </div>
+        <KaydetCubugu metin={`${degisiklik} değişiklik kaydedilmedi`} onVazgec={vazgec} onKaydet={kaydet} bekliyor={bekliyor} />
       )}
     </div>
   );

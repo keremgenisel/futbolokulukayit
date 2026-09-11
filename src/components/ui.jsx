@@ -321,8 +321,55 @@ export function Avatar({ ad, boyut = 36, foto }) {
   );
 }
 
-export function Bos({ metin }) {
-  return <div style={{ padding: 32, textAlign: "center", color: "var(--soluk)" }}>{metin}</div>;
+/** Boş durum (plan §36.1-13): ortalı soluk metin; `kucuk` satır içi/küçük alanlar için, `eylem` isteğe bağlı düğme. */
+export function Bos({ metin, kucuk = false, eylem = null }) {
+  return (
+    <div style={{ padding: kucuk ? "8px 0" : 32, textAlign: kucuk ? "left" : "center", color: "var(--soluk)", fontSize: kucuk ? 13 : 15 }}>
+      <div>{metin}</div>
+      {eylem && <div style={{ marginTop: 10 }}>{eylem}</div>}
+    </div>
+  );
+}
+
+/**
+ * Kaydet çubuğu (plan §36.1-6): ayar ekranlarında TEK kalıp — yapışkan, kaydedilmemiş değişiklik sayısı, Vazgeç / Kaydet.
+ * Yalnız değişiklik varken çizilir (çağıran koşullar). Metin ör. "3 değişiklik kaydedilmedi".
+ */
+export function KaydetCubugu({ metin, onVazgec, onKaydet, bekliyor = false, kaydetMetni = "Kaydet" }) {
+  return (
+    <div
+      role="status"
+      style={{
+        position: "sticky",
+        bottom: 0,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        padding: "12px 16px",
+        background: "#fff",
+        border: "1px solid var(--uyari)",
+        borderRadius: 12,
+        boxShadow: "0 -4px 20px rgba(0,0,0,.06)",
+      }}
+    >
+      <span style={{ flex: 1, fontWeight: 600 }}>{metin}</span>
+      <Btn tur="ghost" onClick={onVazgec} disabled={bekliyor}>
+        Vazgeç
+      </Btn>
+      <Btn onClick={onKaydet} disabled={bekliyor}>
+        {kaydetMetni}
+      </Btn>
+    </div>
+  );
+}
+
+/** Alt bölüm başlığı (plan §36.1-4): sayfa h1 30 · bölüm h3 22 · alt bölüm h4 16 — hepsi Barlow Condensed. */
+export function AltBaslik({ children, style }) {
+  return (
+    <h4 className="baslik" style={{ fontSize: 16, letterSpacing: ".01em", ...style }}>
+      {children}
+    </h4>
+  );
 }
 
 export function Sekmeler({ liste, aktif, onSec }) {

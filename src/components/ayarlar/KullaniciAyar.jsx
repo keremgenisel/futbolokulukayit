@@ -140,13 +140,7 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
                           >
                             {u.is_active ? "Pasif yap" : "Aktif yap"}
                           </Btn>
-                          <Btn
-                            kucuk
-                            tur="danger"
-                            ikon={<Ikon ad="kapat" boyut={14} />}
-                            onClick={() => setSil(u)}
-                            aria-label={`${u.username} kullanıcısını sil`}
-                          >
+                          <Btn kucuk tur="danger" onClick={() => setSil(u)} aria-label={`${u.username} kullanıcısını sil`}>
                             Sil
                           </Btn>
                         </>

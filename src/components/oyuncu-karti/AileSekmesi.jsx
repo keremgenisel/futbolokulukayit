@@ -43,7 +43,7 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
-        <h3 style={{ fontSize: 20, marginBottom: 12 }}>Aile Bilgileri</h3>
+        <h3 style={{ fontSize: 22, marginBottom: 12 }}>Aile Bilgileri</h3>
         {veliler.length === 0 ? (
           <Bos metin="Henüz veli eklenmedi." />
         ) : (
@@ -135,7 +135,7 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
         )}
       </div>
       <div>
-        <h3 style={{ fontSize: 20, marginBottom: 12 }}>Acil Durumda Veli Dışında Ulaşılacak Kişiler</h3>
+        <h3 style={{ fontSize: 22, marginBottom: 12 }}>Acil Durumda Veli Dışında Ulaşılacak Kişiler</h3>
         {acil.length === 0 ? (
           <Bos metin="Henüz kişi eklenmedi." />
         ) : (

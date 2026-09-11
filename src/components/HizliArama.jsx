@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Avatar, Rozet, aidatTonu, aidatEtiket } from "./ui.jsx";
+import { Avatar, Rozet, aidatTonu, aidatEtiket, Bos } from "./ui.jsx";
 import { db, bugun } from "../lib/api.js";
 import { kimlikKisa } from "../lib/aidat.js";
 import { Ikon } from "./Ikon.jsx";
@@ -106,7 +106,11 @@ export function HizliArama({ acik, onKapat, onOyuncu, onMakbuz, saltOkunur }) {
             Esc
           </span>
         </div>
-        {q.trim() && sonuc.length === 0 && <div style={{ padding: "16px 18px", color: "var(--soluk)" }}>Oyuncu bulunamadı.</div>}
+        {q.trim() && sonuc.length === 0 && (
+          <div style={{ padding: "8px 18px" }}>
+            <Bos kucuk metin="Oyuncu bulunamadı." />
+          </div>
+        )}
         {sonuc.map((o, i) => (
           <div
             key={o.id}
