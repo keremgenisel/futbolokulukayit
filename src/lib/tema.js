@@ -164,3 +164,6 @@ export function logodanPalet(c) {
   if (kontrastOrani(ana, BEYAZ) < 3 && c.renkler[1] && kontrastOrani(c.renkler[1], BEYAZ) >= 3) [ana, vurgu] = [c.renkler[1], ana];
   return { ana, vurgu };
 }
+
+/** Excel başlık dolgusu (ana süreç, `ipc/cikti.cjs`): ana rengin açık tonu — `temaTuret().morAcik` ile aynı karışım. @param {string} ana */
+export const acikTon = (ana) => karistir(renkGecerliMi(ana) ? String(ana).toLowerCase() : VARSAYILAN_TEMA.ana, "#ffffff", 0.88);

@@ -1,4 +1,4 @@
-// Tema mantığı (plan §32.4): türetilen tonlar, kontrast, hazır paletler, logodan renk çıkarma; CJS ikizi (electron/tema.cjs) ile
+// Tema mantığı (plan §32.4): türetilen tonlar, kontrast, hazır paletler, logodan renk çıkarma; ana sürecin kullandığı acikTon
 // aynı sonuç; ayar doğrulaması (electron/ayarDogrula.cjs); marka hesabı (electron/marka.cjs).
 import { describe, it, expect } from "vitest";
 import {
@@ -11,8 +11,8 @@ import {
   logodanRenkler,
   logodanPalet,
   rgbToHsl,
+  acikTon,
 } from "../src/lib/tema.js";
-import * as temaCjs from "../electron/tema.cjs";
 import { ayarDogrula } from "../electron/ayarDogrula.cjs";
 import { markaHesapla } from "../electron/marka.cjs";
 
@@ -56,14 +56,10 @@ describe("tema.js", () => {
     }
     expect(PRESETLER[0]).toMatchObject(VARSAYILAN_TEMA);
   });
-  it("CJS ikizi aynı karışımı ve doğrulamayı üretir (Excel başlık dolgusu = morAcik)", () => {
-    for (const p of PRESETLER) {
-      expect(temaCjs.acikTon(p.ana)).toBe(temaTuret(p).morAcik);
-      expect(temaCjs.karistir(p.ana, "#000000", 0.3)).toBe(karistir(p.ana, "#000000", 0.3));
-    }
-    expect(temaCjs.acikTon("bozuk")).toBe(temaTuret({}).morAcik);
-    expect(temaCjs.renkGecerliMi("#12ab34")).toBe(true);
-    expect(temaCjs.VARSAYILAN_TEMA).toEqual(VARSAYILAN_TEMA);
+  it("acikTon (Excel başlık dolgusu, ana süreç) = temaTuret().morAcik; bozuk renk varsayılana düşer", () => {
+    for (const p of PRESETLER) expect(acikTon(p.ana)).toBe(temaTuret(p).morAcik);
+    expect(acikTon("bozuk")).toBe(temaTuret({}).morAcik);
+    expect(renkGecerliMi("#12ab34")).toBe(true);
   });
   it("logodan renkler: lacivert+turuncu+beyaz logo → iki doygun renk ve beyaz; gri/şeffaf sayılmaz", () => {
     const px = [];

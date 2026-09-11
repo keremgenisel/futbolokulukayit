@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { sezonTarihDogrula } from "../src/lib/sezon.js";
-import { sezonTarihDogrula as sezonTarihDogrulaCjs, varsayilanSezonAraligi } from "../electron/sezonTarih.cjs";
 import {
+  sezonTarihDogrula,
+  varsayilanSezonAraligi,
   guncelSezon,
   sonrakiSezon,
   sezonGecerliMi,
@@ -109,7 +109,7 @@ describe("sezon mantığı", () => {
 });
 
 describe("sezon tarihleri (plan §37)", () => {
-  it("doğrulama: bitiş > başlangıç, başlangıç etiketin ilk yılında, en çok 14 ay; CJS ikizi aynı", () => {
+  it("doğrulama: bitiş > başlangıç, başlangıç etiketin ilk yılında, en çok 14 ay", () => {
     const durumlar = [
       ["2026-2027", "2026-09-01", "2027-06-30"],
       ["2026-2027", "2026-09-01", "2027-08-31"],
@@ -120,7 +120,6 @@ describe("sezon tarihleri (plan §37)", () => {
       ["2026-2028", "2026-09-01", "2027-06-30"],
     ];
     expect(durumlar.map((d) => sezonTarihDogrula(...d).gecerli)).toEqual([true, true, false, false, false, false, false]);
-    for (const d of durumlar) expect(sezonTarihDogrulaCjs(...d)).toEqual(sezonTarihDogrula(...d));
     expect(sezonTarihDogrula("2026-2027", "2027-01-01", "2027-06-30").neden).toMatch(/2026 yılında/);
   });
   it("varsayılan aralık: başlangıç ayının 1'i – 12 ay sonrasının son günü (eski davranışla aynı)", () => {

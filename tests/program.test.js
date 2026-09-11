@@ -11,7 +11,6 @@ import {
   saatAraligiDogrula,
   aralikKesisir,
 } from "../src/lib/program.js";
-import { saatAraligiDogrula as saatAraligiDogrulaCjs } from "../electron/saatAralik.cjs";
 
 describe("haftalık antrenman programı", () => {
   it("JSON çözme: geçersiz girdiler ayıklanır, gün/saat sırasına dizilir", () => {
@@ -69,7 +68,7 @@ describe("haftalık antrenman programı", () => {
     expect(sureDk("17:00", "18:30")).toBe(90);
     expect(sureDk("17:00", "17:00")).toBeNull();
   });
-  it("saat aralığı doğrulaması: bitiş isteğe bağlı; bozuk/önce olan reddedilir; CJS ikizi aynı", () => {
+  it("saat aralığı doğrulaması: bitiş isteğe bağlı; bozuk/önce olan reddedilir", () => {
     const durumlar = [
       ["17:00", ""],
       ["17:00", "18:30"],
@@ -79,7 +78,6 @@ describe("haftalık antrenman programı", () => {
       ["", "18:00"],
     ];
     expect(durumlar.map(([a, b]) => saatAraligiDogrula(a, b).gecerli)).toEqual([true, true, false, false, false, false]);
-    for (const [a, b] of durumlar) expect(saatAraligiDogrulaCjs(a, b)).toEqual(saatAraligiDogrula(a, b));
   });
   it("aralık kesişmesi: bitişsiz antrenman 90 dk sayılır; uçtan uca değen aralıklar kesişmez", () => {
     expect(aralikKesisir({ saat: "17:00", bitis: "18:30" }, { saat: "17:30", bitis: "19:00" })).toBe(true);

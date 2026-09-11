@@ -2,7 +2,7 @@
 // Saf kısım `markaHesapla` (ayar → alanlar, varsayılanlar); dosya okuma `markaOku`.
 const fs = require("fs");
 const path = require("path");
-const { VARSAYILAN_TEMA, renkGecerliMi } = require("./tema.cjs");
+const { VARSAYILAN_TEMA, renkGecerliMi } = require("../src/lib/tema.js");
 
 const VARSAYILAN_KULUP = "Futbol Okulu"; // src/lib/marka.js VARSAYILAN_KULUP ile aynı
 const KULUP_LOGO_KLASORU = "kulup";

@@ -247,7 +247,7 @@ app.on("browser-window-created", async (_e, win) => {
     } catch (e) {
       dolgu = "hata:" + e.message;
     }
-    const { acikTon } = require("../../electron/tema.cjs");
+    const { acikTon } = require("../../src/lib/tema.js");
     check("Excel başlık dolgusu tema ana renginin açık tonu", dolgu === "FF" + acikTon("#c8102e").slice(1).toUpperCase(), dolgu);
     await js(`document.querySelector("button[aria-label='Ayarlar']").click()`);
     await bekle(900);

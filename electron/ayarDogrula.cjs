@@ -1,6 +1,6 @@
 // SAF: kulüp kimliği ayarlarının girdi doğrulaması (plan §32). `db.setSetting` her yazımda çağırır; renderer'dan gelen değer
 // CSS değişkenine ve HTML şablonlarına gireceği için biçim burada sıkı tutulur. Bilinmeyen anahtarlar olduğu gibi geçer.
-const { renkGecerliMi } = require("./tema.cjs");
+const { renkGecerliMi } = require("../src/lib/tema.js"); // ESM tek kaynak (refactor 2. tur §8.6)
 
 const SINIR = { kulup_adi: 80, kulup_kisa_ad: 40, kulup_alt_yazi: 40, tahsil_eden: 60 };
 

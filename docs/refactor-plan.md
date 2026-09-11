@@ -193,6 +193,12 @@ Elle senkron tutulan 5 çift, her yeni saf yardımcıda büyüyor. Seçenekler: 
 (b) mevcut eşitlik testleri yeterli, olduğu gibi bırak. Öneri: (a) tek modülle deneme (`saatAralik`), geçerse diğerleri; olmazsa (b).
 Bu adım KARAR ister (Kerem).
 
+**Sonuç (11.09.2026, Kerem: "tek kaynak denemesi yapılsın"):** (a) UYGULANDI, ama Vite interop yerine tersi yönde: Electron 42'nin
+Node 24'ü CJS'den ESM'i eşzamanlı `require` edebiliyor (`require(esm)`); asar arşivi içinden de doğrulandı (@electron/asar ile
+paketlenmiş kopya). Ana süreç artık `src/lib/{sezon,program,tema}.js`'i doğrudan yüklüyor; `electron/tema.cjs`, `sezonTarih.cjs`,
+`saatAralik.cjs` silindi, `acikTon` ve `varsayilanSezonAraligi` ESM'e taşındı, `build.files`'a `src/lib/**/*` eklendi. Eşitlik
+testleri kaldırıldı (tek kaynak). `ayarDogrula.cjs` ve `makbuzNo.cjs` yalnız ana süreçte kullanılan saf modüller; ikizi yok, kaldı.
+
 ### 8.7 Küçük temizlikler
 `IlkKurulum.jsx` adım başına bileşen (14 useState → adım state'i); `SezonAyar.jsx` "Sezon tarihleri" kartı ayrı bileşen (§37'de
 büyüdü); `Pano.jsx` sağlık/borçlu tabloları ayrı; `ipc/yedek.cjs` yedek/geri yükle/taşıma üç dosya (455 satır, 14 fonksiyon).

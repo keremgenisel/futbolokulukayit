@@ -399,7 +399,7 @@ function migrate() {
   );
   if (!antKolon19.has("bitis_saat")) db.exec("ALTER TABLE trainings ADD COLUMN bitis_saat TEXT DEFAULT ''");
   if (cur < 19) {
-    const { varsayilanSezonAraligi } = require("../sezonTarih.cjs");
+    const { varsayilanSezonAraligi } = require("../../src/lib/sezon.js");
     const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
     const sezonlar = new Set(
       db

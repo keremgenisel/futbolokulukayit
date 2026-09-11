@@ -1621,7 +1621,8 @@ adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta
 ### 37.6 Uygulama notları (11.09.2026)
 - 1–4 uygulandı. Şema 19: `seasons` + `trainings.bitis_saat`; göç bilinen her sezonu varsayılan aralıkla (`electron/sezonTarih.cjs
   varsayilanSezonAraligi`, başlangıç ayından 12 ay) `seasons`'a yazar → `sezonTarihleri()` bunlarda `kayitli: true` döner; yalnız hiç
-  görülmemiş etiketler varsayılan (`kayitli: false`) alır. Saf ikizler `electron/sezonTarih.cjs`, `electron/saatAralik.cjs`.
+  görülmemiş etiketler varsayılan (`kayitli: false`) alır. (CJS ikizleri `electron/sezonTarih.cjs`, `saatAralik.cjs` 11.09.2026'da
+  silindi; ana süreç `src/lib/sezon.js` / `program.js`'i doğrudan `require` eder — refactor 2. tur §8.6.)
 - Yeni saf yardımcılar: `sezon.js` `sezonTarihDogrula`, `sezonKalanGun`, `kisaAralik` ("1 Eyl – 30 Haz"), `isoYilAy`; `program.js`
   `saatAraligi`, `saatDk`, `saatEkle`, `sureDk`, `saatAraligiDogrula`, `aralikKesisir` (bitişsiz antrenman 90 dk sayılır, uçtan uca
   değen kesişmez). `programCoz` `{gun, saat, bitis, saha}` verir (bitiş geçersizse "").

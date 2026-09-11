@@ -84,7 +84,8 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*"
+      "electron/**/*",
+      "src/lib/**/*"
     ],
     "asarUnpack": [
       "node_modules/better-sqlite3/**/*",

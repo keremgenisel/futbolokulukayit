@@ -2,7 +2,7 @@
 const { db } = require("./baglanti.cjs");
 const { getSetting, setSetting } = require("./meta.cjs");
 const { ensureMonthlyDues } = require("./aidat.cjs");
-const { sezonTarihDogrula, varsayilanSezonAraligi } = require("../sezonTarih.cjs");
+const { sezonTarihDogrula, varsayilanSezonAraligi } = require("../../src/lib/sezon.js");
 
 const SEZON_DURUMLARI = ["aktif", "deneme", "sakat"];
 // Sihirbaz listesi: sezonda aktif sayılan oyuncular + geçmiş ödenmemiş aidat sayısı/tutarı.

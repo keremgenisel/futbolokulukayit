@@ -1,6 +1,6 @@
 // ── age groups, haftalık program ──
 const { db } = require("./baglanti.cjs");
-const { saatAraligiDogrula } = require("../saatAralik.cjs");
+const { saatAraligiDogrula } = require("../../src/lib/program.js");
 const { createTraining } = require("./antrenman.cjs");
 
 // sezon verilirse yalnız o sezonda var olan gruplar (age_groups.sezon VEYA group_seasons; plan §21); verilmezse hepsi

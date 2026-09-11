@@ -84,6 +84,23 @@ export function sezonTarihDogrula(sezon, baslangic, bitis) {
   return { gecerli: true };
 }
 
+/**
+ * Etiketten varsayılan aralık: başlangıç ayının 1'i – 12 ay sonrasının son günü (eski davranış: 1 Eyl – 31 Ağu).
+ * Ana süreç (göç 19, `sezonTarihleri`) ve arayüz aynı kaynağı kullanır.
+ * @param {string} sezon @param {number} [baslangicAyi]
+ * @returns {{ baslangic: string, bitis: string } | null}
+ */
+export function varsayilanSezonAraligi(sezon, baslangicAyi = 9) {
+  if (!sezonGecerliMi(sezon)) return null;
+  const y = Number(sezon.slice(0, 4));
+  const ay = Number(baslangicAyi) || 9;
+  const bas = `${y}-${String(ay).padStart(2, "0")}-01`;
+  const bitisAy = ay === 1 ? 12 : ay - 1;
+  const bitisYil = ay === 1 ? y : y + 1;
+  const son = new Date(bitisYil, bitisAy, 0).getDate();
+  return { baslangic: bas, bitis: `${bitisYil}-${String(bitisAy).padStart(2, "0")}-${String(son).padStart(2, "0")}` };
+}
+
 /** Bitişe kalan gün (bugün dahil değil); geçmişse negatif. @param {string} bitisIso @param {string} bugunIso */
 export function sezonKalanGun(bitisIso, bugunIso) {
   const a = Date.UTC(Number(bitisIso.slice(0, 4)), Number(bitisIso.slice(5, 7)) - 1, Number(bitisIso.slice(8, 10)));
