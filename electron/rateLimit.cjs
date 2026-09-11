@@ -26,6 +26,25 @@ function rateRetryAfter(state, key, now) {
 function rateReset(state, key) {
   state.delete(key);
 }
+// Harita sınırsız büyümesin (güvenlik 2. inceleme #7): kayıt sayısı eşiği aşınca penceresi dolmuş girdiler atılır;
+// hâlâ fazlaysa en eski bitişliler silinir. rateHit'ten sonra çağrılır.
+function rateBudama(state, now, maxKayit = 500) {
+  if (state.size <= maxKayit) return 0;
+  let silinen = 0;
+  for (const [k, rec] of state)
+    if (now > rec.resetAt) {
+      state.delete(k);
+      silinen++;
+    }
+  if (state.size > maxKayit) {
+    const sirali = [...state.entries()].sort((a, b) => a[1].resetAt - b[1].resetAt);
+    for (const [k] of sirali.slice(0, state.size - maxKayit)) {
+      state.delete(k);
+      silinen++;
+    }
+  }
+  return silinen;
+}
 
 // ── Kalıcı sayaç çekirdeği (rec üzerinde saf) ────────────────────────────────
 // Login brute-force sayacı SQLite'ta saklanır (sunucu yeniden başlasa da kilit korunsun).
@@ -61,6 +80,7 @@ module.exports = {
   rateHit,
   rateRetryAfter,
   rateReset,
+  rateBudama,
   bucketAllow,
   bucketNext,
   bucketRetryAfter,

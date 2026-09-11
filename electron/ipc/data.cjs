@@ -7,7 +7,7 @@ const config = require("../config.cjs");
 const istemci = require("../istemci.cjs");
 const server = require("../server.cjs");
 const { cagriYetkisi } = require("../yetki.cjs");
-const { rateAllow, rateHit, rateReset } = require("../rateLimit.cjs");
+const { rateAllow, rateHit, rateReset, rateBudama } = require("../rateLimit.cjs");
 
 // Kurtarma kodu denemeleri: kullanıcı adı başına 5 / 15 dk (kod 32^8 uzayında; brute-force'u yavaşlatır).
 const kurtarmaDenemeleri = new Map();
@@ -43,6 +43,7 @@ function registerDataHandlers() {
     const u = db.verifyPassword(String(username || ""), String(password || ""));
     if (!u) {
       rateHit(loginDenemeleri, ad, now, LOGIN_PENCERE);
+      rateBudama(loginDenemeleri, now);
       return { ok: false, error: "Kullanıcı adı veya parola hatalı" };
     }
     rateReset(loginDenemeleri, ad);
@@ -116,6 +117,7 @@ function registerDataHandlers() {
     const r = db.kurtarmaIleSifirla(ad, String(kod || ""), String(yeniParola));
     if (r.error) {
       rateHit(kurtarmaDenemeleri, ad, now, KURTARMA_PENCERE);
+      rateBudama(kurtarmaDenemeleri, now);
       return { ok: false, error: r.error };
     }
     rateReset(kurtarmaDenemeleri, ad);

@@ -60,7 +60,7 @@ const guvenliAd = (ad) =>
   String(ad)
     .replace(/[^\w.\-çğıöşüÇĞİÖŞÜ ]+/g, "_")
     .slice(0, 80);
-const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
+const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"]); // .doc/.docx yok (2. inceleme #8)
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 function uploadsIci(p) {
   const kok = path.resolve(db.getUploadsDir());

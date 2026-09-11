@@ -20,6 +20,13 @@ app.whenReady().then(async () => {
     const db = require("../../electron/db.cjs");
     db.init();
     check("şema sürümü yazıldı", Number(db.getMetaValue("schema_version")) >= 1);
+    let rolHata = false;
+    try {
+      db.createUser({ username: "kotu", password: "parola123", role: "root" });
+    } catch (e) {
+      rolHata = /Geçersiz rol/.test(e.message);
+    }
+    check("createUser bilinmeyen rolü reddeder (güvenlik 2. inceleme #6)", rolHata && !db.getUserByUsername("kotu"));
     check("varsayılan admin oluşturuldu", !!db.getUserByUsername("admin"));
     check("aidat kalemleri tohumlandı", db.listFeeItems().length >= 10);
 

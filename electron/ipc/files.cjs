@@ -11,7 +11,8 @@ const { optimizeImage } = require("../imageOptimize.cjs");
 const { belgeGirdiDogrula } = require("../belgeDogrula.cjs");
 const { kulupLogoKaydet, kulupLogoKaldir, LOGO_MAX_BAYT } = require("../kulupLogo.cjs");
 
-const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".doc", ".docx"]);
+// Güvenlik 2. inceleme #8: .doc/.docx YÜKLENMEZ (makro taşıyabilir; sistem uygulamasıyla açılır). Daha önce yüklenmiş dosyalar açılmaya devam eder.
+const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"]);
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
 
 const guvenliAd = (ad) =>
@@ -62,7 +63,7 @@ function registerFileHandlers(getSession) {
     const r = await dialog.showOpenDialog(win, {
       title: "Belge seç",
       properties: ["openFile"],
-      filters: [{ name: "Belge", extensions: ["pdf", "jpg", "jpeg", "png", "webp", "heic", "doc", "docx"] }],
+      filters: [{ name: "Belge", extensions: ["pdf", "jpg", "jpeg", "png", "webp", "heic"] }],
     });
     if (r.canceled || !r.filePaths[0]) return { iptal: true };
     ({ playerId, tip, gecerlilik } = belgeGirdiDogrula({ playerId, tip, gecerlilik }));

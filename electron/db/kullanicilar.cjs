@@ -4,7 +4,9 @@ const bcrypt = require("bcryptjs");
 const { db } = require("./baglanti.cjs");
 
 const getUserByUsername = (u) => db.prepare("SELECT * FROM users WHERE username=?").get(u) || null;
+const ROLLER = new Set(["admin", "kullanici"]);
 function createUser({ username, password, ad_soyad = "", role = "admin", must_change_password = 0 }) {
+  if (!ROLLER.has(String(role))) throw new Error("Geçersiz rol"); // güvenlik 2. inceleme #6
   const hash = bcrypt.hashSync(password, 10);
   const r = db
     .prepare("INSERT INTO users (username,password_hash,ad_soyad,role,must_change_password) VALUES (?,?,?,?,?)")
