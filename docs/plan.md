@@ -1499,3 +1499,59 @@ parola), kullanıcı ekleme (boş/kısa parola reddi, kullanıcı ve yönetici e
 DB kuralı "son aktif yönetici silinemez", IPC "kendi hesabınızı silemezsiniz", kullanıcı rolüyle giriş (zorunlu parola penceresi,
 Ayarlar sekmesi yok), yöneticinin yeni parolasıyla giriş. Bulunan/düzeltilen: geniş kenar menüdeki Çıkış düğmesinde `aria-label`
 yoktu (dar menüde vardı) — eklendi.
+
+## 36. Tasarım tutarlılığı analizi (11.09.2026) — bulgular, henüz uygulanmadı
+
+Kerem: "uygulamayı tasarım açısından analiz et ve tutarsızlık olan yerleri listele." Yöntem: kod ölçümleri (`grep`: başlık boyutları,
+köşe yarıçapı, boşluk, Kart dolgusu, Btn türleri, Rozet dışı piller, ham input/select/label, boş durum metinleri, Kaydet çubukları)
++ duman testi ekran görüntüleri (Oyuncular, Oyuncu kartı Bilgiler/Ödemeler, Tahsilat, Yoklama, Raporlar, Yaş Grupları,
+Ayarlar > Kullanıcılar/Lisans/WhatsApp/Yedekleme).
+
+**Sağlam olan omurga:** tek renk sistemi (CSS değişkenleri + tema), sayfa başlığı h1 30 Barlow, bölüm başlığı h3 22, `Kart`/`Btn`/
+`Rozet`/`Alan`/`Girdi`/`Onay`/`Modal` ilkelleri, tablo başlığı stili (CSS), toast (ok/err) her yerde aynı, `Onay` diyaloğu her yerde
+(hiç `window.confirm`/`alert` yok), etiketler 12 px büyük harf soluk, giriş yüksekliği 42.
+
+### 36.1 Tutarsızlıklar (öncelik sırasıyla)
+1. **Tablo hücrelerinde satır kırılması:** Oyuncular'da ad ("Ela / Demir") piller yüzünden ikiye bölünüyor; Raporlar'da "3.500 ₺"
+   ve "Kerem Yılmaz", Kullanıcılar'da "Ahmet Hoca" kırılıyor. Kural yok: ad/tutar/tarih hücreleri `whiteSpace: nowrap`, piller ada
+   değil ayrı satıra/sütuna. (Oyuncular satırında ad + 2 pil aynı flex satırında.)
+2. **Oyuncular satırında iki belge pili üst üste:** "Sağlık raporu yok" (kırmızı) + "Eksik belge (5)" (sarı) — sağlık raporu zaten
+   eksik belge sayısına dahil; her satırda iki pil gürültü. Öneri: tek pil "Eksik belge (5)"; sağlık raporu süresi dolan/dolacak için
+   ayrı kırmızı pil yalnız o durumda.
+3. **Birincil eylem rengi iki türlü:** sarı (`tur="sari"`: Makbuz Kes, Kaydet ve Yazdır, güncelleme şeridi) ve mor (Yeni Oyuncu,
+   Önizle, Antrenman Ekle, Grup Ekle, Kullanıcı Ekle, Şimdi Yedek Al, Kaydet). Yazılı kural yok. Öneri: sarı = yalnız "para/makbuz"
+   eylemi (Makbuz Kes, Kaydet ve Yazdır); diğer her birincil eylem mor — CLAUDE.md'ye kural.
+4. **Alt başlık stilleri:** çoğu bölüm h3 22 (Barlow); Oyuncu formu/Aile/Bilgi/Ödeme sekmeleri h3 20; Yedekleme alt başlıkları düz
+   `div fontWeight 700 fontSize 16` (Source Sans) — üç farklı seviye. Öneri: sayfa h1 30 · bölüm h3 22 · alt bölüm h4 16 Barlow
+   (yeni `AltBaslik` ilkeli), `fontSize: 20` kullanımları 22'ye.
+5. **"Ekle" formunun yeri:** Yaş Grupları'nda listenin ÜSTÜNDE (kart içinde), Kullanıcılar'da listenin ALTINDA, Aidat Kalemleri'nde
+   satır içi "+ satır". Öneri: tek kalıp — liste üstünde kısa form ya da "Ekle" düğmesiyle açılan satır; ikisinden biri seçilip
+   uygulanmalı (öneri: Kullanıcılar'daki gibi listenin altında, çünkü liste öncelikli).
+6. **Kaydet kalıbı üç türlü:** Kulüp: sağa yaslı "Vazgeç / Kaydet" çubuğu (kirli değilse kapalı); Aidat Kalemleri: yapışkan sarı
+   "N değişiklik kaydedilmedi · Vazgeç / Kaydet"; WhatsApp: alttaki tek "Kaydet" (kirli sayacı yok). Öneri: tek `KaydetCubugu`
+   ilkeli (yapışkan, kirli sayacı, Vazgeç/Kaydet), üç ekranda da aynı.
+7. **"Sil" düğmesi ikonlu/ikonsuz:** Kullanıcılar'da × ikonlu, Yaş Grupları/Oyuncu kartı/Aidat Kalemleri'nde ikonsuz. Öneri: satır
+   içi küçük Sil her yerde ikonsuz (Yaş Grupları gibi); büyük tehlikeli eylemler ikonlu (Geri Yükle gibi).
+8. **Köşe yarıçapı dağınık:** 10 (34), 8 (22), 12 (8), 6 (5), 7/14/16/2/3 tekil. Btn/Girdi 8, Kart 12, kutular 10. Öneri: 8 (kontrol),
+   12 (kart/modal), 999 (pil); 6/7/14/16 kaldırılır.
+9. **Kart iç dolgusu:** 20 (7), 22 (2), 24, 18/20, 16/18, 14 (2), 10. Öneri: kart 20, ana ayar kartı 24, menü kartı 10 — üç değer.
+10. **Boşluk (gap) 12 farklı değer** (3–24). Öneri: 4/8/12/16/24 ölçeği; 6→8, 10→12, 14→16, 18/20/22→16 ya da 24.
+11. **Rozet dışı el yapımı piller:** IlkKurulum (2), WhatsAppHatirlat, YasGruplari, Hakkında, TemaSecici (4), WhatsAppAyar (yer
+    tutucular). Öneri: hepsi `Rozet` (gerekirse `mono` prop'u yer tutucular için).
+12. **Ham `<input>`/`<select>` kullanımı:** Giris (7, bilinçli: 46 px büyük giriş), YasGruplari (3), KalemAyar (2), Tahsilat (2),
+    Aile/Tema/Sezon/HizliArama; ham `<select>` KullaniciAyar ve OyuncuKarti (durum). Öneri: `Girdi`/`Secim` ilkelleri; Giriş
+    ekranı için `buyuk` prop'u (46) — 42/46 ikiliği tek yerden.
+13. **Boş durum metinleri farklı biçimde:** `Bos` bileşeni (Ödemeler "Makbuz yok."), soluk div (Pano), padding'li div (Hızlı arama),
+    12 px küçük yazı (Belgeler "Henüz yüklenmedi"), "—" (Yaş Grupları program, Oyuncular veli). Öneri: tek `Bos` ilkeli (ortalı, soluk,
+    isteğe bağlı eylem düğmesi); hücre içi boşluk için "—".
+14. **Sabit renkler kaldı:** `#D8CCE9` (TakvimSeridi, OyuncuKarti ×3, WhatsAppHatirlat ×2), `#1B1530` (OyuncuKarti select option) —
+    tema açık renkte okunmaz. Öneri: `var(--ana-ustu-soluk)` / `var(--metin)`.
+15. **Tahsilat "Bugünkü tahsilat" pili** sayfa başında tek başına sağda; diğer ekranlarda özet sayılar kartın başlığında (Yoklama
+    "Toplam 3 Geldi 1…") ya da Pano kartlarında. Öneri: "Bugün Kesilen Makbuzlar" kartının başlığına taşınır.
+16. **Modal genişlikleri:** 440/460/480/520/760/960/1120 — 7 değer. Öneri: 480 (onay/küçük form), 760 (orta), 1120 (oyuncu kartı).
+17. **Çıkış düğmesi** geniş menüde yalnız ikon+metin, dar menüde ikon; etiket eklendi (11.09.2026) — tamam.
+
+### 36.2 Öneri sırası (küçükten büyüğe, her adım testli)
+a) 1+2 (tablo kırılması, belge pilleri) — görünür kazanç, küçük. b) 4+13 (`AltBaslik`, `Bos` ilkelleri). c) 3+7 (renk/ikon kuralı,
+CLAUDE.md). d) 6 (`KaydetCubugu`), 5 (Ekle yeri). e) 8–12, 14, 16 (ölçek temizliği; refactor davranış değiştirmez, karakterizasyon
+testleri + duman görüntüleri karşılaştırılır).
