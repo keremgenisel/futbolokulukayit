@@ -89,6 +89,21 @@ describe("tema.js", () => {
 });
 
 describe("ayarDogrula (ana süreç)", () => {
+  it("güvenlik 2. inceleme #1: aktif sezon, başlangıç ayı, kurulum bayrağı, sunucu adresi ve WhatsApp şablonu doğrulanır", () => {
+    expect(ayarDogrula("aktif_sezon", " 2026-2027 ")).toBe("2026-2027");
+    expect(ayarDogrula("aktif_sezon", "")).toBe("");
+    expect(() => ayarDogrula("aktif_sezon", "2026-2028")).toThrow(/2026-2027/);
+    expect(ayarDogrula("sezon_baslangic_ayi", "9")).toBe("9");
+    expect(() => ayarDogrula("sezon_baslangic_ayi", "13")).toThrow(/1–12/);
+    expect(() => ayarDogrula("sezon_baslangic_ayi", "abc")).toThrow();
+    expect(ayarDogrula("kurulum_tamam", "1")).toBe("1");
+    expect(() => ayarDogrula("kurulum_tamam", "evet")).toThrow();
+    expect(ayarDogrula("sunucu_adres", "192.168.1.10")).toBe("192.168.1.10");
+    expect(() => ayarDogrula("sunucu_adres", "http://x/;rm")).toThrow(/geçersiz/);
+    expect(ayarDogrula("wa_sablon_aidat", "Merhaba {veli}")).toBe("Merhaba {veli}");
+    expect(() => ayarDogrula("wa_sablon_aidat", "x".repeat(2001))).toThrow(/2000/);
+    expect(ayarDogrula("indirim_burslu", "50")).toBe("50"); // ana süreç içi eski anahtar: olduğu gibi
+  });
   it("tema renkleri #rrggbb, küçük harf; boş silmek için serbest", () => {
     expect(ayarDogrula("tema_ana", "#C8102E")).toBe("#c8102e");
     expect(ayarDogrula("tema_vurgu", "")).toBe("");

@@ -128,7 +128,7 @@ function registerDataHandlers() {
       if (!session) throw new Error("Oturum gerekli");
       return istemci.dbCall(fn, a);
     }
-    const y = cagriYetkisi(fn, session, db.lisansSaltOkunurMu());
+    const y = cagriYetkisi(fn, session, db.lisansSaltOkunurMu(), a);
     if (!y.ok) throw new Error(y.mesaj);
     if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(a[0]))?.username === session.username)
       throw new Error("Kendi hesabınızı silemezsiniz");

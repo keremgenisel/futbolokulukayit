@@ -34,7 +34,8 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
   it("Ayarlar yazmaları (setSetting, aidat kalemleri) yalnız yönetici; yaş grupları ve oyuncu işleri kullanıcıya açık", () => {
     for (const f of ["setSetting", "aidatAyarlariKaydet", "updateFeeItem", "yeniSezonaGec"])
       expect(cagriYetkisi(f, kullanici, false).kod).toBe(403);
-    for (const f of ["setSetting", "aidatAyarlariKaydet"]) expect(cagriYetkisi(f, admin, false).ok).toBe(true);
+    expect(cagriYetkisi("setSetting", admin, false, ["kulup_adi", "x"]).ok).toBe(true); // izinli anahtarla (2. inceleme #1)
+    expect(cagriYetkisi("aidatAyarlariKaydet", admin, false).ok).toBe(true);
     for (const f of ["createAgeGroup", "updateAgeGroup", "createReceipt", "cancelReceipt", "updateTraining", "mesajKaydet"])
       expect(cagriYetkisi(f, kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("getSetting", kullanici, true).ok).toBe(true); // okuma serbest (şablon, kulüp adı)
@@ -83,5 +84,19 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     expect(cagriYetkisi("deleteUser", admin, false).ok).toBe(true);
     expect(cagriYetkisi("deleteUser", { username: "u", role: "kullanici" }, false).kod).toBe(403);
     expect(cagriYetkisi("deleteUser", admin, true).kod).toBe(403);
+  });
+  it("güvenlik 2. inceleme #1 (11.09.2026): setSetting yalnız izinli anahtarlar; korumalı ve bilinmeyen anahtar 403", () => {
+    const admin = { role: "admin" };
+    for (const k of ["kulup_adi", "tema_ana", "aktif_sezon", "sezon_baslangic_ayi", "kurulum_tamam", "wa_sablon_aidat", "tahsil_eden"])
+      expect(cagriYetkisi("setSetting", admin, false, [k, "x"]).ok).toBe(true);
+    for (const k of ["yedek_klasoru", "yedek_sikligi", "son_yedek", "kulup_logo", "sunucu_adres", "son_sezon_gecisi"]) {
+      const r = cagriYetkisi("setSetting", admin, false, [k, "/tmp"]);
+      expect(r.ok).toBe(false);
+      expect(r.kod).toBe(403);
+      expect(r.mesaj).toMatch(/yalnız ilgili ekrandan/);
+    }
+    expect(cagriYetkisi("setSetting", admin, false, ["indirim_burslu", "50"]).mesaj).toMatch(/Bilinmeyen ayar/);
+    expect(cagriYetkisi("setSetting", admin, false, []).ok).toBe(false); // anahtarsız
+    expect(cagriYetkisi("setSetting", { role: "kullanici" }, false, ["kulup_adi", "x"]).kod).toBe(403); // rol önce
   });
 });

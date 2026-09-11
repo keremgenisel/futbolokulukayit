@@ -145,7 +145,7 @@ function buildApp({ surum = "" } = {}) {
 
   app.post("/api/db", requireAuth, (req, res) => {
     const { fn, args } = req.body || {};
-    const y = cagriYetkisi(String(fn || ""), req.user, db.lisansSaltOkunurMu());
+    const y = cagriYetkisi(String(fn || ""), req.user, db.lisansSaltOkunurMu(), Array.isArray(args) ? args : []);
     if (!y.ok) return res.status(y.kod).json({ error: y.mesaj });
     if (fn === "deleteUser" && db.listUsers().find((u) => u.id === Number(args?.[0]))?.username === req.user.username)
       return res.status(400).json({ error: "Kendi hesabınızı silemezsiniz" });

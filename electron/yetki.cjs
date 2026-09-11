@@ -1,4 +1,5 @@
 // db:call ve /api/db için ORTAK beyaz liste ve yetki kararı (saf, test edilebilir).
+const { ayarYazmaIzni } = require("./ayarDogrula.cjs");
 // Okuma her oturuma açık; yazma lisans salt-okunurken reddedilir; admin işlemleri yalnız yönetici.
 const OKUMA = new Set([
   "listAgeGroups",
@@ -86,8 +87,8 @@ const ADMIN = new Set([
   "updateFeeItem",
 ]);
 
-// Dönüş: { ok: true } | { ok: false, kod: 401|403, mesaj }
-function cagriYetkisi(fn, session, saltOkunur) {
+// Dönüş: { ok: true } | { ok: false, kod: 401|403, mesaj }. `args`: setSetting anahtar izni için (güvenlik 2. inceleme #1).
+function cagriYetkisi(fn, session, saltOkunur, args = []) {
   if (!session) return { ok: false, kod: 401, mesaj: "Oturum gerekli" };
   // İnceleme #13: zorunlu parola değişimi ana süreçte de uygulanır (arayüz atlanamaz)
   if (session.must_change_password) return { ok: false, kod: 403, mesaj: "Önce parolanızı değiştirin" };
@@ -100,6 +101,10 @@ function cagriYetkisi(fn, session, saltOkunur) {
   if (ADMIN.has(fn)) {
     if (session.role !== "admin") return { ok: false, kod: 403, mesaj: "Bu işlem için yönetici yetkisi gerekli" };
     if (saltOkunur) return { ok: false, kod: 403, mesaj: "Lisans salt okunur modda" };
+    if (fn === "setSetting") {
+      const i = ayarYazmaIzni(Array.isArray(args) ? args[0] : undefined);
+      if (!i.ok) return { ok: false, kod: 403, mesaj: i.neden };
+    }
     return { ok: true };
   }
   return { ok: false, kod: 403, mesaj: `İzin verilmeyen çağrı: ${fn}` };
