@@ -20,12 +20,12 @@ describe("UyariSeridi (refactor §8.4)", () => {
   });
   it("kırmızı ton, rol/testid geçirilebilir, yoğun kip dar dolgu", () => {
     render(
-      <UyariSeridi ton="kirmizi" yogun role="status" data-testid="x" style={{ marginBottom: 20 }}>
+      <UyariSeridi ton="kirmizi" yogun sessiz data-testid="x" style={{ marginBottom: 20 }}>
         salt okunur
       </UyariSeridi>,
     );
     const s = screen.getByTestId("x");
-    expect(s).toHaveAttribute("role", "status");
+    expect(s).not.toHaveAttribute("role"); // sessiz: toast sorguları ([role=status]) ve alert okuyucular karışmasın
     expect(s.style.background).toBe("var(--kirmizi-acik)");
     expect(s.style.padding).toBe("10px 16px");
     expect(s.style.marginBottom).toBe("20px");

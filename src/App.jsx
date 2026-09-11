@@ -202,12 +202,12 @@ export function App() {
               </UyariSeridi>
             )}
             {!saltOkunur && lisans?.mod === "deneme" && (
-              <UyariSeridi yogun role="status" style={{ marginBottom: 20 }}>
+              <UyariSeridi yogun sessiz style={{ marginBottom: 20 }}>
                 <b>Deneme sürümü</b> — {lisans.kalanGun} gün kaldı. Lisans anahtarınızı Ayarlar &gt; Lisans'tan girebilirsiniz.
               </UyariSeridi>
             )}
             {!saltOkunur && lisans?.mod === "lisansli" && lisans.kalanGun != null && lisans.kalanGun <= 30 && (
-              <UyariSeridi yogun role="status" style={{ marginBottom: 20 }}>
+              <UyariSeridi yogun sessiz style={{ marginBottom: 20 }}>
                 Lisansınızın bitmesine <b>{lisans.kalanGun} gün</b> kaldı ({tarihTR(lisans.bitis)}). Yenileme anahtarınızı hazırlayın.
               </UyariSeridi>
             )}

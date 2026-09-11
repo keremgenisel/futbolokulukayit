@@ -326,13 +326,14 @@ export function Avatar({ ad, boyut = 36, foto }) {
 /**
  * Uyarı şeridi (refactor 2. tur §8.4): sayfa içi kalıcı uyarılar için TEK kalıp — deneme/lisans/salt okunur (App), şifresiz DB,
  * sezon bitti / bitişe az kaldı (Pano). `ton`: "uyari" (sarı, temayla değişmez) | "kirmizi". `baslik` kalın ilk satır, `eylem` sağda düğme.
- * `yogun`: daha dar (10px dikey, 13.5px yazı) — App'teki lisans şeritleri. Erişilebilirlik: varsayılan role="alert".
+ * `yogun`: daha dar (10px dikey, 13.5px yazı) — App'teki lisans şeritleri. Erişilebilirlik: varsayılan role="alert"; `sessiz` rol
+ * vermez (kalıcı bilgi şeridi; toast sorguları `[role=status]` ile karışmasın).
  */
-export function UyariSeridi({ ton = "uyari", baslik, eylem = null, yogun = false, children, style, ...rest }) {
+export function UyariSeridi({ ton = "uyari", baslik, eylem = null, yogun = false, sessiz = false, children, style, ...rest }) {
   const kirmizi = ton === "kirmizi";
   return (
     <div
-      role="alert"
+      role={sessiz ? undefined : "alert"}
       {...rest}
       style={{
         background: kirmizi ? "var(--kirmizi-acik)" : "var(--uyari-acik)",
