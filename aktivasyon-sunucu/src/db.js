@@ -32,10 +32,21 @@ export async function aktifKurulumSay(env, lisansId) {
   return r?.n ?? 0;
 }
 
-export const kurulumEkle = (env, lisansId, makineId, surum) =>
-  env.DB.prepare("INSERT INTO kurulumlar (lisansId, makineId, ilkGoruldu, sonGoruldu, surum, aktif) VALUES (?, ?, ?, ?, ?, 1)")
-    .bind(lisansId, makineId, bugun(), bugun(), surum ?? null)
-    .run();
+// Kurulum ekleme (güvenlik 2. inceleme #4, 11.09.2026): limit denetimi ve ekleme TEK ifadede — eşzamanlı iki ilk aktivasyon
+// limiti aşamaz (D1'de işlem yok; INSERT ... SELECT ... WHERE sayım < limit atomik). Dönüş: eklendi mi (limit doluysa false).
+export async function kurulumEkle(env, lisansId, makineId, surum, maksKurulum = null) {
+  const r =
+    maksKurulum == null
+      ? await env.DB.prepare("INSERT INTO kurulumlar (lisansId, makineId, ilkGoruldu, sonGoruldu, surum, aktif) VALUES (?, ?, ?, ?, ?, 1)")
+          .bind(lisansId, makineId, bugun(), bugun(), surum ?? null)
+          .run()
+      : await env.DB.prepare(
+          "INSERT INTO kurulumlar (lisansId, makineId, ilkGoruldu, sonGoruldu, surum, aktif) SELECT ?, ?, ?, ?, ?, 1 WHERE (SELECT COUNT(*) FROM kurulumlar WHERE lisansId = ? AND aktif = 1) < ?",
+        )
+          .bind(lisansId, makineId, bugun(), bugun(), surum ?? null, lisansId, maksKurulum)
+          .run();
+  return (r?.meta?.changes ?? 1) > 0;
+}
 
 export const kurulumDokun = (env, id, surum) =>
   env.DB.prepare("UPDATE kurulumlar SET sonGoruldu = ?, surum = ?, aktif = 1 WHERE id = ?")

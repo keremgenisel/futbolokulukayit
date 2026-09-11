@@ -14,7 +14,6 @@ import {
   lisansBul,
   lisansUpsert,
   kurulumBul,
-  aktifKurulumSay,
   kurulumEkle,
   kurulumDokun,
   kurulumlariListele,
@@ -56,10 +55,9 @@ async function aktivasyon(request, env) {
   if (r.hata) return r.hata;
   const mevcut = await kurulumBul(env, r.lisans.id, makineId);
   if (!mevcut) {
-    const say = await aktifKurulumSay(env, r.lisans.id);
-    if (r.lisans.maksKurulum != null && say >= r.lisans.maksKurulum)
-      return json({ error: `kurulum limiti doldu (${r.lisans.maksKurulum})` }, 403);
-    await kurulumEkle(env, r.lisans.id, makineId, surum);
+    // Limit denetimi ekleme ifadesinin içinde (atomik; 2. inceleme #4)
+    const eklendi = await kurulumEkle(env, r.lisans.id, makineId, surum, r.lisans.maksKurulum);
+    if (!eklendi) return json({ error: `kurulum limiti doldu (${r.lisans.maksKurulum})` }, 403);
   } else {
     await kurulumDokun(env, mevcut.id, surum);
   }

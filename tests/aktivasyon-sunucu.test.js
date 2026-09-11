@@ -34,8 +34,14 @@ function sahteD1() {
             if (ex) Object.assign(ex, { firma, bitis, maksKullanici, maksKurulum, iptal });
             else t.lisanslar.push({ id: ++seqL, anahtarHash, firma, bitis, maksKullanici, maksKurulum, iptal, olusturuldu });
           } else if (sql.includes("INSERT INTO kurulumlar")) {
-            const [lisansId, makineId, ilkGoruldu, sonGoruldu, surum] = args;
+            const [lisansId, makineId, ilkGoruldu, sonGoruldu, surum, lisansId2, maks] = args;
+            // INSERT ... SELECT ... WHERE (SELECT COUNT(*) ...) < ? (2. inceleme #4): limit doluysa satır eklenmez, changes=0
+            if (sql.includes("WHERE (SELECT COUNT(*)")) {
+              const n = t.kurulumlar.filter((x) => x.lisansId === lisansId2 && x.aktif === 1).length;
+              if (!(n < maks)) return { success: true, meta: { changes: 0 } };
+            }
             t.kurulumlar.push({ id: ++seqK, lisansId, makineId, ilkGoruldu, sonGoruldu, surum, aktif: 1 });
+            return { success: true, meta: { changes: 1 } };
           } else if (sql.includes("UPDATE kurulumlar SET sonGoruldu")) {
             const [sonGoruldu, surum, id] = args;
             const r = t.kurulumlar.find((x) => x.id === id);
@@ -193,5 +199,18 @@ describe("Aktivasyon sunucusu — kurulum limiti + iptal + admin", () => {
     expect(hizAsildi("1.2.3.4", t0 + 31)).toBe(true); // 31. istek aynı dakikada → 429
     expect(hizAsildi("1.2.3.4", t0 + 61 * 1000)).toBe(false); // pencere geçti → serbest
     expect(hizAsildi("5.6.7.8", t0 + 40)).toBe(false); // başka IP etkilenmez
+  });
+  it("kurulum limiti eklemeyle atomik (2. inceleme #4): limit dolunca INSERT satır eklemez, 403; mevcut makine yenileyebilir", async () => {
+    // önceki testler `anahtar`ı iptal etti; temiz bir lisansla
+    await call("/admin/lisans", "POST", { anahtar: baskaAnahtar, maksKurulum: 1 }, { "x-admin-token": "gizli" });
+    const AKT2 = (makineId) => call("/aktivasyon", "POST", { anahtar: baskaAnahtar, makineId, surum: "3.0" });
+    const a = await AKT2("atom-1");
+    expect(a.status).toBe(200);
+    const b = await AKT2("atom-2");
+    expect(b.status).toBe(403);
+    expect(b.body.error).toMatch(/kurulum limiti/);
+    const liste = await call("/admin/liste?anahtar=" + encodeURIComponent(baskaAnahtar), "GET", null, { "x-admin-token": "gizli" });
+    expect(liste.body.kurulumlar.filter((k) => k.aktif === 1).map((k) => k.makineId)).toEqual(["atom-1"]);
+    expect((await AKT2("atom-1")).status).toBe(200); // aynı makine: dokunma, limit sayılmaz
   });
 });
