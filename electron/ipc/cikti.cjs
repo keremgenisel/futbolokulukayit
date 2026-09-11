@@ -1,6 +1,6 @@
 // Yazdırma, PDF ve Excel çıktıları. Renderer HTML'i hazırlar (makbuz/rapor şablonu), burada
 // gizli pencerede render edilip yazıcıya veya PDF'e gönderilir. Excel exceljs ile üretilir.
-const { ipcMain, BrowserWindow, dialog, shell, app, session } = require("electron");
+const { ipcMain, BrowserWindow, dialog, shell, session } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const ExcelJS = require("exceljs");
@@ -11,6 +11,7 @@ const koruma = require("./koruma.cjs");
 const istemci = require("../istemci.cjs");
 const { uploadsIci } = require("./files.cjs");
 const { makbuzPdfIzni } = require("../makbuzIzin.cjs");
+const { ciktiKlasoru } = require("../geciciCikti.cjs");
 
 // Yazdırma/PDF penceresi (inceleme #5): ayrı oturum bölümü; data:/about:/blob: dışındaki HER istek (http/https/file/…)
 // engellenir. JavaScript zaten kapalı; böylece şablonda bir kaçış hatası olsa bile dışarı veri sızmaz.
@@ -87,7 +88,7 @@ function registerCiktiHandlers(getSession) {
       String(ad || "cikti")
         .replace(/[^\w.-]+/g, "_")
         .replace(/\.pdf$/i, "") + ".pdf";
-    const yol = path.join(app.getPath("temp"), "futbolokulu-" + Date.now() + "-" + dosya);
+    const yol = path.join(ciktiKlasoru(), "futbolokulu-" + Date.now() + "-" + dosya); // açılışta 24 saatten eskiler silinir (2. inceleme #2)
     fs.writeFileSync(yol, await htmlToPdf(html, { yatay }));
     const hata = await shell.openPath(yol);
     return hata ? { error: hata } : { ok: true, yol };
