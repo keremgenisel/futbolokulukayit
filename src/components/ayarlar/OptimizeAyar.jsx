@@ -110,7 +110,7 @@ export function OptimizeAyar({ admin, saltOkunur }) {
           )}
         </div>
       )}
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 12 }}>
         <Btn tur="ghost" onClick={analiz} disabled={bekliyor}>
           Analiz Et
         </Btn>

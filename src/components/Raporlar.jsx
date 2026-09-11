@@ -175,7 +175,7 @@ export function Raporlar() {
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <Kart style={{ padding: 14 }}>
+      <Kart style={{ padding: 16 }}>
         <RaporFiltre
           gorunen={gorunen}
           filtre={{ sezon: seciliSezon, ay: ayS, grup, mod: yoklamaMod, from, to }}
@@ -199,7 +199,7 @@ export function Raporlar() {
         />
       </Kart>
       <div style={{ display: "grid", gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
-        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
           {RAPORLAR.map((r) => (
             <button
               key={r.kod}

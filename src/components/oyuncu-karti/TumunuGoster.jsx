@@ -2,7 +2,7 @@
 
 export function TumunuGoster({ onClick, metin }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", fontSize: 13, color: "var(--soluk)" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", fontSize: 13, color: "var(--soluk)" }}>
       <span>{metin}</span>
       <button
         type="button"

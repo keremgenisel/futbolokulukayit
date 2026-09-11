@@ -81,7 +81,7 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
-        gap: 14,
+        gap: 16,
         padding: "8px 32px",
         background: hata ? "var(--kirmizi)" : "var(--sari)", // Pano'daki "Makbuz Kes" düğmesinin sarısı
         color: hata ? "#fff" : "var(--vurgu-ustu, var(--mor-koyu))",

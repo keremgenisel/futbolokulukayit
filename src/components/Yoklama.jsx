@@ -254,9 +254,9 @@ export function Yoklama({ saltOkunur }) {
         gunOzetleri={takvim}
       />
 
-      <Kart style={{ padding: "16px 18px", display: "flex", flexDirection: "column", gap: 14 }}>
+      <Kart style={{ padding: 16, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12 }}>
             <h3 style={{ fontSize: 22 }}>{uzunTarih(tarih)}</h3>
             <span style={{ color: "var(--soluk)", fontSize: 14 }}>
               {antrenmanlar.length === 0 ? "antrenman yok" : `${antrenmanlar.length} antrenman`}
@@ -295,7 +295,7 @@ export function Yoklama({ saltOkunur }) {
                   style={{
                     display: "flex",
                     flexDirection: "column",
-                    gap: 6,
+                    gap: 8,
                     width: 200,
                     padding: "12px 14px",
                     borderRadius: 10,
@@ -339,7 +339,7 @@ export function Yoklama({ saltOkunur }) {
             style={{
               display: "flex",
               alignItems: "flex-end",
-              gap: 10,
+              gap: 12,
               padding: 14,
               borderRadius: 10,
               background: "var(--zemin)",
@@ -393,11 +393,11 @@ export function Yoklama({ saltOkunur }) {
                 flexWrap: "wrap",
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                 <h3 style={{ fontSize: 22 }}>
                   {aktif.yas_grubu_ad} Yoklama{aktif.saat ? ` · ${aktif.saat}` : ""}
                 </h3>
-                <div style={{ display: "flex", gap: 14, fontSize: 14 }}>
+                <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
                   {[
                     ["Toplam", oyuncular.length, ""],
                     ["Geldi", say("geldi"), "var(--yesil)"],
@@ -487,7 +487,7 @@ export function Yoklama({ saltOkunur }) {
               <div
                 style={{
                   display: "flex",
-                  gap: 10,
+                  gap: 12,
                   alignItems: "flex-end",
                   padding: "12px 16px",
                   borderBottom: "1px solid var(--cizgi)",
@@ -531,7 +531,7 @@ export function Yoklama({ saltOkunur }) {
               oyuncular.map((o) => (
                 <div
                   key={o.id}
-                  style={{ display: "flex", alignItems: "center", gap: 14, padding: "10px 16px", borderBottom: "1px solid var(--cizgi)" }}
+                  style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 16px", borderBottom: "1px solid var(--cizgi)" }}
                 >
                   <Avatar ad={o.ad_soyad} boyut={40} />
                   <div style={{ flex: 1 }}>

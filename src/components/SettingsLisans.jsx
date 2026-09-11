@@ -58,7 +58,7 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
 
   const m = MOD[durum?.mod];
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <h3 style={{ fontSize: 22 }}>Lisans</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14, lineHeight: 1.6 }}>
         Lisans anahtarınızı satıcınızdan alıp aşağıya yapıştırın. Süre dolduğunda uygulama <b>salt okunur</b> moda geçer: veriler güvende
@@ -67,7 +67,7 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
       {durum && m && (
         <div style={{ background: m.zemin, border: `1.5px solid ${m.renk}`, borderRadius: 10, padding: "14px 16px" }}>
           <div style={{ fontSize: 15, fontWeight: 700, color: m.renk, marginBottom: 6 }}>{m.ad}</div>
-          <div style={{ fontSize: 13.5, display: "grid", gap: 3 }}>
+          <div style={{ fontSize: 13.5, display: "grid", gap: 4 }}>
             {durum.firma && (
               <div>
                 Lisans sahibi: <b>{durum.firma}</b>

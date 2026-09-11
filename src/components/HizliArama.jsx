@@ -84,7 +84,7 @@ export function HizliArama({ acik, onKapat, onOyuncu, onMakbuz, saltOkunur }) {
           width: 640,
           maxWidth: "92vw",
           background: "#fff",
-          borderRadius: 14,
+          borderRadius: 12,
           boxShadow: "0 30px 80px rgba(27,21,48,.35)",
           overflow: "hidden",
         }}
@@ -102,7 +102,7 @@ export function HizliArama({ acik, onKapat, onOyuncu, onMakbuz, saltOkunur }) {
             aria-label="Oyuncu ara"
             style={{ flex: 1, border: 0, outline: "none", fontSize: 18, background: "transparent" }}
           />
-          <span style={{ fontSize: 12, color: "var(--soluk)", border: "1px solid var(--cizgi)", borderRadius: 6, padding: "2px 6px" }}>
+          <span style={{ fontSize: 12, color: "var(--soluk)", border: "1px solid var(--cizgi)", borderRadius: 8, padding: "2px 6px" }}>
             Esc
           </span>
         </div>
@@ -166,7 +166,7 @@ export function HizliArama({ acik, onKapat, onOyuncu, onMakbuz, saltOkunur }) {
             )}
           </div>
         ))}
-        <div style={{ padding: "8px 18px", fontSize: 12, color: "var(--soluk)", display: "flex", gap: 14 }}>
+        <div style={{ padding: "8px 18px", fontSize: 12, color: "var(--soluk)", display: "flex", gap: 16 }}>
           <span>↑↓ seç</span>
           <span>Enter kartı aç</span>
           <span>Ctrl+K her yerden</span>

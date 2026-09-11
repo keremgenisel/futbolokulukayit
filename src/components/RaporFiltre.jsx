@@ -69,7 +69,7 @@ export function RaporFiltre({
           </Alan>
         )}
         <div style={{ flex: 1 }} />
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 8 }}>
           {kirli ? <Rozet ton="red">{kirli}</Rozet> : <span style={{ height: 22 }} />}
           <div style={{ display: "flex", gap: 8 }}>
             <Btn

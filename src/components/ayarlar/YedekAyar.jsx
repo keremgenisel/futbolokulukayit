@@ -164,7 +164,7 @@ export function YedekAyar({ admin }) {
           <Secim secenekler={d.sikliklar} value={d.siklik} onChange={siklikDegistir} aria-label="Otomatik yedekleme sıklığı" />
         </Alan>
       )}
-      <div style={{ display: "flex", gap: 10 }}>
+      <div style={{ display: "flex", gap: 12 }}>
         <Btn tur="ghost" onClick={sec}>
           Klasör Seç
         </Btn>
@@ -173,7 +173,7 @@ export function YedekAyar({ admin }) {
         </Btn>
       </div>
       {admin && !d.istemci && (
-        <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16, display: "flex", flexDirection: "column", gap: 12 }}>
           <AltBaslik>Yedekten geri yükle</AltBaslik>
           <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
             Bir yedek dosyası (<code>.fokyedek</code> ya da eski <code>.zip</code>) seçin. Mevcut veriler silinmez,{" "}
@@ -196,7 +196,7 @@ export function YedekAyar({ admin }) {
             belgeler ve makbuz PDF'leri tek dosyada, yalnız bu parolayla açılır. Parolayı ayrı bir yerde saklayın; unutulursa paket
             açılamaz.
           </p>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
             <Alan etiket="Paket parolası" style={{ width: 200 }}>
               <Girdi
                 type="password"
@@ -223,7 +223,7 @@ export function YedekAyar({ admin }) {
             Paket dosyasını seçin, parolasını girin. Veriler bu bilgisayarın anahtarıyla yeniden şifrelenir; mevcut veriler{" "}
             <code>.pre-restore</code> ile kenara alınır ve program yeniden başlar.
           </p>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
             <Btn tur="ghost" onClick={tasimaSec} disabled={bekliyor}>
               Paket Dosyası Seç
             </Btn>

@@ -133,13 +133,13 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
             gap: 16,
           }}
         >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
             <span className="baslik" style={{ color: "#fff", fontSize: 26, fontWeight: 700 }}>
               {baslik}
             </span>
-            {altBaslik && <span style={{ color: "#D8CCE9", fontSize: 14 }}>{altBaslik}</span>}
+            {altBaslik && <span style={{ color: "var(--ana-ustu-soluk, #d8cce9)", fontSize: 14 }}>{altBaslik}</span>}
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             {uygunlar.length > 1 && (
               <span
                 data-testid="wa-sayac"
@@ -159,7 +159,7 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
               type="button"
               onClick={onKapat}
               aria-label="Pencereyi kapat"
-              style={{ background: "none", border: 0, color: "#D8CCE9", fontSize: 22, cursor: "pointer" }}
+              style={{ background: "none", border: 0, color: "var(--ana-ustu-soluk, #d8cce9)", fontSize: 22, cursor: "pointer" }}
             >
               ×
             </button>
@@ -194,14 +194,14 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
         </>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 14, height: "100%", minHeight: 0 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, height: "100%", minHeight: 0 }}>
         {grup && ayar && (
           <div
             data-testid="wa-grup"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 14,
+              gap: 16,
               padding: "12px 16px",
               borderRadius: 10,
               border: `1px solid ${grupGonderildi ? "var(--yesil)" : "var(--uyari)"}`,

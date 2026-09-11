@@ -193,13 +193,13 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     });
   const sonMesaj = mesajlar[0] || null;
   const ust = (
-    <div style={{ display: "flex", alignItems: "center", gap: 18, padding: "20px 26px", background: "var(--mor)", color: "#fff" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "20px 26px", background: "var(--mor)", color: "#fff" }}>
       <Avatar ad={o.ad_soyad} boyut={72} foto={foto} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="baslik" style={{ color: "#fff", fontSize: 30, fontWeight: 700, lineHeight: 1 }}>
           {o.ad_soyad}
         </div>
-        <div style={{ color: "#D8CCE9", fontSize: 14, marginTop: 6 }}>
+        <div style={{ color: "var(--ana-ustu-soluk, #d8cce9)", fontSize: 14, marginTop: 6 }}>
           {o.yas_grubu_ad || "Grup yok"} · {tarihTR(o.dogum_tarihi)} · Kayıt {tarihTR(o.kayit_tarihi)}
         </div>
       </div>
@@ -215,7 +215,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           fontSize: 14,
         }}
       >
-        <span style={{ color: "#D8CCE9" }}>Durum:</span>
+        <span style={{ color: "var(--ana-ustu-soluk, #d8cce9)" }}>Durum:</span>
         <select
           value={o.durum}
           disabled={saltOkunur}
@@ -223,7 +223,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           style={{ background: "transparent", color: "#fff", border: 0, fontWeight: 700, fontSize: 14 }}
         >
           {DURUMLAR.map((d) => (
-            <option key={d.kod} value={d.kod} style={{ color: "#1B1530" }}>
+            <option key={d.kod} value={d.kod} style={{ color: "var(--metin)" }}>
               {d.ad}
             </option>
           ))}
@@ -238,7 +238,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         type="button"
         onClick={onKapat}
         aria-label="Kapat"
-        style={{ background: "none", border: 0, color: "#D8CCE9", cursor: "pointer", display: "flex" }}
+        style={{ background: "none", border: 0, color: "var(--ana-ustu-soluk, #d8cce9)", cursor: "pointer", display: "flex" }}
       >
         <Ikon ad="kapat" boyut={24} />
       </button>

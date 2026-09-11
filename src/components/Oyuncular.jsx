@@ -175,7 +175,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
         <div style={{ position: "relative", width: 320 }}>
           <span style={{ position: "absolute", left: 12, top: 10, color: "var(--soluk)" }}>
             <Ikon ad="ara" />
@@ -206,7 +206,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
           </Btn>
         )}
       </div>
-      <Kart style={{ padding: 14, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+      <Kart style={{ padding: 16, display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         <Secim
           secenekler={[...new Set([aktifSezon, ...sezonlar])].map((s) => ({ kod: s, ad: s === aktifSezon ? `${s} (aktif sezon)` : s }))}
           bos="Tüm sezonlar"

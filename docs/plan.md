@@ -1500,7 +1500,7 @@ DB kuralı "son aktif yönetici silinemez", IPC "kendi hesabınızı silemezsini
 Ayarlar sekmesi yok), yöneticinin yeni parolasıyla giriş. Bulunan/düzeltilen: geniş kenar menüdeki Çıkış düğmesinde `aria-label`
 yoktu (dar menüde vardı) — eklendi.
 
-## 36. Tasarım tutarlılığı analizi (11.09.2026) — bulgular, henüz uygulanmadı
+## 36. Tasarım tutarlılığı analizi (11.09.2026) — bulgular; UYGULANDI (aynı gün, §36.3)
 
 Kerem: "uygulamayı tasarım açısından analiz et ve tutarsızlık olan yerleri listele." Yöntem: kod ölçümleri (`grep`: başlık boyutları,
 köşe yarıçapı, boşluk, Kart dolgusu, Btn türleri, Rozet dışı piller, ham input/select/label, boş durum metinleri, Kaydet çubukları)
@@ -1555,3 +1555,18 @@ Ayarlar > Kullanıcılar/Lisans/WhatsApp/Yedekleme).
 a) 1+2 (tablo kırılması, belge pilleri) — görünür kazanç, küçük. b) 4+13 (`AltBaslik`, `Bos` ilkelleri). c) 3+7 (renk/ikon kuralı,
 CLAUDE.md). d) 6 (`KaydetCubugu`), 5 (Ekle yeri). e) 8–12, 14, 16 (ölçek temizliği; refactor davranış değiştirmez, karakterizasyon
 testleri + duman görüntüleri karşılaştırılır).
+
+### 36.3 Uygulama (Kerem: "önerdiğin şekilde hepsini uygula", 11.09.2026)
+- (a) `.tek-satir` sınıfı (ui.css); Oyuncular satırı: ad tek satır, piller kimlik satırında; Raporlar/Kullanıcılar hücreleri tek
+  satır. Sağlık raporu hiç yokken ayrı pil yok — "Eksik belge (N)" kapsar; rapor varsa süresi dolmuş/dolacak/tarihsiz pili kalır
+  (liste belge bilgisi taşımıyorsa eski pil). Oyuncular e2e beklentileri güncellendi.
+- (b) `AltBaslik` (h4 16 Barlow) ve `Bos` (`kucuk`, `eylem`) ilkelleri; h3 20 → 22 (Tahsilat, OyuncuForm, Aile/Bilgi/Ödeme
+  sekmeleri); Yedekleme alt başlıkları `AltBaslik`; Pano/Hızlı arama/Belgeler boş durumları `Bos`.
+- (c) Sarı yalnız makbuz eylemi (Tema seçicideki "Bu renkleri kullan" mor oldu); Kullanıcılar'daki Sil ikonsuz; kural CLAUDE.md'de.
+- (d) `KaydetCubugu` ilkeli — Aidat Kalemleri, WhatsApp ve Kulüp aynı çubuk (Kulüp'te yalnız değişiklik varken; test güncellendi);
+  Yaş Grupları "Grup Ekle" formu listenin altına taşındı (Kullanıcılar gibi).
+- (e) Yarıçap 6/7→8, 14/16→12 (ince çubuklar 2/3 kaldı); Kart dolgusu 10/16/20/24; gap 106 yerde ölçeğe çekildi (3→4, 6→8, 10→12,
+  14→16, 18→20, 22→24); `#D8CCE9`/`#1B1530` → `--ana-ustu-soluk`/`--metin`; Modal 440/460/520→480, 960→1120; `Rozet mono`
+  (WhatsApp yer tutucuları), Tema seçici "YENİ" etiketi `Rozet`; Kullanıcılar rol seçimi `Secim`. Etkileşimli çipler (sihirbaz adım/
+  grup seçimi, "Pasif grupları da göster") ve WhatsApp sayacı bilinçli olarak el yapımı kaldı.
+

@@ -278,14 +278,14 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
         <Kart style={{ padding: 20, color: "var(--kirmizi)", fontWeight: 600 }}>Lisans salt okunur modda: makbuz kesilemez.</Kart>
       ) : (
         <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, alignItems: "start" }}>
-          <Kart style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+          <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
             <h3 style={{ fontSize: 22 }}>Oyuncu</h3>
             {oyuncu ? (
               <div
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 14,
+                  gap: 16,
                   padding: 14,
                   borderRadius: 10,
                   border: "1px solid var(--mor)",
@@ -349,7 +349,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 10,
+                          gap: 12,
                           padding: "10px 14px",
                           cursor: "pointer",
                           borderBottom: "1px solid var(--cizgi)",
@@ -391,7 +391,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                       style={{
                         display: "flex",
                         alignItems: "center",
-                        gap: 6,
+                        gap: 8,
                         background: "none",
                         border: "none",
                         padding: "4px 6px",
@@ -419,7 +419,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                         style={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 6,
+                          gap: 8,
                           padding: "8px 12px",
                           borderRadius: 8,
                           cursor: "pointer",
@@ -447,7 +447,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                   if (k.kod === "aidat")
                     return (
                       <div key={k.id} style={{ borderBottom: "1px solid var(--cizgi)", padding: "8px 0" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                           <input
                             type="checkbox"
                             checked={aidatSecili}
@@ -460,11 +460,11 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                           <span style={{ width: 140, textAlign: "right", fontWeight: 700 }}>{aidatSecili ? paraTR(aidatToplam) : ""}</span>
                         </div>
                         {secliAylar.length > 0 && (
-                          <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 8, paddingLeft: 34 }}>
+                          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8, paddingLeft: 34 }}>
                             {secliAylar.map((d) => {
                               const key = ayAnahtar(d.yil, d.ay);
                               return (
-                                <div key={key} style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 14 }}>
+                                <div key={key} style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 14 }}>
                                   <span style={{ flex: 1, color: "var(--soluk)" }}>
                                     {AY_ADLARI[d.ay - 1]} {d.yil}
                                   </span>
@@ -485,7 +485,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                   return (
                     <div
                       key={k.id}
-                      style={{ display: "flex", alignItems: "center", gap: 14, padding: "8px 0", borderBottom: "1px solid var(--cizgi)" }}
+                      style={{ display: "flex", alignItems: "center", gap: 16, padding: "8px 0", borderBottom: "1px solid var(--cizgi)" }}
                     >
                       <input
                         type="checkbox"
@@ -509,7 +509,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             </div>
           </Kart>
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <Kart style={{ padding: 22, display: "flex", flexDirection: "column", gap: 16 }}>
+            <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
               <h3 style={{ fontSize: 22 }}>Ödeme</h3>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
                 {ODEME_YONTEMLERI.map((y) => (
@@ -560,7 +560,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                 .map((d) => (
                   <div
                     key={ayAnahtar(d.yil, d.ay)}
-                    style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#D8CCE9" }}
+                    style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ana-ustu-soluk, #d8cce9)" }}
                   >
                     <span>
                       Aidat · {AY_ADLARI[d.ay - 1]} {d.yil}
@@ -573,7 +573,10 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                 .map(([id, v]) => {
                   const k = kalemler.find((x) => x.id === Number(id));
                   return (
-                    <div key={id} style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "#D8CCE9" }}>
+                    <div
+                      key={id}
+                      style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--ana-ustu-soluk, #d8cce9)" }}
+                    >
                       <span>{k?.ad}</span>
                       <span>{paraTR(v)}</span>
                     </div>
@@ -589,7 +592,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                 </span>
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 12 }}>
               <Btn
                 tur="ghost"
                 ikon={<Ikon ad="dosya" />}
@@ -684,7 +687,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
             </>
           }
         >
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0 }}>
               <b>{iptal.makbuz_no}</b> numaralı makbuz ({iptal.ad_soyad}, {paraTR(iptal.toplam)}) iptal edilecek; ödenen aidat tutarı geri
               düşülür. İptal, neden ve iptal edenle birlikte kayıtta kalır, raporda ayrı görünür.

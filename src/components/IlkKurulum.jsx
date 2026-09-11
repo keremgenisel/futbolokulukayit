@@ -194,8 +194,8 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         </>
       }
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           {ADIMLAR.map((a, i) => (
             <span
               key={a}
@@ -214,7 +214,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         </div>
 
         {adim === 0 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0, color: "var(--soluk)" }}>
               Programı birkaç adımda kullanıma hazırlayalım. Her şey sonradan Ayarlar'dan değiştirilebilir.
             </p>
@@ -254,7 +254,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
                 aria-label="Tahsil eden"
               />
             </Alan>
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
               <div
                 style={{
                   width: 72,
@@ -273,7 +273,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
                   <span style={{ fontSize: 11, color: "var(--soluk)" }}>Logo yok</span>
                 )}
               </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div>
                   <Btn tur="ghost" kucuk onClick={logoSec} ikon={<Ikon ad="yukle" />}>
                     Kulüp logosu seç…
@@ -294,7 +294,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         )}
 
         {adim === 1 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Alan etiket="Aylık aidat taban fiyatı (₺)" style={{ width: 220 }}>
               <ParaGirdi value={taban} onDegis={setTaban} aria-label="Aidat taban fiyatı" autoFocus />
             </Alan>
@@ -343,7 +343,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         )}
 
         {adim === 2 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <Alan etiket="Aktif sezon" style={{ width: 180 }}>
               <SezonSecim durum={null} value={sezon} onChange={setSezon} aria-label="Aktif sezon" />
             </Alan>
@@ -409,7 +409,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         )}
 
         {adim === 3 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0, color: "var(--soluk)" }}>
               Program her gün otomatik yedek alır. Yedek klasörü olarak harici disk ya da OneDrive/Google Drive klasörü seçin; bilgisayar
               bozulursa verileriniz orada olur.
@@ -426,7 +426,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         )}
 
         {adim === 4 && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0, color: "var(--soluk)" }}>
               Parolanızı unutursanız giriş ekranındaki "Parolamı unuttum" ile bu kodlardan biriyle yeni parola belirlersiniz. Kodlar bir kez
               gösterilir; yazdırıp güvenli bir yerde saklayın.
@@ -443,11 +443,11 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
         )}
 
         {son && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <p style={{ margin: 0 }}>
               <b>Kurulum tamam.</b> Şimdi oyuncuları ekleyebilirsiniz.
             </p>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
               <Btn
                 tur="ghost"
                 ikon={<Ikon ad="yukle" />}

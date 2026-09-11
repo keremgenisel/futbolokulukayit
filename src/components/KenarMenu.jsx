@@ -119,7 +119,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra, m
             display: "flex",
             alignItems: "center",
             justifyContent: dar ? "center" : "flex-start",
-            gap: 10,
+            gap: 12,
             height: 40,
             marginBottom: 10,
             padding: dar ? 0 : "0 12px",
@@ -139,7 +139,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra, m
                 style={{
                   fontSize: 11,
                   border: "1px solid rgba(255,255,255,.3)",
-                  borderRadius: 6,
+                  borderRadius: 8,
                   padding: "1px 6px",
                   color: "var(--ana-ustu-soluk, #d8cce9)",
                 }}
@@ -187,7 +187,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra, m
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            gap: 10,
+            gap: 12,
           }}
         >
           {acKapaDugme}
@@ -246,7 +246,7 @@ export function KenarMenu({ sekmeler, tab, onSec, oturum, mod, onCikis, onAra, m
                 marginTop: 6,
                 display: "flex",
                 alignItems: "center",
-                gap: 6,
+                gap: 8,
               }}
             >
               <Ikon ad="cikis" boyut={14} />

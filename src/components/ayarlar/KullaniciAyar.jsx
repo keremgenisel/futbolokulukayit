@@ -1,6 +1,6 @@
 // Ayarlar > Kullanıcılar (+ kurtarma kodları penceresi; ilk kurulum sihirbazı da kullanır)
 import { useEffect, useState } from "react";
-import { Btn, Alan, Girdi, Rozet, Onay, Modal, useToast, useDene } from "../ui.jsx";
+import { Btn, Alan, Girdi, Secim, Rozet, Onay, Modal, useToast, useDene } from "../ui.jsx";
 import { db, hataMetni, hataHam } from "../../lib/api.js";
 import { ParolaDegistir } from "../ParolaDegistir.jsx";
 import { esc as htmlEsc } from "../../lib/metin.js";
@@ -74,7 +74,7 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
         <p style={{ color: "var(--soluk)", margin: "4px 0 10px" }}>
           {oturum.ad_soyad || oturum.username} · {oturum.role === "admin" ? "Yönetici" : "Kullanıcı"}
         </p>
-        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
           <Btn tur="ghost" onClick={() => setParola(true)}>
             Parolamı Değiştir
           </Btn>
@@ -121,7 +121,7 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
                   <td>{u.is_active ? <Rozet ton="green">Aktif</Rozet> : <Rozet ton="gray">Pasif</Rozet>}</td>
                   <td>{u.kurtarma_kodu > 0 ? <Rozet ton="green">{u.kurtarma_kodu}</Rozet> : <Rozet ton="red">Yok</Rozet>}</td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                    <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                       {u.username !== oturum.username && !saltOkunur && (
                         <>
                           <Btn kucuk tur="ghost" onClick={() => setSifirla(u)}>
@@ -152,7 +152,7 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
             </tbody>
           </table>
           {!saltOkunur && (
-            <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
               <Alan etiket="Kullanıcı adı" style={{ width: 160 }}>
                 <Girdi value={yeni.username} onChange={(e) => setYeni({ ...yeni, username: e.target.value })} />
               </Alan>
@@ -163,14 +163,15 @@ export function KullaniciAyar({ oturum, admin, saltOkunur }) {
                 <Girdi type="password" value={yeni.password} onChange={(e) => setYeni({ ...yeni, password: e.target.value })} />
               </Alan>
               <Alan etiket="Rol" style={{ width: 140 }}>
-                <select
+                <Secim
                   value={yeni.role}
                   onChange={(e) => setYeni({ ...yeni, role: e.target.value })}
-                  style={{ height: 42, borderRadius: 8, border: "1px solid var(--cizgi)", padding: "0 10px" }}
-                >
-                  <option value="kullanici">Kullanıcı</option>
-                  <option value="admin">Yönetici</option>
-                </select>
+                  secenekler={[
+                    { kod: "kullanici", ad: "Kullanıcı" },
+                    { kod: "admin", ad: "Yönetici" },
+                  ]}
+                  aria-label="Rol"
+                />
               </Alan>
               <Btn onClick={ekle}>Kullanıcı Ekle</Btn>
             </div>
@@ -234,7 +235,7 @@ export function KurtarmaKodlari({ username, kodlar, onKapat, kapatMetni = "Kayde
     <Modal
       baslik={`${username} — Kurtarma Kodları`}
       onKapat={onKapat}
-      genislik={520}
+      genislik={480}
       altBar={
         <>
           <Btn tur="ghost" ikon={<Ikon ad="yazdir" boyut={16} />} onClick={yazdir}>

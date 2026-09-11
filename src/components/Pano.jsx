@@ -12,7 +12,7 @@ const SAGLIK_KISA = 8; // panoda en acil 8 uyarı; "Tümü (n)" Oyuncular > "Sa�
 
 function Stat({ etiket, deger, renk, not }) {
   return (
-    <Kart style={{ padding: "18px 20px", flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
+    <Kart style={{ padding: 20, flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
       <span style={{ fontSize: 13, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
         {etiket}
       </span>
@@ -87,7 +87,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <span style={{ color: "var(--soluk)" }}>{gun}</span>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 12 }}>
           {!saltOkunur && (
             <>
               <Btn tur="sari" ikon={<Ikon ad="tahsilat" />} onClick={() => onSekme("tahsilat")}>
@@ -124,13 +124,13 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         />
       </div>
       {saglik && saglik.uyarilar.length > 0 && (
-        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 10 }}>
+        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <h3 style={{ fontSize: 22 }}>
               Sağlık Raporu Uyarıları{" "}
               <span style={{ color: "var(--soluk)", fontSize: 15, fontWeight: 500 }}>({saglik.uyarilar.length})</span>
             </h3>
-            <div style={{ display: "flex", gap: 14, alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
               <span style={{ color: "var(--soluk)", fontSize: 13 }}>
                 Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş · en acil önce
               </span>
@@ -200,7 +200,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
           )}
         </div>
       )}
-      <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 14 }}>
+      <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <h3 style={{ fontSize: 22 }}>Tesise Giriş Kontrolü</h3>
           <span style={{ fontSize: 13, color: "var(--soluk)" }}>Ad, soyad, TC veya pasaport ile ara</span>
@@ -228,7 +228,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 14,
+                    gap: 16,
                     padding: 14,
                     borderRadius: 10,
                     border: "1px solid var(--cizgi)",
@@ -256,7 +256,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
                       color: ok ? "var(--yesil)" : "var(--kirmizi)",
                       display: "flex",
                       alignItems: "center",
-                      gap: 6,
+                      gap: 8,
                     }}
                   >
                     <Ikon ad={ok ? "onay" : "kapat"} />
@@ -292,7 +292,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: 14,
+                  gap: 16,
                   padding: "12px 14px",
                   borderRadius: 10,
                   border: "1px solid var(--cizgi)",
@@ -391,7 +391,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
                         )}
                       </td>
                       <td>
-                        <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                           {(() => {
                             const u = hatirlatmaUygunMu({ numara: b.veli_wa || b.veli_tel, onay: b.veli_onay });
                             return (

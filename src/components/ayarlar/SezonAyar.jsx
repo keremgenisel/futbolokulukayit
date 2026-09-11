@@ -94,7 +94,7 @@ export function SezonAyar({ admin, saltOkunur }) {
   if (!durum || !adaylar) return null;
   const sezonSonu = durum.aktifSezon && sezonSonuMu(durum.aktifSezon, iso, durum.baslangicAyi);
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <h3 style={{ fontSize: 22 }}>Yeni Sezon</h3>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
         Sezon bitince yılda bir kez çalıştırılır. Yenileyen oyuncular yeni sezona geçer (isteğe bağlı bir üst yaş grubuna), yenilemeyenler{" "}

@@ -1,6 +1,6 @@
 // Ayarlar > WhatsApp Mesajları
 import { useEffect, useState, useCallback } from "react";
-import { useToast, useDene, KaydetCubugu } from "../ui.jsx";
+import { useToast, useDene, KaydetCubugu, Rozet } from "../ui.jsx";
 import { db } from "../../lib/api.js";
 import {
   SABLON_ANAHTARLARI,
@@ -90,9 +90,9 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
       </p>
       {kayitli && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {TURLER.map((t) => (
-              <label key={t} style={{ display: "flex", flexDirection: "column", gap: 6 }} onFocus={() => setOnizleme(t)}>
+              <label key={t} style={{ display: "flex", flexDirection: "column", gap: 8 }} onFocus={() => setOnizleme(t)}>
                 <span style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".06em" }}>
                   {SABLON_ADLARI[t]}
                   {taslak[t] !== kayitli[t] && <span style={{ color: "var(--mor)", marginLeft: 8 }}>· değişti</span>}
@@ -117,20 +117,10 @@ export function WhatsAppAyar({ saltOkunur, onKirli }) {
                 />
               </label>
             ))}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
               <span style={{ fontSize: 12.5, color: "var(--soluk)", marginRight: 4 }}>Yer tutucular:</span>
               {YER_TUTUCULAR.map((y) => (
-                <code
-                  key={y}
-                  style={{
-                    padding: "3px 9px",
-                    borderRadius: 999,
-                    background: "var(--mor-acik)",
-                    color: "var(--mor-koyu)",
-                    fontSize: 12.5,
-                    fontWeight: 600,
-                  }}
-                >{`{${y}}`}</code>
+                <Rozet key={y} ton="purple" mono>{`{${y}}`}</Rozet>
               ))}
             </div>
           </div>

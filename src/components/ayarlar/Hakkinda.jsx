@@ -80,7 +80,7 @@ export function Guncelleme({ admin }) {
   return (
     <div
       data-testid="guncelleme"
-      style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 14, marginTop: 6, display: "flex", flexDirection: "column", gap: 10 }}
+      style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 14, marginTop: 6, display: "flex", flexDirection: "column", gap: 12 }}
     >
       <div style={{ fontWeight: 700, fontSize: 16 }}>Uygulama güncellemesi</div>
       <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>
@@ -121,7 +121,7 @@ export function Guncelleme({ admin }) {
           </>
         )}
         {durum.asama === "indiriliyor" && (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 320 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 320 }}>
             <div style={{ flex: 1, height: 10, borderRadius: 999, background: "var(--cizgi)", overflow: "hidden" }}>
               <div style={{ width: `${yuzde}%`, height: "100%", background: "var(--mor)", transition: "width .2s" }} />
             </div>

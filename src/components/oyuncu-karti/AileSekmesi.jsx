@@ -79,7 +79,7 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
                       />
                     </td>
                     <td>
-                      <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                      <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
                         <Btn
                           kucuk
                           tur={u.ok ? "yesil" : "ghost"}
@@ -105,7 +105,7 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
           </table>
         )}
         {!saltOkunur && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", marginTop: 12, flexWrap: "wrap" }}>
             <Alan etiket="Yakınlık" style={{ width: 130 }}>
               <Secim secenekler={TIP} value={v.tip} onChange={(e) => setV({ ...v, tip: e.target.value })} />
             </Alan>
@@ -122,10 +122,10 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
                 placeholder="GSM ile aynıysa boş"
               />
             </Alan>
-            <label style={{ display: "flex", gap: 6, alignItems: "center", height: 42 }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", height: 42 }}>
               <input type="checkbox" checked={v.veli_mi} onChange={(e) => setV({ ...v, veli_mi: e.target.checked })} /> Veli
             </label>
-            <label style={{ display: "flex", gap: 6, alignItems: "center", height: 42 }} title="WhatsApp ile bilgilendirme onayı (KVKK)">
+            <label style={{ display: "flex", gap: 8, alignItems: "center", height: 42 }} title="WhatsApp ile bilgilendirme onayı (KVKK)">
               <input type="checkbox" checked={v.mesaj_onayi} onChange={(e) => setV({ ...v, mesaj_onayi: e.target.checked })} /> Mesaj onayı
             </label>
             <Btn onClick={veliEkle} disabled={!v.ad_soyad.trim()}>
@@ -167,7 +167,7 @@ export function AileSekmesi({ oyuncu, veliler, acil, saltOkunur, onDegisti, onSi
           </table>
         )}
         {!saltOkunur && (
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginTop: 12 }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end", marginTop: 12 }}>
             <Alan etiket="Ad Soyad" style={{ flex: 1 }}>
               <Girdi value={a.ad_soyad} onChange={(e) => setA({ ...a, ad_soyad: e.target.value })} />
             </Alan>

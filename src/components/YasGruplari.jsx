@@ -92,7 +92,7 @@ export function YasGruplari({ saltOkunur }) {
           data-testid="grup-suzgec"
           style={{
             display: "flex",
-            gap: 14,
+            gap: 16,
             alignItems: "center",
             padding: "10px 16px",
             background: "var(--zemin)",
@@ -180,7 +180,7 @@ export function YasGruplari({ saltOkunur }) {
                       <ProgramDuzenle liste={duzenle.programListe || []} onDegis={(l) => setDuzenle({ ...duzenle, programListe: l })} />
                     </td>
                     <td>
-                      <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                      <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
                         <input
                           type="checkbox"
                           checked={!!duzenle.aktif}
@@ -297,21 +297,21 @@ function ProgramDuzenle({ liste, onDegis }) {
       {GUN_ADLARI.map((ad, i) => {
         const p = satir(i + 1);
         return (
-          <div key={ad} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+          <div key={ad} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
             <span style={{ width: 70, color: "var(--soluk)" }}>{ad.slice(0, 3)}</span>
             <input
               type="time"
               value={p.saat}
               onChange={(e) => degis(i + 1, "saat", e.target.value)}
               aria-label={`${ad} saati`}
-              style={{ height: 30, borderRadius: 6, border: "1px solid var(--cizgi)", padding: "0 6px" }}
+              style={{ height: 30, borderRadius: 8, border: "1px solid var(--cizgi)", padding: "0 6px" }}
             />
             <input
               value={p.saha}
               onChange={(e) => degis(i + 1, "saha", e.target.value)}
               placeholder="Saha"
               aria-label={`${ad} sahası`}
-              style={{ height: 30, width: 90, borderRadius: 6, border: "1px solid var(--cizgi)", padding: "0 6px" }}
+              style={{ height: 30, width: 90, borderRadius: 8, border: "1px solid var(--cizgi)", padding: "0 6px" }}
             />
           </div>
         );

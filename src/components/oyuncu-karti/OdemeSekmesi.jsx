@@ -11,7 +11,7 @@ export function OdemeSekmesi({ aidatlar, makbuzlar, tumu, son, onTumu, acikAidat
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
       <div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 12 }}>
           <h3 style={{ fontSize: 22 }}>Aylık Aidat</h3>
           {acikAidat &&
             (() => {

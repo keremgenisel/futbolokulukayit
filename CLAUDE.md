@@ -141,6 +141,14 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   `--uyari`/`--uyari-acik`/`--uyari-metin` (deneme/salt okunur şeridi, kaydedilmemiş satır, sarı rozet) anlam renkleri SABİT; marka
   vurgusu (`--sari`: Makbuz Kes, menü alt yazısı, sekme çizgisi, güncelleme şeridi) temayla değişir. Ana renk üstündeki yazıya `#fff`
   değil `var(--ana-ustu)` yaz; bileşene sabit marka hex'i yazma, şablonlara `tema` parametresi geçir).
+- **Tasarım kuralları (plan §36, 11.09.2026):** başlık ölçeği sayfa `h1` 30 · bölüm `h3` 22 · alt bölüm `AltBaslik` (h4 16), hepsi
+  Barlow; birincil eylem `Btn` mor — **sarı yalnız makbuz/para eylemi** (Makbuz Kes, Kaydet ve Yazdır, güncelleme şeridi); satır içi
+  "Sil" küçük ve ikonsuz; boş durum `Bos` (`kucuk` satır içi), hücre içi boşluk "—"; ayar ekranlarında Kaydet YALNIZ `KaydetCubugu`
+  (yapışkan, "N değişiklik kaydedilmedi", Vazgeç/Kaydet, yalnız değişiklik varken); "Ekle" formu listenin ALTINDA; piller `Rozet`
+  (`mono` yer tutucular için), el yapımı pil yazma; ad/tarih/tutar hücreleri `className="tek-satir"`; ölçekler: boşluk (gap) 4/8/12/
+  16/20/24, köşe 8 (kontrol) · 10 (kutu) · 12 (kart/modal) · 999 (pil), Kart dolgusu 10 (menü) · 16 (kompakt filtre) · 20 (kart) ·
+  24 (ayar kartı), Modal genişliği 480 · 760 · 1120, giriş 42 (Giriş ekranı 46 bilinçli); ham `<input>` yalnız onay kutusu/özel
+  arama; `<select>` yerine `Secim`.
 - `design/*.dc.html` — ekran tasarımları (Claude Design tuvali). Yeni ekran yaparken buna uy.
 
 ## Kurallar

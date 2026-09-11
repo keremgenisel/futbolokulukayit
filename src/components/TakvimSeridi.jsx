@@ -71,7 +71,7 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
         padding: 14,
         display: "flex",
         flexDirection: "column",
-        gap: 10,
+        gap: 12,
         outline: "none",
       }}
     >
@@ -111,7 +111,7 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
                 flexDirection: "column",
                 alignItems: "center",
                 justifyContent: "center",
-                gap: 3,
+                gap: 4,
                 padding: 0,
               }}
             >
@@ -133,7 +133,7 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
                   fontWeight: 600,
                   letterSpacing: ".06em",
                   textTransform: "uppercase",
-                  color: on ? "#D8CCE9" : "var(--soluk)",
+                  color: on ? "var(--ana-ustu-soluk, #d8cce9)" : "var(--soluk)",
                 }}
               >
                 {h.gunAdi}
@@ -141,7 +141,7 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
               <span className="baslik" style={{ fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
                 {h.gun}
               </span>
-              <span style={{ display: "flex", gap: 3, height: 7, alignItems: "center" }}>
+              <span style={{ display: "flex", gap: 4, height: 7, alignItems: "center" }}>
                 {noktalar.map((n, i) => (
                   <span
                     key={i}
@@ -172,7 +172,7 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 4px", gap: 12 }}>
         <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
           {Object.keys(NOKTA_AD).map((k) => (
-            <span key={k} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--soluk)" }}>
+            <span key={k} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--soluk)" }}>
               <span style={{ width: 8, height: 8, borderRadius: "50%", background: NOKTA_RENK[k] }} />
               {NOKTA_AD[k][0].toLocaleUpperCase("tr-TR") + NOKTA_AD[k].slice(1)}
             </span>

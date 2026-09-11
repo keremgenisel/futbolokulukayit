@@ -110,7 +110,7 @@ export function SettingsSunucu({ admin, onModDegisti }) {
             <p style={{ margin: 0, color: "var(--soluk)", fontSize: 14 }}>Yalnızca yönetici açabilir.</p>
           ) : (
             <>
-              <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
                 <Alan etiket="Port" style={{ width: 120 }}>
                   <Girdi value={port} onChange={(e) => setPort(e.target.value)} disabled={s.calisiyor} />
                 </Alan>
@@ -125,7 +125,7 @@ export function SettingsSunucu({ admin, onModDegisti }) {
                 )}
               </div>
               {s.calisiyor && (
-                <div style={{ fontSize: 14, display: "flex", flexDirection: "column", gap: 6 }}>
+                <div style={{ fontSize: 14, display: "flex", flexDirection: "column", gap: 8 }}>
                   <div style={{ color: "var(--soluk)" }}>Diğer bilgisayarlarda "Sunucuya bağlan" alanına şu adreslerden birini yazın:</div>
                   {ipler.map((a) => (
                     <div key={a.ip} style={{ fontFamily: "monospace", fontWeight: 700 }}>
@@ -149,7 +149,7 @@ export function SettingsSunucu({ admin, onModDegisti }) {
           <div style={{ fontWeight: 700, fontSize: 16 }}>
             {d.mode === "istemci" ? "Bağlı sunucu" : "Başka bilgisayardaki sunucuya bağlan"}
           </div>
-          <div style={{ display: "flex", gap: 10, alignItems: "flex-end" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
             <Alan etiket="Sunucu adresi" style={{ flex: 1 }}>
               <Girdi value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://100.x.x.x:3535" aria-label="Sunucu adresi" />
             </Alan>

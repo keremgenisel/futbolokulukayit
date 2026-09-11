@@ -55,7 +55,7 @@ export function UzunDonemModal({ oyuncuAdi, aylikAidat, baslangic, sezon, odenmi
     : "Seçilen aralıktaki tüm aylar zaten ödenmiş";
 
   return (
-    <Modal baslik="Uzun Dönem Seç" onKapat={onKapat} genislik={520}>
+    <Modal baslik="Uzun Dönem Seç" onKapat={onKapat} genislik={480}>
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <p style={{ margin: 0, fontSize: 13, color: "var(--soluk)" }}>{oyuncuAdi} için birden fazla ayı tek seferde işaretleyin.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -83,11 +83,11 @@ export function UzunDonemModal({ oyuncuAdi, aylikAidat, baslangic, sezon, odenmi
           <div style={{ flex: 1, borderTop: "1px solid var(--cizgi)" }} />
         </div>
         <div style={{ display: "flex", gap: 12 }}>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
             <span style={etiketStili}>Başlangıç ayı</span>
             <Secim secenekler={secenekler} value={`${bas.yil}-${bas.ay}`} onChange={(e) => elleSec("bas", e.target.value)} />
           </label>
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+          <label style={{ display: "flex", flexDirection: "column", gap: 8, flex: 1 }}>
             <span style={etiketStili}>Bitiş ayı</span>
             <Secim secenekler={secenekler} value={`${bit.yil}-${bit.ay}`} onChange={(e) => elleSec("bit", e.target.value)} />
           </label>
@@ -96,7 +96,7 @@ export function UzunDonemModal({ oyuncuAdi, aylikAidat, baslangic, sezon, odenmi
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 12,
             padding: "12px 14px",
             borderRadius: 10,
             background: "var(--mor-acik)",
@@ -114,7 +114,7 @@ export function UzunDonemModal({ oyuncuAdi, aylikAidat, baslangic, sezon, odenmi
             {atlanan > 0 && <span style={{ color: "var(--soluk)" }}> · {atlanan} ay zaten ödenmiş, atlandı</span>}
           </span>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 12 }}>
           <Btn tur="ghost" style={{ flex: 1 }} onClick={onKapat}>
             Vazgeç
           </Btn>

@@ -28,7 +28,7 @@ export function ParolaDegistir({ oturum, zorunlu = false, onTamam, onKapat }) {
     <Modal
       baslik={zorunlu ? "Yeni Parola Belirleyin" : "Parola Değiştir"}
       onKapat={zorunlu ? undefined : onKapat}
-      genislik={460}
+      genislik={480}
       altBar={
         <>
           {!zorunlu && (

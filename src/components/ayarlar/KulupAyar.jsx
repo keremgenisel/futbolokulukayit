@@ -74,7 +74,7 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
   const girdi = (k, ek = {}) => <Girdi value={a[k]} onChange={(e) => setA({ ...a, [k]: e.target.value })} disabled={kilitli} {...ek} />;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       <div>
         <h3 style={{ fontSize: 22 }}>Kulüp ve Makbuz</h3>
         <div style={{ fontSize: 14, color: "var(--soluk)", marginTop: 4 }}>
@@ -82,7 +82,7 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <Alan etiket="Kulüp adı (makbuz ve raporlarda)">
             {girdi("kulup_adi", { placeholder: "Kulübünüzün adı", "aria-label": "Kulüp adı" })}
           </Alan>

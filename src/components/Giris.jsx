@@ -87,7 +87,7 @@ export function Giris({ onGiris, mod, onModDegisti, marka }) {
           padding: 48,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <img
             src={marka?.logo || "./logo.png"}
             alt={marka?.logo ? kisaAd : "Futbol Okulu Kayıt Programı"}

@@ -62,7 +62,7 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
     <Modal
       baslik="Excel'den Oyuncu Aktar"
       onKapat={onKapat}
-      genislik={960}
+      genislik={1120}
       altBar={
         <>
           <Btn tur="ghost" onClick={onKapat}>
@@ -103,7 +103,7 @@ export function OyuncuAktar({ onKapat, onAktarildi }) {
 
         {onizleme && !sonuc && (
           <>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
               <span style={{ fontWeight: 600 }}>{dosyaAdi}</span>
               <Rozet ton="green">{onizleme.kayitlar.length} aktarılacak</Rozet>
               {onizleme.uyarilar.length > 0 && <Rozet ton="yellow">{onizleme.uyarilar.length} uyarı</Rozet>}

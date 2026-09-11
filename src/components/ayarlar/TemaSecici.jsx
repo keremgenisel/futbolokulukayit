@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { PRESETLER, temaTuret, logodanPalet, renkGecerliMi } from "../../lib/tema.js";
 import { logodanRenklerOku } from "../../lib/temaUygula.js";
-import { Btn } from "../ui.jsx";
+import { Btn, Rozet } from "../ui.jsx";
 
 const et = { fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" };
 
@@ -36,7 +36,7 @@ export function TemaOnizleme({ tema, kisaAd = "KULÜP", logo = "" }) {
           {logo ? (
             <img src={logo} alt="" style={{ width: 30, height: 30, objectFit: "contain" }} />
           ) : (
-            <img src="./logo.png" alt="" style={{ width: 30, height: 30, borderRadius: 7 }} />
+            <img src="./logo.png" alt="" style={{ width: 30, height: 30, borderRadius: 8 }} />
           )}
           <div style={{ minWidth: 0 }}>
             <div
@@ -60,7 +60,7 @@ export function TemaOnizleme({ tema, kisaAd = "KULÜP", logo = "" }) {
         <div
           style={{
             padding: "7px 10px",
-            borderRadius: 6,
+            borderRadius: 8,
             background: "rgba(255,255,255,.14)",
             color: t.anaUstuMetin,
             fontSize: 12,
@@ -72,7 +72,7 @@ export function TemaOnizleme({ tema, kisaAd = "KULÜP", logo = "" }) {
         </div>
         <div style={{ padding: "7px 10px", color: t.anaUstuMetin, opacity: 0.75, fontSize: 12 }}>Oyuncular</div>
       </div>
-      <div style={{ flex: 1, background: "var(--zemin)", padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ flex: 1, background: "var(--zemin)", padding: 14, display: "flex", flexDirection: "column", gap: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span className="baslik" style={{ fontSize: 20, fontWeight: 700, color: t.morKoyu }}>
             Pano
@@ -180,24 +180,11 @@ export function TemaSecici({ tema, onDegis, logo = "", kisaAd = "KULÜP", disabl
       }}
     >
       {etiket && (
-        <span
-          style={{
-            position: "absolute",
-            top: -9,
-            left: 10,
-            background: "var(--uyari)",
-            color: "var(--uyari-metin)",
-            fontSize: 10.5,
-            fontWeight: 700,
-            padding: "1px 8px",
-            borderRadius: 999,
-            letterSpacing: ".04em",
-          }}
-        >
+        <Rozet ton="yellow" style={{ position: "absolute", top: -9, left: 10, fontSize: 10.5, padding: "1px 8px" }}>
           {etiket}
-        </span>
+        </Rozet>
       )}
-      <div style={{ display: "flex", height: 34, borderRadius: 7, overflow: "hidden", border: "1px solid var(--cizgi)" }}>
+      <div style={{ display: "flex", height: 34, borderRadius: 8, overflow: "hidden", border: "1px solid var(--cizgi)" }}>
         <div style={{ flex: 3, background: ana }} />
         <div style={{ flex: 1, background: vurgu }} />
       </div>
@@ -208,7 +195,7 @@ export function TemaSecici({ tema, onDegis, logo = "", kisaAd = "KULÜP", disabl
     </button>
   );
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <span style={et}>Uygulama renkleri</span>
       {oneri && (
         <div
@@ -227,7 +214,7 @@ export function TemaSecici({ tema, onDegis, logo = "", kisaAd = "KULÜP", disabl
           <span style={{ fontSize: 13, color: "var(--mor-koyu)", fontWeight: 600, whiteSpace: "nowrap" }}>Logodan önerilen:</span>
           <div style={{ display: "flex", gap: 8 }}>
             {[...oneri.renkler, ...(oneri.beyazVar ? ["#ffffff"] : [])].map((r) => (
-              <div key={r} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 3 }}>
+              <div key={r} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
                 <Kutu renk={r} secili={r === tema.ana} />
                 <span style={{ fontSize: 10.5, color: "var(--soluk)", fontFamily: "monospace" }}>{r}</span>
               </div>
@@ -249,7 +236,7 @@ export function TemaSecici({ tema, onDegis, logo = "", kisaAd = "KULÜP", disabl
           ["ana", "Ana renk (özel)"],
           ["vurgu", "Vurgu rengi (özel)"],
         ].map(([alan, etiket]) => (
-          <label key={alan} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label key={alan} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <span style={et}>{etiket}</span>
             <div
               style={{
@@ -260,7 +247,7 @@ export function TemaSecici({ tema, onDegis, logo = "", kisaAd = "KULÜP", disabl
                 background: "#fff",
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
+                gap: 12,
               }}
             >
               <input

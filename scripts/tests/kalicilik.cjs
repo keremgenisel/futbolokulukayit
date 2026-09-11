@@ -92,7 +92,7 @@ app.on("browser-window-created", async (_e, win) => {
       );
       await bekle(300);
       const u14Sezon = await js(
-        `(() => { const s = [...document.querySelectorAll("select[aria-label='Sezon']")].at(-1); s.value = s.options[1].value; s.dispatchEvent(new Event("change", { bubbles: true })); return s.value; })()`,
+        `(() => { const s = document.querySelector("table tbody select[aria-label='Sezon']"); s.value = s.options[1].value; s.dispatchEvent(new Event("change", { bubbles: true })); return s.value; })()`, // düzenlenen satırın kutusu: tablo içindeki tek Sezon seçicisi (ekle formu tablonun dışında/altında, §36)
       );
       await tikla("Kaydet");
       await bekle(500);

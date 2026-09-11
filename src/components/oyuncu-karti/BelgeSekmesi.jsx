@@ -28,7 +28,7 @@ function BelgeTarihDuzenle({ belge, onKaydet }) {
       </button>
     );
   return (
-    <span style={{ display: "inline-flex", gap: 6, alignItems: "center" }}>
+    <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
       <Girdi
         type="date"
         value={g}
@@ -131,7 +131,7 @@ export function BelgeSekmesi({ belgeler, saltOkunur, onYukle, onTarihKaydet, onS
                 <Bos kucuk metin="Henüz yüklenmedi" />
               ) : (
                 mevcut.map((b) => (
-                  <div key={b.id} style={{ fontSize: 13, display: "flex", gap: 10, alignItems: "center", marginTop: 4 }}>
+                  <div key={b.id} style={{ fontSize: 13, display: "flex", gap: 12, alignItems: "center", marginTop: 4 }}>
                     <a
                       href="#"
                       onClick={(e) => {

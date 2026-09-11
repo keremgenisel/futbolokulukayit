@@ -38,7 +38,7 @@ export function Btn({ tur = "primary", children, ikon, style, kucuk, ...rest }) 
   );
 }
 
-export function Rozet({ ton = "gray", children, style, ...rest }) {
+export function Rozet({ ton = "gray", children, style, mono = false, ...rest }) {
   const tonlar = {
     green: ["var(--yesil-acik)", "var(--yesil)"],
     red: ["var(--kirmizi-acik)", "var(--kirmizi)"],
@@ -57,6 +57,7 @@ export function Rozet({ ton = "gray", children, style, ...rest }) {
         borderRadius: 999,
         background: bg,
         color: fg,
+        fontFamily: mono ? "monospace" : undefined,
         fontSize: 12,
         fontWeight: 700,
         whiteSpace: "nowrap",
@@ -74,7 +75,7 @@ export function Kart({ children, style }) {
 
 export function Alan({ etiket, children, style }) {
   return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, ...style }}>
+    <label style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 0, ...style }}>
       <span style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
         {etiket}
       </span>
@@ -145,7 +146,7 @@ export function Modal({ baslik, ust, children, altBar, onKapat, genislik = 900, 
           height: yukseklik,
           maxHeight: "92vh",
           background: "#fff",
-          borderRadius: 16,
+          borderRadius: 12,
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
@@ -182,7 +183,7 @@ export function Modal({ baslik, ust, children, altBar, onKapat, genislik = 900, 
             style={{
               display: "flex",
               justifyContent: "flex-end",
-              gap: 10,
+              gap: 12,
               padding: "14px 24px",
               borderTop: "1px solid var(--cizgi)",
               background: "var(--zemin)",
@@ -201,7 +202,7 @@ export function Onay({ mesaj, onEvet, onHayir, tehlikeli }) {
     <Modal
       baslik="Onay"
       onKapat={onHayir}
-      genislik={440}
+      genislik={480}
       altBar={
         <>
           <Btn tur="ghost" onClick={onHayir}>
@@ -431,7 +432,7 @@ export function Sayfalama({ sayfa, toplam, sayfaBoyu, onSayfa, birim = "kayıt" 
         display: "flex",
         alignItems: "center",
         justifyContent: "flex-end",
-        gap: 10,
+        gap: 12,
         padding: "10px 16px",
         borderTop: "1px solid var(--cizgi)",
         fontSize: 13,
