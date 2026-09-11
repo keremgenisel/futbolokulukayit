@@ -8,7 +8,7 @@ import { VARSAYILAN_TEMA } from "../../lib/tema.js";
 import { VARSAYILAN_KULUP } from "../../lib/marka.js";
 import { TemaSecici } from "./TemaSecici.jsx";
 
-const ALANLAR = ["kulup_adi", "kulup_kisa_ad", "kulup_alt_yazi", "kurulus_yili", "kulup_slogan", "tahsil_eden", "tema_ana", "tema_vurgu"];
+const ALANLAR = ["kulup_adi", "kulup_kisa_ad", "kulup_alt_yazi", "kurulus_yili", "tahsil_eden", "tema_ana", "tema_vurgu"];
 const bos = () => Object.fromEntries(ALANLAR.map((k) => [k, ""]));
 
 export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
@@ -95,9 +95,6 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
             </Alan>
           </div>
           <Alan etiket="Menü alt yazısı">{girdi("kulup_alt_yazi", { placeholder: "Futbol Okulu", "aria-label": "Menü alt yazısı" })}</Alan>
-          <Alan etiket="Yoklama formu alt yazısı (slogan; boşsa basılmaz)">
-            {girdi("kulup_slogan", { placeholder: "#Sloganınız", "aria-label": "Form alt yazısı" })}
-          </Alan>
           <Alan etiket="Varsayılan tahsil eden (makbuzda; boşsa giriş yapan kullanıcı)">
             {girdi("tahsil_eden", { "aria-label": "Tahsil eden" })}
           </Alan>

@@ -1481,3 +1481,8 @@ top logosu korunur, zemin beyazdan KIRMIZIYA (#E0101F) alınır: beyaz kart, koy
 `build/icon.png` (1024) ve `public/logo.png` (512) yeniden üretildi; test `tests/logo-dosyalari.test.js` kırmızı zemini doğrular.
 Yeni ikon exe/kurulum/masaüstüne bir sonraki sürümle gider; giriş/kenar menüde hemen (logosuz kurulumda).
 
+### 32.10 Yoklama formu alt yazısı (slogan) KALDIRILDI (Kerem, 11.09.2026: "uygulamadan tamamen kaldır")
+`kulup_slogan` ayarı, Ayarlar > Kulüp'teki alan, marka kanalındaki `slogan`, `yoklamaFormuHtml` parametresi ve `.dip` satırı
+silindi; form artık dipsiz. Eski kurulumda ayarlar tablosunda kalmış bir `kulup_slogan` değeri zararsızdır (okunmaz). Testler
+ve kurulum rehberi buna göre güncellendi.
+

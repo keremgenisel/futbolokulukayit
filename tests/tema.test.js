@@ -123,7 +123,6 @@ describe("markaHesapla", () => {
       kisaAd: "Futbol Okulu",
       altYazi: "Kayıt Programı",
       kurulusYili: "",
-      slogan: "",
       logo: "",
       tema: VARSAYILAN_TEMA,
     });

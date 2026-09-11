@@ -8,9 +8,9 @@ import { VARSAYILAN_KULUP } from "./marka.js";
 export async function ciktiMarkasi() {
   try {
     const m = await uygulama().marka();
-    return { logo: m?.logo || "", kulup: m?.kulupAdi || VARSAYILAN_KULUP, tema: m?.tema, slogan: m?.slogan || "" };
+    return { logo: m?.logo || "", kulup: m?.kulupAdi || VARSAYILAN_KULUP, tema: m?.tema };
   } catch {
-    return { logo: "", kulup: VARSAYILAN_KULUP, tema: undefined, slogan: "" };
+    return { logo: "", kulup: VARSAYILAN_KULUP, tema: undefined };
   }
 }
 

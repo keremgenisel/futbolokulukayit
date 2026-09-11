@@ -21,7 +21,6 @@ function markaHesapla(getSetting, logoDataUrl = "") {
     kisaAd: ad("kulup_kisa_ad") || kulupAdi,
     altYazi: ad("kulup_alt_yazi") || (ad("kulup_kisa_ad") ? "Futbol Okulu" : "Kayıt Programı"),
     kurulusYili: ad("kurulus_yili"),
-    slogan: ad("kulup_slogan"), // yoklama formu alt yazısı (boşsa basılmaz)
     logo: logoDataUrl || "",
     tema: {
       ana: renkGecerliMi(ana) ? ana.toLowerCase() : VARSAYILAN_TEMA.ana,

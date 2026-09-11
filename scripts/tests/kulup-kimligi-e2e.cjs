@@ -39,7 +39,6 @@ app.on("browser-window-created", async (_e, win) => {
     db.setSetting("kurulus_yili", "1974");
     db.setSetting("tema_ana", "#1f3a93");
     db.setSetting("tema_vurgu", "#f58220");
-    db.setSetting("kulup_slogan", "#HedefŞampiyonluk");
     const { kulupLogoKaydet } = require("../../electron/kulupLogo.cjs");
     const W = 400;
     const bmp = Buffer.alloc(W * W * 4);
@@ -228,10 +227,7 @@ app.on("browser-window-created", async (_e, win) => {
     await tikla("Formu Yazdır");
     await bekle(600);
     ciktiKontrol("yoklama formunda kulüp logosu ve tema rengi var", yakalanan["cikti:yazdir"]);
-    check(
-      "yoklama formunda kulübün sloganı var, Eyüpspor hashtag'i yok",
-      /#HedefŞampiyonluk/.test(yakalanan["cikti:yazdir"] || "") && !/Semt/.test(yakalanan["cikti:yazdir"] || ""),
-    );
+    check("yoklama formunda dip/slogan satırı yok (özellik kaldırıldı)", !/class="dip"|Semt/.test(yakalanan["cikti:yazdir"] || ""));
     check("yoklama formu PDF'i üretildi", (await pdfYaz("yoklama-formu", yakalanan["cikti:yazdir"])) > 10000);
     // Rapor PDF (Oyuncular > PDF) ve Excel başlık dolgusu
     await js(`document.querySelector("button[aria-label='Oyuncular']").click()`);

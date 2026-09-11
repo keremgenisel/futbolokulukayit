@@ -27,19 +27,9 @@ const kutu = (sutun, isaret) =>
   `<td class="k"><div class="kutu${isaret === sutun ? " dolu" : ""}">${isaret === sutun ? KUTU_IC[sutun] : ""}</div></td>`;
 
 /**
- * @param {{ grup: string, tarih: string, saat?: string, saha?: string, oyuncular: { ad_soyad: string, durum?: string, isaret?: string }[], logo?: string, kulup?: string, tema?: {ana?: string, vurgu?: string}, slogan?: string }} p
+ * @param {{ grup: string, tarih: string, saat?: string, saha?: string, oyuncular: { ad_soyad: string, durum?: string, isaret?: string }[], logo?: string, kulup?: string, tema?: {ana?: string, vurgu?: string} }} p
  */
-export function yoklamaFormuHtml({
-  grup,
-  tarih,
-  saat = "",
-  saha = "",
-  oyuncular,
-  logo = "",
-  kulup = VARSAYILAN_KULUP,
-  tema = undefined,
-  slogan = "",
-}) {
+export function yoklamaFormuHtml({ grup, tarih, saat = "", saha = "", oyuncular, logo = "", kulup = VARSAYILAN_KULUP, tema = undefined }) {
   const t = temaTuret(tema || {});
   /** @param {number} no @param {{ ad_soyad: string, durum?: string, isaret?: string } | null} o */
   const satir = (no, o) => {
@@ -79,7 +69,6 @@ export function yoklamaFormuHtml({
   .izin { font-weight: 700; font-size: 11pt; line-height: 1; }
   .alt { display: flex; align-items: flex-end; gap: 6mm; font-size: 10.5pt; margin-top: 4mm; }
   .alt .imza { margin-left: auto; }
-  .dip { margin-top: 5mm; text-align: center; font-size: 8.5pt; color: ${t.mor}; font-weight: 600; }
   tr { page-break-inside: avoid; }
 </style></head><body>
 <div class="ust">${guvenliLogo(logo) ? `<img src="${guvenliLogo(logo)}" alt="">` : ""}<div class="baslik"><h1>YOKLAMA FORMU</h1><span class="kulup">${esc(kulup)}</span></div>
@@ -88,6 +77,5 @@ export function yoklamaFormuHtml({
 <div class="antrenor"><span class="soluk">Antrenör:</span>${cizgi(60)}<span class="ipucu">Programda işaretli olanlar dolu gelir; kalanları sahada işaretleyin.</span></div>
 <table><thead><tr><th>#</th><th class="ad">Ad Soyad</th><th>Geldi</th><th>Gelmedi</th><th>İzinli</th><th>Not</th></tr></thead><tbody>${satirlar.join("")}</tbody></table>
 <div class="alt"><span><span class="soluk">Toplam:</span> <b>${oyuncular.length} oyuncu</b></span><span><span class="soluk">Geldi</span> ${cizgi(10)}</span><span><span class="soluk">Gelmedi</span> ${cizgi(10)}</span><span><span class="soluk">İzinli</span> ${cizgi(10)}</span><span class="imza"><span class="soluk">İmza</span> ${cizgi(45)}</span></div>
-${slogan ? `<div class="dip">${esc(slogan)}</div>` : ""}
 </body></html>`;
 }

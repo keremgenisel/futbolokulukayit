@@ -165,7 +165,7 @@ app.whenReady().then(async () => {
       "/api/marka oturumsuz 200, yalnız marka alanları",
       markaR.status === 200 &&
         markaR.body.marka.kulupAdi === "Futbol Okulu" &&
-        Object.keys(markaR.body.marka).sort().join() === "altYazi,kisaAd,kulupAdi,kurulusYili,logo,slogan,tema",
+        Object.keys(markaR.body.marka).sort().join() === "altYazi,kisaAd,kulupAdi,kurulusYili,logo,tema",
     );
     const pngB64 = require("electron")
       .nativeImage.createFromBitmap(Buffer.alloc(64 * 64 * 4, 200), { width: 64, height: 64 })

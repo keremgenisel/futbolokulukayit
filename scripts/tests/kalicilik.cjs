@@ -291,7 +291,6 @@ app.on("browser-window-created", async (_e, win) => {
       db.setSetting("kulup_kisa_ad", "Kalıcı SK");
       db.setSetting("kurulus_yili", "1965");
       db.setSetting("kulup_alt_yazi", "Akademi");
-      db.setSetting("kulup_slogan", "#KalıcıSlogan");
       db.setSetting("tema_ana", "#0f7b3e");
       db.setSetting("tema_vurgu", "#ffffff");
       {
@@ -619,7 +618,6 @@ app.on("browser-window-created", async (_e, win) => {
         db.getSetting("kulup_kisa_ad") === "Kalıcı SK" &&
           db.getSetting("kurulus_yili") === "1965" &&
           db.getSetting("kulup_alt_yazi") === "Akademi" &&
-          db.getSetting("kulup_slogan") === "#KalıcıSlogan" &&
           db.getSetting("tema_ana") === "#0f7b3e" &&
           db.getSetting("tema_vurgu") === "#ffffff",
       );

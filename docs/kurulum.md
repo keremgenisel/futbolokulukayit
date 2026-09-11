@@ -139,8 +139,7 @@ ya da bozulma ihtimaline karşı düzenli olarak:
 **Ayarlar > Kulüp ve Makbuz** tek yerden:
 
 - **Kulüp adı** makbuz ve raporlara; **kısa ad** giriş ekranı ve sol menü başlığına (ör. "ANADOLU SK"); **kuruluş yılı**
-  giriş ekranının altına ("Kuruluş 1974"; boş bırakılırsa satır görünmez); **menü alt yazısı** kısa adın altındaki küçük yazı;
-  **yoklama formu alt yazısı** formun dibindeki slogan (boşsa basılmaz).
+  giriş ekranının altına ("Kuruluş 1974"; boş bırakılırsa satır görünmez); **menü alt yazısı** kısa adın altındaki küçük yazı.
 - **Logo Seç…**: PNG (şeffaf zemin önerilir) ya da JPEG dosyanızı seçin. Logo otomatik küçültülür (512 px) ve giriş ekranında,
   sol menüde, makbuzda, yoklama formunda ve rapor başlığında kullanılır. Logo yüklenmemişse belgelerde yalnız kulüp adı yazılır.
   Logo yedek dosyasına ve taşıma paketine girer. **Kaldır** ile silinir.

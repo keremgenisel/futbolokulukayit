@@ -191,7 +191,7 @@ export function Yoklama({ saltOkunur }) {
 
   // Saha yoklama formu (plan §12): ekrandaki liste + işaretler; programda işaretli olanlar dolu, kalanlar boş kutu.
   const formHtml = async () => {
-    const { logo, kulup, tema, slogan } = await ciktiMarkasi(); // kanal yoksa logosuz, varsayılan ad/renk
+    const { logo, kulup, tema } = await ciktiMarkasi(); // kanal yoksa logosuz, varsayılan ad/renk
     return yoklamaFormuHtml({
       grup: aktif.yas_grubu_ad || "",
       tarih: aktif.tarih,
@@ -200,7 +200,6 @@ export function Yoklama({ saltOkunur }) {
       logo,
       kulup,
       tema,
-      slogan,
       oyuncular: oyuncular.map((o) => ({ ad_soyad: o.ad_soyad, durum: o.durum, isaret: yoklama[o.id] })),
     });
   };

@@ -2,7 +2,7 @@
 // CSS değişkenine ve HTML şablonlarına gireceği için biçim burada sıkı tutulur. Bilinmeyen anahtarlar olduğu gibi geçer.
 const { renkGecerliMi } = require("./tema.cjs");
 
-const SINIR = { kulup_adi: 80, kulup_kisa_ad: 40, kulup_alt_yazi: 40, kulup_slogan: 120, tahsil_eden: 60 };
+const SINIR = { kulup_adi: 80, kulup_kisa_ad: 40, kulup_alt_yazi: 40, tahsil_eden: 60 };
 
 /**
  * @param {string} anahtar

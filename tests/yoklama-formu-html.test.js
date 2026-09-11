@@ -60,11 +60,9 @@ describe("saha yoklama formu HTML'i", () => {
     expect(h).toContain("8 Eylül 2026 Salı");
     expect(h.split("<tr>").slice(2)).toHaveLength(EK_BOS_SATIR);
   });
-  it("slogan: verilirse dipte kaçırılmış basılır, verilmezse dip satırı yok (Eyüpspor hashtag'leri sabit değil)", () => {
-    const yok = yoklamaFormuHtml({ grup: "U9", tarih: "2026-09-08", oyuncular: [] });
-    expect(yok).not.toContain('class="dip"');
-    expect(yok).not.toContain("Semt");
-    const var_ = yoklamaFormuHtml({ grup: "U9", tarih: "2026-09-08", oyuncular: [], slogan: "#Hedef <Şampiyonluk>" });
-    expect(var_).toContain('<div class="dip">#Hedef &lt;Şampiyonluk&gt;</div>');
+  it("formda dip/slogan satırı yok (özellik 11.09.2026'da kaldırıldı; eski Eyüpspor hashtag'leri de yok)", () => {
+    const h = yoklamaFormuHtml({ grup: "U9", tarih: "2026-09-08", oyuncular: [] });
+    expect(h).not.toContain('class="dip"');
+    expect(h).not.toContain("Semt");
   });
 });
