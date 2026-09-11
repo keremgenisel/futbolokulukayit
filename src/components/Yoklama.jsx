@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
+import { Kart, Btn, Rozet, Onay, useToast, useDene } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
@@ -9,7 +9,10 @@ import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
 import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi, sezonDisiMi, haftaSezonDisiMi } from "../lib/takvim.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { antrenmanDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
-import { saatAraligi, saatAraligiDogrula, aralikKesisir, sureDk } from "../lib/program.js";
+import { saatAraligi, saatAraligiDogrula } from "../lib/program.js";
+import { AntrenmanKarti } from "./yoklama/AntrenmanKarti.jsx";
+import { AntrenmanEkleFormu } from "./yoklama/AntrenmanEkleFormu.jsx";
+import { YoklamaPaneli } from "./yoklama/YoklamaPaneli.jsx";
 
 // Şerit kaydırıldıkça ±4 haftalık pencere tek sorguda yüklenir (plan §9.2).
 const PENCERE_GUN = 28;
@@ -227,35 +230,6 @@ export function Yoklama({ saltOkunur }) {
     dene(async () => {
       await cikti().pdfKaydet(await formHtml(), formAdi() + ".pdf", false);
     });
-  const say = (d) => oyuncular.filter((o) => yoklama[o.id] === d).length;
-  const borclu = oyuncular.filter((o) => o.aidat_durum === "odenmedi").length;
-  const Dugme = ({ pid, durum, etiket }) => {
-    const on = yoklama[pid] === durum;
-    const renk = { geldi: "var(--yesil)", gelmedi: "var(--kirmizi)", izinli: "#7A6300" }[durum];
-    return (
-      <button
-        type="button"
-        onClick={() => isaretle(pid, durum)}
-        disabled={saltOkunur || !!aktif?.iptal}
-        aria-pressed={on}
-        title={on ? "Tekrar tıklayınca işaret kaldırılır" : ""}
-        style={{
-          height: 36,
-          width: 96,
-          borderRadius: 8,
-          cursor: "pointer",
-          fontWeight: on ? 700 : 600,
-          fontSize: 13,
-          border: `1px solid ${on ? renk : "var(--cizgi)"}`,
-          background: on ? renk : "#fff",
-          color: on ? "#fff" : "var(--soluk)",
-        }}
-      >
-        {etiket}
-      </button>
-    );
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <TakvimSeridi
@@ -303,329 +277,40 @@ export function Yoklama({ saltOkunur }) {
           </div>
         ) : (
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-            {antrenmanlar.map((t) => {
-              const on = aktif?.id === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => antrenmanSec(t)}
-                  aria-pressed={on}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 8,
-                    width: 200,
-                    padding: "12px 14px",
-                    borderRadius: 10,
-                    cursor: "pointer",
-                    textAlign: "left",
-                    border: `1px solid ${on ? "var(--mor)" : "var(--cizgi)"}`,
-                    background: on ? "var(--mor-acik)" : "#fff",
-                    opacity: t.iptal ? 0.7 : 1,
-                  }}
-                >
-                  <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                    <span className="baslik" style={{ fontSize: 20, fontWeight: 700, color: "var(--mor-koyu)" }}>
-                      {t.yas_grubu_ad} · {saatAraligi(t.saat || "", t.bitis_saat || "") || "—"}
-                    </span>
-                    {t.iptal ? <Rozet ton="red">İptal</Rozet> : null}
-                  </span>
-                  <span style={{ fontSize: 13, color: "var(--soluk)" }}>
-                    {t.saha || "Saha belirtilmedi"}
-                    {sureDk(t.saat, t.bitis_saat) ? ` · ${sureDk(t.saat, t.bitis_saat)} dk` : ""}
-                  </span>
-                  {t.bildirim_gerekli ? (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: t.bildirilen > 0 ? "var(--mor)" : "var(--kirmizi)" }}>
-                      {t.bildirilen > 0 ? `${t.bildirilen}/${t.oyuncu} veli bildirildi` : "Velilere bildirilmedi"}
-                    </span>
-                  ) : t.grup_bildirim ? (
-                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--yesil)" }}>Veli grubuna bildirildi</span>
-                  ) : null}
-                  <span
-                    style={{
-                      fontSize: 12,
-                      fontWeight: 600,
-                      color: t.oyuncu > 0 && t.isaretli >= t.oyuncu ? "var(--yesil)" : "var(--soluk)",
-                    }}
-                  >
-                    {t.isaretli}/{t.oyuncu} işaretli
-                  </span>
-                </button>
-              );
-            })}
+            {antrenmanlar.map((t) => (
+              <AntrenmanKarti key={t.id} t={t} on={aktif?.id === t.id} onSec={antrenmanSec} />
+            ))}
           </div>
         )}
         {formAcik && !saltOkunur && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              gap: 12,
-              padding: 14,
-              borderRadius: 10,
-              background: "var(--zemin)",
-              border: "1px dashed #C9B8E0",
-              flexWrap: "wrap",
-            }}
-          >
-            <Alan etiket="Yaş grubu" style={{ width: 180 }}>
-              <Secim
-                secenekler={gruplar}
-                bos="Yaş grubu"
-                value={yeni.age_group_id}
-                onChange={(e) => setYeni({ ...yeni, age_group_id: e.target.value })}
-                aria-label="Yaş grubu"
-              />
-            </Alan>
-            <Alan etiket="Başlangıç" style={{ width: 130 }}>
-              <Girdi type="time" value={yeni.saat} onChange={(e) => setYeni({ ...yeni, saat: e.target.value })} aria-label="Saat" />
-            </Alan>
-            <Alan etiket="Bitiş" style={{ width: 130 }}>
-              <Girdi
-                type="time"
-                value={yeni.bitis}
-                onChange={(e) => setYeni({ ...yeni, bitis: e.target.value })}
-                aria-label="Bitiş"
-                style={!saatAraligiDogrula(yeni.saat, yeni.bitis).gecerli ? { borderColor: "var(--kirmizi)" } : undefined}
-              />
-            </Alan>
-            <Alan etiket="Saha" style={{ width: 160 }}>
-              <Girdi
-                placeholder="Saha 1"
-                value={yeni.saha}
-                onChange={(e) => setYeni({ ...yeni, saha: e.target.value })}
-                aria-label="Saha"
-              />
-            </Alan>
-            <Btn ikon={<Ikon ad="arti" />} onClick={antrenmanEkle}>
-              Ekle
-            </Btn>
-            {(() => {
-              // Saha çakışma uyarısı (plan §37): aynı gün, aynı saha, kesişen aralık — engel değil
-              const saha = yeni.saha.trim().toLocaleLowerCase("tr-TR");
-              if (!saha || !yeni.saat) return null;
-              const cakisan = antrenmanlar.find(
-                (t) =>
-                  !t.iptal &&
-                  (t.saha || "").trim().toLocaleLowerCase("tr-TR") === saha &&
-                  aralikKesisir({ saat: t.saat, bitis: t.bitis_saat }, { saat: yeni.saat, bitis: yeni.bitis }),
-              );
-              return cakisan ? (
-                <div
-                  role="alert"
-                  style={{
-                    flexBasis: "100%",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "10px 12px",
-                    borderRadius: 10,
-                    background: "var(--uyari-acik)",
-                    border: "1px solid var(--uyari)",
-                    fontSize: 13.5,
-                    color: "var(--mor-koyu)",
-                  }}
-                >
-                  <Ikon ad="uyari" boyut={18} />
-                  <span>
-                    <b>{cakisan.saha}</b>'de {saatAraligi(cakisan.saat, cakisan.bitis_saat)} <b>{cakisan.yas_grubu_ad}</b> antrenmanı var;{" "}
-                    {saatAraligi(yeni.saat, yeni.bitis)} ile çakışıyor. Yine de ekleyebilirsiniz.
-                  </span>
-                </div>
-              ) : null;
-            })()}
-            <Btn tur="ghost" ikon={<Ikon ad="kapat" />} onClick={() => setFormAcik(false)}>
-              Vazgeç
-            </Btn>
-          </div>
+          <AntrenmanEkleFormu
+            gruplar={gruplar}
+            yeni={yeni}
+            onDegis={setYeni}
+            onEkle={antrenmanEkle}
+            onVazgec={() => setFormAcik(false)}
+            antrenmanlar={antrenmanlar}
+          />
         )}
       </Kart>
 
       <Kart>
-        {!aktif ? (
-          <Bos metin="Yoklama almak için yukarıdan bir antrenman seçin." />
-        ) : (
-          <>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                padding: "14px 16px 12px",
-                borderBottom: "1px solid var(--cizgi)",
-                gap: 12,
-                flexWrap: "wrap",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-                <h3 style={{ fontSize: 22 }}>
-                  {aktif.yas_grubu_ad} Yoklama{aktif.saat ? ` · ${saatAraligi(aktif.saat, aktif.bitis_saat || "")}` : ""}
-                </h3>
-                <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
-                  {[
-                    ["Toplam", oyuncular.length, ""],
-                    ["Geldi", say("geldi"), "var(--yesil)"],
-                    ["Gelmedi", say("gelmedi"), "var(--kirmizi)"],
-                    ["İzinli", say("izinli"), ""],
-                    ["İşaretlenmedi", oyuncular.length - say("geldi") - say("gelmedi") - say("izinli"), ""],
-                  ].map(([e, n, c]) => (
-                    <span key={e}>
-                      <span style={{ color: "var(--soluk)" }}>{e} </span>
-                      <b style={{ color: c || "inherit" }}>{n}</b>
-                    </span>
-                  ))}
-                </div>
-                {borclu > 0 && <Rozet ton="red">{borclu} aidat borcu</Rozet>}
-                {aktif.iptal ? <Rozet ton="red">İptal edildi</Rozet> : null}
-                {aktif.grup_bildirim ? (
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-                    <Rozet ton="green">Veli grubuna bildirildi</Rozet>
-                    {!saltOkunur && (
-                      <button
-                        type="button"
-                        onClick={grupGeriAl}
-                        aria-label="Grup bildirimini geri al"
-                        style={{
-                          background: "none",
-                          border: 0,
-                          color: "var(--soluk)",
-                          cursor: "pointer",
-                          fontSize: 12.5,
-                          textDecoration: "underline",
-                        }}
-                      >
-                        Geri al
-                      </button>
-                    )}
-                  </span>
-                ) : null}
-              </div>
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {aktif.bildirim_gerekli ? (
-                  <Btn
-                    tur="yesil"
-                    ikon={<Ikon ad="whatsapp" />}
-                    onClick={() => bildirimAc(aktif, aktif.iptal ? "iptal" : "degisiklik")}
-                    title="Grubun velilerine WhatsApp ile iptal/değişiklik bildir"
-                  >
-                    Velilere Bildir
-                  </Btn>
-                ) : null}
-                {!aktif.iptal && (
-                  <>
-                    <Btn
-                      tur="ghost"
-                      ikon={<Ikon ad="yazdir" />}
-                      onClick={formYazdir}
-                      title="Sahada elle doldurulacak A4 yoklama formu; programda işaretli olanlar dolu gelir"
-                    >
-                      Formu Yazdır
-                    </Btn>
-                    <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={formPdf} title="Yoklama formunu PDF olarak kaydet">
-                      PDF
-                    </Btn>
-                    {!saltOkunur && (
-                      <Btn tur="ghost" ikon={<Ikon ad="onay" />} onClick={tumuGeldi}>
-                        Kalanları Geldi İşaretle
-                      </Btn>
-                    )}
-                    {!saltOkunur && !duzen && (
-                      <Btn
-                        tur="ghost"
-                        ikon={<Ikon ad="takvim" />}
-                        onClick={() =>
-                          setDuzen({ tarih: aktif.tarih, saat: aktif.saat || "", bitis: aktif.bitis_saat || "", saha: aktif.saha || "" })
-                        }
-                      >
-                        Düzenle
-                      </Btn>
-                    )}
-                    {!saltOkunur && (
-                      <Btn tur="danger" ikon={<Ikon ad="kapat" />} onClick={() => setIptal(aktif)}>
-                        İptal Et
-                      </Btn>
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-            {duzen && (
-              <div
-                style={{
-                  display: "flex",
-                  gap: 12,
-                  alignItems: "flex-end",
-                  padding: "12px 16px",
-                  borderBottom: "1px solid var(--cizgi)",
-                  background: "var(--uyari-acik)",
-                  flexWrap: "wrap",
-                }}
-              >
-                <Alan etiket="Tarih" style={{ width: 170 }}>
-                  <Girdi
-                    type="date"
-                    value={duzen.tarih}
-                    onChange={(e) => setDuzen({ ...duzen, tarih: e.target.value })}
-                    aria-label="Antrenman tarihi"
-                    disabled={aktif.isaretli > 0}
-                    title={aktif.isaretli > 0 ? "Yoklaması alınmış antrenmanın tarihi değiştirilemez" : ""}
-                  />
-                </Alan>
-                <Alan etiket="Başlangıç" style={{ width: 130 }}>
-                  <Girdi
-                    type="time"
-                    value={duzen.saat}
-                    onChange={(e) => setDuzen({ ...duzen, saat: e.target.value })}
-                    aria-label="Antrenman saati"
-                  />
-                </Alan>
-                <Alan etiket="Bitiş" style={{ width: 130 }}>
-                  <Girdi
-                    type="time"
-                    value={duzen.bitis}
-                    onChange={(e) => setDuzen({ ...duzen, bitis: e.target.value })}
-                    aria-label="Antrenman bitişi"
-                    style={!saatAraligiDogrula(duzen.saat, duzen.bitis).gecerli ? { borderColor: "var(--kirmizi)" } : undefined}
-                  />
-                </Alan>
-                <Alan etiket="Saha" style={{ width: 160 }}>
-                  <Girdi value={duzen.saha} onChange={(e) => setDuzen({ ...duzen, saha: e.target.value })} aria-label="Antrenman sahası" />
-                </Alan>
-                <Btn onClick={duzenKaydet}>Kaydet</Btn>
-                <Btn tur="ghost" onClick={() => setDuzen(null)}>
-                  Vazgeç
-                </Btn>
-                {aktif.isaretli > 0 && (
-                  <span style={{ fontSize: 12.5, color: "var(--soluk)" }}>Yoklama alındığı için yalnız saat ve saha değişir.</span>
-                )}
-              </div>
-            )}
-            {oyuncular.length === 0 ? (
-              <Bos metin="Bu grupta aktif oyuncu yok." />
-            ) : (
-              oyuncular.map((o) => (
-                <div
-                  key={o.id}
-                  style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 16px", borderBottom: "1px solid var(--cizgi)" }}
-                >
-                  <Avatar ad={o.ad_soyad} boyut={40} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 15, display: "flex", gap: 8, alignItems: "center" }}>
-                      {o.ad_soyad}
-                      {o.aidat_durum === "odenmedi" && <Rozet ton="red">Aidat</Rozet>}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <Dugme pid={o.id} durum="geldi" etiket="Geldi" />
-                    <Dugme pid={o.id} durum="gelmedi" etiket="Gelmedi" />
-                    <Dugme pid={o.id} durum="izinli" etiket="İzinli" />
-                  </div>
-                </div>
-              ))
-            )}
-          </>
-        )}
+        <YoklamaPaneli
+          aktif={aktif}
+          oyuncular={oyuncular}
+          yoklama={yoklama}
+          saltOkunur={saltOkunur}
+          duzen={duzen}
+          onDuzen={setDuzen}
+          onDuzenKaydet={duzenKaydet}
+          onIsaretle={isaretle}
+          onTumuGeldi={tumuGeldi}
+          onFormYazdir={formYazdir}
+          onFormPdf={formPdf}
+          onIptal={setIptal}
+          onBildir={bildirimAc}
+          onGrupGeriAl={grupGeriAl}
+        />
       </Kart>
       {iptal && (
         <Onay

@@ -165,6 +165,11 @@ Tek bileşende 5 bağımsız blok: Antrenman Ekle formu (+ çakışma uyarısı)
 `program.js`'de. Güvenlik ağı hazır: `tests/ui/yoklama.test.jsx` (%96 satır) + `yoklama-e2e` 50 kontrol. Dış ad `Yoklama` ve
 prop'ları (`saltOkunur`) sabit.
 
+**Sonuç (11.09.2026):** `src/components/yoklama/` — `AntrenmanKarti` (56), `AntrenmanEkleFormu` (91, çakışma uyarısı içinde),
+`AntrenmanDuzenle` (54), `YoklamaPaneli` (207, başlık + sayaçlar + eylemler + oyuncu satırları + `IsaretDugmesi`); `Yoklama.jsx` 661 → 344
+(durum, veri yükleme, işlemler, Onay/WhatsApp modalları). DOM birebir: duman görüntüsü pikseli aynı, yoklama e2e 50 kontrol ve UI
+testleri değişmeden geçti.
+
 ### 8.2 `Tahsilat.jsx` (724) → `src/components/tahsilat/`
 18 useState tek bileşende: oyuncu arama/seçim, aidat ayları (kısmi/elle/uzun dönem), kalem satırları, makbuz kesme + yazdırma,
 Bugün Kesilen Makbuzlar (sayfalı), iptal modalı. Öneri: `AidatAySecimi`, `KalemSatirlari`, `BugunKesilenler`, `MakbuzIptal` ayrı;
