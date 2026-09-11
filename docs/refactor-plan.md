@@ -177,6 +177,12 @@ toplam/aidat hesapları `src/lib/aidat.js`'e saf fonksiyon olarak (bugün bileş
 ÖNCE karakterizasyon: fonksiyon kapsaması %65 → uzun dönem + kısmi + ücretsiz akışları `tests/ui/tahsilat.test.jsx`'te var,
 "Bugün Kesilen" sayfalama ve iptal yolu `tahsilat-e2e`/`sayfalama-e2e`'de; eksik: makbuz yazdır/PDF hata yolu (satır 672–681, 704–719).
 
+**Sonuç (11.09.2026):** saf `src/lib/tahsilat.js` (`ayAnahtar/ayCoz`, `ilkOdenmemisAy`, `baslangicAySecimi`, `donemSecenekleri`,
+`seciliAylar`, `toplamlar`, `makbuzSatirlari`, `uzunDonemSecimi`; `tests/tahsilat-saf.test.js` 6 test) + `src/components/tahsilat/`
+(`OyuncuSecici`, `AidatAySecimi`, `KalemListesi`, `OdemePaneli`, `BugunKesilenler`, `MakbuzIptalModal`); `Tahsilat.jsx` 724 → 298
+(17 useState kaldı: hepsi ekran durumu). Karakterizasyon (adım 1) + tahsilat/sayfalama/kulüp e2e değişmeden geçti; duman görüntüsü
+2 piksel (imleç) hariç aynı.
+
 ### 8.3 Sezon durumu için tek kaynak: `useSezonDurumu()` kancası
 8 bileşen aynı `db("sezonDurumu")` çağrısını kendi `useState/useEffect`'iyle yapıyor; `tarihler` (§37) eklenince her biri ayrı ayrı
 `d?.tarihler?.baslangic && …` süzüyor. Öneri: `src/lib/useSezonDurumu.js` — `{ durum, aktifSezon, tarihler, yenile }`; test mock'ları
