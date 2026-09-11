@@ -85,6 +85,29 @@ function geciciArtiklariTemizle() {
     /* tmp okunamadı */
   }
 }
+// Geri yüklemede kenara alınan `.pre-restore-*` kopyaları (güvenlik 2. inceleme #5): en yeni 3 kalır (geriYukleCekirdek), ayrıca
+// 30 günden eskiler açılışta silinir — KVKK silmesi yapılmış eski veriler süresiz kalmasın. Dönüş: silinen kopya sayısı.
+const KENAR_SAKLAMA_MS = 30 * 24 * 60 * 60 * 1000;
+function kenarKopyalariniTemizle(userDataDir, now = Date.now()) {
+  let silinen = 0;
+  try {
+    for (const ad of fs.readdirSync(userDataDir)) {
+      if (!/^(data\.db|uploads)\.pre-restore-/.test(ad)) continue;
+      const yol = path.join(userDataDir, ad);
+      try {
+        if (now - fs.statSync(yol).mtimeMs > KENAR_SAKLAMA_MS) {
+          fs.rmSync(yol, { recursive: true, force: true });
+          silinen++;
+        }
+      } catch {
+        /* kilitli */
+      }
+    }
+  } catch {
+    /* klasör yok */
+  }
+  return silinen;
+}
 function zipAcBuffer(veri) {
   const arsiv = unzipSync(veri);
   if (!arsiv["data.db"]) throw new Error("Zip içinde data.db yok; bu bir Futbol Okulu Kayıt Programı yedeği değil");
@@ -224,5 +247,7 @@ module.exports = {
   yedekHazirla,
   otomatikYedek,
   geriYukleCekirdek,
+  kenarKopyalariniTemizle,
+  KENAR_SAKLAMA_MS,
   YEDEK_MAX_BAYT,
 };

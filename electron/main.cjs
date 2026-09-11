@@ -13,6 +13,8 @@ const config = require("./config.cjs");
 const server = require("./server.cjs");
 const istemci = require("./istemci.cjs");
 const { markaOku } = require("./marka.cjs");
+const { ciktiArtiklariTemizle } = require("./geciciCikti.cjs");
+const { kenarKopyalariniTemizle } = require("./ipc/yedekCekirdek.cjs");
 
 // ── Otomatik güncelleme (yalnızca paketlenmiş uygulamada) ──
 let autoUpdater = null;
@@ -94,6 +96,8 @@ if (!app.requestSingleInstanceLock()) {
     session.defaultSession.setPermissionRequestHandler((_wc, perm, cb) => cb(perm === PANO_YAZMA));
     session.defaultSession.setPermissionCheckHandler((_wc, perm) => perm === PANO_YAZMA);
     geciciArtiklariTemizle(); // inceleme #8: kaba kapanıştan kalan düz (şifresiz) geçici kopyalar
+    ciktiArtiklariTemizle(); // 2. inceleme #2: 24 saatten eski geçici makbuz/yoklama PDF'leri
+    kenarKopyalariniTemizle(app.getPath("userData")); // 2. inceleme #5: 30 günden eski .pre-restore kopyaları
     try {
       db.init();
     } catch (e) {
