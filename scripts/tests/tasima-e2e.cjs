@@ -111,6 +111,9 @@ app.on("browser-window-created", async (_e, win) => {
       await ilkParola("eski-pc-parola-1");
       // Eski PC'nin verisi (arayüz dışı, hızlı): grup, iki oyuncu, makbuz, belge dosyası
       const g = db.createAgeGroup({ ad: "U11", sezon: "2026-2027" });
+      // plan §37: sezon tarihleri ve bitişli antrenman da pakete girer
+      db.sezonTarihKaydet("2026-2027", "2026-09-01", "2027-06-30");
+      db.createTraining({ age_group_id: g.id, tarih: "2026-09-10", saat: "17:00", bitis_saat: "18:30", saha: "Saha 1" });
       const o1 = db.createPlayer({
         ad_soyad: "Taşınan Oyuncu",
         dogum_tarihi: "2015-03-03",
@@ -228,6 +231,12 @@ app.on("browser-window-created", async (_e, win) => {
         "sayılar yeniden açılışta da aynı",
         db.listPlayers({ durum: null }).length === b.oyuncu &&
           db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts").get().n === b.makbuz,
+      );
+      check(
+        "sezon tarihleri ve antrenman bitişi taşındı (plan §37)",
+        db.sezonTarihleri("2026-2027").kayitli === true &&
+          db.sezonTarihleri("2026-2027").bitis === "2027-06-30" &&
+          db.listTrainings("2026-09-10", "2026-09-10").some((t) => t.saat === "17:00" && t.bitis_saat === "18:30"),
       );
       check(
         "yeni PC kendi makine kimliğini üretti (deneme lisansı)",
