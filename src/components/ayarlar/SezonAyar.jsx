@@ -4,17 +4,8 @@ import { Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "..
 import { db, bugun } from "../../lib/api.js";
 import { useSezonDurumu } from "../../lib/useSezonDurumu.js";
 import { paraTR, tarihTR, AY_ADLARI } from "../../lib/aidat.js";
-import {
-  guncelSezon,
-  sonrakiSezon,
-  sezonGecerliMi,
-  sezonSonuMu,
-  ustGrupOner,
-  sezonTarihDogrula,
-  sezonKalanGun,
-  kisaAralik,
-} from "../../lib/sezon.js";
-import { AltBaslik } from "../ui.jsx";
+import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupOner, sezonTarihDogrula } from "../../lib/sezon.js";
+import { SezonTarihleriKarti } from "./SezonTarihleriKarti.jsx";
 import { araEslesir } from "../../lib/metin.js";
 import { Ikon } from "../Ikon.jsx";
 
@@ -129,58 +120,7 @@ export function SezonAyar({ admin, saltOkunur }) {
         <b>silinmez</b>, "Pasif" olur: aidat borcu açılmaz, listelerde görünmez; makbuz, yoklama ve belgeleri kalır. Geri dönerse kartından
         durumu Aktif yapmak yeter.
       </p>
-      <div
-        style={{
-          border: "1px solid var(--cizgi)",
-          borderRadius: 12,
-          padding: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-          background: "#FAF8FD",
-        }}
-      >
-        <AltBaslik>Sezon tarihleri</AltBaslik>
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <Alan etiket="Başlangıç" style={{ width: 170 }}>
-            <Girdi
-              type="date"
-              value={tarih.baslangic}
-              onChange={(e) => setTarih({ ...tarih, baslangic: e.target.value })}
-              aria-label="Sezon başlangıcı"
-              disabled={saltOkunur}
-            />
-          </Alan>
-          <Alan etiket="Bitiş" style={{ width: 170 }}>
-            <Girdi
-              type="date"
-              value={tarih.bitis}
-              onChange={(e) => setTarih({ ...tarih, bitis: e.target.value })}
-              aria-label="Sezon bitişi"
-              disabled={saltOkunur}
-            />
-          </Alan>
-          {!saltOkunur && (
-            <Btn
-              onClick={tarihKaydet}
-              disabled={!durum.aktifSezon || (tarih.baslangic === durum.tarihler?.baslangic && tarih.bitis === durum.tarihler?.bitis)}
-            >
-              Tarihleri Kaydet
-            </Btn>
-          )}
-          {durum.tarihler && (
-            <Rozet ton="purple">
-              {Math.max(0, sezonKalanGun(durum.tarihler.bitis, iso))} gün kaldı ·{" "}
-              {kisaAralik(durum.tarihler.baslangic, durum.tarihler.bitis)}
-              {durum.tarihler.kayitli ? "" : " (varsayılan)"}
-            </Rozet>
-          )}
-        </div>
-        <div style={{ fontSize: 13, color: "var(--soluk)", lineHeight: 1.5 }}>
-          Aidat sezon boyunca <b>12 ay</b> açılır; bu tarihler raporlar, "Sezon Sonuna Kadar" uzun dönem seçimi ve sezon sonu hatırlatması
-          içindir. Bitişe 30 gün kala Pano'da hatırlatma çıkar.
-        </div>
-      </div>
+      <SezonTarihleriKarti durum={durum} tarih={tarih} onTarih={setTarih} onKaydet={tarihKaydet} saltOkunur={saltOkunur} iso={iso} />
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <Alan etiket="Aktif sezon" style={{ width: 160 }}>
           <Girdi

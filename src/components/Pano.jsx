@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene, Bos, UyariSeridi } from "./ui.jsx";
+import { Kart, Btn, Girdi, Avatar, Rozet, useToast, useDene, UyariSeridi } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
 import { sezonSonuMu, guncelSezon, sezonKalanGun, kisaAralik } from "../lib/sezon.js";
-import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../lib/belge.js";
+import { uyariSirala } from "../lib/belge.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
-import { aidatDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
-
-const SAGLIK_KISA = 8; // panoda en acil 8 uyarı; "Tümü (n)" Oyuncular > "Sağlık raporu olmayanlar" filtresini açar (borçlular gibi)
+import { SaglikUyarilari } from "./pano/SaglikUyarilari.jsx";
+import { BugunkuAntrenmanlar } from "./pano/BugunkuAntrenmanlar.jsx";
+import { BorcluListesi } from "./pano/BorcluListesi.jsx";
+import { aidatDegerleri } from "../lib/whatsapp.js";
 
 function Stat({ etiket, deger, renk, not }) {
   return (
@@ -142,58 +143,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
           }
         />
       </div>
-      {saglik && saglik.uyarilar.length > 0 && (
-        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ fontSize: 22 }}>
-              Sağlık Raporu Uyarıları{" "}
-              <span style={{ color: "var(--soluk)", fontSize: 15, fontWeight: 500 }}>({saglik.uyarilar.length})</span>
-            </h3>
-            <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
-              <span style={{ color: "var(--soluk)", fontSize: 13 }}>
-                Süresi dolan, 30 gün içinde dolacak ya da hiç yüklenmemiş · en acil önce
-              </span>
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSekme("oyuncular", "saglik");
-                }}
-                style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}
-              >
-                Tümü ({saglik.uyarilar.length})
-              </a>
-            </div>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Oyuncu</th>
-                <th>Grup</th>
-                <th>Geçerlilik</th>
-                <th>Durum</th>
-              </tr>
-            </thead>
-            <tbody>
-              {saglik.uyarilar.slice(0, SAGLIK_KISA).map((u) => {
-                const d = u.durum === "yok" ? { durum: "yok", kalanGun: null } : belgeGecerlilik(u.gecerlilik, iso);
-                return (
-                  <tr key={u.player_id} onClick={() => onOyuncu(u.player_id)} style={{ cursor: "pointer" }}>
-                    <td style={{ fontWeight: 600 }}>{u.ad_soyad}</td>
-                    <td>{u.yas_grubu_ad || "—"}</td>
-                    <td>{u.gecerlilik ? tarihTR(u.gecerlilik) : "—"}</td>
-                    <td>
-                      <Rozet ton={u.durum === "dolacak" ? "yellow" : "red"}>
-                        {u.durum === "yok" ? "Rapor yok" : u.durum === "tarihsiz" ? "Rapor tarihsiz" : belgeEtiketi(d)}
-                      </Rozet>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </Kart>
-      )}
+      {saglik && saglik.uyarilar.length > 0 && <SaglikUyarilari saglik={saglik} iso={iso} onOyuncu={onOyuncu} onSekme={onSekme} />}
       {bitisYakin && (
         <UyariSeridi
           eylem={
@@ -293,172 +243,18 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         )}
       </Kart>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ fontSize: 22 }}>Bugünkü Antrenmanlar</h3>
-            <a
-              href="#"
-              onClick={(e) => {
-                e.preventDefault();
-                onSekme("yoklama");
-              }}
-              style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}
-            >
-              Yoklama
-            </a>
-          </div>
-          {(ozet?.antrenmanlar || []).length === 0 ? (
-            <Bos kucuk metin="Bugün antrenman yok." />
-          ) : (
-            ozet.antrenmanlar.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 16,
-                  padding: "12px 14px",
-                  borderRadius: 10,
-                  border: "1px solid var(--cizgi)",
-                  opacity: t.iptal ? 0.6 : 1,
-                }}
-              >
-                <span className="baslik" style={{ fontSize: 22, color: "var(--mor)", width: 64 }}>
-                  {t.saat || "—"}
-                </span>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontWeight: 700 }}>
-                    {t.yas_grubu_ad}
-                    {t.saha ? ` · ${t.saha}` : ""}
-                  </div>
-                  <div style={{ fontSize: 13, color: "var(--soluk)" }}>
-                    {t.oyuncu} oyuncu{t.isaretli ? ` · ${t.geldi} geldi` : ""}
-                  </div>
-                </div>
-                {t.iptal ? (
-                  <Rozet ton="red">İptal</Rozet>
-                ) : t.isaretli >= t.oyuncu && t.oyuncu > 0 ? (
-                  <Rozet ton="green">Yoklama alındı</Rozet>
-                ) : t.isaretli > 0 ? (
-                  <Rozet ton="yellow">Devam ediyor</Rozet>
-                ) : (
-                  <Rozet ton="yellow">Yoklama bekliyor</Rozet>
-                )}
-              </div>
-            ))
-          )}
-        </Kart>
-        <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h3 style={{ fontSize: 22 }}>{AY_ADLARI[ay - 1]} Aidatı Ödemeyenler</h3>
-            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-              {borclular.length > 0 && (
-                <Btn
-                  kucuk
-                  tur="yesil"
-                  ikon={<Ikon ad="whatsapp" boyut={16} />}
-                  onClick={() =>
-                    setWa({
-                      baslik: "Borçlulara WhatsApp ile Hatırlat",
-                      altBaslik: `${AY_ADLARI[ay - 1]} ${yil} · ${borclular.length} borçlu`,
-                      alicilar: borclular.map(waAlici),
-                    })
-                  }
-                >
-                  Borçlulara Hatırlat
-                </Btn>
-              )}
-              <a
-                href="#"
-                onClick={(e) => {
-                  e.preventDefault();
-                  onSekme("oyuncular", "borclu");
-                }}
-                style={{ fontSize: 14, fontWeight: 600, textDecoration: "none" }}
-              >
-                Tümü ({borclular.length})
-              </a>
-            </div>
-          </div>
-          {borclular.length === 0 ? (
-            <Bos kucuk metin="Borçlu oyuncu yok." />
-          ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>Oyuncu</th>
-                  <th>Grup</th>
-                  <th>Veli telefonu</th>
-                  <th>Ödeme dönemi</th>
-                  <th>Gecikme</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {borclular.slice(0, 8).map((b) => {
-                  const g = gecikmeGunu(b.odeme_donemi, b.yil, b.ay, new Date());
-                  return (
-                    <tr key={b.id} onClick={() => onOyuncu(b.player_id)} style={{ cursor: "pointer" }}>
-                      <td style={{ fontWeight: 600 }}>{b.ad_soyad}</td>
-                      <td>{b.yas_grubu_ad || "—"}</td>
-                      <td>
-                        <Telefon no={b.veli_tel} etiket={b.veli_ad} />
-                      </td>
-                      <td>{b.odeme_donemi}</td>
-                      <td style={{ color: g > 0 ? "var(--kirmizi)" : "var(--soluk)" }}>
-                        {g > 0 ? `${g} gün` : "—"}
-                        {b.durum === "kismi" && <span style={{ display: "block", fontSize: 12 }}>kalan {paraTR(b.kalan)}</span>}
-                        {b.hatirlatma > 0 && (
-                          <span style={{ display: "block", fontSize: 12, color: "var(--soluk)" }}>
-                            hatırlatıldı {tarihTR(String(b.son_hatirlatma).slice(0, 10))}
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-                          {(() => {
-                            const u = hatirlatmaUygunMu({ numara: b.veli_wa || b.veli_tel, onay: b.veli_onay });
-                            return (
-                              <Btn
-                                kucuk
-                                tur="ghost"
-                                ikon={<Ikon ad="whatsapp" boyut={16} />}
-                                disabled={!u.ok}
-                                title={u.ok ? "WhatsApp ile aidat hatırlat" : u.neden}
-                                aria-label={`${b.ad_soyad} WhatsApp`}
-                                style={{ color: u.ok ? "var(--yesil)" : undefined, padding: "0 8px" }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setWa({
-                                    baslik: "WhatsApp ile Aidat Hatırlat",
-                                    altBaslik: `${AY_ADLARI[ay - 1]} ${yil}`,
-                                    alicilar: [waAlici(b)],
-                                  });
-                                }}
-                              />
-                            );
-                          })()}
-                          {!saltOkunur && (
-                            <Btn
-                              kucuk
-                              tur="sari"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onMakbuzKes(b.player_id);
-                              }}
-                            >
-                              Makbuz
-                            </Btn>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </Kart>
+        <BugunkuAntrenmanlar antrenmanlar={ozet?.antrenmanlar || []} onSekme={onSekme} />
+        <BorcluListesi
+          borclular={borclular}
+          yil={yil}
+          ay={ay}
+          saltOkunur={saltOkunur}
+          onOyuncu={onOyuncu}
+          onSekme={onSekme}
+          onMakbuzKes={onMakbuzKes}
+          onWa={setWa}
+          waAlici={waAlici}
+        />
       </div>
       {wa && (
         <WhatsAppHatirlat
