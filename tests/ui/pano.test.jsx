@@ -156,3 +156,107 @@ describe("Pano — tesise giriş kontrolü", () => {
     expect(await screen.findByText("Ayşe Yıldız 05321112233 kopyalandı")).toBeInTheDocument();
   });
 });
+
+// Karakterizasyon (refactor 2. tur §9, 11.09.2026): Pano'nun antrenman kartı rozetleri, WhatsApp hatırlatma düğmeleri ve bağlantılar.
+describe("Pano — bugünkü antrenmanlar ve borçlu eylemleri (karakterizasyon)", () => {
+  const borclular = [
+    {
+      id: 5,
+      player_id: 2,
+      ad_soyad: "Kaan Yıldız",
+      yas_grubu_ad: "U11",
+      odeme_donemi: "1-10",
+      yil: 2026,
+      ay: 9,
+      tutar: 3500,
+      veli_tel: "05321112233",
+      veli_ad: "Ayşe Yıldız",
+      veli_id: 7,
+      veli_onay: 1,
+    },
+    {
+      id: 6,
+      player_id: 3,
+      ad_soyad: "Deniz Koç",
+      yas_grubu_ad: "U10",
+      odeme_donemi: "1-10",
+      yil: 2026,
+      ay: 9,
+      tutar: 3500,
+      veli_tel: "05329998877",
+      veli_ad: "Can Koç",
+      veli_id: 8,
+      veli_onay: 0,
+    },
+  ];
+  const antrenmanlar = [
+    { id: 1, saat: "17:00", saha: "Saha 1", yas_grubu_ad: "U11", oyuncu: 10, isaretli: 10, geldi: 9, iptal: 0 },
+    { id: 2, saat: "18:00", saha: "", yas_grubu_ad: "U12", oyuncu: 8, isaretli: 3, geldi: 3, iptal: 0 },
+    { id: 3, saat: "19:00", saha: "Saha 2", yas_grubu_ad: "U13", oyuncu: 6, isaretli: 0, geldi: 0, iptal: 0 },
+    { id: 4, saat: "", saha: "", yas_grubu_ad: "U14", oyuncu: 5, isaretli: 0, geldi: 0, iptal: 1 },
+  ];
+  const kur = (saltOkunur = false) => {
+    const onSekme = vi.fn();
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "panoOzet") return { aktif: 3, grup: 2, odeyen: 1, borclu: 2, antrenmanlar, bugunTahsilat: 0 };
+        if (fn === "listUnpaid") return borclular;
+        if (fn === "getSetting") return "";
+        return [];
+      }),
+    };
+    render(
+      <ToastSaglayici>
+        <Pano onOyuncu={() => {}} onSekme={onSekme} onMakbuzKes={() => {}} saltOkunur={saltOkunur} />
+      </ToastSaglayici>,
+    );
+    return onSekme;
+  };
+
+  it("antrenman kartları: saat/saha/oyuncu metni ve durum rozeti (alındı / devam / bekliyor / iptal); 'Yoklama' bağlantısı sekmeye gider", async () => {
+    const onSekme = kur();
+    await screen.findByText("U11 · Saha 1");
+    expect(screen.getByText("10 oyuncu · 9 geldi")).toBeInTheDocument();
+    expect(screen.getByText("Yoklama alındı")).toBeInTheDocument();
+    expect(screen.getByText("Devam ediyor")).toBeInTheDocument();
+    expect(screen.getByText("Yoklama bekliyor")).toBeInTheDocument();
+    expect(screen.getByText("İptal")).toBeInTheDocument();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1); // saatsiz antrenman
+    fireEvent.click(screen.getByRole("link", { name: "Yoklama" }));
+    expect(onSekme).toHaveBeenCalledWith("yoklama");
+  });
+
+  it("borçlular: 'Tümü (n)' Oyuncular'ı borçlu filtresiyle açar; 'Borçlulara Hatırlat' toplu WhatsApp penceresini açar", async () => {
+    const onSekme = kur();
+    await screen.findByText("Kaan Yıldız");
+    fireEvent.click(screen.getByRole("link", { name: "Tümü (2)" }));
+    expect(onSekme).toHaveBeenCalledWith("oyuncular", "borclu");
+    fireEvent.click(screen.getByRole("button", { name: "Borçlulara Hatırlat" }));
+    const dlg = await screen.findByRole("dialog");
+    expect(dlg).toHaveTextContent("Borçlulara WhatsApp ile Hatırlat");
+    expect(dlg).toHaveTextContent("2 borçlu");
+  });
+
+  it("satır WhatsApp düğmesi: onaylı veli açık, onaysız veli kapalı ve nedeni başlıkta; tıklayınca tek alıcılı pencere", async () => {
+    kur();
+    await screen.findByText("Kaan Yıldız");
+    const acik = screen.getByRole("button", { name: "Kaan Yıldız WhatsApp" });
+    const kapali = screen.getByRole("button", { name: "Deniz Koç WhatsApp" });
+    expect(acik).toBeEnabled();
+    expect(kapali).toBeDisabled();
+    expect(kapali).toHaveAttribute("title", "Mesaj onayı yok");
+    fireEvent.click(acik);
+    const dlg = await screen.findByRole("dialog");
+    expect(dlg).toHaveTextContent("WhatsApp ile Aidat Hatırlat");
+    expect(dlg).toHaveTextContent("Ayşe Yıldız");
+    expect(dlg).not.toHaveTextContent("Can Koç");
+  });
+
+  it("salt okunur: satırda Makbuz düğmesi yok ama WhatsApp düğmesi ve Hatırlat duruyor", async () => {
+    kur(true);
+    await screen.findByText("Kaan Yıldız");
+    expect(screen.queryByRole("button", { name: "Makbuz" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Kaan Yıldız WhatsApp" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Borçlulara Hatırlat" })).toBeInTheDocument();
+  });
+});
