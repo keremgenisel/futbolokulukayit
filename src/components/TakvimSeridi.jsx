@@ -6,7 +6,7 @@ import { gunSeridi, gunKaydir, varsayilanBaslangic, gunNoktalari, sezonDisiMi } 
 export const SERIT_GUN = 14;
 const NOKTA_RENK = { gri: "#C9C2D6", mor: "var(--mor)", yesil: "var(--yesil)", kirmizi: "var(--kirmizi)" };
 // Seçili (mor zeminli) hücrede mor nokta kaybolur; orada beyaz tonları kullanılır.
-const NOKTA_RENK_SECILI = { gri: "rgba(255,255,255,.45)", mor: "#fff", yesil: "var(--yesil)", kirmizi: "var(--kirmizi)" };
+const NOKTA_RENK_SECILI = { gri: "rgba(255,255,255,.45)", mor: "var(--ana-ustu)", yesil: "var(--yesil)", kirmizi: "var(--kirmizi)" };
 const NOKTA_AD = { gri: "yoklama alınmadı", mor: "kısmen alındı", yesil: "tamamlandı", kirmizi: "iptal" };
 
 /**
@@ -112,7 +112,7 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
                 cursor: "pointer",
                 background: on ? "var(--mor)" : "#fff",
                 border: `1px solid ${on ? "var(--mor)" : "var(--cizgi)"}`,
-                color: on ? "#fff" : h.haftaSonu ? "var(--soluk)" : "var(--mor-koyu)",
+                color: on ? "var(--ana-ustu)" : h.haftaSonu ? "var(--soluk)" : "var(--mor-koyu)",
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",

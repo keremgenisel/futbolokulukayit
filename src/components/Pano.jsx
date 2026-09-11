@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene, Bos } from "./ui.jsx";
+import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene, Bos, UyariSeridi } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
@@ -195,56 +195,34 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         </Kart>
       )}
       {bitisYakin && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--uyari-acik)",
-            border: "1.5px solid var(--uyari)",
-            borderRadius: 10,
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
+        <UyariSeridi
+          eylem={
+            onSezon && (
+              <Btn tur="ghost" onClick={onSezon} ikon={<Ikon ad="takvim" />}>
+                Sezon Ayarları
+              </Btn>
+            )
+          }
         >
-          <div style={{ flex: 1 }}>
-            <b>
-              {sezon.aktifSezon} sezonu {kalanGun === 0 ? "bugün bitiyor" : `${kalanGun} gün sonra bitiyor`} ({tarihTR(tarihler.bitis)}).
-            </b>{" "}
-            Yeni sezon tarihlerini ve yenileyen oyuncuları Ayarlar &gt; Sezon'dan hazırlayabilirsiniz.
-          </div>
-          {onSezon && (
-            <Btn tur="ghost" onClick={onSezon} ikon={<Ikon ad="takvim" />}>
-              Sezon Ayarları
-            </Btn>
-          )}
-        </div>
+          <b>
+            {sezon.aktifSezon} sezonu {kalanGun === 0 ? "bugün bitiyor" : `${kalanGun} gün sonra bitiyor`} ({tarihTR(tarihler.bitis)}).
+          </b>{" "}
+          Yeni sezon tarihlerini ve yenileyen oyuncuları Ayarlar &gt; Sezon'dan hazırlayabilirsiniz.
+        </UyariSeridi>
       )}
       {sezonUyari && (
-        <div
-          role="alert"
-          style={{
-            background: "var(--uyari-acik)",
-            border: "1.5px solid var(--uyari)",
-            borderRadius: 10,
-            padding: "12px 16px",
-            display: "flex",
-            alignItems: "center",
-            gap: 12,
-            flexWrap: "wrap",
-          }}
+        <UyariSeridi
+          eylem={
+            onSezon && (
+              <Btn onClick={onSezon} ikon={<Ikon ad="takvim" />}>
+                Yeni Sezona Geç
+              </Btn>
+            )
+          }
         >
-          <div style={{ flex: 1 }}>
-            <b>{sezon.aktifSezon} sezonu bitti.</b> {guncelSezon(iso, sezon.baslangicAyi)} sezonu başladı; yenileyen oyuncuları işaretleyip
-            yenilemeyenleri pasife almak için yeni sezona geçin.
-          </div>
-          {onSezon && (
-            <Btn onClick={onSezon} ikon={<Ikon ad="takvim" />}>
-              Yeni Sezona Geç
-            </Btn>
-          )}
-        </div>
+          <b>{sezon.aktifSezon} sezonu bitti.</b> {guncelSezon(iso, sezon.baslangicAyi)} sezonu başladı; yenileyen oyuncuları işaretleyip
+          yenilemeyenleri pasife almak için yeni sezona geçin.
+        </UyariSeridi>
       )}
       <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

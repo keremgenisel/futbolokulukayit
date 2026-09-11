@@ -129,12 +129,12 @@ export function WhatsAppHatirlat({ baslik, altBaslik, tur, alicilar, kayit = {},
             justifyContent: "space-between",
             padding: "18px 24px",
             background: "var(--mor)",
-            color: "#fff",
+            color: "var(--ana-ustu)",
             gap: 16,
           }}
         >
           <div style={{ display: "flex", alignItems: "baseline", gap: 16, flexWrap: "wrap" }}>
-            <span className="baslik" style={{ color: "#fff", fontSize: 26, fontWeight: 700 }}>
+            <span className="baslik" style={{ color: "var(--ana-ustu)", fontSize: 26, fontWeight: 700 }}>
               {baslik}
             </span>
             {altBaslik && <span style={{ color: "var(--ana-ustu-soluk, #d8cce9)", fontSize: 14 }}>{altBaslik}</span>}

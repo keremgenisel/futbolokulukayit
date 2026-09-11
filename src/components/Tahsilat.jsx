@@ -526,7 +526,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                       fontSize: 14,
                       border: `1px solid ${yontem === y.kod ? "var(--mor)" : "var(--cizgi)"}`,
                       background: yontem === y.kod ? "var(--mor)" : "#fff",
-                      color: yontem === y.kod ? "#fff" : "var(--metin)",
+                      color: yontem === y.kod ? "var(--ana-ustu)" : "var(--metin)",
                     }}
                   >
                     {y.ad}
@@ -549,7 +549,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
               style={{
                 background: "var(--mor-koyu)",
                 borderRadius: 12,
-                color: "#fff",
+                color: "var(--ana-ustu)",
                 padding: 22,
                 display: "flex",
                 flexDirection: "column",
@@ -585,7 +585,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
                 })}
               <div style={{ height: 1, background: "rgba(255,255,255,.2)", margin: "6px 0" }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                <span className="baslik" style={{ color: "#fff", fontSize: 22 }}>
+                <span className="baslik" style={{ color: "var(--ana-ustu)", fontSize: 22 }}>
                   TOPLAM
                 </span>
                 <span className="baslik" style={{ fontSize: 40, color: "var(--sari)" }}>

@@ -205,7 +205,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
                 padding: "4px 10px",
                 borderRadius: 999,
                 background: i === adim ? "var(--mor)" : i < adim ? "var(--mor-acik)" : "var(--zemin)",
-                color: i === adim ? "#fff" : "var(--mor-koyu)",
+                color: i === adim ? "var(--ana-ustu)" : "var(--mor-koyu)",
               }}
             >
               {i + 1}. {a}
@@ -364,7 +364,7 @@ export function IlkKurulum({ oturum, onBitti, onAktar, onMarkaDegisti }) {
                     fontWeight: 700,
                     border: `1.5px solid ${gruplar.has(ad) ? "var(--mor)" : "var(--cizgi)"}`,
                     background: gruplar.has(ad) ? "var(--mor)" : "#fff",
-                    color: gruplar.has(ad) ? "#fff" : "var(--mor-koyu)",
+                    color: gruplar.has(ad) ? "var(--ana-ustu)" : "var(--mor-koyu)",
                   }}
                 >
                   {ad}

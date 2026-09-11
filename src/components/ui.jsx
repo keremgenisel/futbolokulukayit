@@ -323,6 +323,39 @@ export function Avatar({ ad, boyut = 36, foto }) {
 }
 
 /** Boş durum (plan §36.1-13): ortalı soluk metin; `kucuk` satır içi/küçük alanlar için, `eylem` isteğe bağlı düğme. */
+/**
+ * Uyarı şeridi (refactor 2. tur §8.4): sayfa içi kalıcı uyarılar için TEK kalıp — deneme/lisans/salt okunur (App), şifresiz DB,
+ * sezon bitti / bitişe az kaldı (Pano). `ton`: "uyari" (sarı, temayla değişmez) | "kirmizi". `baslik` kalın ilk satır, `eylem` sağda düğme.
+ * `yogun`: daha dar (10px dikey, 13.5px yazı) — App'teki lisans şeritleri. Erişilebilirlik: varsayılan role="alert".
+ */
+export function UyariSeridi({ ton = "uyari", baslik, eylem = null, yogun = false, children, style, ...rest }) {
+  const kirmizi = ton === "kirmizi";
+  return (
+    <div
+      role="alert"
+      {...rest}
+      style={{
+        background: kirmizi ? "var(--kirmizi-acik)" : "var(--uyari-acik)",
+        border: `1.5px solid ${kirmizi ? "var(--kirmizi)" : "var(--uyari)"}`,
+        borderRadius: 10,
+        padding: yogun ? "10px 16px" : "12px 16px",
+        fontSize: yogun ? 13.5 : undefined,
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        flexWrap: "wrap",
+        ...style,
+      }}
+    >
+      <div style={{ flex: 1 }}>
+        {baslik && <div style={{ fontWeight: 700, color: kirmizi ? "var(--kirmizi)" : undefined }}>{baslik}</div>}
+        {children && <div style={baslik ? { fontSize: 13, marginTop: 2 } : undefined}>{children}</div>}
+      </div>
+      {eylem}
+    </div>
+  );
+}
+
 export function Bos({ metin, kucuk = false, eylem = null }) {
   return (
     <div style={{ padding: kucuk ? "8px 0" : 32, textAlign: kucuk ? "left" : "center", color: "var(--soluk)", fontSize: kucuk ? 13 : 15 }}>

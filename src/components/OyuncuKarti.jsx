@@ -193,10 +193,12 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     });
   const sonMesaj = mesajlar[0] || null;
   const ust = (
-    <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "20px 26px", background: "var(--mor)", color: "#fff" }}>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: 20, padding: "20px 26px", background: "var(--mor)", color: "var(--ana-ustu)" }}
+    >
       <Avatar ad={o.ad_soyad} boyut={72} foto={foto} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div className="baslik" style={{ color: "#fff", fontSize: 30, fontWeight: 700, lineHeight: 1 }}>
+        <div className="baslik" style={{ color: "var(--ana-ustu)", fontSize: 30, fontWeight: 700, lineHeight: 1 }}>
           {o.ad_soyad}
         </div>
         <div style={{ color: "var(--ana-ustu-soluk, #d8cce9)", fontSize: 14, marginTop: 6 }}>
@@ -220,7 +222,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           value={o.durum}
           disabled={saltOkunur}
           onChange={(e) => durumDegistir(e.target.value)}
-          style={{ background: "transparent", color: "#fff", border: 0, fontWeight: 700, fontSize: 14 }}
+          style={{ background: "transparent", color: "var(--ana-ustu)", border: 0, fontWeight: 700, fontSize: 14 }}
         >
           {DURUMLAR.map((d) => (
             <option key={d.kod} value={d.kod} style={{ color: "var(--metin)" }}>

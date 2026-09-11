@@ -188,6 +188,14 @@ Pano'da iki özdeş `role="alert"` bloğu (sezon bitti / bitişe ≤30 gün), `S
 aynı görsel dili elle kuruyor. Öneri: `ui.jsx`'e `UyariSeridi({ ton, eylem, children })`; `#fff`/sabit hex temizliği bu adımda
 (62 `#fff` → `var(--ana-ustu)` yalnız marka zemini üstündekiler; modal/kart zeminindeki `#fff` kalır).
 
+**Sonuç (11.09.2026):** `ui.jsx UyariSeridi({ ton, baslik, eylem, yogun, children })`; Pano (2), App (salt okunur / deneme / lisans
+bitiyor — `yogun` kip pikselleri korur), SifresizUyari geçirildi; GuncellemeSeridi kendi düzeninde kaldı (sarı marka zemini, ilerleme). `#fff`
+→ `var(--ana-ustu)`: TakvimSeridi seçili gün, Tahsilat ödeme yöntemi/toplam paneli, WhatsAppHatirlat başlık, IlkKurulum adım pili/grup
+pili, OyuncuKarti başlığı (13 yer). Kalanlar bilinçli: toast/yeşil düğme/kırmızı zemin (anlam renkleri sabit), kart/modal zemini.
+Duman karşılaştırması: kaydırmasız 8 sayfa birebir aynı; kaydırmalı sayfalarda tek fark macOS'un beliren kaydırma çubuğu (öncesi
+görüntüde çubuk görünür, metin bir kelime erken kırılır) — kod kaynaklı fark yok. NOT: piksel karşılaştırması için duman betiğinde
+çubuğu gizlemek (`::-webkit-scrollbar{display:none}`) ileride eklenebilir.
+
 ### 8.5 `sema.cjs migrate()` (166 satır, 9 blok) → sürüm başına fonksiyon
 `GOCLER = { 12: (db) => …, 13: …, 19: … }` haritası; `migrate()` sıralı uygular, `schema_version` yazar. Davranış aynı (idempotent
 PRAGMA kontrolleri korunur). Güvenlik ağı: db-roundtrip 7/11/15/16 → 19 yeniden göç kontrolleri, kalıcılık "şema 19".

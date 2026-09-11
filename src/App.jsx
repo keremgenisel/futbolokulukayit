@@ -8,7 +8,7 @@ import { Tahsilat } from "./components/Tahsilat.jsx";
 import { Yoklama } from "./components/Yoklama.jsx";
 import { Raporlar } from "./components/Raporlar.jsx";
 import { Ayarlar } from "./components/Ayarlar.jsx";
-import { ToastSaglayici } from "./components/ui.jsx";
+import { ToastSaglayici, UyariSeridi } from "./components/ui.jsx";
 import { KenarMenu } from "./components/KenarMenu.jsx";
 import { SifresizUyari } from "./components/SifresizUyari.jsx";
 import { GuncellemeSeridi } from "./components/GuncellemeSeridi.jsx";
@@ -192,52 +192,24 @@ export function App() {
           <section style={{ padding: 24, flex: 1, overflow: "auto" }}>
             <SifresizUyari oturum={oturum} />
             {saltOkunur && (
-              <div
-                role="alert"
-                style={{
-                  background: "var(--kirmizi-acik)",
-                  border: "1.5px solid var(--kirmizi)",
-                  borderRadius: 10,
-                  padding: "12px 16px",
-                  marginBottom: 20,
-                }}
+              <UyariSeridi
+                ton="kirmizi"
+                style={{ marginBottom: 20 }}
+                baslik={lisans.neden === "denemeBitti" ? "Deneme süresi doldu — salt okunur mod" : "Lisans geçerli değil — salt okunur mod"}
               >
-                <div style={{ fontWeight: 700, color: "var(--kirmizi)" }}>
-                  {lisans.neden === "denemeBitti" ? "Deneme süresi doldu — salt okunur mod" : "Lisans geçerli değil — salt okunur mod"}
-                </div>
-                <div style={{ fontSize: 13, marginTop: 2 }}>
-                  Verileriniz güvende; görüntüleme ve dışa aktarma açık, değişiklik kapalı. Ayarlar &gt; Lisans'tan anahtar girince kilit
-                  kalkar.
-                </div>
-              </div>
+                Verileriniz güvende; görüntüleme ve dışa aktarma açık, değişiklik kapalı. Ayarlar &gt; Lisans'tan anahtar girince kilit
+                kalkar.
+              </UyariSeridi>
             )}
             {!saltOkunur && lisans?.mod === "deneme" && (
-              <div
-                style={{
-                  background: "var(--uyari-acik)",
-                  border: "1.5px solid var(--uyari)",
-                  borderRadius: 10,
-                  padding: "10px 16px",
-                  marginBottom: 20,
-                  fontSize: 13.5,
-                }}
-              >
+              <UyariSeridi yogun role="status" style={{ marginBottom: 20 }}>
                 <b>Deneme sürümü</b> — {lisans.kalanGun} gün kaldı. Lisans anahtarınızı Ayarlar &gt; Lisans'tan girebilirsiniz.
-              </div>
+              </UyariSeridi>
             )}
             {!saltOkunur && lisans?.mod === "lisansli" && lisans.kalanGun != null && lisans.kalanGun <= 30 && (
-              <div
-                style={{
-                  background: "var(--uyari-acik)",
-                  border: "1.5px solid var(--uyari)",
-                  borderRadius: 10,
-                  padding: "10px 16px",
-                  marginBottom: 20,
-                  fontSize: 13.5,
-                }}
-              >
+              <UyariSeridi yogun role="status" style={{ marginBottom: 20 }}>
                 Lisansınızın bitmesine <b>{lisans.kalanGun} gün</b> kaldı ({tarihTR(lisans.bitis)}). Yenileme anahtarınızı hazırlayın.
-              </div>
+              </UyariSeridi>
             )}
             {tab === "pano" && (
               <Pano
