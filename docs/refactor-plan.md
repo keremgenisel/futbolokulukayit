@@ -128,3 +128,102 @@ Eksik güvenlik ağı (refactor'dan önce kapatıldı/kapatılacak):
 
 En büyük kalan dosyalar: `Tahsilat.jsx` 622, `Yoklama.jsx` 588, `ui.jsx` 466, `Pano.jsx` 466, `ipc/yedek.cjs` 455 satır (biçimlendirilmiş
 hâlleriyle; hepsi tek sorumlulukta, bölme gerekmedi).
+
+---
+
+# Refactor Hazırlığı — 2. tur (11.09.2026, sürüm 1.1.0 + 13 commit, HEAD aee65ec)
+
+> Kerem: "uygulamayı refactor'e hazırla". Bu bölüm 1. turdan (08.09.2026) sonra eklenen özelliklerin (§13 WhatsApp, §14 taşıma,
+> §15–§22 sezon, §24 uzun dönem, §25 sağlık, §31 KVKK, §32 kulüp kimliği, §36 tasarım tutarlılığı, §37 sezon/antrenman saatleri)
+> ardından yeni taban çizgisi, sıcak noktalar, güvenlik ağı ve önerilen adımları kaydeder. Kodda DEĞİŞİKLİK YAPILMADI; §1'deki
+> kurallar aynen geçerli. Refactor öncesi duman ekran görüntüleri (33 adet) alındı: oturum scratchpad `refactor-oncesi/`
+> (kalıcı değil; refactor günü `npx electron scripts/tests/smoke-ui.cjs <dizin>` ile yeniden alınır ve `sonrasi/` ile `cmp` edilir).
+
+## 7. Taban çizgisi (11.09.2026)
+
+| Ölçü | 1. tur sonrası (08.09) | Şimdi (11.09) |
+|------|------------------------|---------------|
+| Kaynak satırı (src + electron) | 15.069 | 18.026 (src/components 9.468 · src/lib 1.777 · electron 5.790 · App/main/preload vb.) |
+| Test kodu | — | 14.812 satır; 79 vitest dosyası / 412 test (süreç içi 65 dosya / 396 test, ~20 sn) + 16 Electron betiği (`scripts/tests/`) |
+| Tam `npm test` | ~2 dk | ~5 dk (db-roundtrip, kalıcılık, sunucu güvenliği, 10 e2e, duman) |
+| En büyük dosyalar | Tahsilat 622 · Yoklama 588 · ui 466 · Pano 466 · yedek.cjs 455 | **Tahsilat.jsx 724** (tek bileşen 704 satır, 18 useState) · **Yoklama.jsx 661** (645 satırlık tek bileşen, 14 useState, 5 modal/form bloğu) · ui.jsx 519 · **Pano.jsx 505** (478 satırlık bileşen) · **IlkKurulum.jsx 474** (14 useState) · ipc/yedek.cjs 455 · **sema.cjs 437** (`migrate()` 166 satır, 9 sürüm bloğu) · SezonAyar 428 (13 useState) · KalemAyar 428 · WhatsAppHatirlat 399 · server.cjs 347 |
+| Kapsama (süreç içi, `npm run test:coverage`) | lib %98,2 · components %76,6 · electron %31,9 | **lib %97,3 · components %84,2 · electron %34,5**; `electron/db` %0 (yalnız Electron altı), `App.jsx` %1 (yalnız e2e/duman) |
+| Fonksiyon kapsaması düşük bileşenler | — | Pano %57 · Tahsilat %65 · Oyuncular %70 · IlkKurulum %71 · Giris %72 · TemaSecici %73 · SezonAyar %74 |
+| Tekrar kalıpları | — | `db("sezonDurumu")` **8 bileşende** ayrı ayrı (Pano, Raporlar, Tahsilat, Yoklama, YasGruplari, Oyuncular, SezonSecim, SezonAyar) · `db("listAgeGroups")` 11 bileşende · `useEffect` yükleme kalıbı 74 · Pano'da iki özdeş uyarı şeridi (`role="alert"`, sezon bitti / bitiş yakın) · `hataMetni` 7 dosyada (4'ü kasıtlı durum metni) |
+| Stil | 703 inline `style={{}}` | **829** inline · `#fff` sabiti 62 yerde (menü/şerit üstü yazılar `var(--ana-ustu)` olmalı; §32 kuralı) · 28 sabit hex (çoğu nokta/gölge tonu) |
+| Saf modül ikizleri (ESM ↔ CJS, elle senkron) | tema/ayarDogrula | **5 çift:** `tema`, `ayarDogrula`, `sezonTarih` (↔ `sezon.js`), `saatAralik` (↔ `program.js`), `makbuzNo`; eşitlik testleri `tests/{tema,sezon,program}.test.js` |
+| Dış API | db.cjs 104 export · yetki 60+ | **db.cjs 112 export · yetki.cjs beyaz listesi 79 ad** |
+| Tip denetimi | 13 `@ts-check` dosyası | 17 dosya (`src/lib/*`, `types.d.ts` 251 satır); Electron tarafı tipsiz |
+| Lint | 0 hata | 0 hata, 0 uyarı; Prettier temiz (md/html hariç) |
+
+## 8. Sıcak noktalar ve öneri (öncelik sırasıyla)
+
+### 8.1 `Yoklama.jsx` (661) → `src/components/yoklama/` — en yüksek kazanç
+Tek bileşende 5 bağımsız blok: Antrenman Ekle formu (+ çakışma uyarısı), antrenman kartları, Düzenle çubuğu, yoklama listesi
+(oyuncu satırı + sayaçlar + Kalanları Geldi), modallar (İptal onayı, bildirim sorusu, WhatsApp penceresi). Öneri: `AntrenmanEkleFormu`,
+`AntrenmanKarti`, `AntrenmanDuzenle`, `YoklamaListesi` ayrı dosyalar; ana bileşen durum + veri yükleme. Saf yardımcılar zaten
+`program.js`'de. Güvenlik ağı hazır: `tests/ui/yoklama.test.jsx` (%96 satır) + `yoklama-e2e` 50 kontrol. Dış ad `Yoklama` ve
+prop'ları (`saltOkunur`) sabit.
+
+### 8.2 `Tahsilat.jsx` (724) → `src/components/tahsilat/`
+18 useState tek bileşende: oyuncu arama/seçim, aidat ayları (kısmi/elle/uzun dönem), kalem satırları, makbuz kesme + yazdırma,
+Bugün Kesilen Makbuzlar (sayfalı), iptal modalı. Öneri: `AidatAySecimi`, `KalemSatirlari`, `BugunKesilenler`, `MakbuzIptal` ayrı;
+toplam/aidat hesapları `src/lib/aidat.js`'e saf fonksiyon olarak (bugün bileşen içinde `aidatToplam`, `toplam` reduce'ları).
+ÖNCE karakterizasyon: fonksiyon kapsaması %65 → uzun dönem + kısmi + ücretsiz akışları `tests/ui/tahsilat.test.jsx`'te var,
+"Bugün Kesilen" sayfalama ve iptal yolu `tahsilat-e2e`/`sayfalama-e2e`'de; eksik: makbuz yazdır/PDF hata yolu (satır 672–681, 704–719).
+
+### 8.3 Sezon durumu için tek kaynak: `useSezonDurumu()` kancası
+8 bileşen aynı `db("sezonDurumu")` çağrısını kendi `useState/useEffect`'iyle yapıyor; `tarihler` (§37) eklenince her biri ayrı ayrı
+`d?.tarihler?.baslangic && …` süzüyor. Öneri: `src/lib/useSezonDurumu.js` — `{ durum, aktifSezon, tarihler, yenile }`; test mock'ları
+değişmez (`window.okul.db` aynı çağrı). Aynı kalıp `useYasGruplari()` için (11 bileşen). `App.jsx` seviyesinde tek yükleme + context
+DAHA sonra (davranış: sezon geçişinden sonra `yenile` gerek).
+
+### 8.4 Uyarı şeridi bileşeni `UyariSeridi`
+Pano'da iki özdeş `role="alert"` bloğu (sezon bitti / bitişe ≤30 gün), `SifresizUyari`, deneme/salt okunur şeridi ve `GuncellemeSeridi`
+aynı görsel dili elle kuruyor. Öneri: `ui.jsx`'e `UyariSeridi({ ton, eylem, children })`; `#fff`/sabit hex temizliği bu adımda
+(62 `#fff` → `var(--ana-ustu)` yalnız marka zemini üstündekiler; modal/kart zeminindeki `#fff` kalır).
+
+### 8.5 `sema.cjs migrate()` (166 satır, 9 blok) → sürüm başına fonksiyon
+`GOCLER = { 12: (db) => …, 13: …, 19: … }` haritası; `migrate()` sıralı uygular, `schema_version` yazar. Davranış aynı (idempotent
+PRAGMA kontrolleri korunur). Güvenlik ağı: db-roundtrip 7/11/15/16 → 19 yeniden göç kontrolleri, kalıcılık "şema 19".
+
+### 8.6 ESM/CJS ikizleri (5 çift)
+Elle senkron tutulan 5 çift, her yeni saf yardımcıda büyüyor. Seçenekler: (a) `electron/` tarafında `require` ile ESM'i yükleyemeyiz
+(CJS ana süreç) → tek kaynak `.cjs` yazıp Vite'ta `import x from "../../electron/x.cjs"` (Vite CJS interop ile çalışır; test edilmeli);
+(b) mevcut eşitlik testleri yeterli, olduğu gibi bırak. Öneri: (a) tek modülle deneme (`saatAralik`), geçerse diğerleri; olmazsa (b).
+Bu adım KARAR ister (Kerem).
+
+### 8.7 Küçük temizlikler
+`IlkKurulum.jsx` adım başına bileşen (14 useState → adım state'i); `SezonAyar.jsx` "Sezon tarihleri" kartı ayrı bileşen (§37'de
+büyüdü); `Pano.jsx` sağlık/borçlu tabloları ayrı; `ipc/yedek.cjs` yedek/geri yükle/taşıma üç dosya (455 satır, 14 fonksiyon).
+
+### 8.8 Kapsam dışı (bu turda yapılmaz)
+TypeScript'e geçiş, React Router/context'e genel geçiş, inline style → CSS modülleri, şema/IPC/yetki değişikliği, yeni özellik,
+`electron/db` için süreç içi test altyapısı (better-sqlite3 native; Electron altı kalır), çoklu PC bayrağı.
+
+## 9. Güvenlik ağı (11.09.2026)
+
+| Komut | Süre | Ne doğrular |
+|-------|------|-------------|
+| `npm run lint && npm run typecheck` | ~10 sn | 0 hata/0 uyarı, `@ts-check` 17 dosya |
+| `npm run test:saf` | ~20 sn | 65 dosya / 396 test — her commit'te |
+| `npm run test:coverage` | ~30 sn | oran düşmemeli: lib %97 · components %84 · electron %34 |
+| `npm test` | ~5 dk | + db-roundtrip (şema 19, 200+ kontrol), kalıcılık (yedek/geri yükleme/taşıma, SIGKILL), sunucu güvenliği, e2e: sezon, taşıma, raporlar, oyuncular, sayfalama, tahsilat, yaş grupları (48), yoklama (50), kulüp kimliği (PDF), kullanıcılar; duman (33 görüntü) |
+| `npx electron scripts/tests/smoke-ui.cjs oncesi/` → refactor → `sonrasi/` + `cmp` | ~40 sn | piksel farkı = bak |
+
+Eksikler (ilgili adımdan ÖNCE kapatılır): Tahsilat yazdır/PDF hata yolu (8.2) · Pano fonksiyon kapsaması %57: WhatsApp
+hatırlatma düğmeleri ve sağlık "Tümü" bağlantısı (8.4'ten önce `tests/ui/pano.test.jsx`'e) · `App.jsx` yalnız e2e (sekme kabuğu;
+refactor'da dokunulmayacak) · `Giris.jsx` kurtarma kodu akışı (%72; `kullanicilar-e2e` kapsıyor, süreç içi yok).
+
+## 10. Sıra ve ön koşullar
+
+0. **Sürüm:** refactor, etiketli bir sürümden başlar → önce v1.1.1 (13 yayınlanmamış commit: §33 aktivasyon, §34.5 ikon, §36, §37).
+   Refactor commit'leri sürüm çıkarmaz; bitince v1.2.0.
+1. Karakterizasyon testleri (Tahsilat yazdır/PDF hata yolu, Pano düğmeleri) — §9 eksikleri.
+2. 8.3 `useSezonDurumu` / `useYasGruplari` — küçük, 8+11 bileşen, test mock'ları değişmez.
+3. 8.4 `UyariSeridi` + `#fff` temizliği — duman görüntüleri karşılaştırılır.
+4. 8.1 Yoklama bölünmesi — dosya başına commit.
+5. 8.2 Tahsilat bölünmesi + saf hesaplar `aidat.js`'e.
+6. 8.5 `migrate()` sürüm haritası.
+7. 8.6 ikiz kararı (Kerem) → uygulanırsa modül başına commit.
+8. 8.7 küçük temizlikler; kapsama raporu yeniden; bu belgeye "sonrası" sütunu.

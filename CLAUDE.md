@@ -47,7 +47,7 @@ online aktivasyon sunucusu. Bkz. `docs/plan.md`.
 
 ## Refactor
 
-Yapısal iyileştirme planı, taban çizgisi, sonuç ölçüleri `docs/refactor-plan.md` (08.09.2026; 7 adım uygulandı). Refactor commit'i
+Yapısal iyileştirme planı, taban çizgisi, sonuç ölçüleri `docs/refactor-plan.md` (08.09.2026; 7 adım uygulandı; **2. tur hazırlığı §7–§10, 11.09.2026: yeni taban çizgisi, sıcak noktalar Yoklama/Tahsilat bölünmesi, `useSezonDurumu`, `UyariSeridi`, `migrate()` haritası, ESM/CJS ikiz kararı; önce v1.1.1**). Refactor commit'i
 davranış değiştirmez; `db.cjs` dış API'si ve `yetki.cjs` beyaz listesi sabit kalır. Kalıplar: IPC handler ön koşulu
 `electron/ipc/koruma.cjs` (`donerek`/`firlatarak`); renderer'da hata yakalama `useDene()` (`ui.jsx`): `dene(async () => …)`
 hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e))` yerine bu kullanılır. Rapor üreticileri
