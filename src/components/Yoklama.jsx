@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Avatar, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
+import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { yoklamaFormuHtml } from "../lib/yoklamaFormuHtml.js";
 import { htmlYazdir, ciktiMarkasi } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -28,7 +29,7 @@ export function Yoklama({ saltOkunur }) {
   const [duzen, setDuzen] = useState(null); // antrenman düzenleme formu { tarih, saat, bitis, saha }
   const [bildir, setBildir] = useState(null); // "Velilere bildirilsin mi?" sorusu { t, tur }
   const [waAnt, setWaAnt] = useState(null); // açık bildirim penceresi { t, tur, alicilar }
-  const [sezonTarih, setSezonTarih] = useState(null); // aktif sezonun tarihleri { baslangic, bitis } (plan §37.6; yoksa null)
+  const { tarihler: sezonTarih } = useSezonDurumu(); // aktif sezonun tarihleri (plan §37.6; yoksa null)
   const toast = useToast();
   const dene = useDene();
 
@@ -44,9 +45,6 @@ export function Yoklama({ saltOkunur }) {
   useEffect(() => {
     db("listAgeGroups")
       .then((g) => setGruplar(g.filter((x) => x.aktif)))
-      .catch(() => {});
-    db("sezonDurumu")
-      .then((d) => setSezonTarih(d?.tarihler?.baslangic && d?.tarihler?.bitis ? d.tarihler : null))
       .catch(() => {});
   }, []);
   useEffect(() => {

@@ -16,6 +16,7 @@ import {
   Telefon,
 } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
+import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { ciktiMarkasi } from "../lib/yazdir.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
@@ -35,7 +36,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [gruplar, setGruplar] = useState([]);
   const [q, setQ] = useState("");
   // Sezon filtresi (plan §18): varsayılan aktif sezon; "" = tüm sezonlar
-  const [sezonDurum, setSezonDurum] = useState(null);
+  const { durum: sezonDurum } = useSezonDurumu();
   const [sezonlar, setSezonlar] = useState([]);
   const [sezon, setSezon] = useState(null); // null: henüz seçilmedi → aktif sezon
   const [grup, setGrup] = useState("");
@@ -84,9 +85,6 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       .catch(() => {});
   }, [seciliSezon]);
   useEffect(() => {
-    db("sezonDurumu")
-      .then((d) => d && setSezonDurum(d))
-      .catch(() => {});
     db("sezonListesi")
       .then((l) => Array.isArray(l) && setSezonlar(l))
       .catch(() => {});

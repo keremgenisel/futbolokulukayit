@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db } from "../lib/api.js";
+import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { programCoz, programOzeti, GUN_ADLARI, saatAraligiDogrula, sureDk } from "../lib/program.js";
 import { SezonSecim } from "./SezonSecim.jsx";
 import { Ikon } from "./Ikon.jsx";
@@ -10,7 +11,7 @@ import { bugun } from "../lib/api.js";
 export function YasGruplari({ saltOkunur }) {
   const [gruplar, setGruplar] = useState([]);
   const [oyuncular, setOyuncular] = useState([]);
-  const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi } — sezon kutusu bununla dolu gelir (plan §15)
+  const { durum: sezonDurum, yenile: sezonYenile } = useSezonDurumu(); // sezon kutusu bununla dolu gelir (plan §15)
   const [yeni, setYeni] = useState({ ad: "", sezon: "" }); // sezon boş = aktif sezon (SezonSecim ilk seçeneği)
   const [duzenle, setDuzenle] = useState(null); // { id, ad, sezon, sira, aktif }
   const [sil, setSil] = useState(null);
@@ -31,7 +32,7 @@ export function YasGruplari({ saltOkunur }) {
     dene(async () => {
       setGruplar(await db("listAgeGroups", { sezon: seciliSezon }));
       setOyuncular(await db("listPlayers"));
-      setSezonDurum((await db("sezonDurumu")) || null);
+      await sezonYenile();
       setSezonlar((await db("sezonListesi")) || []);
     });
   useEffect(() => {

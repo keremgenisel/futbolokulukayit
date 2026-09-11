@@ -178,6 +178,11 @@ toplam/aidat hesapları `src/lib/aidat.js`'e saf fonksiyon olarak (bugün bileş
 değişmez (`window.okul.db` aynı çağrı). Aynı kalıp `useYasGruplari()` için (11 bileşen). `App.jsx` seviyesinde tek yükleme + context
 DAHA sonra (davranış: sezon geçişinden sonra `yenile` gerek).
 
+**Sonuç (11.09.2026):** `src/lib/useSezonDurumu.js` — `{ durum, aktifSezon, baslangicAyi, tarihler, yenile }`; Pano, Raporlar, Yoklama,
+Oyuncular, YasGruplari, Tahsilat (`bugunkuYukle` artık `aktifSezon`'a bağlı: sezon yüklenince yeniden çeker), SezonAyar (`yenile()` sonucu
+kullanır) geçirildi; SezonSecim prop almaya devam eder. `useYasGruplari` YAPILMADI: 11 çağrının 5'i sezon filtresi/aktif süzgeci gibi
+farklı parametrelerle (Oyuncular/Raporlar `{ sezon }`, Yoklama `aktif` süzer, IlkKurulum ad kümesi) — ortak kanca davranışı değiştirirdi.
+
 ### 8.4 Uyarı şeridi bileşeni `UyariSeridi`
 Pano'da iki özdeş `role="alert"` bloğu (sezon bitti / bitişe ≤30 gün), `SifresizUyari`, deneme/salt okunur şeridi ve `GuncellemeSeridi`
 aynı görsel dili elle kuruyor. Öneri: `ui.jsx`'e `UyariSeridi({ ton, eylem, children })`; `#fff`/sabit hex temizliği bu adımda

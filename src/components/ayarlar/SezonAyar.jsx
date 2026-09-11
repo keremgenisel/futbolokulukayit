@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "../ui.jsx";
 import { db, bugun } from "../../lib/api.js";
+import { useSezonDurumu } from "../../lib/useSezonDurumu.js";
 import { paraTR, tarihTR, AY_ADLARI } from "../../lib/aidat.js";
 import {
   guncelSezon,
@@ -20,7 +21,7 @@ import { Ikon } from "../Ikon.jsx";
 // Yeni sezon sihirbazı (plan §10): yenileyenleri işaretle → yenilemeyenler pasif, yenileyenler yeni sezon (+ üst grup).
 
 export function SezonAyar({ admin, saltOkunur }) {
-  const [durum, setDurum] = useState(null); // sezonDurumu
+  const { durum, yenile: durumYenile } = useSezonDurumu();
   const [adaylar, setAdaylar] = useState(null);
   const [gruplar, setGruplar] = useState([]);
   const [secim, setSecim] = useState({}); // id → { yeniledi, yas_grubu_id }
@@ -37,8 +38,8 @@ export function SezonAyar({ admin, saltOkunur }) {
 
   const yukle = useCallback(async () => {
     return dene(async () => {
-      const d = await db("sezonDurumu");
-      setDurum(d);
+      const d = await durumYenile();
+      if (!d) return;
       const g = await db("listAgeGroups");
       setGruplar(g);
       const l = await db("sezonAdayListesi");
@@ -51,7 +52,7 @@ export function SezonAyar({ admin, saltOkunur }) {
       const kaydir = (x) => (x ? String(Number(x.slice(0, 4)) + 1) + x.slice(4) : "");
       setYeniTarih({ baslangic: kaydir(t.baslangic), bitis: kaydir(t.bitis) });
     });
-  }, [dene, iso]);
+  }, [dene, iso, durumYenile]);
   useEffect(() => {
     yukle();
   }, [yukle]);

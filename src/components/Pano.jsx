@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene, Bos } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun } from "../lib/api.js";
+import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
 import { sezonSonuMu, guncelSezon, sezonKalanGun, kisaAralik } from "../lib/sezon.js";
 import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../lib/belge.js";
@@ -25,7 +26,7 @@ function Stat({ etiket, deger, renk, not }) {
 }
 
 export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
-  const [sezon, setSezon] = useState(null);
+  const { durum: sezon } = useSezonDurumu();
   const [saglik, setSaglik] = useState(null); // sağlık raporu uyarıları
   const [wa, setWa] = useState(null); // WhatsApp hatırlatma penceresi: { alicilar, baslik }
   const [ozet, setOzet] = useState(null);
@@ -56,9 +57,6 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
     dene(() => db("panoOzet", { yil, ay, bugun: iso }).then(setOzet));
     db("listUnpaid", yil, ay)
       .then(setBorclular)
-      .catch(() => {});
-    db("sezonDurumu")
-      .then((d) => d && setSezon(d))
       .catch(() => {});
     db("saglikRaporuDurumu", iso)
       .then((d) => d && Array.isArray(d.uyarilar) && setSaglik({ ...d, uyarilar: uyariSirala(d.uyarilar) }))

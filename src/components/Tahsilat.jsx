@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Kart, Btn, Alan, Girdi, Avatar, Rozet, Modal, Bos, useToast, useDene, ParaGirdi } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
+import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { ODEME_YONTEMLERI, paraTR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi } from "../lib/aidat.js";
 import { makbuzHtmlUret, makbuzYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
@@ -38,20 +39,18 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [iptal, setIptal] = useState(null);
   const [bekliyor, setBekliyor] = useState(false);
   const [uzunDonemAcik, setUzunDonemAcik] = useState(false); // Uzun Dönem Seç modalı (plan §24)
-  const [aktifSezon, setAktifSezon] = useState("");
-  const [sezonBitis, setSezonBitis] = useState(""); // kayıtlı sezon bitişi (plan §37)
+  const { aktifSezon, tarihler: sezonTarihleri } = useSezonDurumu();
+  const sezonBitis = sezonTarihleri?.bitis || ""; // kayıtlı sezon bitişi (plan §37)
   const toast = useToast();
   const dene = useDene();
   const { yil, ay } = bugun();
 
   const bugunkuYukle = useCallback(async () => {
     try {
-      const sd = await db("sezonDurumu"); // Bugün kesilenler: yalnız aktif sezonun makbuzları (plan §17.2)
-      setAktifSezon(sd?.aktifSezon || "");
-      setSezonBitis(sd?.tarihler?.bitis || "");
-      setBugunku(await db("listReceiptsByDate", bugun().iso, bugun().iso, sd?.aktifSezon || null));
+      // Bugün kesilenler: yalnız aktif sezonun makbuzları (plan §17.2); sezon yüklenince yeniden çekilir
+      setBugunku(await db("listReceiptsByDate", bugun().iso, bugun().iso, aktifSezon || null));
     } catch {}
-  }, []);
+  }, [aktifSezon]);
   useEffect(() => {
     db("listFeeItems")
       .then(setKalemler)

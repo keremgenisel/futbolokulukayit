@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Kart, Sayfalama, useDene } from "./ui.jsx";
 import { db, cikti, bugun, ayAraligi } from "../lib/api.js";
+import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { paraTR, tarihTR } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { raporHtml } from "../lib/raporHtml.js";
@@ -26,7 +27,7 @@ export function Raporlar() {
   const [rapor, setRapor] = useState("oyuncu");
   // Sezon + Ay süzgeci (plan §19): ay null = Tümü; yıl sezon + aydan türetilir
   const [ayS, setAyS] = useState(ay);
-  const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi }
+  const { durum: sezonDurum } = useSezonDurumu(); // { aktifSezon, baslangicAyi, tarihler }
   const [sezonlar, setSezonlar] = useState([]);
   const [sezonTarihleri, setSezonTarihleri] = useState([]); // [{ sezon, baslangic, bitis, kayitli }]
   const [sezonS, setSezonS] = useState("");
@@ -59,9 +60,6 @@ export function Raporlar() {
       .catch(() => {});
   }, [grupSezonu]);
   useEffect(() => {
-    db("sezonDurumu")
-      .then((d) => d && setSezonDurum(d))
-      .catch(() => {});
     db("sezonListesi")
       .then((l) => Array.isArray(l) && setSezonlar(l))
       .catch(() => {});
