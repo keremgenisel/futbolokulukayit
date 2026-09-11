@@ -1,9 +1,14 @@
 // ── trainings / attendance ──
 const { db } = require("./baglanti.cjs");
 
-function createTraining({ age_group_id, tarih, saat = "", saha = "" }) {
-  const r = db.prepare("INSERT INTO trainings (age_group_id,tarih,saat,saha) VALUES (?,?,?,?)").run(age_group_id, tarih, saat, saha);
-  return { id: Number(r.lastInsertRowid), age_group_id, tarih, saat, saha };
+const { saatAraligiDogrula } = require("../saatAralik.cjs");
+function createTraining({ age_group_id, tarih, saat = "", saha = "", bitis_saat = "" }) {
+  const d = saatAraligiDogrula(saat, bitis_saat);
+  if (!d.gecerli) throw new Error(d.neden);
+  const r = db
+    .prepare("INSERT INTO trainings (age_group_id,tarih,saat,saha,bitis_saat) VALUES (?,?,?,?,?)")
+    .run(age_group_id, tarih, saat, saha, String(bitis_saat || ""));
+  return { id: Number(r.lastInsertRowid), age_group_id, tarih, saat, saha, bitis_saat: String(bitis_saat || "") };
 }
 // Takvim şeridi: aralıktaki antrenmanlar, grup adı ve yoklama ilerlemesiyle (oyuncu/işaretli/geldi).
 const trainingCalendar = (from, to) =>
@@ -31,25 +36,34 @@ const cancelTraining = (id, neden = "") =>
     .prepare("UPDATE trainings SET iptal=1, iptal_nedeni=?, bildirim_gerekli=1, bildirim_olay=?, grup_bildirim='' WHERE id=?")
     .run(neden, yeniOlay(), id);
 // Antrenman düzenleme (tarih/saat/saha): yoklaması alınmış antrenmanda tarih değişmez; eski değerler degisiklik_notu'na.
-function updateTraining(id, { tarih, saat, saha } = {}) {
+function updateTraining(id, { tarih, saat, saha, bitis_saat } = {}) {
   const t = db.prepare("SELECT * FROM trainings WHERE id=?").get(Number(id));
   if (!t) throw new Error("Antrenman bulunamadı");
   if (t.iptal) throw new Error("İptal edilmiş antrenman düzenlenemez");
   const yeni = {
     tarih: tarih === undefined ? t.tarih : String(tarih),
     saat: saat === undefined ? t.saat : String(saat || ""),
+    bitis_saat: bitis_saat === undefined ? t.bitis_saat || "" : String(bitis_saat || ""),
     saha: saha === undefined ? t.saha : String(saha || ""),
   };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(yeni.tarih)) throw new Error("Tarih geçersiz");
-  const degisti = yeni.tarih !== t.tarih || yeni.saat !== t.saat || yeni.saha !== t.saha;
+  const dg = saatAraligiDogrula(yeni.saat, yeni.bitis_saat);
+  if (!dg.gecerli) throw new Error(dg.neden);
+  const degisti = yeni.tarih !== t.tarih || yeni.saat !== t.saat || yeni.saha !== t.saha || yeni.bitis_saat !== (t.bitis_saat || "");
   if (!degisti) return { ...t, degisti: false };
   const yoklamaVar = db.prepare("SELECT count(*) AS n FROM attendance WHERE training_id=?").get(t.id).n > 0;
   if (yoklamaVar && yeni.tarih !== t.tarih) throw new Error("Yoklaması alınmış antrenmanın tarihi değiştirilemez; yalnız saat ve saha");
-  const not_ = JSON.stringify({ eskiTarih: t.tarih, eskiSaat: t.saat, eskiSaha: t.saha, zaman: new Date().toISOString() });
+  const not_ = JSON.stringify({
+    eskiTarih: t.tarih,
+    eskiSaat: t.saat,
+    eskiBitis: t.bitis_saat || "",
+    eskiSaha: t.saha,
+    zaman: new Date().toISOString(),
+  });
   const olay = yeniOlay();
   db.prepare(
-    "UPDATE trainings SET tarih=?, saat=?, saha=?, bildirim_gerekli=1, degisiklik_notu=?, bildirim_olay=?, grup_bildirim='' WHERE id=?",
-  ).run(yeni.tarih, yeni.saat, yeni.saha, not_, olay, t.id);
+    "UPDATE trainings SET tarih=?, saat=?, saha=?, bitis_saat=?, bildirim_gerekli=1, degisiklik_notu=?, bildirim_olay=?, grup_bildirim='' WHERE id=?",
+  ).run(yeni.tarih, yeni.saat, yeni.saha, yeni.bitis_saat, not_, olay, t.id);
   return { ...t, ...yeni, bildirim_gerekli: 1, degisiklik_notu: not_, bildirim_olay: olay, grup_bildirim: "", degisti: true };
 }
 const bildirimGerekliAyarla = (id, deger) =>

@@ -258,12 +258,48 @@ describe("Tahsilat: tek makbuzda birden fazla aidat ayı", () => {
     );
     await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Şerif Çelik"));
     unmount();
-    window.okul.db = vi.fn(async () => "");
+    window.okul.db = vi.fn(async (fn) => (fn === "getSetting" ? "" : []));
     render(
       <ToastSaglayici>
         <Tahsilat oturum={{ username: "admin", ad_soyad: "Yönetici" }} />
       </ToastSaglayici>,
     );
     await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Yönetici"));
+  });
+});
+
+describe("Uzun Dönem Seç: Sezon Sonuna Kadar kayıtlı sezon bitişine gider (plan §37)", () => {
+  it("bitiş 2027-06-30 ise aralık Haziran 2027'de biter", async () => {
+    const oyuncu = { id: 7, ad_soyad: "Ali Uzun", durum: "aktif", yas_grubu_ad: "U11", aylik_aidat: 5000, ucret_tipi: "normal" };
+    const dues = [{ id: 1, player_id: 7, yil: 2026, ay: 12, tutar: 5000, odenen: 0, durum: "odenmedi" }];
+    window.okul = {
+      db: vi.fn(async (fn, ...a) => {
+        if (fn === "listFeeItems") return [{ id: 1, kod: "aidat", ad: "Aidat", varsayilan_fiyat: 5000, aktif: 1 }];
+        if (fn === "getSetting") return "";
+        if (fn === "listReceiptsByDate") return [];
+        if (fn === "sezonDurumu")
+          return { aktifSezon: "2026-2027", tarihler: { sezon: "2026-2027", baslangic: "2026-09-01", bitis: "2027-06-30", kayitli: true } };
+        if (fn === "getPlayer") return oyuncu;
+        if (fn === "listDues") return dues;
+        if (fn === "ensureMonthlyDuesAraligi") {
+          for (const d of a[1])
+            if (!dues.some((x) => x.yil === d.yil && x.ay === d.ay))
+              dues.push({ id: dues.length + 1, player_id: 7, yil: d.yil, ay: d.ay, tutar: 5000, odenen: 0, durum: "odenmedi" });
+          return a[1].map((d) => dues.find((x) => x.yil === d.yil && x.ay === d.ay));
+        }
+        return [];
+      }),
+      cikti: { yazdir: vi.fn() },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ ad_soyad: "Yönetici" }} saltOkunur={false} secilenOyuncuId={7} onSecildi={() => {}} />
+      </ToastSaglayici>,
+    );
+    fireEvent.click(await screen.findByText("Uzun Dönem Seç"));
+    const dlg = await screen.findByRole("dialog", { name: "Uzun Dönem Seç" });
+    fireEvent.click(within(dlg).getByRole("button", { name: "Sezon Sonuna Kadar" }));
+    expect(dlg).toHaveTextContent("7 ay seçilecek: Aralık 2026 – Haziran 2027");
   });
 });

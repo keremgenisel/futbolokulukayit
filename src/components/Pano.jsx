@@ -3,7 +3,7 @@ import { Kart, Btn, Girdi, Avatar, Rozet, Telefon, useToast, useDene, Bos } from
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun } from "../lib/api.js";
 import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
-import { sezonSonuMu, guncelSezon } from "../lib/sezon.js";
+import { sezonSonuMu, guncelSezon, sezonKalanGun, kisaAralik } from "../lib/sezon.js";
 import { belgeGecerlilik, belgeEtiketi, uyariSirala } from "../lib/belge.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { aidatDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
@@ -65,6 +65,10 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
       .catch(() => {});
   }, [yil, ay, iso, toast, dene]);
   const sezonUyari = sezon && sezon.aktifSezon && sezonSonuMu(sezon.aktifSezon, iso, sezon.baslangicAyi);
+  // Sezon tarihleri (plan §37): başlıkta "Sezon · aralık · N gün kaldı"; bitişe ≤30 gün kala hatırlatma şeridi
+  const tarihler = sezon?.tarihler?.baslangic && sezon?.tarihler?.bitis ? sezon.tarihler : null;
+  const kalanGun = tarihler ? sezonKalanGun(tarihler.bitis, iso) : null;
+  const bitisYakin = kalanGun !== null && kalanGun >= 0 && kalanGun <= 30 && !sezonUyari;
 
   useEffect(() => {
     if (!q.trim()) {
@@ -86,7 +90,24 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ color: "var(--soluk)" }}>{gun}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span style={{ color: "var(--soluk)" }}>{gun}</span>
+          {sezon?.aktifSezon && (
+            <span
+              data-test="sezon-satiri"
+              style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 13, color: "var(--soluk)" }}
+            >
+              <span aria-hidden="true">·</span>
+              <b style={{ color: "var(--metin)" }}>Sezon {sezon.aktifSezon}</b>
+              {tarihler && (
+                <>
+                  <span>{kisaAralik(tarihler.baslangic, tarihler.bitis)}</span>
+                  <Rozet ton={kalanGun <= 30 ? "yellow" : "purple"}>{kalanGun < 0 ? "Sezon bitti" : `${kalanGun} gün kaldı`}</Rozet>
+                </>
+              )}
+            </span>
+          )}
+        </div>
         <div style={{ display: "flex", gap: 12 }}>
           {!saltOkunur && (
             <>
@@ -174,6 +195,33 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
             </tbody>
           </table>
         </Kart>
+      )}
+      {bitisYakin && (
+        <div
+          role="alert"
+          style={{
+            background: "var(--uyari-acik)",
+            border: "1.5px solid var(--uyari)",
+            borderRadius: 10,
+            padding: "12px 16px",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1 }}>
+            <b>
+              {sezon.aktifSezon} sezonu {kalanGun === 0 ? "bugün bitiyor" : `${kalanGun} gün sonra bitiyor`} ({tarihTR(tarihler.bitis)}).
+            </b>{" "}
+            Yeni sezon tarihlerini ve yenileyen oyuncuları Ayarlar &gt; Sezon'dan hazırlayabilirsiniz.
+          </div>
+          {onSezon && (
+            <Btn tur="ghost" onClick={onSezon} ikon={<Ikon ad="takvim" />}>
+              Sezon Ayarları
+            </Btn>
+          )}
+        </div>
       )}
       {sezonUyari && (
         <div

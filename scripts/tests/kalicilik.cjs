@@ -275,7 +275,20 @@ app.on("browser-window-created", async (_e, win) => {
       db.setSetting("kurulum_tamam", "1");
       db.setSetting("aktif_sezon", "2026-2027");
       // Plan §17: yeni sezona geçiş (herkes yeniler → kimse pasife düşmez), ilk ay borcu açılır; yeni sezon makbuzu 2027-0001
-      const sg = db.yeniSezonaGec({ sezon: "2027-2028", yenileyenler: db.sezonAdayListesi().map((a) => ({ id: a.id })) });
+      db.sezonTarihKaydet("2026-2027", "2026-09-01", "2027-06-30"); // plan §37: sezon tarihleri
+      const sg = db.yeniSezonaGec({
+        sezon: "2027-2028",
+        yenileyenler: db.sezonAdayListesi().map((a) => ({ id: a.id })),
+        baslangic: "2027-09-01",
+        bitis: "2028-06-30",
+      });
+      db.createTraining({
+        age_group_id: db.listAgeGroups()[0].id,
+        tarih: "2027-05-03",
+        saat: "17:00",
+        bitis_saat: "18:30",
+        saha: "Saha 9",
+      });
       const m27 = db.createReceipt({
         player_id: yab.id,
         tarih: t2.toISOString().slice(0, 10),
@@ -494,7 +507,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 18 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "18");
+      check("şema sürümü 19 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "19");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",
@@ -566,6 +579,16 @@ app.on("browser-window-created", async (_e, win) => {
         !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009",
       );
       check("kurulum ve sezon ayarları kalıcı", db.getSetting("kurulum_tamam") === "1" && db.sezonDurumu().aktifSezon === "2027-2028");
+      check(
+        "sezon tarihleri kalıcı (plan §37): eski sezon kayıtlı, yeni sezon geçişte kaydedildi",
+        db.sezonTarihleri("2026-2027").kayitli === true &&
+          db.sezonTarihleri("2026-2027").bitis === "2027-06-30" &&
+          db.sezonDurumu().tarihler?.bitis === "2028-06-30",
+      );
+      check(
+        "antrenman bitiş saati kalıcı (plan §37)",
+        db.listTrainings("2027-05-03", "2027-05-03").some((t) => t.saat === "17:00" && t.bitis_saat === "18:30" && t.saha === "Saha 9"),
+      );
       // 09.09.2026 özellikleri (plan §15, §17, göç 13/14)
       const u14 = db.listAgeGroups().find((g) => g.ad === "U14");
       check("düzenlenen grup sezonu (sonraki sezon) ve pasif durumu kalıcı", !!u14 && u14.sezon === b.u14Sezon && u14.aktif === 0);

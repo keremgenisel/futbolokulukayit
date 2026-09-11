@@ -4,7 +4,7 @@ const { getMetaValue, setMetaValue } = require("./meta.cjs");
 const { createUser } = require("./kullanicilar.cjs");
 const { araNormalize } = require("../metin.cjs");
 
-const SCHEMA_VERSION = 18; // 18: receipts.oyuncu_adi (kişisel veri silinen oyuncunun makbuzdaki adı; plan §31); 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
+const SCHEMA_VERSION = 19; // 19: seasons (sezon başlangıç/bitiş tarihi) + trainings.bitis_saat (plan §37); 18: receipts.oyuncu_adi (kişisel veri silinen oyuncunun makbuzdaki adı; plan §31); 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -181,7 +181,8 @@ CREATE TABLE IF NOT EXISTS trainings (
   bildirim_gerekli INTEGER NOT NULL DEFAULT 0,        -- elle iptal/değişiklik yapıldı, veliler henüz bilgilendirilmedi
   degisiklik_notu TEXT DEFAULT '',                    -- son değişikliğin eski değerleri JSON {eskiTarih, eskiSaat, eskiSaha, zaman}
   grup_bildirim TEXT DEFAULT '',                      -- veli WhatsApp grubuna tek mesaj açıldı: JSON {zaman, kullanici} (şema 10)
-  bildirim_olay TEXT DEFAULT ''                       -- son iptal/değişiklik olayının damgası; bildirimler bu olaya bağlanır (şema 11)
+  bildirim_olay TEXT DEFAULT '',                      -- son iptal/değişiklik olayının damgası; bildirimler bu olaya bağlanır (şema 11)
+  bitis_saat TEXT DEFAULT ''                          -- şema 19: bitiş saati (isteğe bağlı; plan §37)
 );
 
 ${MESSAGE_LOG_SQL}
@@ -207,6 +208,12 @@ CREATE TABLE IF NOT EXISTS group_seasons (
   group_id INTEGER NOT NULL REFERENCES age_groups(id) ON DELETE CASCADE,
   sezon TEXT NOT NULL,
   PRIMARY KEY (group_id, sezon)
+);
+
+CREATE TABLE IF NOT EXISTS seasons (                -- şema 19: sezon tarihleri (plan §37); aidat 12 ay açılmaya devam eder
+  sezon TEXT PRIMARY KEY,
+  baslangic TEXT NOT NULL,
+  bitis TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT);
@@ -382,6 +389,33 @@ function migrate() {
     for (const g of db.prepare("SELECT id, sezon FROM age_groups WHERE sezon<>''").all()) ekle.run(g.id, g.sezon);
     for (const t of db.prepare("SELECT DISTINCT age_group_id, substr(tarih,1,7) AS ay FROM trainings").all())
       ekle.run(t.age_group_id, tarihinSezonu(t.ay + "-01", bas));
+  }
+  // 19: trainings.bitis_saat + seasons — bilinen her sezona varsayılan aralık (1 Eyl – 31 Ağu) yazılır; kullanıcı Ayarlar'dan düzeltir
+  const antKolon19 = new Set(
+    db
+      .prepare("PRAGMA table_info(trainings)")
+      .all()
+      .map((c) => c.name),
+  );
+  if (!antKolon19.has("bitis_saat")) db.exec("ALTER TABLE trainings ADD COLUMN bitis_saat TEXT DEFAULT ''");
+  if (cur < 19) {
+    const { varsayilanSezonAraligi } = require("../sezonTarih.cjs");
+    const bas = Number(db.prepare("SELECT value FROM settings WHERE key='sezon_baslangic_ayi'").get()?.value) || 9;
+    const sezonlar = new Set(
+      db
+        .prepare(
+          "SELECT sezon FROM players WHERE sezon<>'' UNION SELECT sezon FROM player_seasons UNION SELECT sezon FROM age_groups WHERE sezon<>'' UNION SELECT sezon FROM receipts WHERE sezon<>'' UNION SELECT sezon FROM group_seasons",
+        )
+        .all()
+        .map((r) => r.sezon),
+    );
+    const aktif = db.prepare("SELECT value FROM settings WHERE key='aktif_sezon'").get()?.value;
+    if (aktif) sezonlar.add(aktif);
+    const ekle = db.prepare("INSERT OR IGNORE INTO seasons (sezon, baslangic, bitis) VALUES (?,?,?)");
+    for (const sz of sezonlar) {
+      const a = varsayilanSezonAraligi(sz, bas);
+      if (a) ekle.run(sz, a.baslangic, a.bitis);
+    }
   }
   if (cur < SCHEMA_VERSION) setMetaValue("schema_version", String(SCHEMA_VERSION));
 }

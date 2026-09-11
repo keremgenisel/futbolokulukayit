@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Kart, Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "./ui.jsx";
 import { db } from "../lib/api.js";
-import { programCoz, programOzeti, GUN_ADLARI } from "../lib/program.js";
+import { programCoz, programOzeti, GUN_ADLARI, saatAraligiDogrula, sureDk } from "../lib/program.js";
 import { SezonSecim } from "./SezonSecim.jsx";
 import { Ikon } from "./Ikon.jsx";
 import { sezonSecenekleri } from "../lib/sezon.js";
@@ -59,7 +59,9 @@ export function YasGruplari({ saltOkunur }) {
         sezon: duzenle.sezon || aktifSezon,
         sira: Number(duzenle.sira) || 0,
         aktif: duzenle.aktif ? 1 : 0,
-        program: (duzenle.programListe || []).filter((p) => p.saat),
+        program: (duzenle.programListe || [])
+          .filter((p) => p.saat)
+          .map((p) => ({ gun: p.gun, saat: p.saat, bitis: p.bitis || "", saha: p.saha })),
       });
       setDuzenle(null);
       toast("ok", "Kaydedildi");
@@ -194,7 +196,7 @@ export function YasGruplari({ saltOkunur }) {
                         <Btn kucuk tur="ghost" onClick={() => setDuzenle(null)}>
                           Vazgeç
                         </Btn>
-                        <Btn kucuk onClick={kaydet}>
+                        <Btn kucuk onClick={kaydet} disabled={programHatali(duzenle.programListe || [])}>
                           Kaydet
                         </Btn>
                       </div>
@@ -283,36 +285,57 @@ export function YasGruplari({ saltOkunur }) {
   );
 }
 
-// Haftalık program düzenleyici: gün başına saat ve saha; saat boşsa o gün program dışı.
+// Programda hatalı satır var mı (bitiş başlangıçtan önce / bozuk) — Kaydet kapalı (plan §37)
+const programHatali = (liste) => liste.some((p) => p.saat && !saatAraligiDogrula(p.saat, p.bitis || "").gecerli);
+
+// Haftalık program düzenleyici: gün başına başlangıç, bitiş (isteğe bağlı) ve saha; başlangıç boşsa o gün program dışı.
 function ProgramDuzenle({ liste, onDegis }) {
-  const satir = (gun) => liste.find((p) => p.gun === gun) || { gun, saat: "", saha: "" };
+  const satir = (gun) => liste.find((p) => p.gun === gun) || { gun, saat: "", bitis: "", saha: "" };
   const degis = (gun, alan, deger) => {
     const yeni = liste.filter((p) => p.gun !== gun);
     const s = { ...satir(gun), [alan]: deger };
-    if (s.saat || s.saha) yeni.push(s);
+    if (s.saat || s.bitis || s.saha) yeni.push(s);
     onDegis(yeni.sort((a, b) => a.gun - b.gun));
   };
+  const kutu = { height: 30, borderRadius: 8, border: "1px solid var(--cizgi)", padding: "0 6px" };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
       {GUN_ADLARI.map((ad, i) => {
         const p = satir(i + 1);
+        const dg = p.saat ? saatAraligiDogrula(p.saat, p.bitis || "") : { gecerli: true };
+        const sure = sureDk(p.saat, p.bitis || "");
         return (
           <div key={ad} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}>
-            <span style={{ width: 70, color: "var(--soluk)" }}>{ad.slice(0, 3)}</span>
+            <span style={{ width: 44, color: "var(--soluk)" }}>{ad.slice(0, 3)}</span>
             <input
               type="time"
               value={p.saat}
               onChange={(e) => degis(i + 1, "saat", e.target.value)}
               aria-label={`${ad} saati`}
-              style={{ height: 30, borderRadius: 8, border: "1px solid var(--cizgi)", padding: "0 6px" }}
+              style={kutu}
+            />
+            <span style={{ color: "var(--soluk)" }}>–</span>
+            <input
+              type="time"
+              value={p.bitis || ""}
+              onChange={(e) => degis(i + 1, "bitis", e.target.value)}
+              aria-label={`${ad} bitişi`}
+              style={{ ...kutu, borderColor: dg.gecerli ? "var(--cizgi)" : "var(--kirmizi)" }}
             />
             <input
               value={p.saha}
               onChange={(e) => degis(i + 1, "saha", e.target.value)}
               placeholder="Saha"
               aria-label={`${ad} sahası`}
-              style={{ height: 30, width: 90, borderRadius: 8, border: "1px solid var(--cizgi)", padding: "0 6px" }}
+              style={{ ...kutu, width: 90 }}
             />
+            {!dg.gecerli ? (
+              <span role="alert" style={{ fontSize: 12, color: "var(--kirmizi)", fontWeight: 600 }}>
+                {dg.neden}
+              </span>
+            ) : sure ? (
+              <span style={{ fontSize: 12, color: "var(--soluk)" }}>{sure} dk</span>
+            ) : null}
           </div>
         );
       })}

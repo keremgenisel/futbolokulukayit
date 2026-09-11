@@ -188,3 +188,42 @@ describe("Raporlar sezon + ay filtresi", () => {
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("saglikRaporuListesi", "2026-10-31", null, 30, null, true));
   });
 });
+
+describe("Raporlar: Tümü → Ayarlar > Sezon'daki kayıtlı tarihler (plan §37)", () => {
+  it("yoklama özeti Tümü seçilince sezonun kayıtlı başlangıç/bitişini kullanır; kayıtsız sezonda 12 aya düşer", async () => {
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "listAgeGroups") return [];
+        if (fn === "sezonDurumu") return { aktifSezon: "2027-2028", baslangicAyi: 9, sonGecis: null, adaySayisi: 0 };
+        if (fn === "sezonListesi") return ["2027-2028", "2026-2027"];
+        if (fn === "sezonListesiTarihli")
+          return [
+            { sezon: "2027-2028", baslangic: "2027-09-15", bitis: "2028-06-30", kayitli: true },
+            { sezon: "2026-2027", baslangic: "2026-09-01", bitis: "2027-08-31", kayitli: false },
+          ];
+        if (fn === "attendanceReport") return [];
+        return null;
+      }),
+      cikti: { excelKaydet: vi.fn(async () => ({ ok: true })) },
+      app: { logo: async () => "" },
+    };
+    render(
+      <ToastSaglayici>
+        <Raporlar />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(screen.getByLabelText("Sezon")).toHaveValue("2027-2028"));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("sezonListesiTarihli"));
+    rapor("Yoklama Özeti");
+    fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "" } });
+    onizle();
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2027-09-15", "2028-06-30", null, "2027-2028", false),
+    );
+    fireEvent.change(screen.getByLabelText("Sezon"), { target: { value: "2026-2027" } });
+    onizle();
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("attendanceReport", "2026-09-01", "2027-08-31", null, "2026-2027", false),
+    );
+  });
+});

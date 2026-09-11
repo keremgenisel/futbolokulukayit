@@ -262,14 +262,29 @@ app.on("browser-window-created", async (_e, win) => {
     await liste("Vazgeç: değişiklik kaydedilmedi", ["U11", "U12", "U9", "U13", "U15"]);
     await satirDugme("U11", "Düzenle");
     await js(
-      `(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const g = (v) => { const i = [...document.querySelectorAll("table tbody input")].find((x) => x.value === v); return i; }; const ad = g("U11"); set.call(ad, "U11 A"); ad.dispatchEvent(new Event("input", { bubbles: true })); const sira = g("1"); set.call(sira, "9"); sira.dispatchEvent(new Event("input", { bubbles: true })); const saat = document.querySelector("input[aria-label='Pazartesi saati']"); set.call(saat, "17:30"); saat.dispatchEvent(new Event("input", { bubbles: true })); const saha = document.querySelector("input[aria-label='Pazartesi sahası']"); set.call(saha, "Saha 2"); saha.dispatchEvent(new Event("input", { bubbles: true })); })()`,
+      `(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const g = (v) => { const i = [...document.querySelectorAll("table tbody input")].find((x) => x.value === v); return i; }; const ad = g("U11"); set.call(ad, "U11 A"); ad.dispatchEvent(new Event("input", { bubbles: true })); const sira = g("1"); set.call(sira, "9"); sira.dispatchEvent(new Event("input", { bubbles: true })); const saat = document.querySelector("input[aria-label='Pazartesi saati']"); set.call(saat, "17:30"); saat.dispatchEvent(new Event("input", { bubbles: true })); const saha = document.querySelector("input[aria-label='Pazartesi sahası']"); set.call(saha, "Saha 2"); saha.dispatchEvent(new Event("input", { bubbles: true })); const bitis = document.querySelector("input[aria-label='Pazartesi bitişi']"); set.call(bitis, "17:00"); bitis.dispatchEvent(new Event("input", { bubbles: true })); })()`,
+    );
+    // plan §37: bitiş başlangıçtan önce → satırda uyarı, Kaydet kapalı
+    check(
+      "program bitişi başlangıçtan önce → 'Bitiş başlangıçtan sonra olmalı' ve Kaydet kapalı",
+      /Bitiş başlangıçtan sonra olmalı/.test(await js(`document.querySelector("table tbody [role=alert]")?.textContent || ""`)) &&
+        (await js(
+          `[...document.querySelectorAll("table tbody tr")].find((tr) => tr.querySelector("input"))?.querySelector("button[disabled]")?.textContent.trim()`,
+        )) === "Kaydet",
+    );
+    await js(
+      `(() => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; const bitis = document.querySelector("input[aria-label='Pazartesi bitişi']"); set.call(bitis, "19:00"); bitis.dispatchEvent(new Event("input", { bubbles: true })); })()`,
+    );
+    check(
+      "bitiş düzelince '90 dk' süresi görünür",
+      /90 dk/.test(await js(`document.querySelector("table tbody tr input[aria-label='Pazartesi bitişi']").closest("tr").textContent`)),
     );
     await shot("06-duzenle");
     await tikla("Kaydet", '[...document.querySelectorAll("table tbody tr")].find((tr) => tr.querySelector("input"))');
     await liste("Düzenle+Kaydet: ad 'U11 A', sıra 9 → listenin sonuna", ["U12", "U9", "U13", "U15", "U11 A"]);
     check(
-      "program özeti 'Pzt 17:30'; sıra 9",
-      /Pzt 17:30/.test(await satir("U11 A")) &&
+      "program özeti 'Pzt 17:30–19:00'; sıra 9",
+      /Pzt 17:30–19:00/.test(await satir("U11 A")) &&
         /^9/.test(
           await js(
             `[...document.querySelectorAll("table tbody tr")].find((tr) => tr.cells[1]?.textContent.trim() === "U11 A").cells[0].textContent.trim()`,
@@ -280,7 +295,7 @@ app.on("browser-window-created", async (_e, win) => {
       "veritabanı: program ve ad kaydedildi",
       (() => {
         const g = db.listAgeGroups().find((x) => x.id === u11.id);
-        return g.ad === "U11 A" && g.sira === 9 && /17:30/.test(g.program || "");
+        return g.ad === "U11 A" && g.sira === 9 && /17:30/.test(g.program || "") && /"bitis":"19:00"/.test(g.program || "");
       })(),
     );
     // Düzenle ile sezonu sonraki sezona taşı (U13)

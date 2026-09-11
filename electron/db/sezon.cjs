@@ -2,6 +2,7 @@
 const { db } = require("./baglanti.cjs");
 const { getSetting, setSetting } = require("./meta.cjs");
 const { ensureMonthlyDues } = require("./aidat.cjs");
+const { sezonTarihDogrula, varsayilanSezonAraligi } = require("../sezonTarih.cjs");
 
 const SEZON_DURUMLARI = ["aktif", "deneme", "sakat"];
 // Sihirbaz listesi: sezonda aktif sayılan oyuncular + geçmiş ödenmemiş aidat sayısı/tutarı.
@@ -31,17 +32,46 @@ const sezonListesi = () => {
     .sort()
     .reverse();
 };
+// Sezon tarihleri (plan §37): kayıt yoksa etiketten varsayılan aralık (kaydedilmez; kullanıcı Ayarlar'dan yazar)
+function sezonTarihleri(sezon) {
+  if (!sezon) return null;
+  const r = db.prepare("SELECT sezon, baslangic, bitis FROM seasons WHERE sezon=?").get(String(sezon));
+  if (r) return { ...r, kayitli: true };
+  const a = varsayilanSezonAraligi(String(sezon), Number(getSetting("sezon_baslangic_ayi")) || 9);
+  return a ? { sezon: String(sezon), ...a, kayitli: false } : null;
+}
+function sezonTarihKaydet(sezon, baslangic, bitis) {
+  const d = sezonTarihDogrula(sezon, baslangic, bitis);
+  if (!d.gecerli) throw new Error(d.neden);
+  // Sezonlar çakışmasın: başka bir sezonun aralığıyla kesişme
+  const cakisan = db
+    .prepare("SELECT sezon FROM seasons WHERE sezon<>? AND baslangic<=? AND bitis>=?")
+    .get(String(sezon), String(bitis), String(baslangic));
+  if (cakisan) throw new Error(`Tarihler ${cakisan.sezon} sezonuyla çakışıyor`);
+  db.prepare(
+    "INSERT INTO seasons (sezon, baslangic, bitis) VALUES (?,?,?) ON CONFLICT(sezon) DO UPDATE SET baslangic=excluded.baslangic, bitis=excluded.bitis",
+  ).run(String(sezon), String(baslangic), String(bitis));
+  return { ok: true, ...sezonTarihleri(sezon) };
+}
+const sezonListesiTarihli = () => sezonListesi().map((s) => sezonTarihleri(s));
+
 function sezonDurumu() {
+  const aktifSezon = getSetting("aktif_sezon") || "";
   return {
-    aktifSezon: getSetting("aktif_sezon") || "",
+    aktifSezon,
+    tarihler: sezonTarihleri(aktifSezon), // { baslangic, bitis, kayitli } | null
     baslangicAyi: Number(getSetting("sezon_baslangic_ayi")) || 9,
     sonGecis: getSetting("son_sezon_gecisi") || null,
     adaySayisi: db.prepare("SELECT count(*) AS n FROM players WHERE durum IN ('aktif','deneme','sakat')").get().n,
   };
 }
 // Tek işlem: yenileyenler yeni sezona (isteğe bağlı yeni grup), diğerleri pasif + not; gruplar ve aktif sezon güncellenir.
-function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
+function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false, baslangic = "", bitis = "" } = {}) {
   if (!/^\d{4}-\d{4}$/.test(String(sezon || ""))) throw new Error("Sezon adı 2027-2028 biçiminde olmalı");
+  if (baslangic || bitis) {
+    const d = sezonTarihDogrula(sezon, baslangic, bitis);
+    if (!d.gecerli) throw new Error(d.neden);
+  }
   const eskiSezon = getSetting("aktif_sezon") || "";
   const tx = db.transaction(() => {
     const adaylar = db.prepare("SELECT id, notlar, yas_grubu_id FROM players WHERE durum IN ('aktif','deneme','sakat')").all();
@@ -76,10 +106,20 @@ function yeniSezonaGec({ sezon, yenileyenler = [], eskiBorcSil = false } = {}) {
     db.prepare("UPDATE age_groups SET sezon=? WHERE aktif=1").run(sezon);
     db.prepare("INSERT OR IGNORE INTO group_seasons (group_id, sezon) SELECT id, ? FROM age_groups WHERE aktif=1").run(sezon); // geçmiş üyelik kalır (plan §21)
     setSetting("aktif_sezon", sezon);
+    if (baslangic && bitis) sezonTarihKaydet(sezon, baslangic, bitis); // plan §37: yeni sezonun tarihleri
     setSetting("son_sezon_gecisi", new Date().toISOString());
     return { ok: true, sezon, yenilenen, pasif, grupDegisen, borcSilinen, ilkAyBorcu, ilkAy };
   });
   return tx();
 }
 
-module.exports = { SEZON_DURUMLARI, sezonAdayListesi, sezonListesi, sezonDurumu, yeniSezonaGec };
+module.exports = {
+  SEZON_DURUMLARI,
+  sezonAdayListesi,
+  sezonListesi,
+  sezonDurumu,
+  yeniSezonaGec,
+  sezonTarihleri,
+  sezonTarihKaydet,
+  sezonListesiTarihli,
+};

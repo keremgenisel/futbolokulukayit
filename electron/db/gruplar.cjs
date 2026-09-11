@@ -1,5 +1,6 @@
 // ── age groups, haftalık program ──
 const { db } = require("./baglanti.cjs");
+const { saatAraligiDogrula } = require("../saatAralik.cjs");
 const { createTraining } = require("./antrenman.cjs");
 
 // sezon verilirse yalnız o sezonda var olan gruplar (age_groups.sezon VEYA group_seasons; plan §21); verilmezse hepsi
@@ -56,7 +57,12 @@ function programDogrula(p) {
     .filter(
       (x) => x && Number.isInteger(Number(x.gun)) && Number(x.gun) >= 1 && Number(x.gun) <= 7 && /^\d{2}:\d{2}$/.test(String(x.saat || "")),
     )
-    .map((x) => ({ gun: Number(x.gun), saat: String(x.saat), saha: String(x.saha || "").trim() }));
+    .map((x) => ({
+      gun: Number(x.gun),
+      saat: String(x.saat),
+      bitis: saatAraligiDogrula(String(x.saat), String(x.bitis || "")).gecerli ? String(x.bitis || "") : "", // plan §37
+      saha: String(x.saha || "").trim(),
+    }));
 }
 // Haftayı programdan doldur: aktif grupların programındaki gün/saatler için o haftada antrenman yoksa açar (var olan atlanır).
 function haftayiProgramdanDoldur(haftaBasiIso) {
@@ -83,7 +89,7 @@ function haftayiProgramdanDoldur(haftaBasiIso) {
           atlanan++;
           continue;
         }
-        createTraining({ age_group_id: g.id, tarih, saat: p.saat, saha: p.saha });
+        createTraining({ age_group_id: g.id, tarih, saat: p.saat, saha: p.saha, bitis_saat: p.bitis || "" });
         eklenen++;
       }
     }

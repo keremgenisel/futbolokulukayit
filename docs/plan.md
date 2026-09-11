@@ -1571,7 +1571,7 @@ testleri + duman görüntüleri karşılaştırılır).
   grup seçimi, "Pasif grupları da göster") ve WhatsApp sayacı bilinçli olarak el yapımı kaldı.
 
 
-## 37. Sezon başlangıç/bitiş tarihi ve antrenman başlangıç/bitiş saati (PLAN, 11.09.2026)
+## 37. Sezon başlangıç/bitiş tarihi ve antrenman başlangıç/bitiş saati (UYGULANDI, 11.09.2026)
 
 Kerem: "Yaş grupları düzenlede başlangıç ve bitiş girilsin, yoklamada antrenman eklede de girilsin. Yaz aylarında da aidat
 alınıyor; kullanıcı sezon başlangıcı ve bitişini kendi seçsin. Önce planlama sonra mockup."
@@ -1617,3 +1617,22 @@ bitis_saat), kalıcılık (sezon tarihleri + antrenman bitişi kalıcı), yas-gr
 1. Şema 19 + saf yardımcılar + göç (küçük). 2. Yoklama: ekle/düzenle formu, kart/başlık, form/WhatsApp `{bitis}`, çakışma uyarısı
 (orta). 3. Yaş Grupları program editörü + liste özeti + programdan doldurma (orta). 4. Sezon tarihleri: SezonAyar kartı, sihirbaz
 adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta). Mockup onayından sonra 1→4.
+
+### 37.6 Uygulama notları (11.09.2026)
+- 1–4 uygulandı. Şema 19: `seasons` + `trainings.bitis_saat`; göç bilinen her sezonu varsayılan aralıkla (`electron/sezonTarih.cjs
+  varsayilanSezonAraligi`, başlangıç ayından 12 ay) `seasons`'a yazar → `sezonTarihleri()` bunlarda `kayitli: true` döner; yalnız hiç
+  görülmemiş etiketler varsayılan (`kayitli: false`) alır. Saf ikizler `electron/sezonTarih.cjs`, `electron/saatAralik.cjs`.
+- Yeni saf yardımcılar: `sezon.js` `sezonTarihDogrula`, `sezonKalanGun`, `kisaAralik` ("1 Eyl – 30 Haz"), `isoYilAy`; `program.js`
+  `saatAraligi`, `saatDk`, `saatEkle`, `sureDk`, `saatAraligiDogrula`, `aralikKesisir` (bitişsiz antrenman 90 dk sayılır, uçtan uca
+  değen kesişmez). `programCoz` `{gun, saat, bitis, saha}` verir (bitiş geçersizse "").
+- Arayüz: Yoklama ekle/düzenle formu Başlangıç · Bitiş · Saha, kart "U11 · 17:00–18:30 · 90 dk", saha çakışma uyarısı (`role="alert"`,
+  büyük/küçük harf duyarsız saha; engel değil); Yaş Grupları program satırı Başlangıç – Bitiş – Saha + "N dk"/neden, hatalıysa Kaydet
+  kapalı; SezonAyar "Sezon tarihleri" kartı (Tarihleri Kaydet yalnız değişiklikte açık, rozet "N gün kaldı · 1 Eyl – 30 Haz") ve
+  sihirbazda yeni sezonun Başlangıç/Bitiş'i (bir yıl kaydırılmış öneri; boş bırakılırsa tarih kaydedilmez, DB de aynı kuralı uygular);
+  Pano başlık satırında "Sezon 2026-2027 · 1 Eyl – 30 Haz · N gün kaldı", bitişe ≤30 gün kala hatırlatma şeridi ("Sezon Ayarları"
+  düğmesi; "sezon bitti" şeridi varsa bu çıkmaz); Raporlar "Tümü" aralığı `sezonListesiTarihli`'den (kayıt yoksa 12 ay); Uzun Dönem
+  "Sezon Sonuna Kadar" `sezonDurumu.tarihler.bitis` ayına kadar (`UzunDonemModal sezonBitis` prop'u).
+- ERTELENDİ (düşük öncelik): yoklama takviminde sezon dışı günün soluk gösterilmesi, "Haftayı Programdan Doldur" sezon dışı uyarısı.
+- Testler: saf 26 (program/sezon/whatsapp), UI (yoklama, yaş grupları, sezon, raporlar-sezon, tahsilat, pano), Electron
+  db-roundtrip/kalıcılık şema 19, yoklama/yaş grupları e2e bitiş + saha çakışması. `tests/ui/tahsilat.test.jsx` "Tahsil eden"
+  testindeki önceden var olan yakalanmamış hata (mock her çağrıya "" dönüyordu) düzeltildi.

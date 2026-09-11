@@ -178,4 +178,42 @@ describe("Yaş Grupları ekranı", () => {
     expect(screen.getByText(/2 grup/)).toBeInTheDocument();
     expect(window.okul.db).not.toHaveBeenCalledWith("listAgeGroups", { sezon: null });
   });
+
+  it("program editörü (plan §37): başlangıç/bitiş/saha, süre gösterimi, hatalı bitişte Kaydet kapalı; kayıtta bitiş gider, listede aralık", async () => {
+    gruplar = [
+      { id: 1, ad: "U11", sezon: "2026-2027", sira: 1, aktif: 1, program: JSON.stringify([{ gun: 1, saat: "17:00", saha: "Saha 1" }]) },
+    ];
+    let yazilan = null;
+    const orijinal = window.okul.db;
+    window.okul.db = vi.fn(async (fn, ...args) => {
+      if (fn === "updateAgeGroup") {
+        yazilan = args[1];
+        gruplar = gruplar.map((g) => (g.id === args[0] ? { ...g, ...args[1], program: JSON.stringify(args[1].program) } : g));
+        return { ok: true };
+      }
+      return orijinal(fn, ...args);
+    });
+    render(
+      <ToastSaglayici>
+        <YasGruplari />
+      </ToastSaglayici>,
+    );
+    await screen.findByText("Pzt 17:00");
+    fireEvent.click(screen.getByRole("button", { name: "Düzenle" }));
+    expect(screen.getByLabelText("Pazartesi saati")).toHaveValue("17:00");
+    fireEvent.change(screen.getByLabelText("Pazartesi bitişi"), { target: { value: "16:00" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("Bitiş başlangıçtan sonra olmalı");
+    expect(screen.getByRole("button", { name: "Kaydet" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("Pazartesi bitişi"), { target: { value: "18:30" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("90 dk")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Çarşamba saati"), { target: { value: "18:00" } }); // bitişsiz gün de geçerli
+    fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+    await waitFor(() => expect(yazilan).not.toBeNull());
+    expect(yazilan.program).toEqual([
+      { gun: 1, saat: "17:00", bitis: "18:30", saha: "Saha 1" },
+      { gun: 3, saat: "18:00", bitis: "", saha: "" },
+    ]);
+    await screen.findByText("Pzt 17:00–18:30 · Çar 18:00");
+  });
 });

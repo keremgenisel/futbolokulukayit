@@ -8,6 +8,7 @@ import { TakvimSeridi, SERIT_GUN } from "./TakvimSeridi.jsx";
 import { gunKaydir, varsayilanBaslangic, uzunTarih, haftaBasi } from "../lib/takvim.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { antrenmanDegerleri, hatirlatmaUygunMu } from "../lib/whatsapp.js";
+import { saatAraligi, saatAraligiDogrula, aralikKesisir, sureDk } from "../lib/program.js";
 
 // Şerit kaydırıldıkça ±4 haftalık pencere tek sorguda yüklenir (plan §9.2).
 const PENCERE_GUN = 28;
@@ -22,9 +23,9 @@ export function Yoklama({ saltOkunur }) {
   const [oyuncular, setOyuncular] = useState([]);
   const [yoklama, setYoklama] = useState({}); // player_id → durum
   const [formAcik, setFormAcik] = useState(false);
-  const [yeni, setYeni] = useState({ age_group_id: "", saat: "", saha: "" });
+  const [yeni, setYeni] = useState({ age_group_id: "", saat: "", bitis: "", saha: "" }); // bitiş isteğe bağlı (plan §37)
   const [iptal, setIptal] = useState(null);
-  const [duzen, setDuzen] = useState(null); // antrenman düzenleme formu { tarih, saat, saha }
+  const [duzen, setDuzen] = useState(null); // antrenman düzenleme formu { tarih, saat, bitis, saha }
   const [bildir, setBildir] = useState(null); // "Velilere bildirilsin mi?" sorusu { t, tur }
   const [waAnt, setWaAnt] = useState(null); // açık bildirim penceresi { t, tur, alicilar }
   const toast = useToast();
@@ -99,10 +100,18 @@ export function Yoklama({ saltOkunur }) {
     });
   const antrenmanEkle = async () => {
     if (!yeni.age_group_id) return toast("err", "Yaş grubu seçin");
+    const dg = saatAraligiDogrula(yeni.saat, yeni.bitis);
+    if (!dg.gecerli) return toast("err", dg.neden);
     return dene(async () => {
-      const t = await db("createTraining", { age_group_id: Number(yeni.age_group_id), tarih, saat: yeni.saat, saha: yeni.saha });
+      const t = await db("createTraining", {
+        age_group_id: Number(yeni.age_group_id),
+        tarih,
+        saat: yeni.saat,
+        bitis_saat: yeni.bitis,
+        saha: yeni.saha,
+      });
       toast("ok", "Antrenman eklendi");
-      setYeni({ age_group_id: "", saat: "", saha: "" });
+      setYeni({ age_group_id: "", saat: "", bitis: "", saha: "" });
       setFormAcik(false);
       await takvimYukle();
       antrenmanSec({ ...t, yas_grubu_ad: gruplar.find((g) => g.id === t.age_group_id)?.ad, iptal: 0, oyuncu: 0, isaretli: 0 });
@@ -134,7 +143,9 @@ export function Yoklama({ saltOkunur }) {
   // Antrenman düzenleme (plan §13): tarih/saat/saha; değiştiyse velilere bildirim sorulur
   const duzenKaydet = () =>
     dene(async () => {
-      const t = await db("updateTraining", aktif.id, { tarih: duzen.tarih, saat: duzen.saat, saha: duzen.saha });
+      const dg = saatAraligiDogrula(duzen.saat, duzen.bitis);
+      if (!dg.gecerli) throw new Error(dg.neden);
+      const t = await db("updateTraining", aktif.id, { tarih: duzen.tarih, saat: duzen.saat, bitis_saat: duzen.bitis, saha: duzen.saha });
       setDuzen(null);
       if (!t.degisti) return toast("ok", "Değişiklik yok");
       toast("ok", "Antrenman güncellendi");
@@ -195,7 +206,7 @@ export function Yoklama({ saltOkunur }) {
     return yoklamaFormuHtml({
       grup: aktif.yas_grubu_ad || "",
       tarih: aktif.tarih,
-      saat: aktif.saat,
+      saat: saatAraligi(aktif.saat || "", aktif.bitis_saat || ""), // "17:00–18:30"
       saha: aktif.saha,
       logo,
       kulup,
@@ -308,11 +319,14 @@ export function Yoklama({ saltOkunur }) {
                 >
                   <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
                     <span className="baslik" style={{ fontSize: 20, fontWeight: 700, color: "var(--mor-koyu)" }}>
-                      {t.yas_grubu_ad} · {t.saat || "—"}
+                      {t.yas_grubu_ad} · {saatAraligi(t.saat || "", t.bitis_saat || "") || "—"}
                     </span>
                     {t.iptal ? <Rozet ton="red">İptal</Rozet> : null}
                   </span>
-                  <span style={{ fontSize: 13, color: "var(--soluk)" }}>{t.saha || "Saha belirtilmedi"}</span>
+                  <span style={{ fontSize: 13, color: "var(--soluk)" }}>
+                    {t.saha || "Saha belirtilmedi"}
+                    {sureDk(t.saat, t.bitis_saat) ? ` · ${sureDk(t.saat, t.bitis_saat)} dk` : ""}
+                  </span>
                   {t.bildirim_gerekli ? (
                     <span style={{ fontSize: 12, fontWeight: 600, color: t.bildirilen > 0 ? "var(--mor)" : "var(--kirmizi)" }}>
                       {t.bildirilen > 0 ? `${t.bildirilen}/${t.oyuncu} veli bildirildi` : "Velilere bildirilmedi"}
@@ -356,8 +370,17 @@ export function Yoklama({ saltOkunur }) {
                 aria-label="Yaş grubu"
               />
             </Alan>
-            <Alan etiket="Saat" style={{ width: 130 }}>
+            <Alan etiket="Başlangıç" style={{ width: 130 }}>
               <Girdi type="time" value={yeni.saat} onChange={(e) => setYeni({ ...yeni, saat: e.target.value })} aria-label="Saat" />
+            </Alan>
+            <Alan etiket="Bitiş" style={{ width: 130 }}>
+              <Girdi
+                type="time"
+                value={yeni.bitis}
+                onChange={(e) => setYeni({ ...yeni, bitis: e.target.value })}
+                aria-label="Bitiş"
+                style={!saatAraligiDogrula(yeni.saat, yeni.bitis).gecerli ? { borderColor: "var(--kirmizi)" } : undefined}
+              />
             </Alan>
             <Alan etiket="Saha" style={{ width: 160 }}>
               <Girdi
@@ -370,6 +393,40 @@ export function Yoklama({ saltOkunur }) {
             <Btn ikon={<Ikon ad="arti" />} onClick={antrenmanEkle}>
               Ekle
             </Btn>
+            {(() => {
+              // Saha çakışma uyarısı (plan §37): aynı gün, aynı saha, kesişen aralık — engel değil
+              const saha = yeni.saha.trim().toLocaleLowerCase("tr-TR");
+              if (!saha || !yeni.saat) return null;
+              const cakisan = antrenmanlar.find(
+                (t) =>
+                  !t.iptal &&
+                  (t.saha || "").trim().toLocaleLowerCase("tr-TR") === saha &&
+                  aralikKesisir({ saat: t.saat, bitis: t.bitis_saat }, { saat: yeni.saat, bitis: yeni.bitis }),
+              );
+              return cakisan ? (
+                <div
+                  role="alert"
+                  style={{
+                    flexBasis: "100%",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 12px",
+                    borderRadius: 10,
+                    background: "var(--uyari-acik)",
+                    border: "1px solid var(--uyari)",
+                    fontSize: 13.5,
+                    color: "var(--mor-koyu)",
+                  }}
+                >
+                  <Ikon ad="uyari" boyut={18} />
+                  <span>
+                    <b>{cakisan.saha}</b>'de {saatAraligi(cakisan.saat, cakisan.bitis_saat)} <b>{cakisan.yas_grubu_ad}</b> antrenmanı var;{" "}
+                    {saatAraligi(yeni.saat, yeni.bitis)} ile çakışıyor. Yine de ekleyebilirsiniz.
+                  </span>
+                </div>
+              ) : null;
+            })()}
             <Btn tur="ghost" ikon={<Ikon ad="kapat" />} onClick={() => setFormAcik(false)}>
               Vazgeç
             </Btn>
@@ -395,7 +452,7 @@ export function Yoklama({ saltOkunur }) {
             >
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                 <h3 style={{ fontSize: 22 }}>
-                  {aktif.yas_grubu_ad} Yoklama{aktif.saat ? ` · ${aktif.saat}` : ""}
+                  {aktif.yas_grubu_ad} Yoklama{aktif.saat ? ` · ${saatAraligi(aktif.saat, aktif.bitis_saat || "")}` : ""}
                 </h3>
                 <div style={{ display: "flex", gap: 16, fontSize: 14 }}>
                   {[
@@ -469,7 +526,9 @@ export function Yoklama({ saltOkunur }) {
                       <Btn
                         tur="ghost"
                         ikon={<Ikon ad="takvim" />}
-                        onClick={() => setDuzen({ tarih: aktif.tarih, saat: aktif.saat || "", saha: aktif.saha || "" })}
+                        onClick={() =>
+                          setDuzen({ tarih: aktif.tarih, saat: aktif.saat || "", bitis: aktif.bitis_saat || "", saha: aktif.saha || "" })
+                        }
                       >
                         Düzenle
                       </Btn>
@@ -505,12 +564,21 @@ export function Yoklama({ saltOkunur }) {
                     title={aktif.isaretli > 0 ? "Yoklaması alınmış antrenmanın tarihi değiştirilemez" : ""}
                   />
                 </Alan>
-                <Alan etiket="Saat" style={{ width: 130 }}>
+                <Alan etiket="Başlangıç" style={{ width: 130 }}>
                   <Girdi
                     type="time"
                     value={duzen.saat}
                     onChange={(e) => setDuzen({ ...duzen, saat: e.target.value })}
                     aria-label="Antrenman saati"
+                  />
+                </Alan>
+                <Alan etiket="Bitiş" style={{ width: 130 }}>
+                  <Girdi
+                    type="time"
+                    value={duzen.bitis}
+                    onChange={(e) => setDuzen({ ...duzen, bitis: e.target.value })}
+                    aria-label="Antrenman bitişi"
+                    style={!saatAraligiDogrula(duzen.saat, duzen.bitis).gecerli ? { borderColor: "var(--kirmizi)" } : undefined}
                   />
                 </Alan>
                 <Alan etiket="Saha" style={{ width: 160 }}>
@@ -571,7 +639,7 @@ export function Yoklama({ saltOkunur }) {
           grup={{ ad: waAnt.t.yas_grubu_ad, training_id: waAnt.t.id, gonderildi: !!waAnt.t.grup_bildirim }}
           tur={waAnt.tur}
           baslik={waAnt.tur === "iptal" ? "Antrenman İptali — Velilere Bildir" : "Antrenman Değişikliği — Velilere Bildir"}
-          altBaslik={`${waAnt.t.yas_grubu_ad} · ${uzunTarih(waAnt.t.tarih)}${waAnt.t.saat ? " · " + waAnt.t.saat : ""}`}
+          altBaslik={`${waAnt.t.yas_grubu_ad} · ${uzunTarih(waAnt.t.tarih)}${waAnt.t.saat ? " · " + saatAraligi(waAnt.t.saat, waAnt.t.bitis_saat || "") : ""}`}
           alicilar={waAnt.alicilar}
           kayit={{ training_id: waAnt.t.id }}
           saltOkunur={saltOkunur}

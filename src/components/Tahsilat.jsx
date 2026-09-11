@@ -39,6 +39,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [bekliyor, setBekliyor] = useState(false);
   const [uzunDonemAcik, setUzunDonemAcik] = useState(false); // Uzun Dönem Seç modalı (plan §24)
   const [aktifSezon, setAktifSezon] = useState("");
+  const [sezonBitis, setSezonBitis] = useState(""); // kayıtlı sezon bitişi (plan §37)
   const toast = useToast();
   const dene = useDene();
   const { yil, ay } = bugun();
@@ -47,6 +48,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     try {
       const sd = await db("sezonDurumu"); // Bugün kesilenler: yalnız aktif sezonun makbuzları (plan §17.2)
       setAktifSezon(sd?.aktifSezon || "");
+      setSezonBitis(sd?.tarihler?.bitis || "");
       setBugunku(await db("listReceiptsByDate", bugun().iso, bugun().iso, sd?.aktifSezon || null));
     } catch {}
   }, []);
@@ -711,6 +713,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
           aylikAidat={oyuncu.aylik_aidat}
           baslangic={enEskiBorc ? { yil: enEskiBorc.yil, ay: enEskiBorc.ay } : undefined}
           sezon={aktifSezon}
+          sezonBitis={sezonBitis}
           odenmisAylar={odenmisAylar}
           onUygula={uzunDonemUygula}
           onKapat={() => setUzunDonemAcik(false)}

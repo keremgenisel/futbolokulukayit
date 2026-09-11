@@ -179,15 +179,23 @@ app.on("browser-window-created", async (_e, win) => {
     check("grup seçmeden Ekle → uyarı", /Yaş grubu seçin/.test(await govde()));
     await sec("select[aria-label='Yaş grubu']", u11.id);
     await setInput("input[aria-label='Saat']", "17:00");
+    await setInput("input[aria-label='Bitiş']", "16:00"); // plan §37: bitiş başlangıçtan önce → Ekle reddedilir
     await setInput("input[aria-label='Saha']", "Saha 1");
+    await tikla("Ekle");
+    check(
+      "bitiş başlangıçtan önce → 'Bitiş başlangıçtan sonra olmalı', antrenman eklenmez",
+      /Bitiş başlangıçtan sonra olmalı/.test(await govde()) && (await kartlar()).length === 0,
+    );
+    await setInput("input[aria-label='Bitiş']", "18:30");
     await shot("02-antrenman-ekle-formu");
     await tikla("Ekle");
     await bekle(700);
     let k = await kartlar();
     check(
-      "kart: 'U11 · 17:00', Saha 1, 0/3 işaretli (pasif oyuncu sayılmaz) ve seçili",
+      "kart: 'U11 · 17:00–18:30 · 90 dk', Saha 1, 0/3 işaretli (pasif oyuncu sayılmaz) ve seçili",
       k.length === 1 &&
-        /U11 · 17:00/.test(k[0].metin) &&
+        /U11 · 17:00–18:30/.test(k[0].metin) &&
+        /90 dk/.test(k[0].metin) &&
         /Saha 1/.test(k[0].metin) &&
         /0\/3 işaretli/.test(k[0].metin) &&
         k[0].secili === "true",
@@ -208,6 +216,24 @@ app.on("browser-window-created", async (_e, win) => {
         /2 aidat borcu/.test(await govde()),
     );
     await shot("03-antrenman-secili");
+    // Saha çakışması uyarısı (plan §37): aynı gün, aynı sahada 17:30 → U11 17:00–18:30 ile çakışır; eklemeden vazgeçilir
+    await tikla("Antrenman Ekle");
+    await sec("select[aria-label='Yaş grubu']", u12.id);
+    await setInput("input[aria-label='Saat']", "17:30");
+    await setInput("input[aria-label='Saha']", "saha 1"); // büyük/küçük harf duyarsız
+    const cakismaMetni = () =>
+      js(`[...document.querySelectorAll("[role=alert]")].map((x) => x.textContent).find((t) => /çakışıyor/.test(t)) || ""`);
+    const cakisma = await cakismaMetni();
+    check(
+      "saha çakışması uyarısı: Saha 1'de 17:00–18:30 U11 antrenmanı var; 17:30 ile çakışıyor",
+      /Saha 1'de 17:00–18:30 U11 antrenmanı var; 17:30 ile çakışıyor/.test(cakisma),
+      cakisma,
+    );
+    await setInput("input[aria-label='Saat']", "18:30"); // uçtan uca değen kesişmez
+    check("18:30'da başlayan çakışmaz (uyarı kalkar)", (await cakismaMetni()) === "");
+    await shot("03b-saha-cakisma");
+    await tikla("Vazgeç");
+    check("vazgeçince kart sayısı değişmez", (await kartlar()).length === 1);
 
     // 3) İşaretleme
     await oyuncuDugme("Ali Odedi", "Geldi");

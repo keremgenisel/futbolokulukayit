@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-li
 import { Ayarlar } from "../../src/components/Ayarlar.jsx";
 import { Pano } from "../../src/components/Pano.jsx";
 import { ToastSaglayici } from "../../src/components/ui.jsx";
+import { guncelSezon } from "../../src/lib/sezon.js";
 
 afterEach(cleanup);
 
@@ -64,6 +65,8 @@ describe("Ayarlar > Yeni Sezon sihirbazı", () => {
     await waitFor(() =>
       expect(window.okul.db).toHaveBeenCalledWith("yeniSezonaGec", {
         sezon: "2027-2028",
+        baslangic: "",
+        bitis: "",
         eskiBorcSil: true,
         yenileyenler: [
           { id: 10, yas_grubu_id: 2 },
@@ -192,5 +195,108 @@ describe("Pano: sezon sonu hatırlatması", () => {
     );
     await screen.findByText("Tesise Giriş Kontrolü");
     expect(screen.queryByRole("alert")).toBeNull();
+  });
+});
+
+describe("Sezon tarihleri (plan §37)", () => {
+  const durumTarihli = {
+    aktifSezon: "2026-2027",
+    baslangicAyi: 9,
+    sonGecis: null,
+    adaySayisi: 0,
+    tarihler: { sezon: "2026-2027", baslangic: "2026-09-01", bitis: "2027-06-30", kayitli: true },
+  };
+  const okul = (ek = {}) => ({
+    db: vi.fn(async (fn, ...a) => {
+      if (fn === "sezonDurumu") return durumTarihli;
+      if (fn === "listAgeGroups") return gruplar;
+      if (fn === "sezonAdayListesi") return adaylar;
+      if (fn === "sezonTarihKaydet") return { ok: true };
+      if (fn === "yeniSezonaGec") return { ok: true, sezon: a[0].sezon, yenilenen: 0, pasif: 0, grupDegisen: 0, borcSilinen: 0 };
+      if (fn === "getSetting") return "";
+      if (fn === "listUsers") return [];
+      return null;
+    }),
+    app: { version: async () => "0.1.0" },
+    lisans: { durum: async () => ({ ok: true, durum: { mod: "deneme" } }) },
+    mod: { oku: async () => ({ mode: "yerel" }) },
+    ...ek,
+  });
+
+  it("Ayarlar > Sezon: tarihler görünür, düzenlenip kaydedilir; bitiş başlangıçtan önceyse kaydedilmez", async () => {
+    window.okul = okul();
+    render(
+      <ToastSaglayici>
+        <Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="sezon" />
+      </ToastSaglayici>,
+    );
+    expect(await screen.findByLabelText("Sezon başlangıcı")).toHaveValue("2026-09-01");
+    expect(screen.getByLabelText("Sezon bitişi")).toHaveValue("2027-06-30");
+    expect(screen.getByText(/1 Eyl – 30 Haz/)).toBeInTheDocument();
+    const kaydet = screen.getByRole("button", { name: "Tarihleri Kaydet" });
+    expect(kaydet).toBeDisabled(); // değişiklik yok
+    fireEvent.change(screen.getByLabelText("Sezon bitişi"), { target: { value: "2026-08-01" } });
+    fireEvent.click(kaydet);
+    expect(await screen.findByText("Bitiş başlangıçtan sonra olmalı")).toBeInTheDocument();
+    expect(window.okul.db).not.toHaveBeenCalledWith("sezonTarihKaydet", expect.anything(), expect.anything(), expect.anything());
+    fireEvent.change(screen.getByLabelText("Sezon bitişi"), { target: { value: "2027-08-31" } });
+    fireEvent.click(kaydet);
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("sezonTarihKaydet", "2026-2027", "2026-09-01", "2027-08-31"));
+    expect(await screen.findByText("Sezon tarihleri kaydedildi")).toBeInTheDocument();
+  });
+
+  it("Yeni sezona geçiş: tarihler bir yıl kaydırılmış önerilir ve yeniSezonaGec'e gider", async () => {
+    window.okul = okul();
+    render(
+      <ToastSaglayici>
+        <Ayarlar oturum={{ username: "admin", role: "admin" }} saltOkunur={false} baslangicBolum="sezon" />
+      </ToastSaglayici>,
+    );
+    expect(await screen.findByLabelText("Yeni sezon başlangıcı")).toHaveValue("2027-09-01");
+    expect(screen.getByLabelText("Yeni sezon bitişi")).toHaveValue("2028-06-30");
+    fireEvent.change(screen.getByLabelText("Yeni sezon bitişi"), { target: { value: "2028-07-15" } });
+    fireEvent.click(screen.getByRole("button", { name: "Yeni Sezona Geç" }));
+    const dlg = await screen.findByRole("dialog");
+    fireEvent.click(within(dlg).getByRole("button", { name: "Evet" }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith(
+        "yeniSezonaGec",
+        expect.objectContaining({ sezon: "2027-2028", baslangic: "2027-09-01", bitis: "2028-07-15" }),
+      ),
+    );
+  });
+
+  it("Pano: sezon satırı kalan günü gösterir; bitişe 30 gün kala hatırlatma şeridi çıkar", async () => {
+    // Bugünün tarihine göre bitiş: 20 gün sonra
+    const bugun = new Date();
+    const ekle = (g) => {
+      const d = new Date(bugun.getFullYear(), bugun.getMonth(), bugun.getDate() + g);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    };
+    const sezonEtiketi = guncelSezon(ekle(0), 9); // bugünün sezonu → "sezon bitti" şeridi çıkmaz
+    window.okul = {
+      db: vi.fn(async (fn) => {
+        if (fn === "panoOzet") return { aktif: 0, grup: 0, odeyen: 0, borclu: 0, antrenmanlar: [], bugunTahsilat: 0 };
+        if (fn === "sezonDurumu")
+          return {
+            aktifSezon: sezonEtiketi,
+            baslangicAyi: 9,
+            sonGecis: null,
+            adaySayisi: 0,
+            tarihler: { sezon: sezonEtiketi, baslangic: ekle(-300), bitis: ekle(20), kayitli: true },
+          };
+        return [];
+      }),
+    };
+    const onSezon = vi.fn();
+    render(
+      <ToastSaglayici>
+        <Pano onOyuncu={() => {}} onSekme={() => {}} onMakbuzKes={() => {}} onSezon={onSezon} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(screen.getByText("20 gün kaldı")).toBeInTheDocument());
+    expect(screen.getByRole("alert")).toHaveTextContent(`${sezonEtiketi} sezonu 20 gün sonra bitiyor`);
+    fireEvent.click(screen.getByRole("button", { name: "Sezon Ayarları" }));
+    expect(onSezon).toHaveBeenCalled();
   });
 });

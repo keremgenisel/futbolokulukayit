@@ -206,7 +206,12 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     fireEvent.change(screen.getByLabelText("Antrenman sahası"), { target: { value: "Saha 2" } });
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
     await waitFor(() =>
-      expect(window.okul.db).toHaveBeenCalledWith("updateTraining", 5, { tarih: bugun().iso, saat: "18:30", saha: "Saha 2" }),
+      expect(window.okul.db).toHaveBeenCalledWith("updateTraining", 5, {
+        tarih: bugun().iso,
+        saat: "18:30",
+        bitis_saat: "",
+        saha: "Saha 2",
+      }),
     );
     await screen.findByText(/velilerine WhatsApp ile değişiklik bildirilsin mi\?/);
     const soru = screen.getByRole("dialog");
@@ -275,5 +280,48 @@ describe("Yoklama ekranı (takvim şeridi)", () => {
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("grupBildirimSil", 5));
     expect(await screen.findByRole("button", { name: "Velilere Bildir" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Grup bildirimini geri al" })).toBeNull();
+  });
+
+  it("bitiş saati (plan §37): Ekle bitişi gönderir, kart ve başlık aralığı gösterir; bitiş başlangıçtan önceyse eklenmez", async () => {
+    antrenmanlar[0].bitis_saat = "18:30";
+    kur();
+    const kart = await screen.findByRole("button", { name: /U11 · 17:00–18:30/ });
+    expect(kart).toHaveTextContent("90 dk");
+    fireEvent.click(kart);
+    await screen.findByText(/U11 Yoklama · 17:00–18:30/);
+    fireEvent.keyDown(screen.getByLabelText("Gün şeridi"), { key: "ArrowRight" });
+    await screen.findByText(/Bu tarihte antrenman yok/);
+    fireEvent.click(screen.getByRole("button", { name: "Antrenman Ekle" }));
+    fireEvent.change(screen.getByLabelText("Yaş grubu"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Saat"), { target: { value: "18:00" } });
+    fireEvent.change(screen.getByLabelText("Bitiş"), { target: { value: "17:00" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ekle" }));
+    expect(await screen.findByText("Bitiş başlangıçtan sonra olmalı")).toBeInTheDocument();
+    expect(window.okul.db).not.toHaveBeenCalledWith("createTraining", expect.anything());
+    fireEvent.change(screen.getByLabelText("Bitiş"), { target: { value: "19:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ekle" }));
+    await waitFor(() =>
+      expect(window.okul.db).toHaveBeenCalledWith("createTraining", expect.objectContaining({ saat: "18:00", bitis_saat: "19:30" })),
+    );
+    await screen.findByRole("button", { name: /U11 · 18:00–19:30/ });
+  });
+
+  it("saha çakışma uyarısı (plan §37): aynı saha + kesişen saatte sarı uyarı, engel değil; farklı sahada uyarı yok", async () => {
+    antrenmanlar[0].bitis_saat = "18:30";
+    kur();
+    await screen.findByRole("button", { name: /U11 · 17:00–18:30/ });
+    fireEvent.click(screen.getByRole("button", { name: "Antrenman Ekle" }));
+    fireEvent.change(screen.getByLabelText("Yaş grubu"), { target: { value: "1" } });
+    fireEvent.change(screen.getByLabelText("Saat"), { target: { value: "17:30" } });
+    fireEvent.change(screen.getByLabelText("Saha"), { target: { value: "saha 1" } });
+    expect(screen.getByRole("alert")).toHaveTextContent(/Saha 1'de 17:00–18:30 U11 antrenmanı var; 17:30 ile çakışıyor/);
+    fireEvent.change(screen.getByLabelText("Saha"), { target: { value: "Saha 2" } });
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Saha"), { target: { value: "Saha 1" } });
+    fireEvent.change(screen.getByLabelText("Saat"), { target: { value: "18:30" } }); // uçtan uca değen: kesişmez
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.change(screen.getByLabelText("Saat"), { target: { value: "17:30" } });
+    fireEvent.click(screen.getByRole("button", { name: "Ekle" })); // engel değil
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("createTraining", expect.objectContaining({ saat: "17:30" })));
   });
 });

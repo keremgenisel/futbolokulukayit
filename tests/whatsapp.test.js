@@ -112,4 +112,26 @@ describe("WhatsApp saf mantık", () => {
   it("her varsayılan şablon yalnız bilinen yer tutucuları kullanır", () => {
     for (const s of Object.values(VARSAYILAN_SABLONLAR)) for (const m of s.matchAll(/\{(\w+)\}/g)) expect(YER_TUTUCULAR).toContain(m[1]);
   });
+  it("antrenmanDegerleri: bitiş saati varsa {saat} aralık olur, {bitis} ayrı; değişiklik notundaki eski bitiş de aralığa girer (plan §37)", () => {
+    const d = antrenmanDegerleri(
+      { tarih: "2026-09-07", saat: "17:00", bitis_saat: "18:30", saha: "Saha 1", yas_grubu_ad: "U11" },
+      { ad_soyad: "Kaan" },
+    );
+    expect(d.saat).toBe("17:00–18:30");
+    expect(d.bitis).toBe("18:30");
+    expect(d.yeniSaat).toBe("17:00–18:30");
+    const e = antrenmanDegerleri(
+      {
+        tarih: "2026-09-08",
+        saat: "18:00",
+        bitis_saat: "19:30",
+        yas_grubu_ad: "U11",
+        degisiklik_notu: JSON.stringify({ eskiTarih: "2026-09-07", eskiSaat: "17:00", eskiBitis: "18:30" }),
+      },
+      { ad_soyad: "Kaan" },
+    );
+    expect(e.eskiSaat).toBe("17:00–18:30");
+    expect(e.yeniSaat).toBe("18:00–19:30");
+    expect(antrenmanDegerleri({ tarih: "2026-09-07", saat: "17:00" }, { ad_soyad: "K" }).saat).toBe("17:00"); // bitişsiz eski kayıt
+  });
 });

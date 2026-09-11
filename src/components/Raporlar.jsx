@@ -28,13 +28,21 @@ export function Raporlar() {
   const [ayS, setAyS] = useState(ay);
   const [sezonDurum, setSezonDurum] = useState(null); // { aktifSezon, baslangicAyi }
   const [sezonlar, setSezonlar] = useState([]);
+  const [sezonTarihleri, setSezonTarihleri] = useState([]); // [{ sezon, baslangic, bitis, kayitli }]
   const [sezonS, setSezonS] = useState("");
   const [yoklamaMod, setYoklamaMod] = useState("sezon"); // Dönem seçimi (her raporda): "sezon" (sezon + ay) | "tarih" (aralık)
   const baslangicAyi = sezonDurum?.baslangicAyi || 9;
   const seciliSezon = sezonS || sezonDurum?.aktifSezon || guncelSezon(bugun().iso, baslangicAyi);
   const yilS = ayS ? (sezonAyYili(seciliSezon, ayS, baslangicAyi) ?? yil) : null;
   // Seçime göre tarih aralığı: ay → o ay; Tümü → sezon aralığı
-  const donemAraligi = () => (ayS ? ayAraligi(yilS, ayS) : sezonAraligi(seciliSezon, baslangicAyi) || ayAraligi(yil, ay));
+  // Tümü: sezonun kayıtlı tarihleri (Ayarlar > Sezon; plan §37); kayıt yoksa başlangıç ayından türetilen 12 ay
+  const sezonTarih = (sz) => sezonTarihleri.find((t) => t.sezon === sz);
+  const donemAraligi = () => {
+    if (ayS) return ayAraligi(yilS, ayS);
+    const t = sezonTarih(seciliSezon);
+    if (t?.baslangic && t?.bitis) return { from: t.baslangic, to: t.bitis };
+    return sezonAraligi(seciliSezon, baslangicAyi) || ayAraligi(yil, ay);
+  };
   const [from, setFrom] = useState(ayAraligi(yil, ay).from);
   const [to, setTo] = useState(ayAraligi(yil, ay).to);
   const [grup, setGrup] = useState("");
@@ -56,6 +64,9 @@ export function Raporlar() {
       .catch(() => {});
     db("sezonListesi")
       .then((l) => Array.isArray(l) && setSezonlar(l))
+      .catch(() => {});
+    db("sezonListesiTarihli")
+      .then((l) => Array.isArray(l) && setSezonTarihleri(l))
       .catch(() => {});
   }, []);
 

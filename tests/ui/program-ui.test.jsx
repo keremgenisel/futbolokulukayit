@@ -32,8 +32,8 @@ describe("Yaş grupları: haftalık program", () => {
         1,
         expect.objectContaining({
           program: [
-            { gun: 1, saat: "17:00", saha: "Saha 1" },
-            { gun: 3, saat: "18:30", saha: "Saha 2" },
+            { gun: 1, saat: "17:00", bitis: "", saha: "Saha 1" },
+            { gun: 3, saat: "18:30", bitis: "", saha: "Saha 2" },
           ],
         }),
       ),

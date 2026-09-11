@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { Modal, Btn, Secim } from "./ui.jsx";
 import { AY_ADLARI, paraTR, ayAraligi, ayEkle } from "../lib/aidat.js";
-import { sezonAylari } from "../lib/sezon.js";
+import { sezonAylari, isoYilAy } from "../lib/sezon.js";
 
 const etiketStili = { fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" };
 
@@ -24,14 +24,15 @@ function secenekAylari(merkezYil, merkezAy) {
  * odenmisAylar: "yil-ay" anahtarları — zaten ödenmiş/muaf aylar; aralıktan atlanır (Kerem, 10.09.2026: "ödenmiş
  * olanlar gösterilmesin"), önizleme sayısı ve toplam yalnız gerçekten tahsil edilecek ayları sayar.
  */
-export function UzunDonemModal({ oyuncuAdi, aylikAidat, baslangic, sezon, odenmisAylar = new Set(), onUygula, onKapat }) {
+// sezonBitis: Ayarlar > Sezon'daki kayıtlı bitiş tarihi (ISO); verilirse "Sezon Sonuna Kadar" o aya kadar gider (plan §37)
+export function UzunDonemModal({ oyuncuAdi, aylikAidat, baslangic, sezon, sezonBitis, odenmisAylar = new Set(), onUygula, onKapat }) {
   const bugun = new Date();
   const varsayilanBas = baslangic || { yil: bugun.getFullYear(), ay: bugun.getMonth() + 1 };
   const [bas, setBas] = useState(varsayilanBas);
   const [bit, setBit] = useState(ayEkle(varsayilanBas.yil, varsayilanBas.ay, 5)); // varsayılan: 6 ay
   const [hizli, setHizli] = useState("6ay");
   const secenekler = secenekAylari(varsayilanBas.yil, varsayilanBas.ay);
-  const sezonSonu = sezon ? sezonAylari(sezon)[11] : null;
+  const sezonSonu = sezonBitis ? isoYilAy(sezonBitis) : sezon ? sezonAylari(sezon)[11] : null;
 
   const hizliSec = (kod, n) => {
     setHizli(kod);

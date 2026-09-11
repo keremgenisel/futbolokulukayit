@@ -3,7 +3,17 @@ import { useEffect, useState, useCallback } from "react";
 import { Btn, Alan, Girdi, Secim, Rozet, Onay, Bos, useToast, useDene } from "../ui.jsx";
 import { db, bugun } from "../../lib/api.js";
 import { paraTR, tarihTR, AY_ADLARI } from "../../lib/aidat.js";
-import { guncelSezon, sonrakiSezon, sezonGecerliMi, sezonSonuMu, ustGrupOner } from "../../lib/sezon.js";
+import {
+  guncelSezon,
+  sonrakiSezon,
+  sezonGecerliMi,
+  sezonSonuMu,
+  ustGrupOner,
+  sezonTarihDogrula,
+  sezonKalanGun,
+  kisaAralik,
+} from "../../lib/sezon.js";
+import { AltBaslik } from "../ui.jsx";
 import { araEslesir } from "../../lib/metin.js";
 import { Ikon } from "../Ikon.jsx";
 
@@ -19,6 +29,8 @@ export function SezonAyar({ admin, saltOkunur }) {
   const [onay, setOnay] = useState(false);
   const [sonuc, setSonuc] = useState(null);
   const [bekliyor, setBekliyor] = useState(false);
+  const [tarih, setTarih] = useState({ baslangic: "", bitis: "" }); // aktif sezonun tarihleri (plan §37)
+  const [yeniTarih, setYeniTarih] = useState({ baslangic: "", bitis: "" }); // geçilecek sezonun tarihleri
   const toast = useToast();
   const dene = useDene();
   const iso = bugun().iso;
@@ -33,6 +45,11 @@ export function SezonAyar({ admin, saltOkunur }) {
       setAdaylar(l);
       setSecim(Object.fromEntries(l.map((o) => [o.id, { yeniledi: false, yas_grubu_id: ustGrupOner(g, o.yas_grubu_id) }])));
       setYeniSezon(d.aktifSezon ? sonrakiSezon(d.aktifSezon) : guncelSezon(iso, d.baslangicAyi));
+      const t = d.tarihler || { baslangic: "", bitis: "" };
+      setTarih({ baslangic: t.baslangic || "", bitis: t.bitis || "" });
+      // geçilecek sezon: bir yıl kaydırılmış öneri
+      const kaydir = (x) => (x ? String(Number(x.slice(0, 4)) + 1) + x.slice(4) : "");
+      setYeniTarih({ baslangic: kaydir(t.baslangic), bitis: kaydir(t.bitis) });
     });
   }, [dene, iso]);
   useEffect(() => {
@@ -43,6 +60,14 @@ export function SezonAyar({ admin, saltOkunur }) {
     dene(async () => {
       await db("setSetting", "sezon_baslangic_ayi", String(ay));
       toast("ok", "Sezon başlangıç ayı kaydedildi");
+      yukle();
+    });
+  const tarihKaydet = () =>
+    dene(async () => {
+      const d = sezonTarihDogrula(durum.aktifSezon, tarih.baslangic, tarih.bitis);
+      if (!d.gecerli) return toast("err", d.neden);
+      await db("sezonTarihKaydet", durum.aktifSezon, tarih.baslangic, tarih.bitis);
+      toast("ok", "Sezon tarihleri kaydedildi");
       yukle();
     });
   const aktifSezonKaydet = async (sz) => {
@@ -74,6 +99,8 @@ export function SezonAyar({ admin, saltOkunur }) {
       async () => {
         const r = await db("yeniSezonaGec", {
           sezon: yeniSezon,
+          baslangic: yeniTarih.baslangic,
+          bitis: yeniTarih.bitis,
           eskiBorcSil,
           yenileyenler: yenileyenler.map((o) => ({ id: o.id, yas_grubu_id: secim[o.id].yas_grubu_id })),
         });
@@ -101,6 +128,58 @@ export function SezonAyar({ admin, saltOkunur }) {
         <b>silinmez</b>, "Pasif" olur: aidat borcu açılmaz, listelerde görünmez; makbuz, yoklama ve belgeleri kalır. Geri dönerse kartından
         durumu Aktif yapmak yeter.
       </p>
+      <div
+        style={{
+          border: "1px solid var(--cizgi)",
+          borderRadius: 12,
+          padding: 20,
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
+          background: "#FAF8FD",
+        }}
+      >
+        <AltBaslik>Sezon tarihleri</AltBaslik>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <Alan etiket="Başlangıç" style={{ width: 170 }}>
+            <Girdi
+              type="date"
+              value={tarih.baslangic}
+              onChange={(e) => setTarih({ ...tarih, baslangic: e.target.value })}
+              aria-label="Sezon başlangıcı"
+              disabled={saltOkunur}
+            />
+          </Alan>
+          <Alan etiket="Bitiş" style={{ width: 170 }}>
+            <Girdi
+              type="date"
+              value={tarih.bitis}
+              onChange={(e) => setTarih({ ...tarih, bitis: e.target.value })}
+              aria-label="Sezon bitişi"
+              disabled={saltOkunur}
+            />
+          </Alan>
+          {!saltOkunur && (
+            <Btn
+              onClick={tarihKaydet}
+              disabled={!durum.aktifSezon || (tarih.baslangic === durum.tarihler?.baslangic && tarih.bitis === durum.tarihler?.bitis)}
+            >
+              Tarihleri Kaydet
+            </Btn>
+          )}
+          {durum.tarihler && (
+            <Rozet ton="purple">
+              {Math.max(0, sezonKalanGun(durum.tarihler.bitis, iso))} gün kaldı ·{" "}
+              {kisaAralik(durum.tarihler.baslangic, durum.tarihler.bitis)}
+              {durum.tarihler.kayitli ? "" : " (varsayılan)"}
+            </Rozet>
+          )}
+        </div>
+        <div style={{ fontSize: 13, color: "var(--soluk)", lineHeight: 1.5 }}>
+          Aidat sezon boyunca <b>12 ay</b> açılır; bu tarihler raporlar, "Sezon Sonuna Kadar" uzun dönem seçimi ve sezon sonu hatırlatması
+          içindir. Bitişe 30 gün kala Pano'da hatırlatma çıkar.
+        </div>
+      </div>
       <div style={{ display: "flex", gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
         <Alan etiket="Aktif sezon" style={{ width: 160 }}>
           <Girdi
@@ -160,6 +239,24 @@ export function SezonAyar({ admin, saltOkunur }) {
               value={yeniSezon}
               onChange={(e) => setYeniSezon(e.target.value.trim())}
               aria-label="Geçilecek sezon"
+              disabled={saltOkunur}
+            />
+          </Alan>
+          <Alan etiket="Başlangıç" style={{ width: 160 }}>
+            <Girdi
+              type="date"
+              value={yeniTarih.baslangic}
+              onChange={(e) => setYeniTarih({ ...yeniTarih, baslangic: e.target.value })}
+              aria-label="Yeni sezon başlangıcı"
+              disabled={saltOkunur}
+            />
+          </Alan>
+          <Alan etiket="Bitiş" style={{ width: 160 }}>
+            <Girdi
+              type="date"
+              value={yeniTarih.bitis}
+              onChange={(e) => setYeniTarih({ ...yeniTarih, bitis: e.target.value })}
+              aria-label="Yeni sezon bitişi"
               disabled={saltOkunur}
             />
           </Alan>
@@ -303,6 +400,10 @@ export function SezonAyar({ admin, saltOkunur }) {
                   ikon={<Ikon ad="takvim" />}
                   onClick={() => {
                     if (!sezonGecerliMi(yeniSezon)) return toast("err", "Geçilecek sezon 2027-2028 biçiminde olmalı");
+                    if (yeniTarih.baslangic || yeniTarih.bitis) {
+                      const td = sezonTarihDogrula(yeniSezon, yeniTarih.baslangic, yeniTarih.bitis);
+                      if (!td.gecerli) return toast("err", td.neden);
+                    }
                     setOnay(true);
                   }}
                   disabled={bekliyor}

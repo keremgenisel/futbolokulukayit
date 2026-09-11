@@ -3,6 +3,7 @@
 // hazırlar, kulübün WhatsApp'ı açılır, kullanıcı Gönder'e basar. Şablon doldurma, numara dönüşümü, uygunluk kararı.
 import { gsmNormalize, paraTR, AY_ADLARI } from "./aidat.js";
 import { uzunTarih } from "./takvim.js";
+import { saatAraligi } from "./program.js";
 import { VARSAYILAN_KULUP } from "./marka.js";
 
 export { VARSAYILAN_KULUP };
@@ -39,6 +40,7 @@ export const YER_TUTUCULAR = [
   "grup",
   "tarih",
   "saat",
+  "bitis",
   "saha",
   "eskiTarih",
   "eskiSaat",
@@ -110,12 +112,12 @@ export function aidatDegerleri(b, kulup = VARSAYILAN_KULUP) {
 
 /**
  * Antrenman iptali/değişikliği yer tutucu değerleri.
- * @param {{ tarih: string, saat?: string, saha?: string, yas_grubu_ad?: string, iptal_nedeni?: string, degisiklik_notu?: string }} t
+ * @param {{ tarih: string, saat?: string, bitis_saat?: string, saha?: string, yas_grubu_ad?: string, iptal_nedeni?: string, degisiklik_notu?: string }} t
  * @param {{ veli_ad?: string, ad_soyad: string }} satir
  * @param {string} [kulup]
  */
 export function antrenmanDegerleri(t, satir, kulup = VARSAYILAN_KULUP) {
-  /** @type {{ eskiTarih?: string, eskiSaat?: string }} */
+  /** @type {{ eskiTarih?: string, eskiSaat?: string, eskiBitis?: string }} */
   let eski = {};
   try {
     eski = t.degisiklik_notu ? JSON.parse(t.degisiklik_notu) : {};
@@ -127,13 +129,15 @@ export function antrenmanDegerleri(t, satir, kulup = VARSAYILAN_KULUP) {
     oyuncu: satir.ad_soyad,
     grup: t.yas_grubu_ad || "",
     tarih: uzunTarih(t.tarih),
-    saat: t.saat || "",
+    saat: saatAraligi(t.saat || "", t.bitis_saat || ""), // "17:00–18:30" (bitiş yoksa "17:00")
+    bitis: t.bitis_saat || "",
     saha: t.saha || "",
     neden: t.iptal_nedeni && t.iptal_nedeni !== "İptal" ? t.iptal_nedeni : "",
     eskiTarih: eski.eskiTarih ? uzunTarih(eski.eskiTarih) : uzunTarih(t.tarih),
-    eskiSaat: eski.eskiSaat ?? t.saat ?? "",
+    eskiSaat:
+      eski.eskiSaat !== undefined ? saatAraligi(eski.eskiSaat, eski.eskiBitis || "") : saatAraligi(t.saat || "", t.bitis_saat || ""),
     yeniTarih: uzunTarih(t.tarih),
-    yeniSaat: t.saat || "",
+    yeniSaat: saatAraligi(t.saat || "", t.bitis_saat || ""),
     kulup,
   };
 }

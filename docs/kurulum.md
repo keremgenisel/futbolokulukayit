@@ -69,8 +69,11 @@ ayarına Tailscale adresi (100.x.x.x) yazılır (satıcı ayarı; arayüzde alan
 - **Ctrl+K** (Mac'te Cmd+K): her ekrandan oyuncu arama; Enter kartı açar, "Makbuz" tahsilata götürür.
 - **Tek makbuzda birden fazla ay:** Tahsilat'ta aidat dönemi kutucuklarından birden fazla ay seçin.
 - **Kısmi ödeme:** velinin verdiği tutarı yazın; ay "Kısmi" olur, kalan borç listelerde görünür, sonraki makbuzla tamamlanır.
-- **Haftalık program:** Yaş Grupları > Düzenle'de gün/saat/saha girin; Yoklama'da "Haftayı Programdan Doldur"
-  o haftanın antrenmanlarını tek tıkla açar (var olanlar atlanır).
+- **Haftalık program:** Yaş Grupları > Düzenle'de gün / başlangıç / bitiş / saha girin (bitiş isteğe bağlı; girilirse süre
+  "90 dk" gibi görünür); Yoklama'da "Haftayı Programdan Doldur" o haftanın antrenmanlarını tek tıkla açar (var olanlar atlanır).
+- **Antrenman saatleri:** Yoklama > Antrenman Ekle'de başlangıç ve bitiş saati girilir; kartta "17:00–18:30" görünür. Aynı gün
+  aynı sahada saati çakışan başka antrenman varsa sarı uyarı çıkar, yine de ekleyebilirsiniz. Yoklama formu ve WhatsApp
+  mesajlarında saat aralığı yer alır.
 - **Sağlık raporu:** panoda süresi dolan/dolacak raporlar listelenir; oyuncu kartında belge rozeti gösterir.
 - **Makbuz iptali** neden ister; iptal eden ve zaman kayda geçer, tahsilat raporunda ayrı görünür.
 - **WhatsApp ile hatırlatma (API yok, ücretsiz):** Pano'da borçlu satırındaki yeşil WhatsApp düğmesi ya da "Borçlulara Hatırlat";
@@ -97,9 +100,14 @@ ayarına Tailscale adresi (100.x.x.x) yazılır (satıcı ayarı; arayüzde alan
 
 ## 3b. Sezon sonu
 
+**Sezon tarihleri:** Ayarlar > Sezon'daki "Sezon tarihleri" kartında sezonun başlangıç ve bitiş gününü siz seçersiniz
+(varsayılan 1 Eylül – 31 Ağustos). Aidat her sezon 12 ay açılır; bu tarihler raporların "Tümü" aralığı, Tahsilat'taki "Sezon
+Sonuna Kadar" seçimi ve pano hatırlatması içindir. Pano başlığında "Sezon 2026-2027 · 1 Eyl – 30 Haz · N gün kaldı" görünür;
+bitişe 30 gün kala hatırlatma şeridi çıkar.
+
 Sezon bitince (varsayılan Eylül'de) panoda "sezon bitti" uyarısı çıkar. **Ayarlar > Yeni Sezon**'da
-yenileyen oyuncuları işaretleyin, gerekiyorsa yeni yaş grubunu seçin (U11 → U12 önerilir) ve "Yeni Sezona
-Geç" deyin. Yenilemeyenler silinmez, "Pasif" olur: aidat borcu açılmaz, listede görünmez; geri dönerse
+yenileyen oyuncuları işaretleyin, gerekiyorsa yeni yaş grubunu seçin (U11 → U12 önerilir), yeni sezonun başlangıç ve
+bitiş tarihini kontrol edin (bir yıl ileri önerilir) ve "Yeni Sezona Geç" deyin. Yenilemeyenler silinmez, "Pasif" olur: aidat borcu açılmaz, listede görünmez; geri dönerse
 kartından durumu Aktif yapmanız yeter. Oyuncular listesi varsayılan olarak "Aktif, deneme ve sakat" oyuncuları
 gösterir; pasifleri görmek için durum filtresini değiştirin.
 

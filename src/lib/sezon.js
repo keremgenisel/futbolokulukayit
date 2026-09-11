@@ -67,6 +67,38 @@ export function sezonAraligi(sezon, baslangicAyi = VARSAYILAN_SEZON_AYI) {
   return { from: `${ilk.yil}-${String(ilk.ay).padStart(2, "0")}-01`, to: ayinSonGunu(Number(son.yil), son.ay) };
 }
 
+/**
+ * Sezon tarihleri doğrulaması (plan §37): bitiş > başlangıç, başlangıç yılı etiketin ilk yılı, aralık en çok 14 ay.
+ * @param {string} sezon @param {string} baslangic ISO @param {string} bitis ISO @returns {{ gecerli: boolean, neden?: string }}
+ */
+export function sezonTarihDogrula(sezon, baslangic, bitis) {
+  if (!sezonGecerliMi(sezon)) return { gecerli: false, neden: "Sezon 2026-2027 biçiminde olmalı" };
+  const iso = /^\d{4}-\d{2}-\d{2}$/;
+  if (!iso.test(String(baslangic || "")) || !iso.test(String(bitis || ""))) return { gecerli: false, neden: "Tarihler yyyy-aa-gg olmalı" };
+  if (bitis <= baslangic) return { gecerli: false, neden: "Bitiş başlangıçtan sonra olmalı" };
+  if (Number(baslangic.slice(0, 4)) !== Number(sezon.slice(0, 4)))
+    return { gecerli: false, neden: `Başlangıç ${sezon.slice(0, 4)} yılında olmalı` };
+  const ayFarki =
+    (Number(bitis.slice(0, 4)) - Number(baslangic.slice(0, 4))) * 12 + (Number(bitis.slice(5, 7)) - Number(baslangic.slice(5, 7)));
+  if (ayFarki > 14) return { gecerli: false, neden: "Sezon en çok 14 ay olabilir" };
+  return { gecerli: true };
+}
+
+/** Bitişe kalan gün (bugün dahil değil); geçmişse negatif. @param {string} bitisIso @param {string} bugunIso */
+export function sezonKalanGun(bitisIso, bugunIso) {
+  const a = Date.UTC(Number(bitisIso.slice(0, 4)), Number(bitisIso.slice(5, 7)) - 1, Number(bitisIso.slice(8, 10)));
+  const b = Date.UTC(Number(bugunIso.slice(0, 4)), Number(bugunIso.slice(5, 7)) - 1, Number(bugunIso.slice(8, 10)));
+  return Math.round((a - b) / 86400000);
+}
+const AY_KISA_TR = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+/** "1 Eyl – 30 Haz" (yıllar farklıysa yıl eklenmez; etiket zaten sezonu söyler). @param {string} baslangic @param {string} bitis */
+export function kisaAralik(baslangic, bitis) {
+  const k = (/** @type {string} */ iso) => `${Number(iso.slice(8, 10))} ${AY_KISA_TR[Number(iso.slice(5, 7)) - 1]}`;
+  return `${k(baslangic)} – ${k(bitis)}`;
+}
+/** ISO tarihten {yil, ay}. @param {string} iso */
+export const isoYilAy = (iso) => ({ yil: Number(String(iso).slice(0, 4)), ay: Number(String(iso).slice(5, 7)) });
+
 /** "2026-2027" → "2027-2028". Biçim bozuksa boş döner. @param {string} sezon */
 export function sonrakiSezon(sezon) {
   const m = /^(\d{4})-(\d{4})$/.exec(String(sezon || ""));

@@ -59,7 +59,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "18",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "19",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -378,7 +378,7 @@ app.whenReady().then(async () => {
     );
     check(
       "şema sürümü 17 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "18" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      db.getMetaValue("schema_version") === "19" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -582,7 +582,7 @@ app.whenReady().then(async () => {
     db.updateAgeGroup(grp.id, {
       program: [
         { gun: 1, saat: "17:00", saha: "Saha 1" },
-        { gun: 3, saat: "17:00", saha: "Saha 1" },
+        { gun: 3, saat: "17:00", bitis: "18:30", saha: "Saha 1" }, // plan §37: bitiş programda saklanır
         { gun: 5, saat: "bozuk" },
       ],
     });
@@ -596,6 +596,27 @@ app.whenReady().then(async () => {
           .filter((t) => t.age_group_id === grp.id)
           .map((t) => t.tarih)
           .join() === "2027-03-01,2027-03-03",
+    );
+    check(
+      "programdaki bitiş saati doldurulan antrenmana geçer (plan §37)",
+      db.listTrainings("2027-03-03", "2027-03-03").find((t) => t.age_group_id === grp.id)?.bitis_saat === "18:30" &&
+        db.listTrainings("2027-03-01", "2027-03-01").find((t) => t.age_group_id === grp.id)?.bitis_saat === "",
+    );
+    // Antrenman bitiş saati: doğrulama + güncelleme (plan §37)
+    let bitisHata = "";
+    try {
+      db.createTraining({ age_group_id: grp.id, tarih: "2027-03-10", saat: "17:00", bitis_saat: "16:00" });
+    } catch (e) {
+      bitisHata = e.message;
+    }
+    check("bitiş başlangıçtan önce reddedilir", /sonra/.test(bitisHata));
+    const tb = db.createTraining({ age_group_id: grp.id, tarih: "2027-03-10", saat: "17:00", bitis_saat: "18:30", saha: "Saha 2" });
+    const tbGunc = db.updateTraining(tb.id, { tarih: "2027-03-10", saat: "17:00", bitis_saat: "19:00", saha: "Saha 2" });
+    check(
+      "antrenman bitişi kaydedilir ve güncellenir; değişiklik notu eski bitişi taşır",
+      db.listTrainings("2027-03-10", "2027-03-10").find((t) => t.id === tb.id)?.bitis_saat === "19:00" &&
+        tbGunc.degisti === true &&
+        JSON.parse(db.listTrainings("2027-03-10", "2027-03-10").find((t) => t.id === tb.id).degisiklik_notu || "{}").eskiBitis === "18:30",
     );
     const hd2 = db.haftayiProgramdanDoldur("2027-03-01");
     check(
@@ -790,6 +811,46 @@ app.whenReady().then(async () => {
         !db.sezonAdayListesi().some((o) => o.id === pasifZaten.id),
     );
     check("sezon durumu", db.sezonDurumu().aktifSezon === "2026-2027" && db.sezonDurumu().baslangicAyi === 9);
+    // Sezon tarihleri (plan §37): varsayılan, kayıt, doğrulama, çakışma, liste
+    const stVars = db.sezonTarihleri("2030-2031"); // göç 19 bilinen sezonları kaydettiği için hiç görülmemiş bir etiket
+    check(
+      "kayıt yokken varsayılan aralık (Eyl–Ağu, kayitli=false)",
+      stVars.baslangic === "2030-09-01" && stVars.bitis === "2031-08-31" && stVars.kayitli === false,
+    );
+    check(
+      "göç 19 bilinen sezonu varsayılan aralıkla kaydetti; sezonDurumu tarihleri taşır",
+      db.sezonTarihleri("2026-2027").kayitli === true && db.sezonDurumu().tarihler?.bitis === "2027-08-31",
+    );
+    let stHata = "";
+    try {
+      db.sezonTarihKaydet("2026-2027", "2026-09-01", "2026-08-01");
+    } catch (e) {
+      stHata = e.message;
+    }
+    check("bitiş başlangıçtan önce reddedilir", /sonra/.test(stHata));
+    try {
+      db.sezonTarihKaydet("2026-2027", "2025-09-01", "2026-06-30");
+    } catch (e) {
+      stHata = e.message;
+    }
+    check("başlangıç yılı etiketle uyuşmalı", /2026 yılında/.test(stHata));
+    const stK = db.sezonTarihKaydet("2026-2027", "2026-09-01", "2027-06-30");
+    check(
+      "sezon tarihleri kaydedilir",
+      stK.ok && db.sezonTarihleri("2026-2027").kayitli === true && db.sezonTarihleri("2026-2027").bitis === "2027-06-30",
+    );
+    db.sezonTarihKaydet("2026-2027", "2026-09-15", "2027-06-30"); // aynı sezon güncellenir (çakışma kendisiyle sayılmaz)
+    check("aynı sezon güncellenir", db.sezonTarihleri("2026-2027").baslangic === "2026-09-15");
+    try {
+      db.sezonTarihKaydet("2027-2028", "2027-06-01", "2028-05-31");
+    } catch (e) {
+      stHata = e.message;
+    }
+    check("başka sezonla çakışan aralık reddedilir", /çakışıyor/.test(stHata));
+    check(
+      "tarihli sezon listesi kayıtlı ve varsayılanı ayırır",
+      db.sezonListesiTarihli().some((s) => s.sezon === "2026-2027" && s.kayitli === true),
+    );
     let sezonHata = false;
     try {
       db.yeniSezonaGec({ sezon: "bozuk" });
@@ -797,7 +858,23 @@ app.whenReady().then(async () => {
       sezonHata = /biçiminde/.test(e.message);
     }
     check("bozuk sezon adı reddedilir", sezonHata);
-    const sg = db.yeniSezonaGec({ sezon: "2027-2028", yenileyenler: [{ id: yenileyen.id, yas_grubu_id: u12.id }], eskiBorcSil: true });
+    try {
+      db.yeniSezonaGec({ sezon: "2027-2028", baslangic: "2027-09-01", bitis: "2027-08-01" });
+    } catch (e) {
+      sezonHata = /sonra/.test(e.message);
+    }
+    check("geçişte bozuk tarih reddedilir (geçiş yapılmaz)", sezonHata && db.sezonDurumu().aktifSezon === "2026-2027");
+    const sg = db.yeniSezonaGec({
+      sezon: "2027-2028",
+      yenileyenler: [{ id: yenileyen.id, yas_grubu_id: u12.id }],
+      eskiBorcSil: true,
+      baslangic: "2027-09-01",
+      bitis: "2028-06-30",
+    });
+    check(
+      "geçişte yeni sezonun tarihleri kaydedilir",
+      db.sezonTarihleri("2027-2028").kayitli === true && db.sezonTarihleri("2027-2028").bitis === "2028-06-30",
+    );
     const y1 = db.getPlayer(yenileyen.id),
       y2 = db.getPlayer(yenilemeyen.id);
     check(
@@ -849,7 +926,7 @@ app.whenReady().then(async () => {
     db.init();
     check(
       "göç 17: grup üyeliği antrenman tarihlerinden türetildi (U11'in 2027-04 antrenmanı → 2026-2027)",
-      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "18",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "19",
     );
     // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
     const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
@@ -939,7 +1016,7 @@ app.whenReady().then(async () => {
       db
         .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
         .map((p) => p.id)
-        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "18",
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "19",
     );
     check(
       "gruplar ve aktif sezon güncellendi",
@@ -1160,7 +1237,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "18",
+        db.getMetaValue("schema_version") === "19",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1642,7 +1719,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "18",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "19",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;
