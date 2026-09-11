@@ -1570,3 +1570,50 @@ testleri + duman görüntüleri karşılaştırılır).
   (WhatsApp yer tutucuları), Tema seçici "YENİ" etiketi `Rozet`; Kullanıcılar rol seçimi `Secim`. Etkileşimli çipler (sihirbaz adım/
   grup seçimi, "Pasif grupları da göster") ve WhatsApp sayacı bilinçli olarak el yapımı kaldı.
 
+
+## 37. Sezon başlangıç/bitiş tarihi ve antrenman başlangıç/bitiş saati (PLAN, 11.09.2026)
+
+Kerem: "Yaş grupları düzenlede başlangıç ve bitiş girilsin, yoklamada antrenman eklede de girilsin. Yaz aylarında da aidat
+alınıyor; kullanıcı sezon başlangıcı ve bitişini kendi seçsin. Önce planlama sonra mockup."
+
+### 37.1 Bugün
+- Sezon yalnız etiket ("2026-2027") + `sezon_baslangic_ayi` (varsayılan 9); `sezonAraligi` her sezonu 1 Eyl – 31 Ağu sayar; aidat 12 ay
+  açılır (KALACAK: yaz aylarında da aidat var).
+- Antrenman: `trainings.tarih/saat/saha`; haftalık program JSON `{gun, saat, saha}`; bitiş/süre yok.
+
+### 37.2 Veri modeli (şema 19)
+- Yeni tablo `seasons (sezon TEXT PK, baslangic TEXT, bitis TEXT)`. Göç: `aktif_sezon` + `player_seasons`/`group_seasons`/
+  `receipts.sezon`'daki her sezon için satır; tarihler `sezonAraligi` ile (1 Eyl – 31 Ağu) doldurulur → davranış değişmez, kullanıcı
+  sonra düzeltir. `db.sezonTarihleri(sezon)`, `db.sezonTarihKaydet(sezon, baslangic, bitis)` (ADMIN seti). Doğrulama (saf
+  `sezon.js sezonTarihDogrula`): bitiş > başlangıç, başlangıç yılı etiketin ilk yılı, aralık ≤ 14 ay, sezonlar çakışmaz.
+- `trainings.bitis_saat TEXT DEFAULT ''`; program JSON öğesine `bitis` ("18:30"). `programCoz` bitişi olmayan eski kayıtları kabul
+  eder (bitiş ""). Göç mevcut antrenmanlara bitiş YAZMAZ (boş "—"); kullanıcı isterse Düzenle ile girer. Doğrulama (saf `program.js
+  saatAraligiDogrula`): "HH:MM", bitiş > başlangıç, aynı gün. `saatEkle(saat, dk)`, `sureDk(bas, bit)`, `aralikKesisir(a, b)`.
+- Aidat mantığına DOKUNULMAZ (12 ay). `sezonAraligi` yalnız etiket→varsayılan aralık üretir; gerçek aralık `seasons`'tan okunur.
+
+### 37.3 Arayüz
+1. **Yaş Grupları › Düzenle:** program editörü satırı Gün · Başlangıç · Bitiş · Saha (+ hesaplanan "90 dk"); bitiş < başlangıçta
+   kırmızı kenar ve Kaydet kapalı; liste sütunu "Haftalık program" → "Pzt 17:00–18:30 · Çar 17:00–18:30".
+2. **Yoklama › Antrenman Ekle / Düzenle:** Yaş grubu · Başlangıç · Bitiş · Saha; bitiş girilmezse boş kalır (zorunlu değil).
+   Antrenman kartı "U12 · 17:00–18:30", yoklama başlığı "U12 Yoklama · 17:00–18:30", takvim şeridi değişmez. Aynı gün + aynı saha +
+   kesişen aralıkta sarı uyarı satırı "Saha 1'de 17:00–18:30 U11 antrenmanı var" (engel değil). "Haftayı Programdan Doldur" bitişi
+   programdan alır. Yoklama formu ve WhatsApp iptal/değişiklik şablonlarında saat "17:00–18:30" (yeni yer tutucu `{bitis}`;
+   `{saat}` geriye uyumlu). Oyuncu kartı Yoklama sekmesi ve Raporlar yoklama özeti saat aralığını gösterir.
+3. **Ayarlar › Yeni Sezon:** en üste "Sezon tarihleri" kartı — Aktif sezon (mevcut) · Başlangıç · Bitiş (tarih kutuları, varsayılan
+   1 Eyl – 31 Ağu), not: "Aidat sezon boyunca 12 ay açılır; bu tarihler raporlar, uzun dönem seçimi ve sezon sonu hatırlatması
+   içindir." Sezon sihirbazı yeni sezona geçerken yeni sezonun tarihlerini (bir yıl kaydırılmış) sorar.
+4. **Kullanım yerleri:** Pano başlık satırında "Sezon 2026-2027 · 1 Eyl – 30 Haz · N gün kaldı"; bitişe 30 gün kala Pano'da sezon
+   sonu hatırlatma şeridi (uyarı rengi); Raporlar sezon filtresi tarih aralığını `seasons`'tan alır; "Sezon Sonuna Kadar" uzun dönem
+   seçimi bitiş ayına kadar; "Haftayı Programdan Doldur" sezon dışı haftada uyarır (engel değil); yoklama takviminde sezon dışı gün
+   soluk.
+
+### 37.4 Testler
+Saf: `sezon.test.js` (tarih doğrulama, çakışma, varsayılan aralık), `program.test.js` (bitiş çözme, süre, kesişme, eski JSON uyumu),
+`takvim`/`whatsapp` şablon `{bitis}`. UI: Yaş Grupları program editörü (bitiş < başlangıç kapalı), Yoklama ekleme formu ve kart
+metni, SezonAyar tarih kartı, Pano sezon satırı. Electron: db-roundtrip (seasons göçü, sezonTarihKaydet doğrulama, trainings
+bitis_saat), kalıcılık (sezon tarihleri + antrenman bitişi kalıcı), yas-gruplari/yoklama e2e genişletme (saha çakışma uyarısı).
+
+### 37.5 Sıra ve süre
+1. Şema 19 + saf yardımcılar + göç (küçük). 2. Yoklama: ekle/düzenle formu, kart/başlık, form/WhatsApp `{bitis}`, çakışma uyarısı
+(orta). 3. Yaş Grupları program editörü + liste özeti + programdan doldurma (orta). 4. Sezon tarihleri: SezonAyar kartı, sihirbaz
+adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta). Mockup onayından sonra 1→4.
