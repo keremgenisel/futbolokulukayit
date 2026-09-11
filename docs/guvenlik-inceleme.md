@@ -246,7 +246,28 @@ Kalanlar (bilinçli): #9 kod imzası yok (`verifyUpdateCodeSignature: false`), #
 - `.pre-restore` kopyaları ve `futbolokulu-yedek-*` 30 gün — disk dolabilir (08.09 Bilgi, hâlâ geçerli).
 - Ana süreç `src/lib`'i yüklediği için `src/lib` altına tarayıcı-yalnız kod eklenmemeli (CLAUDE.md kuralı yazıldı).
 
-## Önerilen sıra
+## Düzeltme durumu (11.09.2026, aynı gün — Kerem: "sırayla hepsini uygula")
+Tamamı uygulandı, her madde ayrı commit ve testle:
+- **#1** `ayarDogrula.cjs`: `IZINLI_ANAHTARLAR` (renderer'ın yazabildiği 14 anahtar) + `KORUMALI_ANAHTARLAR` (yedek klasörü/sıklığı,
+  son yedek, logo yolu, son sezon geçişi, sunucu adresi); `yetki.cjs cagriYetkisi(fn, session, saltOkunur, args)` `setSetting`'te izni
+  uygular (IPC ve `/api/db` ortak). Ek doğrulama: `aktif_sezon` biçimi, `sezon_baslangic_ayi` 1–12, `kurulum_tamam` ""/"1",
+  `sunucu_adres` `[A-Za-z0-9.:-]{1,64}`, `wa_sablon_*` ≤ 2000. Ana süreç içi çağrılar (göç, eski `indirim_*`) etkilenmez.
+  Testler: `tests/yetki.test.js`, `tests/tema.test.js` (commit f74f450).
+- **#2** `electron/geciciCikti.cjs`: PDF'ler `<temp>/futbolokulu-cikti/`; açılışta 24 saatten eskiler ve eski sürümün
+  `futbolokulu-*.pdf` artıkları silinir (`main.cjs`). `tests/gecici-cikti.test.js` (4bf7e4c).
+- **#3** `index.html` üretim CSP `connect-src 'self'`; `vite.config.js` `csp-dev` eklentisi localhost/ws'yi yalnız `serve` modunda
+  ekler; `dist/index.html`'de localhost yok. `tests/csp.test.js` (eababef).
+- **#4** `aktivasyon-sunucu/src/db.js kurulumEkle(..., maksKurulum)`: `INSERT … SELECT … WHERE (SELECT COUNT(*) …) < ?` tek ifade,
+  `meta.changes` ile karar; `index.js` sayım+ekleme ayrımı kaldırıldı. Sahte D1 testi güncellendi (56b3ad1). **Worker yayınlandı**
+  (sürüm b7c85161…, `/saglik` ok).
+- **#5** `yedekCekirdek.cjs kenarKopyalariniTemizle(userData)`: 30 günden eski `data.db/uploads.pre-restore-*` açılışta silinir
+  (`main.cjs`). `tests/kenar-kopya.test.js` (e7ecc7e). Kullanıcı rehberine "3c2. Kişisel veri silme ve yedekler (KVKK)" bölümü.
+- **#6** `createUser` rol ∈ {admin, kullanici} (db-roundtrip kontrolü) · **#7** `rateLimit.cjs rateBudama` (500 kayıt eşiği; dolmuş
+  pencereler, sonra en eskiler) login/kurtarma sayaçlarında (`tests/rate-budama.test.js`) · **#8** `.doc/.docx` yükleme kaldırıldı
+  (IPC + sunucu; eski dosyalar açılmaya devam eder) (8f03e8c).
+- **#9** ve Bilgi maddeleri: değişiklik gerekmedi (tasarım kararı / kapsam dışı sunucu modu).
+
+## Önerilen sıra (uygulandı)
 1. Ayar anahtarı beyaz listesi + `yedek_klasoru`/`sunucu_adres` kilidi (Orta, 1 saat, testli).
 2. Geçici PDF temizliği (Orta, yarım saat).
 3. Üretim CSP `connect-src 'self'` (Düşük, 15 dk).

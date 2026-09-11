@@ -130,6 +130,15 @@ Bir yaş grubuna sığmayacak kadar oyuncu olduğunda o yaşı iki ayrı grup ol
 
 Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antrenman ve yoklama kayıtları da silinir.
 
+## 3c2. Kişisel veri silme ve yedekler (KVKK)
+
+Makbuzu olan bir oyuncu silinemez; oyuncu kartından **kişisel verileri silme** yapılır: kimlik, iletişim, veli, belge, fotoğraf ve
+yoklama kayıtları silinir, oyuncu "Silinmiş Oyuncu #no" olur; makbuzlar mali belge olarak (adı damgalı) kalır. Bu silme yalnız
+programın canlı verisini etkiler: daha önce alınmış **yedek dosyaları (30 gün saklanır), taşıma paketleri ve geri yüklemede kenara
+alınan kopyalar** eski veriyi içerir. Veri sahibinin talebi geldiğinde bu kopyaların da silinmesi kulübün sorumluluğundadır; program
+30 günden eski kenar kopyalarını açılışta kendisi siler. Belge olarak yalnız PDF ve görsel (JPG/PNG/WEBP/HEIC) yüklenir; Word
+dosyaları kabul edilmez.
+
 ## 3d. Yeni bilgisayara taşıma
 
 Normal yedek yalnız alındığı bilgisayarda açılır (şifreleme anahtarı o bilgisayara bağlıdır). Bilgisayar değişecekse

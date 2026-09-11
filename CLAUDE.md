@@ -93,7 +93,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   fflate, 30 gün saklama) ve
   geri yükleme (`geriYukleCekirdek`: zip'i geçici klasöre güvenle aç (yol geçişi reddi) ya da eski biçim klasör → doğrula → mevcut veriyi `.pre-restore-<damga>` ile kenara al → kopyala → relaunch).
   Yedek aynı PC'nin safeStorage anahtarıyla şifreli; başka PC'de açılmaz (`db.yedekBilgisi` bunu raporlar).
-- **Güvenlik (inceleme `docs/guvenlik-inceleme.md`, 08.09.2026 tamamı uygulandı; 2. inceleme 11.09.2026: 2 orta — ayar anahtarı beyaz listesi yok, geçici PDF artıkları — + 7 düşük, henüz uygulanmadı):** IPC login sınırı kullanıcı başına 8/15 dk
+- **Güvenlik (inceleme `docs/guvenlik-inceleme.md`, 08.09.2026 tamamı uygulandı; 2. inceleme 11.09.2026 tamamı uygulandı: `ayarDogrula.cjs` İZİNLİ/KORUMALI ayar anahtarları + `cagriYetkisi(...args)`, `geciciCikti.cjs` 24 saat, `.pre-restore` 30 gün, üretim CSP `connect-src 'self'` (`vite.config.js csp-dev`), aktivasyon kurulum limiti atomik, `createUser` rol, `rateBudama`, `.doc/.docx` yok):** IPC login sınırı kullanıcı başına 8/15 dk
   (`ipc/data.cjs`), parola min 8, zorunlu değişim dışında mevcut parola doğrulanır; `yetki.cjs` `must_change_password`
   oturumunda her çağrı 403; saf modüller `electron/makbuzIzin.cjs` (makbuz PDF izni), `electron/belgeDogrula.cjs` (belge
   girdi doğrulama), `imageOptimize.resimBoyutu` (50 MP üstü atlanır); `src/lib/metin.js` `esc` + `guvenliLogo` tüm
