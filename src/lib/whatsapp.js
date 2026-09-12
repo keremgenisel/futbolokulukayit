@@ -1,7 +1,7 @@
 // @ts-check
 // WhatsApp "tıkla ve yaz" bağlantısıyla hatırlatma/bildirim — SAF mantık (plan §13). API yok: program mesajı
 // hazırlar, kulübün WhatsApp'ı açılır, kullanıcı Gönder'e basar. Şablon doldurma, numara dönüşümü, uygunluk kararı.
-import { gsmNormalize, paraTR, AY_ADLARI } from "./aidat.js";
+import { gsmNormalize, paraTR, AY_ADLARI, vadeTarihi, tarihTR } from "./aidat.js";
 import { uzunTarih } from "./takvim.js";
 import { saatAraligi } from "./program.js";
 import { VARSAYILAN_KULUP } from "./marka.js";
@@ -36,6 +36,7 @@ export const YER_TUTUCULAR = [
   "ay",
   "tutar",
   "kalan",
+  "vade",
   "donem",
   "grup",
   "tarih",
@@ -105,6 +106,7 @@ export function aidatDegerleri(b, kulup = VARSAYILAN_KULUP) {
     tutar: paraTR(b.tutar),
     kalan: paraTR(b.kalan ?? b.tutar),
     donem: b.odeme_donemi || "",
+    vade: b.odeme_donemi && b.yil && b.ay ? tarihTR(vadeTarihi(b.odeme_donemi, b.yil, b.ay)) : "", // plan §38
     grup: b.yas_grubu_ad || "",
     kulup,
   };

@@ -221,6 +221,7 @@ describe("rapor üreticileri (saf)", () => {
       aylar: "Eyl, Eki, Oca",
       tutar: 7000,
       donem: "1-10",
+      vade: "", // Tümü modunda vadesi_gecen_ay yoksa boş (plan §38)
       veli: "Baba",
       tel: "333",
     });

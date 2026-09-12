@@ -1,6 +1,6 @@
 import { Btn, Girdi, Avatar, Rozet } from "../ui.jsx";
 import { Ikon } from "../Ikon.jsx";
-import { paraTR, tarihTR } from "../../lib/aidat.js";
+import { paraTR, tarihTR, gorunenAidatDurumu } from "../../lib/aidat.js";
 
 /** Seçili oyuncu kartı ya da arama kutusu + sonuç listesi (refactor 2. tur §8.2). */
 export function OyuncuSecici({ oyuncu, q, onQ, sonuc, onSec, onDegistir, onKart }) {
@@ -76,7 +76,16 @@ export function OyuncuSecici({ oyuncu, q, onQ, sonuc, onSec, onDegistir, onKart 
               <Avatar ad={s.ad_soyad} boyut={30} />
               <span style={{ fontWeight: 600, flex: 1 }}>{s.ad_soyad}</span>
               <span style={{ color: "var(--soluk)", fontSize: 13 }}>{s.yas_grubu_ad || ""}</span>
-              <Rozet ton={s.aidat_durum === "odenmedi" ? "red" : "green"}>{s.aidat_durum === "odenmedi" ? "Borç" : "Temiz"}</Rozet>
+              {(() => {
+                const g = gorunenAidatDurumu(s.aidat_durum, s.vade_gecti); // plan §38: vadesi gelmemiş "Bekliyor"
+                return g === "odenmedi" ? (
+                  <Rozet ton="red">Borç</Rozet>
+                ) : g === "bekliyor" ? (
+                  <Rozet ton="gray">Bekliyor</Rozet>
+                ) : (
+                  <Rozet ton="green">Temiz</Rozet>
+                );
+              })()}
             </div>
           ))}
         </div>

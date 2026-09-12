@@ -2,7 +2,7 @@
 // Raporlar ekranının SAF rapor üreticileri (refactor §3.4): veritabanından gelen satırları alır,
 // { baslik, alt, yatay?, sutunlar, satirlar } döner. Önizleme, Excel ve PDF aynı yapıyı kullanır.
 // Veri çekme (db çağrıları) bileşende kalır; burada yalnız dönüşüm ve metin vardır.
-import { AY_ADLARI, ODEME_YONTEMLERI, DURUMLAR, tarihTR, paraTR, aidatEtiket } from "./aidat.js";
+import { AY_ADLARI, ODEME_YONTEMLERI, DURUMLAR, tarihTR, paraTR, aidatEtiket, vadeTarihi } from "./aidat.js";
 
 /** Dönem etiketi: ay seçiliyse "Eylül 2026 · 2026-2027 sezonu", Tümü ise "2026-2027 sezonu (tüm aylar)". @param {{ yil?: number|null, ay?: number|null, sezon?: string }} p */
 export function donemEtiketi({ yil, ay, sezon = "" }) {
@@ -131,6 +131,13 @@ export function borcluListesiRaporu({ liste, veliler = {}, yil = null, ay = null
       aylar: ay ? "" : borcluAylarMetni(b.aylar),
       tutar: b.kalan ?? b.tutar,
       donem: b.odeme_donemi,
+      // Vade (plan §38): ay seçiliyse dönem son günü (+ bekliyor); Tümü'de vadesi geçen ay / borçlu ay
+      vade:
+        ay && yil
+          ? `${tarihTR(vadeTarihi(b.odeme_donemi || "21-31", yil, ay))}${b.vade_gecti === 0 ? " · bekliyor" : ""}`
+          : b.vadesi_gecen_ay == null
+            ? ""
+            : `${b.vadesi_gecen_ay}/${b.ay_sayisi} ay vadesi geçti`,
       veli: veli?.ad_soyad ?? b.veli_ad ?? "",
       tel: veli ? veli.whatsapp_no || veli.gsm || "" : b.veli_tel || "",
     };
@@ -145,6 +152,7 @@ export function borcluListesiRaporu({ liste, veliler = {}, yil = null, ay = null
       ...(ay ? [] : [{ baslik: "Borçlu aylar", anahtar: "aylar", genislik: 22 }]),
       { baslik: "Tutar", anahtar: "tutar", genislik: 10, sag: true },
       { baslik: "Ödeme dönemi", anahtar: "donem", genislik: 14 },
+      { baslik: "Vade", anahtar: "vade", genislik: 20 },
       { baslik: "Veli", anahtar: "veli", genislik: 24 },
       { baslik: "Telefon", anahtar: "tel", genislik: 16 },
     ],

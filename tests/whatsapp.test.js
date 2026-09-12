@@ -134,4 +134,9 @@ describe("WhatsApp saf mantık", () => {
     expect(e.yeniSaat).toBe("18:00–19:30");
     expect(antrenmanDegerleri({ tarih: "2026-09-07", saat: "17:00" }, { ad_soyad: "K" }).saat).toBe("17:00"); // bitişsiz eski kayıt
   });
+  it("aidatDegerleri {vade}: dönem son günü (plan §38); dönem yoksa boş", () => {
+    expect(aidatDegerleri({ ad_soyad: "K", yil: 2026, ay: 9, tutar: 1, odeme_donemi: "11-20" }).vade).toBe("20.09.2026");
+    expect(aidatDegerleri({ ad_soyad: "K", yil: 2026, ay: 2, tutar: 1, odeme_donemi: "21-31" }).vade).toBe("28.02.2026");
+    expect(aidatDegerleri({ ad_soyad: "K", yil: 2026, ay: 9, tutar: 1 }).vade).toBe("");
+  });
 });

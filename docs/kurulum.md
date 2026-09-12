@@ -133,6 +133,15 @@ Bir yaş grubuna sığmayacak kadar oyuncu olduğunda o yaşı iki ayrı grup ol
 
 Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antrenman ve yoklama kayıtları da silinir.
 
+## 3c1. Ödeme dönemi ve vade
+
+Oyuncu kaydındaki **ödeme dönemi** (1-10, 11-20, 21-31) o ayın aidatının vadesidir: dönemin son günü geçene kadar oyuncu
+borçlu sayılmaz — Pano'da "vadesi gelmedi" görünür, tesise girebilir, toplu WhatsApp hatırlatmasına girmez. Vade geçince
+(ör. 11-20 için ayın 21'i) borçlu olur ve gecikme günü sayılmaya başlar. Oyuncular ekranında "Bu ay ödemeyenler" yalnız vadesi
+geçenleri, "Vadesi gelmeyenler" bekleyenleri listeler; Borçlu Listesi raporunda "Vadesi gelmeyenleri de göster" kutusu vardır.
+Eski davranışı (ayın 1'inden borç) isterseniz Ayarlar > Kulüp ve Makbuz'daki "Aidat, ödeme döneminin son gününden sonra borç
+sayılsın" kutusunu kaldırın.
+
 ## 3c2. Kişisel veri silme ve yedekler (KVKK)
 
 Makbuzu olan bir oyuncu silinemez; oyuncu kartından **kişisel verileri silme** yapılır: kimlik, iletişim, veli, belge, fotoğraf ve

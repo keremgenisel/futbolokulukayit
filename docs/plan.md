@@ -1648,7 +1648,7 @@ adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta
   db-roundtrip/kalıcılık şema 19, yoklama/yaş grupları e2e bitiş + saha çakışması. `tests/ui/tahsilat.test.jsx` "Tahsil eden"
   testindeki önceden var olan yakalanmamış hata (mock her çağrıya "" dönüyordu) düzeltildi.
 
-## 38. Ödeme dönemi = vade: vadesi gelmeyen aidat borç sayılmasın (PLAN, 12.09.2026)
+## 38. Ödeme dönemi = vade: vadesi gelmeyen aidat borç sayılmasın (UYGULANDI, 12.09.2026)
 
 Kerem: "Ödeme dönemim 11-20 ama ayın 2'sindeyiz, beni borçlu gösteriyor mu?" → Evet. Bugün `odeme_donemi` yalnız gecikme gününü
 üretir (`gecikmeGunu`); borçlu sayılma (Pano listesi, tesise giriş, Oyuncular süzgeci, Yoklama rozeti, WhatsApp toplu hatırlatma)
@@ -1705,3 +1705,18 @@ kutusu; `kulup-ayar` ayar); e2e: `oyuncular-e2e` ve pano duman görüntüsü tar
 1. Saf + DB + ayar (2 saat). 2. Pano/Oyuncular/Yoklama/HızlıArama/OyuncuKartı rozetleri (2 saat). 3. Tahsilat + WhatsApp (1 saat).
 4. Raporlar + Ayarlar + rehber (1 saat). 5. Testler ve e2e (2 saat). Davranış değişikliği olduğu için sürüm notunda açıkça yazılır;
 kulüp eski davranışı isterse ayarı kapatır. Onaylanırsa mockup gerekmez (mevcut ekranlara rozet/not/onay kutusu eklenir).
+
+### 38.7 Uygulama notları (12.09.2026)
+- Tek SQL parçası `electron/db/vade.cjs vadeSecimi(bugun)` (`d`/`p` takma adları; ayar `aidat_vade_bekle` = "0" → sabit 1). `listDues`,
+  `listUnpaid` (+`{ bugun, yalnizVadesiGecen }`), `listUnpaidAralik/Sezon` (+`vadesi_gecen_ay`), `panoOzet` (+`bekleyen`),
+  `listPlayersWithDue/playersPage` (`vade_gecti` sütunu; `sadeceOdemeyen` = vadesi geçen, yeni `bekleyen` süzgeci) — hepsi `bugun`
+  ISO parametresi alır (varsayılan bugün; testler sabitler). Şema değişmedi.
+- Saf `src/lib/aidat.js`: `gorunenAidatDurumu(durum, vade_gecti)` ("bekliyor"; vade bilgisi yoksa eski davranış), `vadeTarihi`,
+  `vadesiGectiMi`, `tesiseGirebilir` bekliyor → girebilir, `aidatEtiket` "Vadesi gelmedi"; `ui.jsx aidatTonu` gri.
+- Arayüz: Pano (giriş kontrolü vade notu, özet "N oyuncunun vadesi gelmedi", borçlu kartı bağlantısı → Oyuncular "bekleyen"),
+  Oyuncular ("Vadesi gelmeyenler" süzgeci, rozet), Yoklama/Tahsilat arama/Hızlı arama rozetleri, Oyuncu kartı (borç sayacı, ödeme
+  satırında "vade dd.mm.yyyy"), Tahsilat pilleri (`donemSecenekleri` vade_gecti=0 → borç değil, yine seçili), WhatsApp `{vade}`,
+  Raporlar Borçlu Listesi "Vade" sütunu + "Vadesi gelmeyenleri de göster", Ayarlar > Kulüp ve Makbuz onay kutusu.
+- Kararlar: vade günü ödeme günüdür (21'inde borç); kısmi ödenmiş ama vadesi gelmemiş ay da "bekliyor". Sürüm çıkarılmadı (Kerem'in
+  kararı).
+

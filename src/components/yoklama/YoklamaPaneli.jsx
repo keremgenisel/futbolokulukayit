@@ -1,6 +1,7 @@
 import { Btn, Avatar, Rozet, Bos } from "../ui.jsx";
 import { Ikon } from "../Ikon.jsx";
 import { saatAraligi } from "../../lib/program.js";
+import { gorunenAidatDurumu } from "../../lib/aidat.js";
 import { AntrenmanDuzenle } from "./AntrenmanDuzenle.jsx";
 
 /** Geldi / Gelmedi / İzinli düğmesi; seçiliye yeniden tıklamak işareti kaldırır (plan §26). */
@@ -52,7 +53,7 @@ export function YoklamaPaneli({
 }) {
   if (!aktif) return <Bos metin="Yoklama almak için yukarıdan bir antrenman seçin." />;
   const say = (d) => oyuncular.filter((o) => yoklama[o.id] === d).length;
-  const borclu = oyuncular.filter((o) => o.aidat_durum === "odenmedi").length;
+  const borclu = oyuncular.filter((o) => gorunenAidatDurumu(o.aidat_durum, o.vade_gecti) === "odenmedi").length; // vadesi geçen (plan §38)
   const kapali = saltOkunur || !!aktif.iptal;
   return (
     <>
@@ -180,7 +181,7 @@ export function YoklamaPaneli({
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 700, fontSize: 15, display: "flex", gap: 8, alignItems: "center" }}>
                 {o.ad_soyad}
-                {o.aidat_durum === "odenmedi" && <Rozet ton="red">Aidat</Rozet>}
+                {gorunenAidatDurumu(o.aidat_durum, o.vade_gecti) === "odenmedi" && <Rozet ton="red">Aidat</Rozet>}
               </div>
             </div>
             <div style={{ display: "flex", gap: 8 }}>

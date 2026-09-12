@@ -1,13 +1,25 @@
 // Oyuncu kartı > Ödemeler sekmesi: aylık aidat dönemleri (+WhatsApp hatırlat) ve makbuzlar (yazdır)
 import { Btn, Rozet, Bos, aidatTonu, aidatEtiket } from "../ui.jsx";
-import { ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, aidatKalan } from "../../lib/aidat.js";
+import { ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, aidatKalan, gorunenAidatDurumu, vadeTarihi } from "../../lib/aidat.js";
 import { hatirlatmaUygunMu } from "../../lib/whatsapp.js";
 import { Ikon } from "../Ikon.jsx";
 
 // tumu: { aidat, makbuz } "Tümünü göster" durumu; son: { aidat, makbuz } liste sınırı; onTumu("aidat"|"makbuz")
 import { TumunuGoster } from "./TumunuGoster.jsx";
 
-export function OdemeSekmesi({ aidatlar, makbuzlar, tumu, son, onTumu, acikAidat, birincilVeli, onAidatHatirlat, onMakbuzYazdir }) {
+// donem: oyuncunun ödeme dönemi ("1-10" …) — vadesi gelmemiş ayda vade tarihi yazılır (plan §38)
+export function OdemeSekmesi({
+  aidatlar,
+  makbuzlar,
+  tumu,
+  son,
+  onTumu,
+  acikAidat,
+  birincilVeli,
+  onAidatHatirlat,
+  onMakbuzYazdir,
+  donem = "1-10",
+}) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
       <div>
@@ -54,7 +66,14 @@ export function OdemeSekmesi({ aidatlar, makbuzlar, tumu, son, onTumu, acikAidat
                   <td>{paraTR(a.tutar)}</td>
                   <td>{a.durum === "muaf" ? "—" : paraTR(a.odenen || 0)}</td>
                   <td>
-                    <Rozet ton={aidatTonu(a.durum)}>{aidatEtiket(a.durum)}</Rozet>
+                    <Rozet ton={aidatTonu(gorunenAidatDurumu(a.durum, a.vade_gecti))}>
+                      {aidatEtiket(gorunenAidatDurumu(a.durum, a.vade_gecti))}
+                    </Rozet>
+                    {gorunenAidatDurumu(a.durum, a.vade_gecti) === "bekliyor" && (
+                      <span style={{ fontSize: 12, color: "var(--soluk)", marginLeft: 6 }}>
+                        vade {tarihTR(vadeTarihi(donem, a.yil, a.ay))}
+                      </span>
+                    )}
                     {a.durum === "kismi" && (
                       <span style={{ fontSize: 12, color: "var(--kirmizi)", marginLeft: 6 }}>kalan {paraTR(aidatKalan(a))}</span>
                     )}

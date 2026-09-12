@@ -71,4 +71,13 @@ describe("tahsilat saf", () => {
       "2026-11": "3500",
     });
   });
+  it("donemSecenekleri: bu ayın vadesi gelmemiş aidatı (vade_gecti=0) borç değil, sade seçenek (plan §38); vade_gecti yoksa eski davranış", () => {
+    const d = [{ ...due(2026, 9, "odenmedi"), vade_gecti: 0 }];
+    const s = donemSecenekleri(d, {}, 2026, 9);
+    expect(s[0]).toMatchObject({ yil: 2026, ay: 9, borc: false });
+    expect(donemSecenekleri([{ ...due(2026, 9, "odenmedi"), vade_gecti: 1 }], {}, 2026, 9)[0].borc).toBe(true);
+    expect(donemSecenekleri([due(2026, 9, "odenmedi")], {}, 2026, 9)[0].borc).toBe(true);
+    // seçili gelir: baslangicAySecimi vadesi gelmemiş ayı yine seçer (veli ödemeye gelmiştir)
+    expect(baslangicAySecimi({ ucret_tipi: "normal", aylik_aidat: 3500 }, d, 2026, 9)).toEqual({ "2026-9": "3500" });
+  });
 });

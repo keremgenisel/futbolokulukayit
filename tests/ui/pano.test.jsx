@@ -259,4 +259,56 @@ describe("Pano — bugünkü antrenmanlar ve borçlu eylemleri (karakterizasyon)
     expect(screen.getByRole("button", { name: "Kaan Yıldız WhatsApp" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Borçlulara Hatırlat" })).toBeInTheDocument();
   });
+
+  describe("Pano — vade (plan §38)", () => {
+    it("tesise giriş: vadesi gelmemiş ödenmemiş aidat GİREBİLİR + vade notu; vadesi geçmiş AİDAT BORCU; özet bekleyen sayısı; ödemeyen listesi yalnız vadesi geçenlerle istenir", async () => {
+      const onSekme = vi.fn();
+      window.okul = {
+        db: vi.fn(async (fn, ...a) => {
+          if (fn === "panoOzet") return { aktif: 2, grup: 1, odeyen: 0, borclu: 1, bekleyen: 1, antrenmanlar: [], bugunTahsilat: 0 };
+          if (fn === "listUnpaid") return [];
+          if (fn === "listPlayersWithDue" && a[0]?.q)
+            return [
+              {
+                id: 1,
+                ad_soyad: "Vade Bekleyen",
+                durum: "aktif",
+                yas_grubu_ad: "U12",
+                aidat_durum: "odenmedi",
+                vade_gecti: 0,
+                odeme_donemi: "21-31",
+              },
+              {
+                id: 2,
+                ad_soyad: "Vade Gecen",
+                durum: "aktif",
+                yas_grubu_ad: "U11",
+                aidat_durum: "odenmedi",
+                vade_gecti: 1,
+                odeme_donemi: "1-10",
+              },
+            ];
+          return [];
+        }),
+      };
+      render(
+        <ToastSaglayici>
+          <Pano onOyuncu={() => {}} onSekme={onSekme} onMakbuzKes={() => {}} />
+        </ToastSaglayici>,
+      );
+      await waitFor(() => screen.getByText("Tesise Giriş Kontrolü"));
+      expect(window.okul.db).toHaveBeenCalledWith("listUnpaid", expect.any(Number), expect.any(Number), null, null, {
+        bugun: expect.any(String),
+        yalnizVadesiGecen: true,
+      });
+      expect((await screen.findAllByText(/1 oyuncunun vadesi gelmedi/)).length).toBeGreaterThanOrEqual(2); // özet notu + borçlu kartı bağlantısı
+      fireEvent.change(screen.getByLabelText("Tesise giriş araması"), { target: { value: "Vade" } });
+      await waitFor(() => expect(screen.getByText("Vade Bekleyen")).toBeInTheDocument());
+      expect(screen.getByText("GİREBİLİR")).toBeInTheDocument();
+      expect(screen.getByText(/vadesi \d\d\.\d\d\.\d{4}/)).toBeInTheDocument();
+      expect(screen.getByText("AİDAT BORCU")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("link", { name: /oyuncunun vadesi gelmedi/ }));
+      expect(onSekme).toHaveBeenCalledWith("oyuncular", "bekleyen");
+    });
+  });
 });

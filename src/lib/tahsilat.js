@@ -42,7 +42,8 @@ export function baslangicAySecimi(oyuncu, dues, yil, ay) {
 }
 
 /**
- * Aidat dönemi pilleri. Borç = vadesi gelmiş (bu ay ve öncesi) ödenmemiş/kısmi aylar. İleri tarihli "odenmedi" satırları (iptal edilen
+ * Aidat dönemi pilleri. Borç = vadesi geçmiş ödenmemiş/kısmi aylar (bu ay ve öncesi; bu ayda `vade_gecti` 0 ise — ödeme döneminin son
+ * günü geçmemiş — borç DEĞİL, sade seçenek olarak kalır; plan §38). İleri tarihli "odenmedi" satırları (iptal edilen
  * uzun dönem makbuzunun açtığı ya da peşin ödeme için oluşturulan aylar) borç DEĞİL: kırmızı listelenmez, "gelecek" kümesinde sade
  * seçenek olur (Kerem, 10.09.2026). Bugünden ileriye 3 seçilebilir ay: ödenmiş/muaf aylar atlanır, 12 ay ileriye kadar. Uzun Dönem ile
  * seçilmiş ama pencereye girmeyen aylar da pil olarak görünür (görüp kaldırabilmek için).
@@ -51,7 +52,10 @@ export function baslangicAySecimi(oyuncu, dues, yil, ay) {
  */
 export function donemSecenekleri(aidatlar, aidatAylar, yil, ay) {
   const borclar = aidatlar
-    .filter((a) => acik(a) && !gelecekAcikAidatMi(a, yil, ay))
+    .filter(
+      (a) =>
+        acik(a) && !gelecekAcikAidatMi(a, yil, ay) && (a.vade_gecti === undefined || a.vade_gecti === null || Number(a.vade_gecti) === 1),
+    )
     .map((a) => ({ yil: a.yil, ay: a.ay, borc: true, kismi: a.durum === "kismi", kalan: aidatKalan(a) }))
     .sort((a, b) => a.yil - b.yil || a.ay - b.ay);
   /** @type {{ yil: number, ay: number, borc: boolean, kismi: boolean, kalan: number | null }[]} */

@@ -135,7 +135,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   (`require("../../src/lib/sezon.js")`, `program.js`, `tema.js`; Electron 42 / Node 24 `require(esm)`, asar içinde de doğrulandı).
   CJS ikizi YAZILMAZ (`electron/tema.cjs`, `sezonTarih.cjs`, `saatAralik.cjs` silindi). Kural: `src/lib` modülü üst düzey `await`
   içermez, tarayıcı API'si kullanmaz (ana süreçte de yüklenir). `package.json build.files` `src/lib/**/*` içerir — silme.
-- `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme.
+- `src/lib/aidat.js` — SAF aidat mantığı (`// @ts-check`): açılış durumu, tesise giriş, dönem, gecikme, **vade (plan §38):** `gorunenAidatDurumu(durum, vade_gecti)` → "bekliyor" (ödeme döneminin son günü geçmemiş ödenmemiş ay borç sayılmaz, tesise girebilir); `vade_gecti` DB'den (`electron/db/vade.cjs vadeSecimi(bugun)` tek SQL parçası; `listUnpaid` `{ bugun, yalnizVadesiGecen }`, `playersPage` `bekleyen`, `panoOzet.bekleyen`); ayar `aidat_vade_bekle` = "0" eski davranış. Bileşende `aidat_durum`'a doğrudan bakma, `gorunenAidatDurumu` kullan.
 - `src/components/ui.jsx` — ilkeller (`Btn`, `Rozet`, `Kart`, `Alan`, `Sayfalama`, `useToast`, `useDene`). Sayfalama: Oyuncular DB'de
   (`db.playersPage`, 50/sayfa; dışa aktarım tam liste), Raporlar önizleme 100 satır (Excel/PDF tam), oyuncu kartı son
   12 dönem / 12 makbuz / 40 yoklama + "Tümünü göster", Excel aktarım önizlemesi 100/sayfa (aktarım tam liste); sabit

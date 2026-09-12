@@ -31,6 +31,7 @@ export function Raporlar() {
   const [sezonlar, setSezonlar] = useState([]);
   const [sezonTarihleri, setSezonTarihleri] = useState([]); // [{ sezon, baslangic, bitis, kayitli }]
   const [sezonS, setSezonS] = useState("");
+  const [vadesiGelmeyenler, setVadesiGelmeyenler] = useState(false); // Borçlu Listesi: vadesi gelmemiş aylar da (plan §38)
   const [yoklamaMod, setYoklamaMod] = useState("sezon"); // Dönem seçimi (her raporda): "sezon" (sezon + ay) | "tarih" (aralık)
   const baslangicAyi = sezonDurum?.baslangicAyi || 9;
   const seciliSezon = sezonS || sezonDurum?.aktifSezon || guncelSezon(bugun().iso, baslangicAyi);
@@ -109,10 +110,12 @@ export function Raporlar() {
       }
       if (rapor === "borclu") {
         if (!d.ay) {
-          const liste = (await db("listUnpaidAralik", d.bas, d.son, d.sezon, grupId)) || [];
+          const liste =
+            (await db("listUnpaidAralik", d.bas, d.son, d.sezon, grupId, { bugun: bugun().iso, yalnizVadesiGecen: !vadesiGelmeyenler })) ||
+            [];
           return borcluListesiRaporu({ liste, ay: null, sezon: d.sezon || "", donem: d.sezon ? "" : d.etiket, grupEk });
         }
-        const liste = await db("listUnpaid", d.yil, d.ay, d.sezon, grupId);
+        const liste = await db("listUnpaid", d.yil, d.ay, d.sezon, grupId, { bugun: bugun().iso, yalnizVadesiGecen: !vadesiGelmeyenler });
         const veliler = {};
         for (const b of liste) veliler[b.player_id] = await db("listGuardians", b.player_id);
         return borcluListesiRaporu({ liste, veliler, yil: d.yil, ay: d.ay, sezon: d.sezon || "", grupEk });
@@ -227,6 +230,17 @@ export function Raporlar() {
               <div style={{ fontSize: 12, color: "var(--soluk)", marginTop: 2 }}>{r.aciklama}</div>
             </button>
           ))}
+          {rapor === "borclu" && (
+            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={vadesiGelmeyenler}
+                onChange={(e) => setVadesiGelmeyenler(e.target.checked)}
+                aria-label="Vadesi gelmeyenleri de göster"
+              />
+              Vadesi gelmeyenleri de göster
+            </label>
+          )}
         </Kart>
         <Kart style={{ overflow: "hidden" }}>
           {!veri ? (

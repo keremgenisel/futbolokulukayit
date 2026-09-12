@@ -140,4 +140,16 @@ describe("KulupAyar", () => {
     expect(screen.queryByRole("button", { name: "Kaydet" })).toBeNull();
     expect(screen.queryByRole("button", { name: /Logo Seç/ })).toBeNull();
   });
+  it("vade ayarı (plan §38): kutu varsayılan işaretli; kaldırınca aidat_vade_bekle='0' yazılır, tekrar işaretleyince '1'", async () => {
+    const { dbMock } = kur();
+    const kutu = await screen.findByLabelText("Aidat ödeme döneminin son gününden sonra borç sayılsın");
+    expect(kutu).toBeChecked();
+    fireEvent.click(kutu);
+    expect(kutu).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+    await waitFor(() => expect(dbMock).toHaveBeenCalledWith("setSetting", "aidat_vade_bekle", "0"));
+    fireEvent.click(kutu);
+    fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
+    await waitFor(() => expect(dbMock).toHaveBeenCalledWith("setSetting", "aidat_vade_bekle", "1"));
+  });
 });

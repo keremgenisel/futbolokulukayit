@@ -3,7 +3,7 @@ import { Kart, Btn, Girdi, Avatar, Rozet, useToast, useDene, UyariSeridi } from 
 import { Ikon } from "./Ikon.jsx";
 import { db, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
-import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR } from "../lib/aidat.js";
+import { AY_ADLARI, gecikmeGunu, tesiseGirebilir, paraTR, tarihTR, gorunenAidatDurumu, vadeTarihi } from "../lib/aidat.js";
 import { sezonSonuMu, guncelSezon, sezonKalanGun, kisaAralik } from "../lib/sezon.js";
 import { uyariSirala } from "../lib/belge.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
@@ -56,7 +56,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
 
   useEffect(() => {
     dene(() => db("panoOzet", { yil, ay, bugun: iso }).then(setOzet));
-    db("listUnpaid", yil, ay)
+    db("listUnpaid", yil, ay, null, null, { bugun: iso, yalnizVadesiGecen: true }) // plan §38: vadesi gelmeyen borçlu değil
       .then(setBorclular)
       .catch(() => {});
     db("saglikRaporuDurumu", iso)
@@ -123,7 +123,12 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
       <div style={{ display: "flex", gap: 16 }}>
         <Stat etiket="Aktif oyuncu" deger={ozet?.aktif ?? "—"} renk="var(--mor)" not={`${ozet?.grup ?? 0} yaş grubunda`} />
         <Stat etiket="Bu ay ödeyen" deger={ozet?.odeyen ?? "—"} renk="var(--yesil)" not={`${AY_ADLARI[ay - 1]} ${yil}`} />
-        <Stat etiket="Aidat borcu olan" deger={ozet?.borclu ?? "—"} renk="var(--kirmizi)" not="Tesise giremez" />
+        <Stat
+          etiket="Aidat borcu olan"
+          deger={ozet?.borclu ?? "—"}
+          renk="var(--kirmizi)"
+          not={ozet?.bekleyen ? `Vadesi geçen · ${ozet.bekleyen} oyuncunun vadesi gelmedi` : "Tesise giremez"}
+        />
         <Stat
           etiket="Bugün antrenman"
           deger={ozet?.antrenmanlar?.length ?? "—"}
@@ -194,7 +199,8 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         {sonuc.length > 0 && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {sonuc.map((o) => {
-              const ok = tesiseGirebilir(o, o.aidat_durum ? { durum: o.aidat_durum } : null);
+              const ok = tesiseGirebilir(o, o.aidat_durum ? { durum: o.aidat_durum, vade_gecti: o.vade_gecti } : null);
+              const g = gorunenAidatDurumu(o.aidat_durum, o.vade_gecti); // plan §38: "bekliyor" → girebilir, vade notu
               return (
                 <div
                   key={o.id}
@@ -215,13 +221,17 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
                     <div style={{ fontWeight: 700, fontSize: 16 }}>{o.ad_soyad}</div>
                     <div style={{ fontSize: 13, color: "var(--soluk)" }}>
                       {o.yas_grubu_ad || "Grup yok"} · {o.durum} · {AY_ADLARI[ay - 1]} aidatı{" "}
-                      {o.aidat_durum === "odendi"
+                      {g === "odendi"
                         ? "ödendi"
-                        : o.aidat_durum === "muaf"
+                        : g === "muaf"
                           ? "muaf"
-                          : o.aidat_durum === "odenmedi"
-                            ? "ödenmedi"
-                            : "kaydı yok"}
+                          : g === "bekliyor"
+                            ? `vadesi ${tarihTR(vadeTarihi(o.odeme_donemi, yil, ay))}`
+                            : g === "odenmedi"
+                              ? "ödenmedi"
+                              : g === "kismi"
+                                ? "kısmi ödendi"
+                                : "kaydı yok"}
                     </div>
                   </div>
                   <span
@@ -234,7 +244,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
                     }}
                   >
                     <Ikon ad={ok ? "onay" : "kapat"} />
-                    {ok ? "GİREBİLİR" : o.aidat_durum === "odenmedi" ? "AİDAT BORCU" : "GİREMEZ"}
+                    {ok ? "GİREBİLİR" : g === "odenmedi" || g === "kismi" ? "AİDAT BORCU" : "GİREMEZ"}
                   </span>
                 </div>
               );
@@ -246,6 +256,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
         <BugunkuAntrenmanlar antrenmanlar={ozet?.antrenmanlar || []} onSekme={onSekme} />
         <BorcluListesi
           borclular={borclular}
+          bekleyen={ozet?.bekleyen || 0}
           yil={yil}
           ay={ay}
           saltOkunur={saltOkunur}
@@ -266,7 +277,7 @@ export function Pano({ onOyuncu, onSekme, onMakbuzKes, saltOkunur, onSezon }) {
           saltOkunur={saltOkunur}
           onKapat={() => {
             setWa(null);
-            db("listUnpaid", yil, ay)
+            db("listUnpaid", yil, ay, null, null, { bugun: iso, yalnizVadesiGecen: true })
               .then(setBorclular)
               .catch(() => {});
           }}

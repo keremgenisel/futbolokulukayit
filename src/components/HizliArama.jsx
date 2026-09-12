@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Avatar, Rozet, aidatTonu, aidatEtiket, Bos } from "./ui.jsx";
 import { db, bugun } from "../lib/api.js";
-import { kimlikKisa } from "../lib/aidat.js";
+import { kimlikKisa, gorunenAidatDurumu } from "../lib/aidat.js";
 import { Ikon } from "./Ikon.jsx";
 
 // Her yerden oyuncu arama (Ctrl/Cmd+K): ad, TC ya da pasaport yaz → ↑↓ seç, Enter kartı açar, Esc kapatır.
@@ -139,7 +139,9 @@ export function HizliArama({ acik, onKapat, onOyuncu, onMakbuz, saltOkunur }) {
                 {o.durum !== "aktif" ? ` · ${o.durum}` : ""}
               </div>
             </div>
-            <Rozet ton={aidatTonu(o.aidat_durum)}>{aidatEtiket(o.aidat_durum)}</Rozet>
+            <Rozet ton={aidatTonu(gorunenAidatDurumu(o.aidat_durum, o.vade_gecti))}>
+              {aidatEtiket(gorunenAidatDurumu(o.aidat_durum, o.vade_gecti))}
+            </Rozet>
             {!saltOkunur && onMakbuz && (
               <button
                 type="button"

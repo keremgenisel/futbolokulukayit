@@ -106,4 +106,14 @@ describe("Oyuncular sezon filtresi", () => {
     );
     await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ saglikSorunlu: true }));
   });
+  it("'Vadesi gelmeyenler' süzgeci playersPage'e bekleyen:true gönderir; Pano'dan 'bekleyen' parametresi de açar (plan §38)", async () => {
+    render(
+      <ToastSaglayici>
+        <Oyuncular oturum={{ role: "admin" }} acilacakOyuncu="bekleyen" onAcildi={vi.fn()} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ bekleyen: true, sadeceOdemeyen: false }));
+    fireEvent.click(screen.getByRole("button", { name: /Vadesi gelmeyenler/ }));
+    await waitFor(() => expect(cagrilar.at(-1)).toMatchObject({ bekleyen: false }));
+  });
 });

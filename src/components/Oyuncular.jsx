@@ -18,7 +18,7 @@ import {
 import { db, cikti, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { ciktiMarkasi } from "../lib/yazdir.js";
-import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa } from "../lib/aidat.js";
+import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa, gorunenAidatDurumu } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { belgeGecerlilik, belgeEtiketi, eksikBelgeler } from "../lib/belge.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
@@ -41,7 +41,8 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [sezon, setSezon] = useState(null); // null: henüz seçilmedi → aktif sezon
   const [grup, setGrup] = useState("");
   const [durum, setDurum] = useState("aktifler"); // varsayılan: aktif + deneme + sakat (sahadaki herkes); pasif/ayrıldı/dondurma filtreyle görülür
-  const [odemeyen, setOdemeyen] = useState(false);
+  const [odemeyen, setOdemeyen] = useState(false); // vadesi geçmiş ödenmemiş (plan §38)
+  const [bekleyen, setBekleyen] = useState(false); // vadesi gelmemiş ödenmemiş (plan §38)
   const [saglik, setSaglik] = useState(false); // sağlık raporu yok / tarihsiz / süresi dolmuş
   const [eksikBelge, setEksikBelge] = useState(false); // zorunlu belgelerden ("Diğer" hariç) biri eksik (plan §25)
   const [yeni, setYeni] = useState(false);
@@ -61,6 +62,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     yil,
     ay,
     sadeceOdemeyen: odemeyen,
+    bekleyen,
     saglikSorunlu: saglik,
     eksikBelge,
     bugun: iso,
@@ -72,11 +74,11 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       setToplam(r.toplam);
       if (r.sayfa !== sayfa) setSayfa(r.sayfa); // sayfa taşarsa sunucu son sayfaya çeker
     });
-  }, [q, seciliSezon, grup, durum, odemeyen, saglik, eksikBelge, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [q, seciliSezon, grup, durum, odemeyen, bekleyen, saglik, eksikBelge, yil, ay, sayfa, toast]); // eslint-disable-line react-hooks/exhaustive-deps
   // Filtre değişince ilk sayfaya dön.
   useEffect(() => {
     setSayfa(1);
-  }, [q, seciliSezon, grup, durum, odemeyen, saglik, eksikBelge]);
+  }, [q, seciliSezon, grup, durum, odemeyen, bekleyen, saglik, eksikBelge]);
 
   // Yaş grubu kutusu seçili sezonun gruplarını listeler (plan §21.3); "Tüm sezonlar"da hepsi
   useEffect(() => {
@@ -99,6 +101,9 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       onAcildi?.();
     } else if (acilacakOyuncu === "borclu") {
       setOdemeyen(true); // Pano > Aidatı ödemeyenler > Tümü
+      onAcildi?.();
+    } else if (acilacakOyuncu === "bekleyen") {
+      setBekleyen(true); // Pano > "N oyuncunun vadesi gelmedi" (plan §38)
       onAcildi?.();
     } else if (acilacakOyuncu === "saglik") {
       setSaglik(true); // Pano > Sağlık raporu uyarıları > Tümü
@@ -143,7 +148,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
       durumAd: durumAd(o.durum),
       ucret: ucretAd(o.ucret_tipi),
       aidat: o.aylik_aidat,
-      aidatDurum: aidatEtiket(o.aidat_durum),
+      aidatDurum: aidatEtiket(gorunenAidatDurumu(o.aidat_durum, o.vade_gecti)),
       gsm: o.gsm || "",
     })),
   });
@@ -233,8 +238,23 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
           style={{ width: 190, height: 40 }}
           aria-label="Durum"
         />
-        <Btn kucuk tur={odemeyen ? "danger" : "ghost"} onClick={() => setOdemeyen(!odemeyen)} style={{ height: 40 }}>
+        <Btn
+          kucuk
+          tur={odemeyen ? "danger" : "ghost"}
+          onClick={() => setOdemeyen(!odemeyen)}
+          style={{ height: 40 }}
+          title="Ödeme döneminin son günü geçmiş, bu ayın aidatı ödenmemiş oyuncular"
+        >
           {odemeyen ? "✕ " : ""}Bu ay ödemeyenler
+        </Btn>
+        <Btn
+          kucuk
+          tur={bekleyen ? "danger" : "ghost"}
+          onClick={() => setBekleyen(!bekleyen)}
+          style={{ height: 40 }}
+          title="Bu ayın aidatı ödenmemiş ama ödeme döneminin son günü henüz geçmemiş oyuncular (borçlu sayılmaz)"
+        >
+          {bekleyen ? "✕ " : ""}Vadesi gelmeyenler
         </Btn>
         <Btn
           kucuk
@@ -336,7 +356,9 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
                     <Rozet ton={ucretTonu(o.ucret_tipi)}>{ucretAd(o.ucret_tipi)}</Rozet>
                   </td>
                   <td>
-                    <Rozet ton={aidatTonu(o.aidat_durum)}>{aidatEtiket(o.aidat_durum)}</Rozet>
+                    <Rozet ton={aidatTonu(gorunenAidatDurumu(o.aidat_durum, o.vade_gecti))}>
+                      {aidatEtiket(gorunenAidatDurumu(o.aidat_durum, o.vade_gecti))}
+                    </Rozet>
                   </td>
                   <td style={{ color: "var(--soluk)" }}>
                     <Ikon ad="sag" />

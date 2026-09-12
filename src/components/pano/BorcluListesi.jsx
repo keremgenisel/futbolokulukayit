@@ -4,11 +4,27 @@ import { AY_ADLARI, gecikmeGunu, paraTR, tarihTR } from "../../lib/aidat.js";
 import { hatirlatmaUygunMu } from "../../lib/whatsapp.js";
 
 /** "<Ay> Aidatı Ödemeyenler" kartı: ilk 8 borçlu, satır WhatsApp/Makbuz düğmeleri, toplu hatırlatma (plan §13; refactor 2. tur §8.7). */
-export function BorcluListesi({ borclular, yil, ay, saltOkunur, onOyuncu, onSekme, onMakbuzKes, onWa, waAlici }) {
+// bekleyen: vadesi gelmemiş ödenmemiş sayısı (plan §38) — listede yok, başlıkta bağlantı (Oyuncular > "Vadesi gelmeyenler")
+export function BorcluListesi({ borclular, bekleyen = 0, yil, ay, saltOkunur, onOyuncu, onSekme, onMakbuzKes, onWa, waAlici }) {
   return (
     <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h3 style={{ fontSize: 22 }}>{AY_ADLARI[ay - 1]} Aidatı Ödemeyenler</h3>
+        <h3 style={{ fontSize: 22 }}>
+          {AY_ADLARI[ay - 1]} Aidatı Ödemeyenler
+          {bekleyen > 0 && (
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                onSekme("oyuncular", "bekleyen");
+              }}
+              title="Ödeme döneminin son günü geçmemiş; borçlu sayılmaz, tesise girebilir"
+              style={{ marginLeft: 12, fontSize: 13, fontWeight: 500, color: "var(--soluk)", textDecoration: "none" }}
+            >
+              · {bekleyen} oyuncunun vadesi gelmedi
+            </a>
+          )}
+        </h3>
         <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
           {borclular.length > 0 && (
             <Btn
@@ -39,7 +55,7 @@ export function BorcluListesi({ borclular, yil, ay, saltOkunur, onOyuncu, onSekm
         </div>
       </div>
       {borclular.length === 0 ? (
-        <Bos kucuk metin="Borçlu oyuncu yok." />
+        <Bos kucuk metin={bekleyen > 0 ? "Vadesi geçmiş borç yok." : "Borçlu oyuncu yok."} />
       ) : (
         <table>
           <thead>

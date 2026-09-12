@@ -8,7 +8,16 @@ import { VARSAYILAN_TEMA } from "../../lib/tema.js";
 import { VARSAYILAN_KULUP } from "../../lib/marka.js";
 import { TemaSecici } from "./TemaSecici.jsx";
 
-const ALANLAR = ["kulup_adi", "kulup_kisa_ad", "kulup_alt_yazi", "kurulus_yili", "tahsil_eden", "tema_ana", "tema_vurgu"];
+const ALANLAR = [
+  "kulup_adi",
+  "kulup_kisa_ad",
+  "kulup_alt_yazi",
+  "kurulus_yili",
+  "tahsil_eden",
+  "tema_ana",
+  "tema_vurgu",
+  "aidat_vade_bekle",
+];
 const bos = () => Object.fromEntries(ALANLAR.map((k) => [k, ""]));
 
 export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
@@ -98,6 +107,23 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
           <Alan etiket="Varsayılan tahsil eden (makbuzda; giriş yapan kullanıcının adı boşsa kullanılır)">
             {girdi("tahsil_eden", { "aria-label": "Tahsil eden" })}
           </Alan>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14, cursor: kilitli ? "default" : "pointer" }}>
+            <input
+              type="checkbox"
+              checked={a.aidat_vade_bekle !== "0"}
+              disabled={kilitli}
+              onChange={(e) => setA({ ...a, aidat_vade_bekle: e.target.checked ? "1" : "0" })}
+              aria-label="Aidat ödeme döneminin son gününden sonra borç sayılsın"
+              style={{ width: 18, height: 18, marginTop: 2 }}
+            />
+            <span>
+              <b>Aidat, ödeme döneminin son gününden sonra borç sayılsın</b>
+              <span style={{ display: "block", fontSize: 13, color: "var(--soluk)" }}>
+                Açıkken "1-10" dönemindeki oyuncu ayın 10'una kadar borçlu görünmez, tesise girebilir, hatırlatma listesine girmez.
+                Kapalıysa ayın 1'inden itibaren borçlu sayılır (eski davranış).
+              </span>
+            </span>
+          </label>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
             <span style={{ fontSize: 12, color: "var(--soluk)", fontWeight: 600, textTransform: "uppercase", letterSpacing: ".05em" }}>
               Kulüp logosu

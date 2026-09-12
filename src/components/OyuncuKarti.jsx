@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, useDene, OYUNCU_MODAL } from "./ui.jsx";
 import { db, files, bugun } from "../lib/api.js";
-import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi } from "../lib/aidat.js";
+import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi, gorunenAidatDurumu } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { aidatDegerleri } from "../lib/whatsapp.js";
@@ -145,7 +145,11 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     onay: v?.mesaj_onayi,
     degerler,
   });
-  const acikAidat = aidatlar.find((a) => a.durum === "odenmedi" || a.durum === "kismi") || null;
+  // WhatsApp hatırlatma: önce vadesi geçmiş açık ay; hiç yoksa vadesi gelmemiş (plan §38)
+  const acikAidat =
+    aidatlar.find((a) => ["odenmedi", "kismi"].includes(gorunenAidatDurumu(a.durum, a.vade_gecti))) ||
+    aidatlar.find((a) => a.durum === "odenmedi" || a.durum === "kismi") ||
+    null;
   const aidatHatirlat = () =>
     acikAidat &&
     setWa({
@@ -286,8 +290,13 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
       <div style={{ margin: "-24px -24px 20px" }}>
         <Sekmeler
           liste={SEKMELER.map((s) =>
-            s.kod === "odeme" && aidatlar.some((a) => a.durum === "odenmedi")
-              ? { ...s, ek: <Rozet ton="red">{aidatlar.filter((a) => a.durum === "odenmedi").length} borç</Rozet> }
+            s.kod === "odeme" && aidatlar.some((a) => gorunenAidatDurumu(a.durum, a.vade_gecti) === "odenmedi")
+              ? {
+                  ...s,
+                  ek: (
+                    <Rozet ton="red">{aidatlar.filter((a) => gorunenAidatDurumu(a.durum, a.vade_gecti) === "odenmedi").length} borç</Rozet>
+                  ),
+                }
               : s,
           )}
           aktif={sekme}
@@ -315,6 +324,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
 
       {sekme === "odeme" && (
         <OdemeSekmesi
+          donem={o.odeme_donemi}
           aidatlar={aidatlar}
           makbuzlar={makbuzlar}
           tumu={tumu}
