@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alan, Girdi, useToast, useDene, KaydetCubugu } from "../ui.jsx";
 import { db, uygulama } from "../../lib/api.js";
-import { girisKartiHtml, KART_KURAL_VARSAYILAN, kartAltYaziVarsayilan } from "../../lib/kartHtml.js";
+import { girisKartiHtml, KART_KURAL_VARSAYILAN } from "../../lib/kartHtml.js";
 import { qrSvg, code128Svg, kodMetni } from "../../lib/kartKod.js";
 import { KART_AYAR_ANAHTARLARI } from "../../lib/kartVeri.js";
 import { VARSAYILAN_KULUP } from "../../lib/marka.js";
@@ -24,7 +24,7 @@ const bos = () => Object.fromEntries(ALANLAR.map((k) => [k, ""]));
 export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
   const [a, setA] = useState(bos);
   const [ilk, setIlk] = useState(bos);
-  const [baglam, setBaglam] = useState({ kulupAdi: "", kurulusYili: "", logo: "", tema: VARSAYILAN_TEMA });
+  const [baglam, setBaglam] = useState({ kulupAdi: "", kisaAd: "", kurulusYili: "", logo: "", tema: VARSAYILAN_TEMA });
   const [kod, setKod] = useState({ qrSvg: "", barkodSvg: "" });
   const toast = useToast();
   const dene = useDene();
@@ -37,7 +37,7 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
     for (let i = 1; i <= 4; i++) if (!o[`kart_kural_${i}`]) o[`kart_kural_${i}`] = KART_KURAL_VARSAYILAN[i - 1];
     const kulupAdi = (await db("getSetting", "kulup_adi")) || "";
     const kurulusYili = (await db("getSetting", "kurulus_yili")) || "";
-    if (!o.kart_alt_yazi) o.kart_alt_yazi = kartAltYaziVarsayilan(kurulusYili); // "Futbol Okulu · 1919" dolu gelir
+    const kisaAd = (await db("getSetting", "kulup_kisa_ad")) || "";
     let m = null;
     try {
       m = await uygulama().marka();
@@ -46,7 +46,7 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
     }
     setA(o);
     setIlk(o);
-    setBaglam({ kulupAdi, kurulusYili, logo: m?.logo || "", tema: m?.tema || VARSAYILAN_TEMA });
+    setBaglam({ kulupAdi, kisaAd, kurulusYili, logo: m?.logo || "", tema: m?.tema || VARSAYILAN_TEMA });
   }, []);
   useEffect(() => {
     yukle().catch(() => {});
@@ -87,7 +87,7 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
     ayar: {
       kulupAdi: baglam.kulupAdi || VARSAYILAN_KULUP,
       kurulusYili: baglam.kurulusYili,
-      altYazi: a.kart_alt_yazi,
+      kisaAd: baglam.kisaAd,
       logo: baglam.logo,
       tema: baglam.tema,
       adres: a.kulup_adres,
@@ -103,19 +103,12 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
       <div>
         <h3 style={{ fontSize: 22 }}>Giriş Kartı</h3>
         <div style={{ fontSize: 14, color: "var(--soluk)", marginTop: 4 }}>
-          11 × 6 cm oyuncu giriş kartı: oyuncu kartından tek tek, Oyuncular ekranından toplu yazdırılır. Kulüp adı, logo, renkler ve sezon
-          Kulüp ve Makbuz ayarlarından gelir.
+          11 × 6 cm oyuncu giriş kartı: oyuncu kartından tek tek, Oyuncular ekranından toplu yazdırılır. Kulüp adı, kısa ad (adın altındaki
+          yazı), kuruluş yılı, logo ve renkler Kulüp ve Makbuz ayarlarından gelir.
         </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          <Alan etiket="Kulüp adının altındaki yazı (ön yüz)">
-            {girdi("kart_alt_yazi", {
-              "aria-label": "Kart alt yazısı",
-              placeholder: kartAltYaziVarsayilan(baglam.kurulusYili),
-              maxLength: 40,
-            })}
-          </Alan>
           <Alan etiket="Kulüp adresi (arka yüz)">
             {girdi("kulup_adres", { "aria-label": "Kulüp adresi", placeholder: "Mahalle, cadde, ilçe" })}
           </Alan>

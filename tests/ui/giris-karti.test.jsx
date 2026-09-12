@@ -53,7 +53,7 @@ function kopru(ayarlar = {}, ek = {}) {
 
 describe("Ayarlar > Giriş Kartı", () => {
   it("adres/telefon/kural alanları ve QR anahtarı tek Kaydet ile yazılır; önizleme çerçevesi var", async () => {
-    const { db } = kopru({ kulup_adi: "Eyüpspor Kulübü" });
+    const { db } = kopru({ kulup_adi: "Eyüpspor Kulübü", kulup_kisa_ad: "EYÜPSPOR", kurulus_yili: "1919" });
     render(
       <ToastSaglayici>
         <GirisKartiAyar saltOkunur={false} admin onKirli={vi.fn()} />
@@ -64,9 +64,8 @@ describe("Ayarlar > Giriş Kartı", () => {
     // kural kutuları boşken varsayılanla dolu gelir; dolu gelmesi "kaydedilmedi" saymaz
     await waitFor(() => expect(screen.getByLabelText("1. kural")).toHaveValue(KART_KURAL_VARSAYILAN[0]));
     expect(screen.getByLabelText("4. kural")).toHaveValue(KART_KURAL_VARSAYILAN[3]);
-    expect(screen.getByLabelText("Kart alt yazısı")).toHaveValue("Futbol Okulu"); // kuruluş yılı boş
+    expect(screen.queryByLabelText("Kart alt yazısı")).toBeNull(); // alt yazı ayarı yok: kısa ad Kulüp ve Makbuz'dan
     expect(screen.queryByRole("button", { name: "Kaydet" })).toBeNull();
-    fireEvent.change(screen.getByLabelText("Kart alt yazısı"), { target: { value: "Eyüpspor Futbol Okulu" } });
     fireEvent.change(screen.getByLabelText("Kulüp adresi"), { target: { value: "Eyüp / İstanbul" } });
     fireEvent.change(screen.getByLabelText("4. kural"), { target: { value: "Kartınızı yanınızda bulundurunuz." } });
     const qr = screen.getByLabelText("Kartta giriş kodu bas");
@@ -75,8 +74,7 @@ describe("Ayarlar > Giriş Kartı", () => {
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
     await waitFor(() => expect(db).toHaveBeenCalledWith("setSetting", "kart_qr", "1"));
     expect(db).toHaveBeenCalledWith("setSetting", "kulup_adres", "Eyüp / İstanbul");
-    expect(db).toHaveBeenCalledWith("setSetting", "kart_alt_yazi", "Eyüpspor Futbol Okulu");
-    expect(screen.getByTitle("Giriş kartı önizlemesi")).toHaveAttribute("srcdoc", expect.stringContaining("Eyüpspor Futbol Okulu"));
+    expect(screen.getByTitle("Giriş kartı önizlemesi")).toHaveAttribute("srcdoc", expect.stringContaining("EYÜPSPOR · 1919")); // kısa ad + yıl
     expect(db).toHaveBeenCalledWith("setSetting", "kart_kural_4", "Kartınızı yanınızda bulundurunuz.");
     expect(screen.getByTitle("Giriş kartı önizlemesi")).toHaveAttribute("srcdoc", expect.stringContaining("Kaan Yıldız"));
     expect(screen.getByTitle("Giriş kartı önizlemesi")).toHaveAttribute("srcdoc", expect.stringContaining("Eyüpspor Kulübü")); // kulüp adı Kulüp ayarından

@@ -12,9 +12,9 @@ export const KART_KURAL_VARSAYILAN = [
   "Kayıp ve hasar durumunda kulübe bildiriniz; yeni kart ücrete tabidir.",
   "Lütfen kartınızı yanınızda bulundurunuz; kartı olmayan antrenmana katılamayacaktır.",
 ];
-/** Ön yüzde kulüp adının altındaki yazı (ayar `kart_alt_yazi` boşsa). @param {string} [kurulusYili] */
-export const kartAltYaziVarsayilan = (kurulusYili = "") =>
-  `Futbol Okulu${String(kurulusYili || "").trim() ? ` · ${String(kurulusYili).trim()}` : ""}`;
+/** Ön yüzde kulüp adının altındaki yazı: Kulüp ve Makbuz'daki kısa ad (yoksa "Futbol Okulu") + kuruluş yılı. @param {string} [kisaAd] @param {string} [kurulusYili] */
+export const kartAltYazi = (kisaAd = "", kurulusYili = "") =>
+  `${String(kisaAd || "").trim() || "Futbol Okulu"}${String(kurulusYili || "").trim() ? ` · ${String(kurulusYili).trim()}` : ""}`;
 export const KART_EN_MM = 110;
 export const KART_BOY_MM = 60;
 export const TOPLU_SAYFA_KART = 6; // A4 yatay 2 × 3
@@ -32,7 +32,7 @@ export const telMaskele = (tel) => {
 /**
  * @typedef {{ ad_soyad: string, id: number|string, yas_grubu_ad?: string, dogum_tarihi?: string|null, foto?: string, veli_ad?: string,
  *   veli_tel?: string, qrSvg?: string, barkodSvg?: string }} KartOyuncu
- * @typedef {{ kulupAdi?: string, kurulusYili?: string, altYazi?: string, logo?: string, tema?: { ana?: string, vurgu?: string },
+ * @typedef {{ kulupAdi?: string, kisaAd?: string, kurulusYili?: string, logo?: string, tema?: { ana?: string, vurgu?: string },
  *   adres?: string, telefon?: string, web?: string, sezon?: string, kurallar?: string[] }} KartAyar
  */
 
@@ -97,7 +97,7 @@ function onYuz(o, a, t) {
   const yil = o.dogum_tarihi ? String(o.dogum_tarihi).slice(0, 4) : "";
   return `<div class="kart on">
   <div class="daire"></div><div class="halka"></div>
-  <div class="ust">${logo ? `<img src="${logo}" alt="">` : ARMA(t.sari, t.morKoyu)}<div class="k"><div class="ad">${esc(a.kulupAdi || VARSAYILAN_KULUP)}</div><div class="alt">${esc(String(a.altYazi || "").trim() || kartAltYaziVarsayilan(a.kurulusYili))}</div></div>${a.sezon ? `<div class="sezon">${esc(a.sezon)}</div>` : ""}</div>
+  <div class="ust">${logo ? `<img src="${logo}" alt="">` : ARMA(t.sari, t.morKoyu)}<div class="k"><div class="ad">${esc(a.kulupAdi || VARSAYILAN_KULUP)}</div><div class="alt">${esc(kartAltYazi(a.kisaAd, a.kurulusYili))}</div></div>${a.sezon ? `<div class="sezon">${esc(a.sezon)}</div>` : ""}</div>
   <div class="govde">
     <div class="foto">${foto ? `<img src="${foto}" alt="">` : SILUET}</div>
     <div class="bilgi"><div class="etiket">OYUNCU GİRİŞ KARTI</div><div class="isim">${esc(o.ad_soyad)}</div>

@@ -1807,5 +1807,6 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
 - 12.09.2026 (Kerem: "ayarlar, kulüp ve makbuzun altına giriş kartını koy"): `GirisKartiAyar` Kulüp ve Makbuz'dan çıkarılıp menüde
   hemen altında AYRI bölüm oldu (kod `kart`, kendi Kaydet çubuğu ve onKirli); kulüp adı/logo/tema orada salt okunur bağlam.
 - 12.09.2026: kural kutuları ve alt yazı boşken varsayılanla DOLU gelir; ön yüz gövdesi (foto, bilgiler, QR) başlık ile alt yazı arasında
-  dikeyde ortalı (`.govde flex:1; align-items:center`); yeni ayar `kart_alt_yazi` (≤40, boşsa "Futbol Okulu · <kuruluş yılı>").
+  dikeyde ortalı (`.govde flex:1; align-items:center`); ön yüzde kulüp adının altına Kulüp ve Makbuz'daki KISA AD (yoksa "Futbol Okulu") + kuruluş yılı basılır (`kartAltYazi`;
+  `kart_alt_yazi` ayarı aynı gün eklenip kaldırıldı).
 

@@ -13,7 +13,7 @@ import {
   rgbToHsl,
   acikTon,
 } from "../src/lib/tema.js";
-import { ayarDogrula } from "../electron/ayarDogrula.cjs";
+import { ayarDogrula, IZINLI_ANAHTARLAR } from "../electron/ayarDogrula.cjs";
 import { markaHesapla } from "../electron/marka.cjs";
 
 describe("tema.js", () => {
@@ -107,8 +107,7 @@ describe("ayarDogrula (ana süreç)", () => {
     expect(ayarDogrula("kart_qr", "1")).toBe("1"); // plan §40
     expect(() => ayarDogrula("kart_qr", "evet")).toThrow();
     expect(ayarDogrula("kart_kural_1", "  Kart kişiseldir  ")).toBe("Kart kişiseldir");
-    expect(ayarDogrula("kart_alt_yazi", " Eyüpspor Futbol Okulu ")).toBe("Eyüpspor Futbol Okulu");
-    expect(() => ayarDogrula("kart_alt_yazi", "x".repeat(41))).toThrow();
+    expect(IZINLI_ANAHTARLAR.has("kart_alt_yazi")).toBe(false); // kaldırıldı: alt yazı kısa addan gelir, renderer yazamaz
     expect(() => ayarDogrula("kulup_adres", "x".repeat(121))).toThrow(/120/);
     expect(() => ayarDogrula("aidat_vade_bekle", "evet")).toThrow();
   });
