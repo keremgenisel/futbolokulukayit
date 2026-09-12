@@ -1736,3 +1736,57 @@ yalnız bir şey başladıysa), `updater:durum` IPC'si (oturum şart) bunu verir
 kaçan olayı devralır. Eski köprüde `durum` yoksa sessizce çizilmez. Testler: `tests/guncelleme-durum.test.js`,
 `tests/ui/guncelleme-seridi.test.jsx` (+2). Kulübe geçici yol: Ayarlar > Hakkında > Güncellemeleri Denetle → İndir.
 
+
+## 40. Oyuncu giriş kartı (PLAN, 12.09.2026)
+
+Kerem: 11 × 6 cm yatay kart; mockup'ta Yön C (koyu mor zemin, sarı vurgu) seçildi; QR kodu İSTEĞE BAĞLI (kulüpte okuyucu yok);
+arka yüz 4 kural (4: "Lütfen kartınızı yanınızda bulundurunuz; kartı olmayan antrenmana katılamayacaktır."). Mockup:
+https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Yön C + arka yüz; sayfa 2: A/B arşiv).
+
+### 40.1 Kart içeriği
+- **Ön yüz:** kulüp logosu (yoksa uygulama arması yer tutucu), kulüp adı + "Futbol Okulu · <kuruluş yılı>", sezon pili, "OYUNCU GİRİŞ
+  KARTI", foto (yoksa siluet), ad soyad, yaş grubu, oyuncu no; QR yalnız ayar açıksa (sağda beyaz kutu). Renkler kulüp temasından
+  (`temaTuret`: mor-koyu zemin, mor daire, sarı vurgu, `--ana-ustu`/`--vurgu-ustu` yazı) — tema değişince kart da değişir.
+- **Arka yüz:** 4 kural (sabit metin, Ayarlar'dan değiştirilebilir — 40.3), veli adı + maskelenmiş telefon, kulüp adres/telefon/e-posta
+  (yeni ayarlar), kart no barkodu (QR ile aynı anahtar; kapalıysa yalnız "2026 0123" metni), alt bant "Bulunması hâlinde kulübe teslim
+  ediniz".
+- **Oyuncu no** = `players.id` 4 haneli (0123); kart no = `<sezon ilk yılı> <oyuncu no>`. Yeni sütun YOK.
+- Kartta aidat durumu / son kullanma tarihi YAZILMAZ (aylık değişir; giriş kontrolü canlı durumu gösterir).
+
+### 40.2 Nerede / nasıl
+1. **Oyuncu kartı modalı:** başlık satırına "Giriş Kartı" düğmesi (Makbuz Kes'in yanı; `saltOkunur`da da açık — yazdırma yazma
+   değil). Tek A4'te ön + arka yüz yan yana, kesim çizgili; makbuzla aynı akış (`htmlYazdir` → yazıcı yoksa PDF aç; "PDF" düğmesi
+   `cikti:pdfKaydet`). Yeni kayıt sonrası toast'ta "Giriş kartını yazdır" bağlantısı.
+2. **Oyuncular › toplu:** filtre çubuğuna "Kartları Yazdır" (süzgeçteki oyuncular; en çok 200 uyarısı). A4 dikey: 2 sütun × 4 satır =
+   8 ön yüz, sonraki sayfada aynı sırayla 8 arka yüz (çift taraflı baskıda arka arkaya gelir; tek taraflıda kesip yapıştırma). Kesim
+   çizgileri 0,3 mm gri; kenar boşlukları 10 mm.
+3. **Ayarlar › Kulüp ve Makbuz › "Giriş kartı" bölümü:** kulüp adresi, telefon, e-posta/web (yeni ayarlar `kulup_adres`,
+   `kulup_telefon`, `kulup_web`, İZİNLİ listesine); kural metinleri (4 satır, varsayılan mockup metni, `kart_kural_1..4`, ≤120
+   karakter); "Kartta giriş kodu (QR/barkod) bas" onay kutusu `kart_qr` = ""/"1" (varsayılan KAPALI); kart önizlemesi (örnek
+   oyuncuyla) aynı bölümde.
+
+### 40.3 Teknik
+- Saf şablon `src/lib/kartHtml.js` (`girisKartiHtml({ oyuncu, veli, marka, sezon, kurallar, iletisim, qr })` → ön/arka yüz HTML,
+  `esc` + `guvenliLogo`, `@page` 11cm × 6cm tek kart / A4 toplu düzen `kartSayfasiHtml(kartlar)`), test `tests/kart-html.test.js`.
+  Foto `files:dataUrl` ile (`guvenliLogo` regex'iyle aynı doğrulama); yoksa siluet SVG.
+- QR/barkod: saf, bağımlılıksız üretici `src/lib/qr.js` (QR sürüm 1–3, ECC M; Code 128 SVG) — ayar kapalıyken hiç çağrılmaz. Kod
+  içeriği: `FOK:<kartNo>` (uygulama önekiyle; başka kulübün kartı ayırt edilir).
+- Yazdırma ana süreçteki mevcut `cikti` bölümü (JS kapalı, ağ kapalı); yeni IPC yok.
+- Veri: `getPlayer` + `listGuardians` (birincil veli) + `app:marka` + `sezonDurumu` — mevcut OKUMA çağrıları; şema değişikliği YOK.
+
+### 40.4 İleride: kartla giriş sistemi (AYRI İŞ — kulüp okuyucu alırsa)
+- Okuyucu tipi: klavye gibi çalışan USB barkod/QR okuyucu (ek sürücü yok). Okunan `FOK:<kartNo>` metni Pano › Tesise Giriş Kontrolü
+  arama kutusuna düşer; kutu `FOK:` önekini tanıyıp kart no → oyuncu eşler, tek sonucu büyük kartla gösterir (GİREBİLİR / AİDAT
+  BORCU / GİREMEZ) ve 5 sn sonra kutuyu temizler ("kiosk kipi").
+- Giriş günlüğü (isteğe bağlı): `girisler(player_id, zaman, sonuc)` tablosu → Raporlar "Tesise giriş" (kim, ne zaman, kaç kez);
+  yoklama ile karıştırılmaz.
+- Kart iptali: kayıp kartta yeni kart no (sonek `-2`) → eski kod "iptal" sonucu verir; `players.kart_seri` sütunu (yalnız bu adımda
+  şema değişir).
+- Kiosk ekranı: ayrı pencere/tam ekran, yalnız arama kutusu + sonuç; kullanıcı oturumu gerekmeden yalnız giriş kontrolü (OKUMA).
+- Ön koşul: 40.2/3 ile kartlarda kod basılmış olması (`kart_qr` açık); kod formatı bugünden sabitlenir ki sonradan basılan kartlar
+  geçerli kalsın.
+
+### 40.5 Sıra ve süre
+1. Ayarlar bölümü + saf şablon + testler (2 saat). 2. Oyuncu kartı modalında "Giriş Kartı" + PDF (1,5 saat). 3. Toplu basım A4
+   (1,5 saat). 4. QR/barkod üretici (isteğe bağlı, 1,5 saat; ayar kapalıyken görünmez). 5. Rehber + e2e (1 saat). §40.4 bu turda
+   YAPILMAZ; kulüp okuyucu kararı verince planlanır.
