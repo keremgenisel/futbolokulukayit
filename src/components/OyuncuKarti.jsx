@@ -7,12 +7,14 @@ import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { aidatDegerleri } from "../lib/whatsapp.js";
 import { OyuncuForm } from "./OyuncuForm.jsx";
-import { makbuzYazdir as makbuzYazdirAkis } from "../lib/yazdir.js";
+import { makbuzYazdir as makbuzYazdirAkis, htmlYazdir } from "../lib/yazdir.js";
 import { Ikon } from "./Ikon.jsx";
 import { BilgiSekmesi } from "./oyuncu-karti/BilgiSekmesi.jsx";
 import { AileSekmesi } from "./oyuncu-karti/AileSekmesi.jsx";
 import { BelgeSekmesi } from "./oyuncu-karti/BelgeSekmesi.jsx";
 import { OdemeSekmesi } from "./oyuncu-karti/OdemeSekmesi.jsx";
+import { girisKartiHtml } from "../lib/kartHtml.js";
+import { kartAyarlariOku, kartOyuncusu } from "../lib/kartVeri.js";
 import { YoklamaSekmesi } from "./oyuncu-karti/YoklamaSekmesi.jsx";
 
 const SEKMELER = [
@@ -195,6 +197,18 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         ),
       ],
     });
+  // Giriş kartı (plan §40): ön + arka yüz, A4 yatay; makbuzla aynı akış (yazıcı yoksa PDF açılır)
+  const girisKartiYazdir = () =>
+    dene(async () => {
+      const { ayar, qr } = await kartAyarlariOku();
+      const kart = await kartOyuncusu(o, { sezon: ayar.sezon, qr, foto: foto || "", veliler });
+      const y = await htmlYazdir(
+        girisKartiHtml({ oyuncular: [kart], ayar, duzen: "tek" }),
+        `giris-karti-${o.ad_soyad.replace(/\s+/g, "-")}`,
+        true,
+      );
+      if (!y.ok) toast("err", y.mesaj);
+    });
   const sonMesaj = mesajlar[0] || null;
   const ust = (
     <div
@@ -235,6 +249,15 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           ))}
         </select>
       </label>
+      <Btn
+        tur="ghost"
+        ikon={<Ikon ad="yazdir" />}
+        onClick={girisKartiYazdir}
+        title="11 × 6 cm giriş kartı: ön ve arka yüz A4 yatay sayfada; yazıcı yoksa PDF açılır (plan §40)"
+        style={{ color: "var(--ana-ustu)", borderColor: "rgba(255,255,255,.35)" }}
+      >
+        Giriş Kartı
+      </Btn>
       {!saltOkunur && (
         <Btn tur="sari" ikon={<Ikon ad="tahsilat" />} onClick={() => onMakbuzKes(o.id)}>
           Makbuz Kes

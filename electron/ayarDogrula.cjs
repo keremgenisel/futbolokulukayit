@@ -5,7 +5,20 @@
 // Ana süreç içi çağrılar (göç, tohum, testlerdeki eski `indirim_*`) izin kümesine bağlı değildir.
 const { renkGecerliMi } = require("../src/lib/tema.js"); // ESM tek kaynak (refactor 2. tur §8.6)
 
-const SINIR = { kulup_adi: 80, kulup_kisa_ad: 40, kulup_alt_yazi: 40, tahsil_eden: 60 };
+const SINIR = {
+  kulup_adi: 80,
+  kulup_kisa_ad: 40,
+  kulup_alt_yazi: 40,
+  tahsil_eden: 60,
+  // Giriş kartı (plan §40)
+  kulup_adres: 120,
+  kulup_telefon: 40,
+  kulup_web: 80,
+  kart_kural_1: 140,
+  kart_kural_2: 140,
+  kart_kural_3: 140,
+  kart_kural_4: 140,
+};
 const WA_SABLON_MAX = 2000;
 /** Renderer'ın `setSetting` ile yazabildiği anahtarlar (Ayarlar > Kulüp / WhatsApp / Sezon, ilk kurulum sihirbazı). */
 const IZINLI_ANAHTARLAR = new Set([
@@ -24,6 +37,15 @@ const IZINLI_ANAHTARLAR = new Set([
   "wa_sablon_iptal",
   "wa_sablon_degisiklik",
   "aidat_vade_bekle", // plan §38: "" | "1" açık (varsayılan), "0" eski davranış
+  // Giriş kartı (plan §40)
+  "kulup_adres",
+  "kulup_telefon",
+  "kulup_web",
+  "kart_kural_1",
+  "kart_kural_2",
+  "kart_kural_3",
+  "kart_kural_4",
+  "kart_qr",
 ]);
 /** Yalnız ana sürecin kendi IPC'siyle (diyalog/işlem sonucu) yazılan anahtarlar — renderer `setSetting`'i reddedilir. */
 const KORUMALI_ANAHTARLAR = new Set(["yedek_klasoru", "yedek_sikligi", "son_yedek", "kulup_logo", "son_sezon_gecisi", "sunucu_adres"]);
@@ -67,6 +89,10 @@ function ayarDogrula(anahtar, deger) {
     const n = Number(v);
     if (!Number.isInteger(n) || n < 1 || n > 12) throw new Error("Sezon başlangıç ayı 1–12 olmalı");
     return String(n);
+  }
+  if (anahtar === "kart_qr") {
+    if (v !== "" && v !== "1") throw new Error("Geçersiz değer");
+    return v;
   }
   if (anahtar === "aidat_vade_bekle") {
     if (!["", "0", "1"].includes(v)) throw new Error("Geçersiz değer");

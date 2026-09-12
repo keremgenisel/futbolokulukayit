@@ -17,7 +17,9 @@ import {
 } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
-import { ciktiMarkasi } from "../lib/yazdir.js";
+import { ciktiMarkasi, htmlYazdir } from "../lib/yazdir.js";
+import { girisKartiHtml, TOPLU_SAYFA_KART } from "../lib/kartHtml.js";
+import { kartAyarlariOku, kartOyuncusu } from "../lib/kartVeri.js";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa, gorunenAidatDurumu } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { belgeGecerlilik, belgeEtiketi, eksikBelgeler } from "../lib/belge.js";
@@ -156,6 +158,19 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     dene(async () => {
       await cikti().excelKaydet(await raporVerisi(), "oyuncular.xlsx");
     });
+  // Giriş kartları toplu (plan §40): süzgeçteki oyuncular, A4 yatay 6 kart/sayfa; en çok 200
+  const kartlariYazdir = () =>
+    dene(async () => {
+      const liste = await db("listPlayersWithDue", filtre());
+      if (!liste.length) return toast("err", "Listede oyuncu yok");
+      if (liste.length > 200) return toast("err", `${liste.length} oyuncu çok fazla; süzgeçle 200'ün altına indirin (ör. bir yaş grubu)`);
+      const { ayar, qr } = await kartAyarlariOku();
+      const kartlar = [];
+      for (const o of liste) kartlar.push(await kartOyuncusu(o, { sezon: ayar.sezon, qr }));
+      const y = await htmlYazdir(girisKartiHtml({ oyuncular: kartlar, ayar, duzen: "toplu" }), `giris-kartlari-${kartlar.length}`, true);
+      if (!y.ok) toast("err", y.mesaj);
+      else toast("ok", `${kartlar.length} kart, ${Math.ceil(kartlar.length / TOPLU_SAYFA_KART) * 2} sayfa (ön + arka)`);
+    });
   const pdf = () =>
     dene(async () => {
       const v = await raporVerisi();
@@ -202,6 +217,14 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         </Btn>
         <Btn tur="ghost" ikon={<Ikon ad="indir" />} onClick={pdf}>
           PDF
+        </Btn>
+        <Btn
+          tur="ghost"
+          ikon={<Ikon ad="yazdir" />}
+          onClick={kartlariYazdir}
+          title="Listedeki oyuncuların 11 × 6 cm giriş kartları: A4 yatay, 6 kart/sayfa, kesim çizgili; arka yüzler sonraki sayfada (plan §40)"
+        >
+          Kartları Yazdır
         </Btn>
         {!saltOkunur && (
           <Btn ikon={<Ikon ad="arti" />} onClick={() => setYeni(true)}>

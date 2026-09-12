@@ -248,6 +248,42 @@ app.on("browser-window-created", async (_e, win) => {
       dolgu = "hata:" + e.message;
     }
     const { acikTon } = require("../../src/lib/tema.js");
+    // Giriş kartı (plan §40): logo + tema ile ön/arka yüz PDF'i (tek ve toplu düzen) gerçek Chromium ile üretilir
+    {
+      const { girisKartiHtml } = require("../../src/lib/kartHtml.js");
+      const { code128Svg } = require("../../src/lib/kartKod.js");
+      const { htmlToPdf } = require("../../electron/ipc/cikti.cjs");
+      const marka = require("../../electron/marka.cjs").markaOku({ getSetting: db.getSetting, uploadsDir: db.getUploadsDir() });
+      const oyuncular = db
+        .listPlayers({ durum: null })
+        .slice(0, 7)
+        .map((o, i) => ({
+          id: o.id,
+          ad_soyad: o.ad_soyad,
+          yas_grubu_ad: o.yas_grubu_ad,
+          dogum_tarihi: o.dogum_tarihi,
+          veli_ad: "Veli " + i,
+          veli_tel: "05321112233",
+          barkodSvg: code128Svg("FOK:2026" + String(o.id).padStart(4, "0")),
+        }));
+      const ayar = {
+        kulupAdi: marka.kulupAdi,
+        kurulusYili: marka.kurulusYili,
+        logo: marka.logo,
+        tema: marka.tema,
+        sezon: "2026-2027",
+        telefon: "0212 000 00 00",
+      };
+      const tek = await htmlToPdf(girisKartiHtml({ oyuncular: oyuncular.slice(0, 1), ayar, duzen: "tek" }), { yatay: true });
+      const toplu = await htmlToPdf(girisKartiHtml({ oyuncular, ayar, duzen: "toplu" }), { yatay: true });
+      const sayfa = (pdf) => (pdf.toString("latin1").match(/\/Type\s*\/Page[^s]/g) || []).length;
+      const beklenen = Math.ceil(oyuncular.length / 6) * 2; // 6 kart/sayfa, ön + arka
+      check(
+        `giriş kartı PDF: tek düzen 1 sayfa, ${oyuncular.length} oyuncu toplu ${beklenen} sayfa (6 kart/sayfa, ön+arka)`,
+        tek.slice(0, 4).toString() === "%PDF" && sayfa(tek) === 1 && sayfa(toplu) === beklenen && toplu.length > 1000,
+        `tek=${sayfa(tek)} toplu=${sayfa(toplu)} boyut=${tek.length}/${toplu.length}`,
+      );
+    }
     check("Excel başlık dolgusu tema ana renginin açık tonu", dolgu === "FF" + acikTon("#c8102e").slice(1).toUpperCase(), dolgu);
     await js(`document.querySelector("button[aria-label='Ayarlar']").click()`);
     await bekle(900);

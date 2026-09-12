@@ -104,6 +104,10 @@ describe("ayarDogrula (ana süreç)", () => {
     expect(() => ayarDogrula("wa_sablon_aidat", "x".repeat(2001))).toThrow(/2000/);
     expect(ayarDogrula("indirim_burslu", "50")).toBe("50"); // ana süreç içi eski anahtar: olduğu gibi
     expect(ayarDogrula("aidat_vade_bekle", "0")).toBe("0"); // plan §38
+    expect(ayarDogrula("kart_qr", "1")).toBe("1"); // plan §40
+    expect(() => ayarDogrula("kart_qr", "evet")).toThrow();
+    expect(ayarDogrula("kart_kural_1", "  Kart kişiseldir  ")).toBe("Kart kişiseldir");
+    expect(() => ayarDogrula("kulup_adres", "x".repeat(121))).toThrow(/120/);
     expect(() => ayarDogrula("aidat_vade_bekle", "evet")).toThrow();
   });
   it("tema renkleri #rrggbb, küçük harf; boş silmek için serbest", () => {

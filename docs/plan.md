@@ -1737,7 +1737,7 @@ kaçan olayı devralır. Eski köprüde `durum` yoksa sessizce çizilmez. Testle
 `tests/ui/guncelleme-seridi.test.jsx` (+2). Kulübe geçici yol: Ayarlar > Hakkında > Güncellemeleri Denetle → İndir.
 
 
-## 40. Oyuncu giriş kartı (PLAN, 12.09.2026)
+## 40. Oyuncu giriş kartı (UYGULANDI, 12.09.2026)
 
 Kerem: 11 × 6 cm yatay kart; mockup'ta Yön C (koyu mor zemin, sarı vurgu) seçildi; QR kodu İSTEĞE BAĞLI (kulüpte okuyucu yok);
 arka yüz 4 kural (4: "Lütfen kartınızı yanınızda bulundurunuz; kartı olmayan antrenmana katılamayacaktır."). Mockup:
@@ -1790,3 +1790,18 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
 1. Ayarlar bölümü + saf şablon + testler (2 saat). 2. Oyuncu kartı modalında "Giriş Kartı" + PDF (1,5 saat). 3. Toplu basım A4
    (1,5 saat). 4. QR/barkod üretici (isteğe bağlı, 1,5 saat; ayar kapalıyken görünmez). 5. Rehber + e2e (1 saat). §40.4 bu turda
    YAPILMAZ; kulüp okuyucu kararı verince planlanır.
+
+### 40.6 Uygulama notları (12.09.2026)
+- Saf şablon `src/lib/kartHtml.js` (`girisKartiHtml({ oyuncular, ayar, duzen: tek|toplu|onizleme })`, `oyuncuNo`, `kartNo`, `telMaskele`,
+  `KART_KURAL_VARSAYILAN`); kodlar `src/lib/kartKod.js` (`qrSvg` = mevcut `qrcode` bağımlılığı, saf JS; `code128Svg` Code 128 B saf
+  tablo, `kodMetni` = "FOK:" + kart no); veri toplama `src/lib/kartVeri.js` (`kartAyarlariOku`, `kartOyuncusu`, `fotoKucult` canvas ≤240 px
+  — toplu basımda HTML şişmesin). Foto yalnız `guvenliResim` (png/jpeg/webp data URL).
+- **Düzeltme:** 11 cm'lik kart A4 dikeye yan yana SIĞMAZ (22 > 21 cm) → tüm düzenler A4 YATAY; toplu 2 × 3 = 6 kart/sayfa (planda 8
+  yazılmıştı). Arka yüz sayfaları her 6'lık öbeğin hemen ardından (çift taraflı "kısa kenar" için).
+- Arayüz: OyuncuKarti başlığında "Giriş Kartı" (salt okunurda da açık), Oyuncular filtre çubuğunda "Kartları Yazdır" (≤200), Ayarlar >
+  Kulüp ve Makbuz › `GirisKartiAyar` (adres/telefon/web, 4 kural, `kart_qr`, `<iframe sandbox srcdoc>` önizleme örnek oyuncuyla).
+  Yeni ayar anahtarları `ayarDogrula` İZİNLİ listesinde (uzunluk sınırları; `kart_qr` ""/"1").
+- Testler: `tests/kart-html.test.js`, `tests/kart-kod.test.js` (Code 128 tablosu yapısal doğrulama: her sembol 11 modül), `tests/ui/
+  giris-karti.test.jsx` (ayar bölümü, oyuncu kartı tek/QR, toplu), kulüp kimliği e2e'de gerçek PDF (tek 1 sayfa, 7 oyuncu toplu 4 sayfa).
+- §40.4 (kartla giriş sistemi) YAPILMADI; kod biçimi `FOK:<kartNo>` sabitlendi. Sürüm çıkarılmadı.
+

@@ -104,7 +104,7 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
   önek `FOKLISANS.`/`FOKLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
   Üretici betikleri: `scripts/lisans-uret.cjs`, `lease-uret.cjs`, `lisans-yonet.cjs`.
-- `src/lib/makbuzHtml.js`, `raporHtml.js` — yazdırma/PDF şablonları (renderer üretir, main render eder).
+- `src/lib/makbuzHtml.js`, `raporHtml.js` — yazdırma/PDF şablonları (renderer üretir, main render eder). **Giriş kartı (plan §40):** `src/lib/kartHtml.js` (11 × 6 cm, A4 yatay tek / toplu 6 kart), `kartKod.js` (QR `qrcode` + Code 128 saf; yalnız `kart_qr` ayarı açıkken), `kartVeri.js` (ayarlar + marka + foto küçültme); OyuncuKarti "Giriş Kartı", Oyuncular "Kartları Yazdır", Ayarlar > Kulüp `GirisKartiAyar`.
 - **Çoklu PC (arayüzde KAPALI, bayrak: `src/lib/ozellikler.js` COKLU_PC_ACIK; ana süreç kodu yerinde):** `electron/config.cjs` (mod: yerel|sunucu|istemci, `config.json` + şifreli jeton),
   `electron/server.cjs` (Express + HTTPS self-signed, JWT 30 gün, login hız sınırı, `/api/db` aynı
   beyaz liste), `electron/istemci.cjs` (undici pinli fetch, TOFU parmak izi onayı, `knownServers`),

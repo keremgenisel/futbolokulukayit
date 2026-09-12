@@ -17,4 +17,8 @@ export const araEslesir = (metin, aranan) => araNormalize(metin).includes(araNor
 export const esc = (s) =>
   String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] || c);
 /** Şablonlara yalnız base64 PNG/JPEG data URL logosu girer; başka her şey boş (öznitelik kaçışı/dış istek olmaz). @param {unknown} logo */
+/** Oyuncu fotoğrafı için: PNG/JPEG/WEBP base64 data URL; başka her şey boş (giriş kartı). @param {unknown} r */
+export const guvenliResim = (/** @type {unknown} */ r) =>
+  /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(String(r || "")) ? String(r) : "";
+/** Şablonlara yalnız base64 PNG/JPEG data URL logosu girer; başka her şey boş (öznitelik kaçışı/dış istek olmaz). @param {unknown} logo */
 export const guvenliLogo = (logo) => (/^data:image\/(png|jpeg);base64,[A-Za-z0-9+/=]+$/.test(String(logo || "")) ? String(logo) : "");

@@ -96,6 +96,9 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
       "wa_sablon_aidat",
       "tahsil_eden",
       "aidat_vade_bekle",
+      "kulup_adres",
+      "kart_kural_4",
+      "kart_qr",
     ])
       expect(cagriYetkisi("setSetting", admin, false, [k, "x"]).ok).toBe(true);
     for (const k of ["yedek_klasoru", "yedek_sikligi", "son_yedek", "kulup_logo", "sunucu_adres", "son_sezon_gecisi"]) {
