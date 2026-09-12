@@ -120,7 +120,7 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
               <b>Aidat, ödeme döneminin son gününden sonra borç sayılsın</b>
               <span style={{ display: "block", fontSize: 13, color: "var(--soluk)" }}>
                 Açıkken "1-10" dönemindeki oyuncu ayın 10'una kadar borçlu görünmez, tesise girebilir, hatırlatma listesine girmez.
-                Kapalıysa ayın 1'inden itibaren borçlu sayılır (eski davranış).
+                Kapalıysa ayın 1'inden itibaren borçlu sayılır.
               </span>
             </span>
           </label>
