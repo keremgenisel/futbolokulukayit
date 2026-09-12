@@ -18,6 +18,10 @@ export const kartAltYazi = (kisaAd = "", kurulusYili = "") =>
 export const KART_EN_MM = 110;
 export const KART_BOY_MM = 60;
 export const TOPLU_SAYFA_KART = 6; // A4 yatay 2 × 3
+// Sayfa ölçüleri: 3 satır × 60 mm + 2 aralık, üst+alt kenar boşluğuyla A4 yatayın 210 mm'sini AŞMAMALI (Kerem 12.09.2026: 10 mm kenar +
+// 6 mm aralıkla 192 > 190 mm taşıyor, üçüncü satırın şeridi sonraki sayfaya kayıyordu). 8 + 180 + 8 + 8 = 204 ≤ 210.
+export const SAYFA_KENAR_MM = 8;
+export const KART_ARALIK_MM = 4;
 
 /** Oyuncu no: kayıt numarası 4 hane. @param {number|string} id */
 export const oyuncuNo = (id) => String(Number(id) || 0).padStart(4, "0");
@@ -144,7 +148,7 @@ export function girisKartiHtml({ oyuncular, ayar, duzen = "tek" }) {
   const on = oyuncular.map((o) => onYuz(o, ayar, t));
   const arka = oyuncular.map((o) => arkaYuz(o, ayar, sezon));
   let govde = "";
-  let sayfa = "@page { size: A4 landscape; margin: 10mm; }";
+  let sayfa = `@page { size: A4 landscape; margin: ${SAYFA_KENAR_MM}mm; }`;
   if (duzen === "onizleme") {
     sayfa = "";
     govde = `<div class="onizleme">${on[0] || ""}${arka[0] || ""}</div>`;
@@ -162,7 +166,7 @@ export function girisKartiHtml({ oyuncular, ayar, duzen = "tek" }) {
 <style>
   ${sayfa}
   body { margin: 0; background: #fff; }
-  .sayfa { display: grid; gap: 6mm; page-break-after: always; break-after: page; align-content: start; justify-content: start; }
+  .sayfa { display: grid; gap: ${KART_ARALIK_MM}mm; page-break-after: always; break-after: page; align-content: start; justify-content: start; }
   .sayfa.tek { grid-template-columns: repeat(2, ${KART_EN_MM}mm); }
   .sayfa.toplu { grid-template-columns: repeat(2, ${KART_EN_MM}mm); grid-auto-rows: ${KART_BOY_MM}mm; }
   .sayfa .kart { outline: .3mm solid #B9B2C6; outline-offset: 0; border-radius: 0; }

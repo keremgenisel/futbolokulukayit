@@ -1861,3 +1861,6 @@ süzgeç değişince veriyi tutar; basım sonrası pencere açık kalır, liste 
 saf `kartSecim.js`. OyuncuKarti: tek basımda kayıt, şerit `data-testid=kart-basim-seridi`, "Basılmadı say" son kaydı siler.
 Testler: `tests/kart-secim.test.js`, `tests/ui/kart-basim.test.jsx`, yetki, db-roundtrip (kayıt/süzgeç/sil/doğrulama/kvkk),
 kalıcılık, oyuncular-e2e (gerçek pencerede tümünü seç → Yazdır → kayıt sayısı, Basılmamış listesi boşalır). Sürüm çıkarılmadı.
+- Düzeltme (Kerem 12.09.2026, ekran görüntüsü): toplu basımda 6 kart olunca üçüncü satırın şeridi sonraki sayfaya taşıyordu
+  (3 × 60 + 2 × 6 = 192 mm > 210 − 2 × 10 = 190 mm). Kenar 8 mm, kart aralığı 4 mm (`SAYFA_KENAR_MM`, `KART_ARALIK_MM`; 204 ≤ 210);
+  gerçek printToPDF ile 8 oyuncu = 4 sayfa doğrulandı; test `kart-html.test.js`.

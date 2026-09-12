@@ -1,6 +1,17 @@
 // Giriş kartı şablonu (plan §40): saf HTML; kaçırma, kod isteğe bağlı, tek/toplu/önizleme düzenleri, numaralar.
 import { describe, it, expect } from "vitest";
-import { girisKartiHtml, oyuncuNo, kartNo, telBicimle, KART_KURAL_VARSAYILAN, TOPLU_SAYFA_KART, kartAltYazi } from "../src/lib/kartHtml.js";
+import {
+  girisKartiHtml,
+  oyuncuNo,
+  kartNo,
+  telBicimle,
+  KART_KURAL_VARSAYILAN,
+  TOPLU_SAYFA_KART,
+  kartAltYazi,
+  SAYFA_KENAR_MM,
+  KART_ARALIK_MM,
+  KART_BOY_MM,
+} from "../src/lib/kartHtml.js";
 
 const oyuncu = (id, ad, ek = {}) => ({
   id,
@@ -74,6 +85,12 @@ describe("giriş kartı şablonu", () => {
     expect(h).toContain('src="data:image/jpeg;base64,AAAA"');
     const kotu = girisKartiHtml({ oyuncular: [oyuncu(1, "A", { foto: "javascript:alert(1)" })], ayar });
     expect(kotu).not.toContain("javascript:");
+  });
+  it("toplu düzen A4 yataya sığar: 3 satır × 60 mm + 2 aralık + 2 kenar ≤ 210 mm (12.09.2026: üçüncü satır taşıyordu)", () => {
+    expect(3 * KART_BOY_MM + 2 * KART_ARALIK_MM + 2 * SAYFA_KENAR_MM).toBeLessThanOrEqual(210);
+    const h = girisKartiHtml({ oyuncular: [oyuncu(1, "A")], ayar, duzen: "toplu" });
+    expect(h).toContain(`margin: ${SAYFA_KENAR_MM}mm`);
+    expect(h).toContain(`gap: ${KART_ARALIK_MM}mm`);
   });
   it("toplu düzen: 6 kart/sayfa, her öbek için ön sayfa sonra arka sayfa; 7 oyuncu → 4 sayfa", () => {
     const h = girisKartiHtml({ oyuncular: Array.from({ length: 7 }, (_, i) => oyuncu(i + 1, `Oyuncu ${i + 1}`)), ayar, duzen: "toplu" });
