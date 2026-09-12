@@ -56,13 +56,12 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
     db("listFeeItems")
       .then(setKalemler)
       .catch(() => {});
-    // Ayarlar > Kulüp ve Makbuz > "Varsayılan tahsil eden" ÖNCELİKLİ (Kerem, 09.09.2026); boşsa giriş yapan kullanıcının adı.
-    // Kutu makbuz kesmeden önce elle değiştirilebilir; makbuza kutudaki değer yazılır.
-    db("getSetting", "tahsil_eden")
-      .then((v) => {
-        if (v) setTahsilEden(v);
-      })
-      .catch(() => {});
+    // Tahsil eden: GİRİŞ YAPAN kullanıcının adı önce (Kerem, 12.09.2026: eski davranışa dönüldü); adı boşsa Ayarlar > Kulüp ve
+    // Makbuz > "Varsayılan tahsil eden"; o da boşsa kullanıcı adı. Kutu makbuz kesmeden önce elle değiştirilebilir.
+    if (!(oturum?.ad_soyad || "").trim())
+      db("getSetting", "tahsil_eden")
+        .then((v) => setTahsilEden(v || oturum?.username || ""))
+        .catch(() => {});
     bugunkuYukle();
   }, [bugunkuYukle, oturum]);
 

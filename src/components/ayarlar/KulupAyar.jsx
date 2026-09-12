@@ -95,7 +95,7 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
             </Alan>
           </div>
           <Alan etiket="Menü alt yazısı">{girdi("kulup_alt_yazi", { placeholder: "Futbol Okulu", "aria-label": "Menü alt yazısı" })}</Alan>
-          <Alan etiket="Varsayılan tahsil eden (makbuzda; boşsa giriş yapan kullanıcı)">
+          <Alan etiket="Varsayılan tahsil eden (makbuzda; giriş yapan kullanıcının adı boşsa kullanılır)">
             {girdi("tahsil_eden", { "aria-label": "Tahsil eden" })}
           </Alan>
           <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>

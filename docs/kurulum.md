@@ -190,5 +190,5 @@ yoksa güncelleme denetlenemez, program normal çalışmaya devam eder.
   parola üretir. Hiçbir yöneticinin ne parolası ne kurtarma kodu varsa satıcıya başvurun.
   Yanlış kod denemeleri kullanıcı başına 15 dakikada 5 ile sınırlıdır.
 
-- **Makbuzdaki "Tahsil eden":** Ayarlar > Kulüp ve Makbuz > "Varsayılan tahsil eden" doluysa makbuza o isim yazılır; boşsa
-  giriş yapan kullanıcının adı. Tahsilat ekranındaki kutu makbuz kesmeden önce her zaman elle değiştirilebilir.
+- **Makbuzdaki "Tahsil eden":** giriş yapan kullanıcının adı soyadı yazılır; kullanıcının adı boşsa Ayarlar > Kulüp ve Makbuz >
+  "Varsayılan tahsil eden", o da boşsa kullanıcı adı. Tahsilat ekranındaki kutu makbuz kesmeden önce her zaman elle değiştirilebilir.

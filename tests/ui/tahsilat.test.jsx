@@ -245,26 +245,34 @@ describe("Tahsilat: tek makbuzda birden fazla aidat ayı", () => {
     await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("cancelReceipt", 7, "Yanlış oyuncu"));
   });
 
-  it("'Tahsil eden' kutusu: ayar doluysa ayar (kullanıcı adı olsa da), boşsa giriş yapan kullanıcı", async () => {
-    window.okul = {
-      db: vi.fn(async (fn, k) => (fn === "getSetting" && k === "tahsil_eden" ? "Şerif Çelik" : fn === "getSetting" ? "" : [])),
-      cikti: { yazdir: vi.fn() },
-      files: { open: vi.fn() },
-    };
+  it("'Tahsil eden' kutusu: giriş yapan kullanıcının adı önce; adı boşsa ayar; o da boşsa kullanıcı adı (12.09.2026 eski davranış)", async () => {
+    const ayarli = () =>
+      vi.fn(async (fn, k) => (fn === "getSetting" && k === "tahsil_eden" ? "Şerif Çelik" : fn === "getSetting" ? "" : []));
+    window.okul = { db: ayarli(), cikti: { yazdir: vi.fn() }, files: { open: vi.fn() } };
     const { unmount } = render(
       <ToastSaglayici>
         <Tahsilat oturum={{ username: "admin", ad_soyad: "Yönetici" }} />
       </ToastSaglayici>,
     );
-    await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Şerif Çelik"));
+    await waitFor(() => expect(window.okul.db).toHaveBeenCalledWith("listFeeItems"));
+    expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Yönetici"); // ayar dolu olsa da giriş yapan
+    expect(window.okul.db).not.toHaveBeenCalledWith("getSetting", "tahsil_eden");
     unmount();
+    window.okul.db = ayarli();
+    const r2 = render(
+      <ToastSaglayici>
+        <Tahsilat oturum={{ username: "ayse", ad_soyad: "" }} />
+      </ToastSaglayici>,
+    );
+    await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Şerif Çelik")); // adı boş → ayar
+    r2.unmount();
     window.okul.db = vi.fn(async (fn) => (fn === "getSetting" ? "" : []));
     render(
       <ToastSaglayici>
-        <Tahsilat oturum={{ username: "admin", ad_soyad: "Yönetici" }} />
+        <Tahsilat oturum={{ username: "ayse", ad_soyad: "" }} />
       </ToastSaglayici>,
     );
-    await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("Yönetici"));
+    await waitFor(() => expect(screen.getByLabelText("Tahsil eden")).toHaveValue("ayse")); // ikisi de boş → kullanıcı adı
   });
 });
 
