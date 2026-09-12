@@ -301,6 +301,7 @@ app.on("browser-window-created", async (_e, win) => {
         m27.makbuz_no === "2027-0001" && m27.sezon === "2027-2028" && sg.ilkAyBorcu >= 1,
       );
       // ── 10.09.2026 eklemeleri: kulüp kimliği (§32), uzun dönem aidat (§24), sağlık belgesi (§25), kişisel veri silme (§31) ──
+      db.setSetting("aidat_vade_bekle", "0"); // plan §38: ayar kalıcı, yeniden açılışta eski davranış (vade_gecti=1)
       db.setSetting("kulup_kisa_ad", "Kalıcı SK");
       db.setSetting("kurulus_yili", "1965");
       db.setSetting("kulup_alt_yazi", "Akademi");
@@ -579,6 +580,17 @@ app.on("browser-window-created", async (_e, win) => {
         !!akt && akt.yas_grubu_ad === "U15" && db.listGuardians(akt.id)[0]?.gsm === "05320000009",
       );
       check("kurulum ve sezon ayarları kalıcı", db.getSetting("kurulum_tamam") === "1" && db.sezonDurumu().aktifSezon === "2027-2028");
+      check(
+        "vade ayarı kalıcı (plan §38): aidat_vade_bekle=0 → vade_gecti hep 1; ayar silinince dönem son gününe göre",
+        db.getSetting("aidat_vade_bekle") === "0" &&
+          db.listDues(b.yabanci, 1, { bugun: "2027-04-02" }).every((d) => d.vade_gecti === 1) &&
+          (() => {
+            db.setSetting("aidat_vade_bekle", "");
+            const ok = db.listUnpaid(2027, 4, null, null, { bugun: "2027-04-02", yalnizVadesiGecen: true }).length === 0;
+            db.setSetting("aidat_vade_bekle", "0");
+            return ok;
+          })(),
+      );
       check(
         "sezon tarihleri kalıcı (plan §37): eski sezon kayıtlı, yeni sezon geçişte kaydedildi",
         db.sezonTarihleri("2026-2027").kayitli === true &&
