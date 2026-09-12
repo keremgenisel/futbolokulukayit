@@ -1647,3 +1647,61 @@ adımı, Pano satırı + hatırlatma, Raporlar/Uzun Dönem/takvim etkileri (orta
 - Testler: saf 26 (program/sezon/whatsapp), UI (yoklama, yaş grupları, sezon, raporlar-sezon, tahsilat, pano), Electron
   db-roundtrip/kalıcılık şema 19, yoklama/yaş grupları e2e bitiş + saha çakışması. `tests/ui/tahsilat.test.jsx` "Tahsil eden"
   testindeki önceden var olan yakalanmamış hata (mock her çağrıya "" dönüyordu) düzeltildi.
+
+## 38. Ödeme dönemi = vade: vadesi gelmeyen aidat borç sayılmasın (PLAN, 12.09.2026)
+
+Kerem: "Ödeme dönemim 11-20 ama ayın 2'sindeyiz, beni borçlu gösteriyor mu?" → Evet. Bugün `odeme_donemi` yalnız gecikme gününü
+üretir (`gecikmeGunu`); borçlu sayılma (Pano listesi, tesise giriş, Oyuncular süzgeci, Yoklama rozeti, WhatsApp toplu hatırlatma)
+ayın 1'inden itibaren kaydın `odenmedi/kismi` olmasına bakar. İstenen: dönemin son günü geçene kadar ay "vadesi gelmedi" sayılsın.
+
+### 38.1 Kavram
+- **Vade** = ödeme döneminin son günü: "1-10" → 10, "11-20" → 20, "21-31" → ayın son günü (mevcut `donemSonGunu`). Vade günü dahil
+  ödeme yapılabilir; **vade geçti** = bugün > vade. Geçmiş aylar her zaman vadesi geçmiş; gelecek aylar hiçbir zaman (mevcut
+  `gelecekAcikAidatMi` kuralı korunur).
+- Türetilmiş görünüm durumu (şema DEĞİŞMEZ, `monthly_dues.durum` aynı kalır): `odenmedi/kismi` + vade geçmedi → **"bekliyor"**
+  (etiket "Vadesi gelmedi · 20 Eyl", ton gri/mavi); vade geçti → bugünkü gibi "Ödenmedi"/"Kısmi" kırmızı/sarı + gecikme günü.
+- Ayar (isteğe bağlı, önerilir): `aidat_vade_bekle` = "1" (varsayılan açık). Kapalıysa eski davranış (ayın 1'inden borç). Ayarlar >
+  Kulüp ve Makbuz > "Aidat, ödeme döneminin son gününden sonra borç sayılsın" onay kutusu. `ayarDogrula` İZİNLİ listesine eklenir.
+
+### 38.2 Saf mantık (`src/lib/aidat.js`, `// @ts-check`)
+- `vadeTarihi(donem, yil, ay)` → ISO; `vadesiGectiMi(donem, yil, ay, bugunIso)`; `aidatGorunumu(kayit, donem, bugunIso, vadeBekle)` →
+  `{ durum: "odendi"|"muaf"|"bekliyor"|"odenmedi"|"kismi", vade, gecikme }` — tek karar noktası; tüm bileşenler bunu kullanır.
+- `tesiseGirebilir(oyuncu, buAyAidat, { donem, bugunIso, vadeBekle })` → "bekliyor" ise TRUE (giriş serbest).
+- `aidatTonu/aidatEtiket` "bekliyor" tonu/etiketi.
+
+### 38.3 Veritabanı (`electron/db/aidat.cjs`, `pano.cjs`, `oyuncular.cjs`; şema yok)
+- SQL'de vade: `CASE p.odeme_donemi WHEN '1-10' THEN 10 WHEN '11-20' THEN 20 ELSE <ay son günü> END` ile `vade_gecti` sütunu
+  (yıl-ay bugünden eskiyse 1; bu aysa bugünün günü > vade; ileri aysa 0). `bugun` ISO parametresi renderer'dan gelir (panoOzet gibi).
+- `listUnpaid(yil, ay, sezon, grup, { bugun, yalnizVadesiGecen })` → satırlarda `vade_gecti`, `vade`; Pano/WhatsApp toplu çağrısı
+  `yalnizVadesiGecen: true`. `panoOzet` → `borclu` (vadesi geçen) + `bekleyen` (vadesi gelmemiş) sayıları.
+- `listPlayersWithDue` / `playersPage` → `vade_gecti`; `sadeceOdemeyen` süzgeci yalnız vadesi geçenler.
+- `listUnpaidAralik/listUnpaidSezon` (raporlar) → `vade_gecti` sütunu; filtre rapor tarafında.
+- Ayar kapalıysa (`aidat_vade_bekle` = "") SQL'de `vade_gecti` her zaman 1 → tek yerden geriye dönüş.
+
+### 38.4 Arayüz
+1. **Pano › Tesise Giriş Kontrolü:** bekleyen → "GİREBİLİR" yeşil + altında "Aidat vadesi 20 Eyl" notu. **Aidatı Ödemeyenler**
+   kartı yalnız vadesi geçenler; başlık yanında "· N oyuncunun vadesi gelmedi" sayısı (tıklanınca Oyuncular "bekleyen" süzgeci).
+   Üst özet "Aidat borcu olan" = vadesi geçen; not satırı "N bekliyor".
+2. **Oyuncular:** aidat rozeti "Vadesi gelmedi"; "Ödemeyenler" süzgeci = vadesi geçen; yeni süzgeç seçeneği "Vadesi gelmeyenler".
+   Dışa aktarım aynı etiket.
+3. **Yoklama listesi / Tahsilat oyuncu arama / Hızlı arama:** "Aidat"/"Borç" rozeti yalnız vadesi geçende; bekleyende rozet yok
+   (Hızlı arama: gri "Bekliyor").
+4. **Oyuncu kartı:** başlıktaki "N borç" vadesi geçenleri sayar; Ödemeler sekmesinde bekleyen satır "Vadesi gelmedi · 20 Eyl".
+5. **Tahsilat:** dönem pillerinde kırmızı/"ödenmedi" işareti yalnız vadesi geçen aylarda; bu ayın bekleyen aidatı sade pil olarak
+   yine SEÇİLİ gelir (veli ödemeye gelmiştir). Uzun dönem seçimi değişmez.
+6. **WhatsApp:** toplu "Borçlulara Hatırlat" yalnız vadesi geçenlere; satır düğmesi bekleyende kapalı ("Vadesi gelmedi"). Şablona
+   `{vade}` yer tutucusu (dd.mm.yyyy) ve `{gecikme}` mevcut.
+7. **Raporlar › Borçlu Listesi:** "Vade" sütunu; varsayılan yalnız vadesi geçenler, "Vadesi gelmeyenleri de göster" onay kutusu
+   (muhasebe tam listeyi isteyebilir). Excel/PDF aynı.
+8. **Ayarlar › Kulüp ve Makbuz:** onay kutusu (38.1) + açıklama.
+
+### 38.5 Testler
+Saf `tests/aidat.test.js` (vade tarihi ay sonu/şubat, vadesi geçti sınır günü, bekliyor görünümü, ayar kapalı, tesise giriş);
+db-roundtrip (`vade_gecti` her üç dönemde ve geçmiş/gelecek ayda, panoOzet bekleyen, sadeceOdemeyen); UI (`pano.test` giriş
+kontrolü bekleyen/vadesi geçen, borçlu listesi süzme; `oyuncular` rozet+süzgeç; `yoklama` rozet; `tahsilat` pil; `raporlar` onay
+kutusu; `kulup-ayar` ayar); e2e: `oyuncular-e2e` ve pano duman görüntüsü tarihe bağlı olduğundan `bugun` parametresi sabitlenerek.
+
+### 38.6 Sıra ve süre
+1. Saf + DB + ayar (2 saat). 2. Pano/Oyuncular/Yoklama/HızlıArama/OyuncuKartı rozetleri (2 saat). 3. Tahsilat + WhatsApp (1 saat).
+4. Raporlar + Ayarlar + rehber (1 saat). 5. Testler ve e2e (2 saat). Davranış değişikliği olduğu için sürüm notunda açıkça yazılır;
+kulüp eski davranışı isterse ayarı kapatır. Onaylanırsa mockup gerekmez (mevcut ekranlara rozet/not/onay kutusu eklenir).
