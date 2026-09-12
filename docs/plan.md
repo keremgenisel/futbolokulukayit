@@ -1719,4 +1719,10 @@ kulüp eski davranışı isterse ayarı kapatır. Onaylanırsa mockup gerekmez (
   Raporlar Borçlu Listesi "Vade" sütunu + "Vadesi gelmeyenleri de göster", Ayarlar > Kulüp ve Makbuz onay kutusu.
 - Kararlar: vade günü ödeme günüdür (21'inde borç); kısmi ödenmiş ama vadesi gelmemiş ay da "bekliyor". Sürüm çıkarılmadı (Kerem'in
   kararı).
+- Gerçek pencere paketi `scripts/tests/vade-e2e.cjs` (Kerem: "değişen yerleri tüm durumlar için test et", 12.09.2026): beklentiler
+  bugünün gününe göre `src/lib/aidat.js vadesiGectiMi` ile hesaplanır (üç dönem, kısmi, ödenmiş, geçmiş ay borcu); Pano özet/giriş
+  kontrolü/ödemeyenler kartı/bağlantı, Oyuncular süzgeçleri ve rozetleri, oyuncu kartı Ödemeler, hızlı arama, Tahsilat rozet + pil,
+  Yoklama rozeti, Raporlar Borçlu Listesi (+kutu), WhatsApp toplu alıcı sayısı, ayar KAPALI → eski davranış; 27 kontrol. Paket bir
+  hata yakaladı: `App.jsx git()` yalnız yeni/borclu/saglik parametrelerini iletiyordu → Pano'daki "vadesi gelmedi" bağlantısı
+  Oyuncular'da süzgeci açmıyordu; "bekleyen" eklendi.
 

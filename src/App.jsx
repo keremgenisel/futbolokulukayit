@@ -140,7 +140,7 @@ export function App() {
   const git = (kod, param) => {
     setTab(kod);
     setSekmeKey((k) => k + 1);
-    if (kod === "oyuncular" && ["yeni", "borclu", "saglik"].includes(param)) setAcilacakOyuncu(param); // borclu/saglik: filtre (Pano "Tümü")
+    if (kod === "oyuncular" && ["yeni", "borclu", "bekleyen", "saglik"].includes(param)) setAcilacakOyuncu(param); // borclu/bekleyen/saglik: filtre (Pano bağlantıları; plan §38)
   };
   const oyuncuAc = (id) => {
     setTab("oyuncular");
