@@ -148,7 +148,7 @@ describe("Oyuncu kartı › Giriş Kartı", () => {
 });
 
 describe("Oyuncular › Kartları Yazdır", () => {
-  it("süzgeçteki oyuncuların kartları toplu düzende; toast sayfa sayısını söyler", async () => {
+  it("doğrudan basmaz: Giriş Kartları penceresini açar (plan §40.7; ayrıntı tests/ui/kart-basim.test.jsx)", async () => {
     const { yazdir } = kopru({});
     render(
       <ToastSaglayici>
@@ -156,11 +156,7 @@ describe("Oyuncular › Kartları Yazdır", () => {
       </ToastSaglayici>,
     );
     fireEvent.click(await screen.findByRole("button", { name: /Kartları Yazdır/ }));
-    await waitFor(() => expect(yazdir).toHaveBeenCalledTimes(1));
-    const html = String(yazdir.mock.calls[0][0]);
-    expect(html).toContain('class="sayfa toplu"');
-    expect(html).toContain("Kaan Yıldız");
-    expect(html).toContain("Deniz Koç");
-    await screen.findByText("2 kart, 2 sayfa (ön + arka)");
+    await screen.findByText("Giriş Kartları");
+    expect(yazdir).not.toHaveBeenCalled();
   });
 });

@@ -118,7 +118,16 @@ function oyuncuKisiselVeriSil(id, kullanici = "") {
       .map((r) => r.y)
       .filter(Boolean);
     if (p.foto_yolu) dosyalar.push(p.foto_yolu);
-    for (const t of ["documents", "guardians", "emergency_contacts", "monthly_dues", "attendance", "message_log", "player_seasons"])
+    for (const t of [
+      "documents",
+      "guardians",
+      "emergency_contacts",
+      "monthly_dues",
+      "attendance",
+      "message_log",
+      "player_seasons",
+      "card_prints",
+    ])
       db.prepare(`DELETE FROM ${t} WHERE player_id=?`).run(id);
     // Makbuz mali belgedir: kesildiği andaki ad damgalanır (Kerem, 10.09.2026: "oyuncunun adı makbuzda kalsın"); PDF'ler de kalır
     db.prepare("UPDATE receipts SET oyuncu_adi=? WHERE player_id=? AND oyuncu_adi=''").run(p.ad_soyad, id);
@@ -271,4 +280,5 @@ module.exports = {
   deleteEmergency,
   listPlayersWithDue,
   playersPage,
+  playersWhere, // kartBasim.cjs aynı süzgeci kullanır (plan §40.7)
 };

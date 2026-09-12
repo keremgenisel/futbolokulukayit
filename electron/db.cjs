@@ -19,6 +19,7 @@ const m = {
   ...require("./db/pano.cjs"),
   ...require("./db/lisansDurum.cjs"),
   ...require("./db/yedek.cjs"),
+  ...require("./db/kartBasim.cjs"),
 };
 
 module.exports = {
@@ -116,6 +117,11 @@ module.exports = {
   deleteAgeGroup: m.deleteAgeGroup,
   listPlayersWithDue: m.listPlayersWithDue,
   playersPage: m.playersPage,
+  // Giriş kartı basım kaydı (plan §40.7, şema 20)
+  kartBasimKaydet: m.kartBasimKaydet,
+  kartBasimSil: m.kartBasimSil,
+  kartBasimlari: m.kartBasimlari,
+  kartBasimListesi: m.kartBasimListesi,
   panoOzet: m.panoOzet,
   cancelReceipt: m.cancelReceipt,
   attendanceSummary: m.attendanceSummary,

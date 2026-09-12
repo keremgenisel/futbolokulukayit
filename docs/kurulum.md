@@ -136,9 +136,13 @@ Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antren
 ## 3c0. Oyuncu giriş kartı
 
 11 × 6 cm yatay kart: oyuncu kartında **Giriş Kartı** düğmesi ön ve arka yüzü A4 yatay sayfaya basar (yazıcı yoksa PDF açılır);
-Oyuncular ekranında **Kartları Yazdır** listedeki oyuncuların kartlarını sayfada 6 kart, kesim çizgili basar — arka yüzler her
-6'lık öbeğin hemen sonraki sayfasında aynı sırayla (çift taraflı yazıcıda "kısa kenardan çevir" seçin; tek taraflıda kesip
-yapıştırın). Kartta kulüp logosu/adı/renkleri, sezon, oyuncu adı, yaş grubu, oyuncu no (kayıt numarası), foto; arka yüzde 4 kural,
+Oyuncular ekranında **Kartları Yazdır** "Giriş Kartları" penceresini açar: üstte sezon / yaş grubu / durum süzgeçleri ve
+**Kart: Basılmamış / Basılmış / Tümü** (varsayılan Basılmamış — yeni kayıtların kartları için başlıktaki kutuyla tümünü seçip
+Yazdır yeter). Satırlarda "Son basım" (tarih, "2. basım" ya da "Basılmadı"); istediğiniz oyuncuları işaretleyip **Yazdır (N)**
+deyin: sayfada 6 kart, kesim çizgili — arka yüzler her 6'lık öbeğin hemen sonraki sayfasında aynı sırayla (çift taraflı
+yazıcıda "kısa kenardan çevir" seçin; tek taraflıda kesip yapıştırın). Bir seferde en çok 200 kart. Basılan her kart için basım
+kaydı düşer ("basıldı" = yazıcıya ya da PDF'e gönderildi); oyuncu kartında başlığın altında görünür, yanlış basımı yönetici
+"Basılmadı say" ile geri alır. Yeni sezonda herkes yeniden "Basılmadı" olur (yeni sezon = yeni kart). Kartta kulüp logosu/adı/renkleri, sezon, oyuncu adı, yaş grubu, oyuncu no (kayıt numarası), foto; arka yüzde 4 kural,
 veli adı ve telefonu, kulüp adres/telefon/web ve kart no yazar. Ön yüzde kulüp adının altında Kulüp ve Makbuz'daki kısa ad ve kuruluş yılı yazar.
 Kurallar ve iletişim Ayarlar > **Giriş Kartı**
 bölümünden düzenlenir; **Kartta giriş kodu bas** kutusu kulüpte kart okuyucu yoksa kapalı kalsın (açılınca QR ve barkod basılır,

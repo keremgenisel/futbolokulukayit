@@ -391,6 +391,8 @@ app.on("browser-window-created", async (_e, win) => {
         "yedek alındı; aynı saniyede iki geri yükleme de başarılı, kenara alma adları farklı",
         ya.ok && gy1.ok && gy2.ok && gy1.kenarDb !== gy2.kenarDb && fs.existsSync(gy1.kenarDb) && fs.existsSync(gy2.kenarDb),
       );
+      // Giriş kartı basım kaydı (plan §40.7): yeniden açılışta durur, süzgeç sayar
+      db.kartBasimKaydet([o.id], "2026-2027", "toplu", "Kalıcı Kullanıcı");
       const tpOyuncu = db.listPlayers({ durum: null }).length,
         tpMakbuz = db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts").get().n;
       fs.writeFileSync(
@@ -452,6 +454,11 @@ app.on("browser-window-created", async (_e, win) => {
           db.listDues(o.id).find((d) => d.yil === b.yil && d.ay === b.ay)?.durum === "odendi",
       );
       check("yoklama kalıcı", db.playerAttendance(o.id, "2026-01-01", "2026-12-31")[0]?.durum === "izinli");
+      check(
+        "giriş kartı basım kaydı kalıcı (kartBasimlari, Basılmış süzgeci)",
+        db.kartBasimlari(o.id).some((k) => k.tur === "toplu" && k.kullanici === "Kalıcı Kullanıcı" && k.sezon === "2026-2027") &&
+          db.kartBasimListesi({ sezon: "2026-2027", durum: null, kart: "basilmis" }).some((s) => s.id === o.id && s.basim_sayisi === 1),
+      );
       check("lisans makine kimliği kalıcı", !!db.lisansDurumu().makineId && db.getMetaValue("kurulumTarihi") !== null);
       // 07.09.2026 özellikleri
       const aa = db.aidatAyarlari();
@@ -508,7 +515,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 19 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "19");
+      check("şema sürümü 20 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "20");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",

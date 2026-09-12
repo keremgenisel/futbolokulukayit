@@ -170,6 +170,13 @@ function buildApp({ surum = "" } = {}) {
         return res.status(400).json({ error: e.message });
       }
     }
+    if (fn === "kartBasimKaydet") {
+      try {
+        return res.json({ ok: true, sonuc: db.kartBasimKaydet(args?.[0], args?.[1], args?.[2], req.user.ad_soyad || req.user.username) });
+      } catch (e) {
+        return res.status(400).json({ error: e.message });
+      }
+    }
     try {
       res.json({ ok: true, sonuc: db[fn](...(Array.isArray(args) ? args : [])) ?? null });
     } catch (e) {

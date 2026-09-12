@@ -17,9 +17,8 @@ import {
 } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
-import { ciktiMarkasi, htmlYazdir } from "../lib/yazdir.js";
-import { girisKartiHtml, TOPLU_SAYFA_KART } from "../lib/kartHtml.js";
-import { kartAyarlariOku, kartOyuncusu } from "../lib/kartVeri.js";
+import { ciktiMarkasi } from "../lib/yazdir.js";
+import { KartBasim } from "./KartBasim.jsx";
 import { DURUMLAR, tarihTR, AY_ADLARI, kimlikKisa, gorunenAidatDurumu } from "../lib/aidat.js";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { belgeGecerlilik, belgeEtiketi, eksikBelgeler } from "../lib/belge.js";
@@ -49,6 +48,7 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
   const [eksikBelge, setEksikBelge] = useState(false); // zorunlu belgelerden ("Diğer" hariç) biri eksik (plan §25)
   const [yeni, setYeni] = useState(false);
   const [aktarAcik, setAktarAcik] = useState(false);
+  const [kartAcik, setKartAcik] = useState(false); // Giriş Kartları penceresi (plan §40.7)
   const [acik, setAcik] = useState(null);
   const toast = useToast();
   const dene = useDene();
@@ -158,19 +158,6 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
     dene(async () => {
       await cikti().excelKaydet(await raporVerisi(), "oyuncular.xlsx");
     });
-  // Giriş kartları toplu (plan §40): süzgeçteki oyuncular, A4 yatay 6 kart/sayfa; en çok 200
-  const kartlariYazdir = () =>
-    dene(async () => {
-      const liste = await db("listPlayersWithDue", filtre());
-      if (!liste.length) return toast("err", "Listede oyuncu yok");
-      if (liste.length > 200) return toast("err", `${liste.length} oyuncu çok fazla; süzgeçle 200'ün altına indirin (ör. bir yaş grubu)`);
-      const { ayar, qr } = await kartAyarlariOku();
-      const kartlar = [];
-      for (const o of liste) kartlar.push(await kartOyuncusu(o, { sezon: ayar.sezon, qr }));
-      const y = await htmlYazdir(girisKartiHtml({ oyuncular: kartlar, ayar, duzen: "toplu" }), `giris-kartlari-${kartlar.length}`, true);
-      if (!y.ok) toast("err", y.mesaj);
-      else toast("ok", `${kartlar.length} kart, ${Math.ceil(kartlar.length / TOPLU_SAYFA_KART) * 2} sayfa (ön + arka)`);
-    });
   const pdf = () =>
     dene(async () => {
       const v = await raporVerisi();
@@ -221,8 +208,8 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         <Btn
           tur="ghost"
           ikon={<Ikon ad="yazdir" />}
-          onClick={kartlariYazdir}
-          title="Listedeki oyuncuların 11 × 6 cm giriş kartları: A4 yatay, 6 kart/sayfa, kesim çizgili; arka yüzler sonraki sayfada (plan §40)"
+          onClick={() => setKartAcik(true)}
+          title="Giriş Kartları penceresi: oyuncuları seçip 11 × 6 cm kartları basın (A4 yatay, 6 kart/sayfa; plan §40.7)"
         >
           Kartları Yazdır
         </Btn>
@@ -394,6 +381,16 @@ export function Oyuncular({ oturum, saltOkunur, onMakbuzKes, acilacakOyuncu, onA
         <Sayfalama sayfa={sayfa} toplam={toplam} sayfaBoyu={SAYFA_BOYU} onSayfa={setSayfa} birim="oyuncu" />
       </Kart>
       {aktarAcik && <OyuncuAktar onKapat={() => setAktarAcik(false)} onAktarildi={yukle} />}
+      {kartAcik && (
+        <KartBasim
+          onKapat={() => setKartAcik(false)}
+          saltOkunur={saltOkunur}
+          sezon={aktifSezon}
+          sezonlar={sezonlar}
+          grup={grup}
+          durum={durum}
+        />
+      )}
       {yeni && (
         <OyuncuForm
           gruplar={gruplar}

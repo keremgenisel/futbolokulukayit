@@ -1811,7 +1811,7 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
   `kart_alt_yazi` ayarı aynı gün eklenip kaldırıldı).
 
 
-### 40.7 PLAN: Kart basım penceresi — seçerek yazdırma + "daha önce basıldı" bilgisi (12.09.2026; 2. sürüm)
+### 40.7 Kart basım penceresi — seçerek yazdırma + "daha önce basıldı" bilgisi (UYGULANDI 12.09.2026; 2. sürüm)
 
 **Sorun.** "Kartları Yazdır" bugün süzgeçteki HERKESİ basar. Kulüp (a) kimin kartı basıldı/basılmadı görmek, (b) yalnız
 istediği oyuncuları seçip basmak istiyor. Kerem'in kararı (12.09.2026): Oyuncular listesine kart sütunu ve onay kutusu
@@ -1851,3 +1851,13 @@ sütun eklenmez. Raporlar'a rapor eklenmez (pencere Basılmış/Basılmamış s�
 `tests/kart-secim.test.js` (saf), `tests/ui/kart-basim.test.jsx` (süzgeç, tümünü seç, sayaç, Yazdır pasif/aktif, basılmış notu,
 basım sonrası liste yenilenir), kalıcılık (kayıt yeniden açılışta durur), `oyuncular-e2e` (gerçek pencerede seç → PDF sayfa sayısı).
 Süre ~1 gün. Sürüm çıkarılmaz (Kerem söyleyince). Mockup: tasarım tuvali "Kart Basımı Seçim" (12.09.2026, 2. sürüm).
+
+**Uygulama notları (12.09.2026):** şema 20 `card_prints` (kullanıcı `kullanici` metin, oturumdan enjekte — `ipc/data.cjs` ve
+`server.cjs`); `electron/db/kartBasim.cjs` (`kartBasimKaydet(ids, sezon, tur, kullanici)`, `kartBasimSil(id)`, `kartBasimlari(pid)`,
+`kartBasimListesi({sezon,q,yas_grubu_id,durum,kart})` — `playersWhere` dışa verildi, alt sorgu `basim_sayisi/son_basim`, satırda veli
+adı/telefonu → pencere ek `listGuardians` çağrısı yapmaz); yetki: liste/kayıtlar OKUMA, kaydet YAZMA, sil ADMIN; kişisel veri
+silmede `card_prints` de silinir. Arayüz `KartBasim.jsx` (Modal 1120, WhatsApp toplu pencere kalıbı; seçim `Set`, `bilinen` Map
+süzgeç değişince veriyi tutar; basım sonrası pencere açık kalır, liste yenilenir; salt okunurda basım çalışır, kayıt yazılmaz),
+saf `kartSecim.js`. OyuncuKarti: tek basımda kayıt, şerit `data-testid=kart-basim-seridi`, "Basılmadı say" son kaydı siler.
+Testler: `tests/kart-secim.test.js`, `tests/ui/kart-basim.test.jsx`, yetki, db-roundtrip (kayıt/süzgeç/sil/doğrulama/kvkk),
+kalıcılık, oyuncular-e2e (gerçek pencerede tümünü seç → Yazdır → kayıt sayısı, Basılmamış listesi boşalır). Sürüm çıkarılmadı.

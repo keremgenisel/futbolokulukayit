@@ -26,6 +26,13 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     expect(cagriYetkisi("updateDocument", kullanici, false).ok).toBe(true);
     expect(cagriYetkisi("updateDocument", kullanici, true).kod).toBe(403);
     expect(cagriYetkisi("haftayiProgramdanDoldur", kullanici, false).ok).toBe(true);
+    // Giriş kartı basım kaydı (plan §40.7): liste/kayıtlar okuma, kaydet yazma (salt okunurda 403), sil yalnız yönetici
+    expect(cagriYetkisi("kartBasimListesi", kullanici, true).ok).toBe(true);
+    expect(cagriYetkisi("kartBasimlari", kullanici, true).ok).toBe(true);
+    expect(cagriYetkisi("kartBasimKaydet", kullanici, false).ok).toBe(true);
+    expect(cagriYetkisi("kartBasimKaydet", kullanici, true).kod).toBe(403);
+    expect(cagriYetkisi("kartBasimSil", kullanici, false).kod).toBe(403);
+    expect(cagriYetkisi("kartBasimSil", admin, false).ok).toBe(true);
     const r = cagriYetkisi("createPlayer", kullanici, true);
     expect(r.ok).toBe(false);
     expect(r.kod).toBe(403);

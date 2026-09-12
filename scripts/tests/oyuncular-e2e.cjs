@@ -4,7 +4,7 @@
 // Ek (10.09.2026): satır rozetleri (durum/ücret/aidat/grup, sağlık pili, "Eksik belge (N)" pili), "Eksik belgesi olanlar"
 // filtresi, veli adı/telefonu, satıra tıklayınca oyuncu kartı, Yeni Oyuncu formu. [ekranGoruntusuDizini] verilirse görüntü yazar.
 // Kullanım: electron scripts/tests/oyuncular-e2e.cjs <dizin> [ekranGoruntusuDizini]
-const { app } = require("electron");
+const { app, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const [dizin, shotDir] = process.argv.slice(2);
@@ -421,6 +421,51 @@ app.on("browser-window-created", async (_e, win) => {
       await satir("Zeynep Yeni"),
     );
     await shot("05-yeni-oyuncu-listede");
+
+    // Giriş Kartları penceresi (plan §40.7): Kartları Yazdır → pencere, Basılmamış süzgeci, tümünü seç → Yazdır → basım kaydı.
+    // Yazdırma penceresi açılmasın (browser-window-created dinleyicisi onu da yakalar): çıktı kanalı HTML'i yakalayıp ok döner.
+    const yakalanan = {};
+    ipcMain.removeHandler("cikti:yazdir");
+    ipcMain.handle("cikti:yazdir", async (_e, html) => {
+      yakalanan.html = String(html);
+      return { ok: true };
+    });
+    await tikla("Kartları Yazdır");
+    await bekle(900);
+    const pencere = () => js(`document.querySelector("[role=dialog]")?.textContent || ""`);
+    check(
+      "Giriş Kartları penceresi açılır, seçim boşken Yazdır pasif",
+      /Giriş Kartları/.test(await pencere()) &&
+        (await js(
+          `[...document.querySelectorAll("[role=dialog] button")].find((b) => b.textContent.trim().startsWith("Yazdır"))?.disabled`,
+        )) === true,
+    );
+    const kartSayac = await js(`document.querySelector("[data-testid=kart-sayac]")?.textContent || ""`);
+    await js(`document.querySelector("[role=dialog] input[aria-label='Süzgeçtekilerin tümünü seç']").click()`);
+    await bekle(300);
+    const secildi = await js(`(document.querySelector("[role=dialog]").textContent.match(/(\\d+) oyuncu seçildi/) || [])[1]`);
+    check(
+      "başlıktaki kutu süzgeçtekilerin tümünü seçer",
+      Number(secildi) > 0 && kartSayac.startsWith(String(secildi)),
+      `sayaç: ${kartSayac}, seçildi: ${secildi}`,
+    );
+    await shot("06-giris-kartlari-penceresi");
+    await js(`[...document.querySelectorAll("[role=dialog] button")].find((b) => b.textContent.trim().startsWith("Yazdır")).click()`);
+    await bekle(4000);
+    const basilan = db.hamBaglanti().prepare("SELECT count(*) AS n FROM card_prints WHERE sezon=?").get("2026-2027").n;
+    check(
+      "Yazdır: toplu kart HTML'i üretildi, basım kaydı düştü (seçilen sayısı kadar), pencere açık ve seçim temizlendi",
+      /class="sayfa toplu"/.test(yakalanan.html || "") &&
+        basilan === Number(secildi) &&
+        /Giriş Kartları/.test(await pencere()) &&
+        /0 oyuncu seçildi/.test(await pencere()),
+      `kayıt: ${basilan}`,
+    );
+    await bekle(600);
+    check(
+      "Basılmamış süzgecinde basılanlar listeden düştü",
+      /0 oyuncu\b/.test(await js(`document.querySelector("[data-testid=kart-sayac]")?.textContent || ""`)),
+    );
 
     if (fail === 0) console.log("TUM KONTROLLER GECTI");
     app.exit(fail === 0 ? 0 : 1);

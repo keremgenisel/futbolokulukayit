@@ -43,6 +43,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   const [sil, setSil] = useState(null); // { tip, id, mesaj }
   const [mesajlar, setMesajlar] = useState([]); // WhatsApp hatırlatma/bildirim kayıtları (son 12)
   const [wa, setWa] = useState(null); // { tur, alicilar, baslik, altBaslik, kayit, duzenlenebilir }
+  const [basimlar, setBasimlar] = useState([]); // giriş kartı basım kayıtları (plan §40.7; yeniden eskiye)
   const toast = useToast();
   const dene = useDene();
 
@@ -57,6 +58,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           .catch(() => {});
       else setFoto(null);
       setVeliler(await db("listGuardians", oyuncuId));
+      setBasimlar(await db("kartBasimlari", oyuncuId).catch(() => []));
       setAcil(await db("listEmergency", oyuncuId));
       setBelgeler(await db("listDocuments", oyuncuId));
       // İleri tarihli hiç ödenmemiş aylar (iptal edilen uzun dönem makbuzundan kalan) vadesi gelmediği için gösterilmez;
@@ -207,7 +209,19 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         `giris-karti-${o.ad_soyad.replace(/\s+/g, "-")}`,
         true,
       );
-      if (!y.ok) toast("err", y.mesaj);
+      if (!y.ok) return toast("err", y.mesaj);
+      if (!saltOkunur) {
+        await db("kartBasimKaydet", [o.id], ayar.sezon, "tek"); // basım kaydı (plan §40.7); salt okunurda tutulmaz
+        setBasimlar(await db("kartBasimlari", oyuncuId).catch(() => []));
+      }
+    });
+  // "Basılmadı say": son basım kaydını siler (yalnız yönetici; yanlış basım için)
+  const basimGeriAl = () =>
+    dene(async () => {
+      if (!basimlar[0]) return;
+      await db("kartBasimSil", basimlar[0].id);
+      setBasimlar(await db("kartBasimlari", oyuncuId).catch(() => []));
+      toast("ok", "Son basım kaydı silindi");
     });
   const sonMesaj = mesajlar[0] || null;
   const ust = (
@@ -310,7 +324,54 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         </>
       }
     >
-      <div style={{ margin: "-24px -24px 20px" }}>
+      {basimlar.length > 0 && (
+        <div
+          data-testid="kart-basim-seridi"
+          style={{
+            margin: "-24px -24px 0",
+            padding: "8px 24px",
+            background: "var(--zemin)",
+            borderBottom: "1px solid var(--cizgi)",
+            fontSize: 13,
+            color: "var(--soluk)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <span>
+            Giriş kartı basımı:{" "}
+            {basimlar
+              .slice(0, 3)
+              .map(
+                (b) =>
+                  `${tarihTR(String(b.basim_zamani).slice(0, 10))} (${b.tur === "toplu" ? "toplu" : "tek"}${b.kullanici ? ", " + b.kullanici : ""})`,
+              )
+              .join(" · ")}
+            {basimlar.length > 3 ? ` · +${basimlar.length - 3}` : ""}
+          </span>
+          <span style={{ flex: 1 }} />
+          {!saltOkunur && oturum?.role === "admin" && (
+            <button
+              type="button"
+              onClick={basimGeriAl}
+              title="Son basım kaydını siler (yanlış basım): kart yeniden 'Basılmadı' sayılır"
+              style={{
+                background: "none",
+                border: 0,
+                color: "var(--kirmizi)",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              Basılmadı say
+            </button>
+          )}
+        </div>
+      )}
+      <div style={{ margin: basimlar.length ? "0 -24px 20px" : "-24px -24px 20px" }}>
         <Sekmeler
           liste={SEKMELER.map((s) =>
             s.kod === "odeme" && aidatlar.some((a) => gorunenAidatDurumu(a.durum, a.vade_gecti) === "odenmedi")

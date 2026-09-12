@@ -66,7 +66,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "19",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "20",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -188,6 +188,58 @@ app.whenReady().then(async () => {
       });
       db.setReceiptPdf(kvMakbuz.id, `makbuz/${kvMakbuz.makbuz_no}.pdf`);
       db.setAttendance(antrenman.id, kv.id, "geldi");
+      // Giriş kartı basım kaydı (plan §40.7, şema 20): kaydet/liste/süzgeç/sil; kişisel veri silinince kayıtlar da gider
+      {
+        check("şema 20", Number(db.getMetaValue("schema_version")) >= 20);
+        const k1 = db.kartBasimKaydet([kv.id, oyuncu.id, 999999], "2026-2027", "toplu", "Tester");
+        check("kartBasimKaydet: iki oyuncuya kayıt, olmayan id atlanır", k1.ok && k1.adet === 2);
+        db.kartBasimKaydet(kv.id, "2026-2027", "tek", "Tester");
+        const kb = db.kartBasimlari(kv.id);
+        check(
+          "kartBasimlari: 2 kayıt, yeniden eskiye, kart no sezon+oyuncu no, kullanıcı damgalı",
+          kb.length === 2 &&
+            kb[0].tur === "tek" &&
+            kb[1].tur === "toplu" &&
+            kb[0].kart_no === `2026 ${String(kv.id).padStart(4, "0")}` &&
+            kb[0].kullanici === "Tester",
+        );
+        const tumu = db.kartBasimListesi({ sezon: "2026-2027", durum: null, kart: "tumu" });
+        const basilmis = db.kartBasimListesi({ sezon: "2026-2027", durum: null, kart: "basilmis" });
+        const basilmamis = db.kartBasimListesi({ sezon: "2026-2027", durum: null, kart: "basilmamis" });
+        const kvSatir = tumu.find((o) => o.id === kv.id);
+        check(
+          "kartBasimListesi: süzgeçler ve basım özeti (kv 2 basım, veli adı satırda), başka sezon 'basılmamış'",
+          kvSatir?.basim_sayisi === 2 &&
+            !!kvSatir.son_basim &&
+            kvSatir.veli_ad === "Anne Kvkk" &&
+            basilmis.length === 2 &&
+            basilmamis.every((o) => o.basim_sayisi === 0) &&
+            basilmis.length + basilmamis.length === tumu.length &&
+            db.kartBasimListesi({ sezon: "2027-2028", durum: null, kart: "basilmis" }).length === 0,
+        );
+        check(
+          "kartBasimSil: son kayıt silinir",
+          db.kartBasimSil(kb[0].id).ok && db.kartBasimlari(kv.id).length === 1 && !db.kartBasimSil(kb[0].id).ok,
+        );
+        let hata = "";
+        try {
+          db.kartBasimKaydet([kv.id], "2026", "tek");
+        } catch (e) {
+          hata = e.message;
+        }
+        check(
+          "kartBasimKaydet: sezon biçimi ve tür doğrulanır",
+          /2026-2027 biçiminde/.test(hata) &&
+            (() => {
+              try {
+                db.kartBasimKaydet([kv.id], "2026-2027", "x");
+                return false;
+              } catch {
+                return true;
+              }
+            })(),
+        );
+      }
       const r = db.oyuncuKisiselVeriSil(kv.id, "Tester");
       const p = db.getPlayer(kv.id);
       check(
@@ -205,8 +257,9 @@ app.whenReady().then(async () => {
           /Kişisel verileri silindi: \d{4}-\d{2}-\d{2} \(Tester\)/.test(p.notlar),
       );
       check(
-        "kişisel veri silme: veli, acil kişi, belge, aidat, yoklama satırları silindi",
-        db.listGuardians(kv.id).length === 0 &&
+        "kişisel veri silme: veli, acil kişi, belge, aidat, yoklama, kart basım satırları silindi",
+        db.kartBasimlari(kv.id).length === 0 &&
+          db.listGuardians(kv.id).length === 0 &&
           db.listEmergency(kv.id).length === 0 &&
           db.listDocuments(kv.id).length === 0 &&
           !db.getDue(kv.id, 2026, 9) &&
@@ -385,7 +438,7 @@ app.whenReady().then(async () => {
     );
     check(
       "şema sürümü 17 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "19" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      db.getMetaValue("schema_version") === "20" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -934,7 +987,7 @@ app.whenReady().then(async () => {
     db.init();
     check(
       "göç 17: grup üyeliği antrenman tarihlerinden türetildi (U11'in 2027-04 antrenmanı → 2026-2027)",
-      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "19",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "20",
     );
     // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
     const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
@@ -1024,7 +1077,7 @@ app.whenReady().then(async () => {
       db
         .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
         .map((p) => p.id)
-        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "19",
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "20",
     );
     check(
       "gruplar ve aktif sezon güncellendi",
@@ -1245,7 +1298,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "19",
+        db.getMetaValue("schema_version") === "20",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1727,7 +1780,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "19",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "20",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;

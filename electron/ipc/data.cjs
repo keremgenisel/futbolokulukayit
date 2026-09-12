@@ -137,6 +137,7 @@ function registerDataHandlers() {
     if (fn === "cancelReceipt") return db.cancelReceipt(a[0], a[1], session.ad_soyad || session.username); // iptal eden = oturum
     if (fn === "mesajKaydet") return db.mesajKaydet({ ...(a[0] || {}), kullanici: session.ad_soyad || session.username }); // WhatsApp kaydını açan = oturum
     if (fn === "grupBildirimKaydet") return db.grupBildirimKaydet(a[0], session.ad_soyad || session.username);
+    if (fn === "kartBasimKaydet") return db.kartBasimKaydet(a[0], a[1], a[2], session.ad_soyad || session.username); // basan = oturum (plan §40.7)
     return db[fn](...a);
   });
 

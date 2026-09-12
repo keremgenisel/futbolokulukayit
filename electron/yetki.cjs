@@ -43,6 +43,8 @@ const OKUMA = new Set([
   "listFeeTypes",
   "sonMesajlar",
   "antrenmanVelileri",
+  "kartBasimListesi", // giriş kartı basım penceresi (plan §40.7)
+  "kartBasimlari",
 ]);
 const YAZMA = new Set([
   "createAgeGroup",
@@ -72,6 +74,7 @@ const YAZMA = new Set([
   "cancelTraining",
   "setAttendance",
   "haftayiProgramdanDoldur",
+  "kartBasimKaydet", // kullanıcı oturumdan enjekte (ipc/data.cjs, server.cjs)
 ]);
 // Ayarlar ekranı yalnız yönetici (07.09.2026): ayar yazma, aidat kalemleri/ücret tipleri, kullanıcılar, sezon geçişi.
 const ADMIN = new Set([
@@ -85,6 +88,7 @@ const ADMIN = new Set([
   "setSetting",
   "aidatAyarlariKaydet",
   "updateFeeItem",
+  "kartBasimSil", // "Basılmadı say" (plan §40.7)
 ]);
 
 // Dönüş: { ok: true } | { ok: false, kod: 401|403, mesaj }. `args`: setSetting anahtar izni için (güvenlik 2. inceleme #1).
