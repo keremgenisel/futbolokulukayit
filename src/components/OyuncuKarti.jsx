@@ -209,7 +209,8 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         `giris-karti-${o.ad_soyad.replace(/\s+/g, "-")}`,
         true,
       );
-      if (!y.ok) return toast("err", y.mesaj);
+      if (!y.ok && !y.pdfAcildi) return toast("err", y.mesaj);
+      if (y.pdfAcildi) toast("info", y.mesaj); // yazıcı yok: PDF açıldı, yine de üretildi sayılır
       if (!saltOkunur) {
         await db("kartBasimKaydet", [o.id], ayar.sezon, "tek"); // basım kaydı (plan §40.7); salt okunurda tutulmaz
         setBasimlar(await db("kartBasimlari", oyuncuId).catch(() => []));

@@ -38,7 +38,8 @@ export async function htmlYazdir(html, pdfAdi, yatay = false) {
   const neden = HATA_TR(r?.hata);
   if (/iptal/.test(neden)) return { ok: false, mesaj: neden };
   const p = await cikti().pdfAc(html, pdfAdi, yatay);
-  if (p?.ok) return { ok: false, mesaj: `${neden} Form PDF olarak açıldı, oradan yazdırabilirsiniz.` };
+  // pdfAcildi: çıktı üretildi (kullanıcı PDF'ten yazdırır) — giriş kartı basım kaydı bunu "basıldı" sayar (plan §40.7)
+  if (p?.ok) return { ok: false, pdfAcildi: true, mesaj: `${neden} Form PDF olarak açıldı, oradan yazdırabilirsiniz.` };
   return { ok: false, mesaj: `${neden} PDF de açılamadı: ${p?.error || ""}`.trim() };
 }
 

@@ -135,6 +135,24 @@ describe("Giriş Kartları penceresi", () => {
     fireEvent.click(within(d).getByRole("button", { name: "Temizle" }));
     expect(within(d).getByText("0 oyuncu seçildi")).toBeInTheDocument();
   });
+  it("yazıcı yok: PDF yedek yolu açılırsa üretildi sayılır (kayıt düşer); PDF de açılamazsa kayıt yok, seçim kalır", async () => {
+    const { db, yazdir } = kopru();
+    yazdir.mockImplementation(async () => ({ ok: false, hata: "no printers" }));
+    window.okul.cikti.pdfAc = vi.fn(async () => ({ ok: true }));
+    const d = await pencereAc();
+    await within(d).findByText("Ela Demir");
+    fireEvent.click(within(d).getByLabelText("Seç: Ela Demir"));
+    fireEvent.click(within(d).getByRole("button", { name: "Yazdır (1)" }));
+    await waitFor(() => expect(db).toHaveBeenCalledWith("kartBasimKaydet", [2], "2026-2027", "toplu"));
+    await screen.findByText(/PDF olarak açıldı/);
+    db.mockClear();
+    window.okul.cikti.pdfAc = vi.fn(async () => ({ ok: false, error: "disk dolu" }));
+    fireEvent.click(within(d).getByLabelText("Seç: Mert Aksoy"));
+    fireEvent.click(within(d).getByRole("button", { name: "Yazdır (1)" }));
+    await screen.findByText(/PDF de açılamadı: disk dolu/);
+    expect(db).not.toHaveBeenCalledWith("kartBasimKaydet", expect.anything(), expect.anything(), expect.anything());
+    expect(within(d).getByText("1 oyuncu seçildi")).toBeInTheDocument();
+  });
   it("salt okunur lisansta basım çalışır ama kayıt yazılmaz", async () => {
     const { db, yazdir } = kopru();
     const d = await pencereAc(true);

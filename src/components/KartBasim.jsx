@@ -84,7 +84,8 @@ export function KartBasim({ onKapat, saltOkunur, sezon, sezonlar = [], grup: ilk
           `giris-kartlari-${kartlar.length}`,
           true,
         );
-        if (!y.ok) return toast("err", y.mesaj);
+        if (!y.ok && !y.pdfAcildi) return toast("err", y.mesaj);
+        if (y.pdfAcildi) toast("info", y.mesaj); // yazıcı yok: PDF açıldı, yine de üretildi sayılır
         if (saltOkunur) toast("info", `${kartlar.length} kart basıma gönderildi; lisans salt okunur: basım kaydı tutulmadı`);
         else {
           await db(

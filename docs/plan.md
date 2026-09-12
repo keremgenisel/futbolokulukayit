@@ -1864,3 +1864,10 @@ kalıcılık, oyuncular-e2e (gerçek pencerede tümünü seç → Yazdır → ka
 - Düzeltme (Kerem 12.09.2026, ekran görüntüsü): toplu basımda 6 kart olunca üçüncü satırın şeridi sonraki sayfaya taşıyordu
   (3 × 60 + 2 × 6 = 192 mm > 210 − 2 × 10 = 190 mm). Kenar 8 mm, kart aralığı 4 mm (`SAYFA_KENAR_MM`, `KART_ARALIK_MM`; 204 ≤ 210);
   gerçek printToPDF ile 8 oyuncu = 4 sayfa doğrulandı; test `kart-html.test.js`.
+- Test turu (Kerem 12.09.2026 "tüm durumları test et"): `scripts/tests/kart-e2e.cjs` + `tests/kart-e2e.test.js` (gerçek pencere, 43
+  kontrol: süzgeçler, seçim/kısmi kutu/listede-değil/Temizle, yazıcı yok + PDF açılamadı → kayıt yok, yazıcı yok + PDF açıldı →
+  kayıt düşer, toplu HTML (foto/QR/veli), kayıt alanları, Basılmış/Tümü, 2. basım + sarı not, 200 sınırı, Vazgeç/×/Escape, oyuncu
+  kartı tek basım + şerit + Basılmadı say, kullanıcı rolü (sil 403), salt okunur (lisans:durum ve lisans:yenile yamalı), geçmiş
+  sezon, printToPDF sayfa sayıları 6/7/8/13). Bulunan hata: yazıcı yokken PDF yedek yolu "başarısız" sayılıp kayıt düşmüyordu →
+  `htmlYazdir` `pdfAcildi` döner, KartBasim/OyuncuKarti bunu üretildi sayar (bilgi toast'ı). Not: e2e'de `cikti:pdfAc` yakalanmalı,
+  yoksa gerçek PDF Preview'da açılır.
