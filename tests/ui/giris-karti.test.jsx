@@ -102,6 +102,18 @@ describe("Oyuncu kartı › Giriş Kartı", () => {
     expect(h2).toContain('class="cubuk"');
     expect((h2.match(/<svg/g) || []).length).toBeGreaterThanOrEqual(2);
   });
+  it("düğme mor başlıkta okunur: zemin beyaz değil, yazı başlık rengi (beyaz üstüne beyaz hatası)", async () => {
+    kopru({});
+    render(
+      <ToastSaglayici>
+        <OyuncuKarti oyuncuId={123} oturum={{ role: "admin" }} gruplar={[]} saltOkunur={false} onKapat={() => {}} onMakbuzKes={() => {}} />
+      </ToastSaglayici>,
+    );
+    const b = await screen.findByRole("button", { name: /Giriş Kartı/ });
+    expect(b.style.background).not.toMatch(/^(#fff|white|rgb\(255, 255, 255\))$/);
+    expect(b.style.background).toContain("rgba(255, 255, 255, 0.14)");
+    expect(b.style.color).toBe("var(--ana-ustu)");
+  });
   it("salt okunurda da yazdırılabilir (yazma değil)", async () => {
     const { yazdir } = kopru({});
     render(

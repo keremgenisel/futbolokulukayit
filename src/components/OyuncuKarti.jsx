@@ -254,7 +254,7 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         ikon={<Ikon ad="yazdir" />}
         onClick={girisKartiYazdir}
         title="11 × 6 cm giriş kartı: ön ve arka yüz A4 yatay sayfada; yazıcı yoksa PDF açılır (plan §40)"
-        style={{ color: "var(--ana-ustu)", borderColor: "rgba(255,255,255,.35)" }}
+        style={{ background: "rgba(255,255,255,.14)", color: "var(--ana-ustu)", borderColor: "rgba(255,255,255,.35)" }}
       >
         Giriş Kartı
       </Btn>
