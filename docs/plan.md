@@ -1811,44 +1811,42 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
   `kart_alt_yazi` ayarı aynı gün eklenip kaldırıldı).
 
 
-### 40.7 PLAN: Toplu basımda seçim ve "daha önce basıldı" bilgisi (12.09.2026, Kerem: "kodlama yapma, önce plan yap")
+### 40.7 PLAN: Kart basım penceresi — seçerek yazdırma + "daha önce basıldı" bilgisi (12.09.2026; 2. sürüm)
 
-**Sorun.** "Kartları Yazdır" bugün süzgeçteki HERKESİ basar. Kulüp iki şeyi yapamıyor: (a) kimin kartı daha önce basıldı,
-kimin basılmadı görmek (yeni kayıtlar, kartı kaybolanlar); (b) listeden yalnız istediği 3–5 oyuncuyu seçip basmak.
+**Sorun.** "Kartları Yazdır" bugün süzgeçteki HERKESİ basar. Kulüp (a) kimin kartı basıldı/basılmadı görmek, (b) yalnız
+istediği oyuncuları seçip basmak istiyor. Kerem'in kararı (12.09.2026): Oyuncular listesine kart sütunu ve onay kutusu
+EKLENMEZ; "Kartları Yazdır" ayrı bir ekran açar, seçim ve basım orada yapılır (ilk mockup'taki satır seçimi/seçim çubuğu/onay
+penceresi yönü bırakıldı).
 
-**Öneri: Yön 1 — basım kaydı + kart süzgeci + satır seçimi (iki adım).** Yalnız süzgeç (Yön 2) tek tek seçmeye izin vermez; yalnız
-seçim (Yön 3) kimin basıldığını bilmez. İkisi birlikte gerekir; kayıt olmadan "basılmamışlar" süzgeci mümkün değil.
+**Akış.** Oyuncular › Kartları Yazdır → **Giriş Kartları penceresi** (Modal 1120 × 760, WhatsApp toplu pencere kalıbı: sabit
+yükseklikli kaydırma + yapışık başlık + sayaç, plan §22). Oyuncular'daki sezon / yaş grubu / durum süzgeçleri pencereye taşınır.
 
-**Adım A — basım kaydı ve süzgeç (yarım gün)**
-1. Şema 20: `card_prints (id, player_id → players, sezon, basim_zamani, user_id, tur 'tek'|'toplu', kart_no)`; indeks (player_id, sezon).
-   Kayıt HER başarılı yazdırmada (yazıcıya gönderildi ya da PDF açıldı — `htmlYazdir` ok) düşer: OyuncuKarti "Giriş Kartı" → tek,
-   Oyuncular "Kartları Yazdır" → toplu, tek işlemde N satır (`db.kartBasimKaydet(ids, sezon, tur)`; kullanıcı oturumdan enjekte,
-   `cancelReceipt` gibi). Kart no zaten deterministik (sezon + oyuncu no) → yeniden basım aynı numara; kayıttaki satır sayısı
-   "N. basım" demektir. Salt okunur lisansta yazdırma çalışır, kayıt YAZILMAZ (toast: "salt okunur: basım kaydı tutulmadı").
-2. Liste sorguları (`playersPage`, `listPlayersWithDue`) aktif sezon için `kart_basim` (son basım tarihi, sayı) alt sorgusu döner;
-   sezon süzgeci seçiliyse o sezonun basımı. Yeni sezon = yeni kart: geçen sezon basılanlar bu sezon "basılmamış" görünür (istenen).
-3. Oyuncular süzgeç çubuğuna **Kart** kutusu: Tümü / Basılmamış / Basılmış. "Basılmamış + Kartları Yazdır" = yeni kayıtların
-   kartları tek tıkla. Listede yeni sütun "Kart": "12.09.2026" · "2. basım" · "—" (Rozet, `tek-satir`). Excel dışa aktarımda aynı sütun.
-4. OyuncuKarti başlığında "Giriş Kartı" düğmesinin `title`/yanında küçük bilgi: "Son basım 12.09.2026 (2. basım)" ya da "Basılmadı".
-5. "Basılmadı say" (yalnız yönetici, oyuncu kartında): yanlış basımı geri alır — kaydı siler, ID'yi log'lar. Nadir; küçük "Sil" kalıbı.
+1. **Üst şerit (süzgeçler):** arama, Sezon (aktif), Yaş grubu, Durum (varsayılan Aktif), **Kart: Basılmamış | Basılmış | Tümü**
+   (varsayılan Basılmamış — en sık iş "yeni kayıtların kartları"). Sağda sayaç "23 oyuncu".
+2. **Liste:** satır başına onay kutusu; Oyuncu (avatar + ad), Grup, **Son basım** ("12.09.2026", "2. basım · 12.09.2026", "Basılmadı"
+   rozet). Başlıktaki kutu = **süzgeçtekilerin tümünü seç** (sayfa değil, tüm küme; ≤200 sınırı burada uyarır). Süzgeç değişince
+   seçim korunur; listede olmayan seçililer sayaçta "+2 listede değil" olarak görünür, Temizle ile sıfırlanır.
+3. **Alt şerit (yapışık):** solda "12 oyuncu seçildi · 4 sayfa (ön + arka)"; seçilenlerden daha önce basılmış varsa sarı not
+   "3'ü daha önce basılmış (Kerem Y., Kaan Y., Efe D.)" — atla kutusu YOK, kullanıcı zaten seçerek karar verdi; sağda Vazgeç ve
+   **Yazdır (12)** (mor birincil; sarı yalnız makbuz/para). Seçim boşsa Yazdır pasif. Ayrı onay penceresi yok: pencere zaten onaydır.
+4. **Yazdırma:** mevcut `girisKartiHtml` toplu düzen (A4 yatay 6 kart/sayfa, arka yüzler sonraki sayfa); başarılıysa basım kaydı
+   düşer, pencere açık kalır ve liste yenilenir (Basılmamış süzgecinde basılanlar listeden düşer → sıradaki öbek).
+5. **Oyuncu kartı (modal) başlığı:** "Giriş Kartı" düğmesi altında "Son basım 12.09.2026 · 2. basım" / "Basılmadı"; alt şeritte
+   basım kaydı (tarih, tür, kullanıcı) ve yöneticiye "Basılmadı say" (kaydı siler; yanlış basım için).
 
-**Adım B — satır seçimi ve onay penceresi (yarım gün)**
-6. Oyuncular tablosunda satır başına onay kutusu + başlıkta "sayfadakileri seç"; seçim `Set<id>` olarak SAYFALAR ARASI korunur
-   (50/sayfa, plan §22). Süzgeç değişince seçim korunur ama sayaç uyarır ("3 seçili oyuncu şu an listede değil").
-7. Seçim varken yapışkan seçim çubuğu (KaydetCubugu kalıbı, mor): "7 oyuncu seçildi · Kartları Yazdır · WhatsApp (ileride) · Temizle".
-   "Kartları Yazdır" seçim varken YALNIZ seçilenleri basar; seçim yokken bugünkü davranış (süzgeçteki herkes, ≤200).
-8. Basmadan önce onay penceresi (Modal 480): "12 oyuncu · 4 sayfa (ön + arka)" + "3'ü daha önce basılmış: Ali, Ayşe, Can" +
-   onay kutusu **"Daha önce basılmışları atla"** (varsayılan işaretli, basılmış varsa görünür). Bu pencere "yanlışlıkla 200 kart"
-   hatasını da önler. Tek basımda (OyuncuKarti) pencere yok; daha önce basılmışsa yalnız düğme altında uyarı metni.
+**Basım kaydı (değişmedi).** Şema 20 `card_prints (id, player_id → players, sezon, basim_zamani, user_id, tur 'tek'|'toplu',
+kart_no)`, indeks (player_id, sezon). Her başarılı yazdırmada (yazıcı ya da PDF açıldı) düşer; kullanıcı oturumdan enjekte.
+Kart no deterministik (sezon + oyuncu no): yeniden basım aynı numara, kayıt sayısı "N. basım". Yeni sezon = yeni kart (geçen sezon
+basılanlar bu sezon "Basılmadı"). Salt okunur lisansta yazdırma çalışır, kayıt yazılmaz (toast). Kişisel verisi silinen oyuncunun
+kayıtları da silinir. "Basıldı" = basıma gönderildi, fiziksel teslim değil (arayüz metni); teslim takibi istenirse sonra.
 
-**Kapsam dışı / notlar.** "Basıldı" = basıma gönderildi, fiziksel teslim değil (arayüz metni "basıma gönderildi"); teslim takibi
-istenirse ayrı sütun (`teslim_zamani`) sonra eklenir. Rapor gerekmez; Oyuncular listesi + Excel yeter. Kart no değişmediği için
-kayıp kartta eski kart da geçerli kalır — okuyucu sistemi (§40.4) gelirse "iptal edilen kart" kavramı o zaman eklenir (bu tablo
-ona zemin). Kişisel veri silinen oyuncuda (`oyuncuKisiselVeriSil`) basım kayıtları da silinir.
+**Oyuncular ekranı:** kart sütunu YOK, onay kutusu YOK; yalnız "Kartları Yazdır" düğmesi pencereyi açar. Excel dışa aktarımına
+sütun eklenmez. Raporlar'a rapor eklenmez (pencere Basılmış/Basılmamış süzgeciyle listeyi zaten verir).
 
-**Teknik.** Yeni DB işlevleri: `kartBasimKaydet`, `kartBasimSil`, `kartBasimlari(playerId)`; `db.cjs` export + `yetki.cjs`
-beyaz liste (YAZMA seti: kaydet/sil; okuma serbest); `playersPage`/`listPlayersWithDue` `{ kart: "tumu"|"basilmamis"|"basilmis" }`
-parametresi. Saf: `src/lib/kartSecim.js` (seçim kümesi, "listede değil" sayacı, atla filtresi) — vitest.
-Testler: db-roundtrip (kayıt/sezon/silme), `tests/ui/oyuncular-kart-secim.test.jsx` (kutu, çubuk, süzgeç, düğme davranışı,
-onay penceresi atla), kalıcılık (kayıt yeniden açılışta durur), `oyuncular-e2e` (gerçek pencerede seç → PDF sayfa sayısı).
-Sıra: A → B; A tek başına da değerlidir. Toplam ~1 gün. Sürüm çıkarılmaz (Kerem söyleyince).
+**Teknik.** Yeni bileşen `src/components/KartBasim.jsx` (pencere; `OyuncuSecici`/WhatsAppHatirlat kalıbı) + saf `src/lib/kartSecim.js`
+(seçim kümesi, "listede değil" sayacı, sayfa hesabı, ≤200 sınırı). DB: `kartBasimKaydet(ids, sezon, tur)`, `kartBasimSil(id)`,
+`kartBasimlari(playerId)`, liste sorgusu `kartBasimListesi({ sezon, grup, durum, q, kart })` (son basım alt sorgusu; sayfalama yok,
+≤200 + sayaç); `db.cjs` export + `yetki.cjs` beyaz liste (kaydet/sil YAZMA seti). Testler: db-roundtrip (kayıt/sezon/silme),
+`tests/kart-secim.test.js` (saf), `tests/ui/kart-basim.test.jsx` (süzgeç, tümünü seç, sayaç, Yazdır pasif/aktif, basılmış notu,
+basım sonrası liste yenilenir), kalıcılık (kayıt yeniden açılışta durur), `oyuncular-e2e` (gerçek pencerede seç → PDF sayfa sayısı).
+Süre ~1 gün. Sürüm çıkarılmaz (Kerem söyleyince). Mockup: tasarım tuvali "Kart Basımı Seçim" (12.09.2026, 2. sürüm).
