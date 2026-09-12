@@ -139,7 +139,7 @@ Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antren
 Oyuncular ekranında **Kartları Yazdır** listedeki oyuncuların kartlarını sayfada 6 kart, kesim çizgili basar — arka yüzler her
 6'lık öbeğin hemen sonraki sayfasında aynı sırayla (çift taraflı yazıcıda "kısa kenardan çevir" seçin; tek taraflıda kesip
 yapıştırın). Kartta kulüp logosu/adı/renkleri, sezon, oyuncu adı, yaş grubu, oyuncu no (kayıt numarası), foto; arka yüzde 4 kural,
-veli adı ve maskelenmiş telefonu, kulüp adres/telefon/web ve kart no yazar. Bunlar Ayarlar > **Giriş Kartı**
+veli adı ve maskelenmiş telefonu, kulüp adres/telefon/web ve kart no yazar. Bunlar ve ön yüzde kulüp adının altındaki yazı ("Futbol Okulu · 1919" varsayılan) Ayarlar > **Giriş Kartı**
 bölümünden düzenlenir; **Kartta giriş kodu bas** kutusu kulüpte kart okuyucu yoksa kapalı kalsın (açılınca QR ve barkod basılır,
 ileride okuyucuyla giriş için aynı kod kullanılır). Aidat durumu karta yazılmaz.
 

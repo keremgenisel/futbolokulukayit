@@ -1,6 +1,14 @@
 // Giriş kartı şablonu (plan §40): saf HTML; kaçırma, kod isteğe bağlı, tek/toplu/önizleme düzenleri, numaralar.
 import { describe, it, expect } from "vitest";
-import { girisKartiHtml, oyuncuNo, kartNo, telMaskele, KART_KURAL_VARSAYILAN, TOPLU_SAYFA_KART } from "../src/lib/kartHtml.js";
+import {
+  girisKartiHtml,
+  oyuncuNo,
+  kartNo,
+  telMaskele,
+  KART_KURAL_VARSAYILAN,
+  TOPLU_SAYFA_KART,
+  kartAltYaziVarsayilan,
+} from "../src/lib/kartHtml.js";
 
 const oyuncu = (id, ad, ek = {}) => ({
   id,
@@ -40,12 +48,20 @@ describe("giriş kartı şablonu", () => {
     expect(h).toContain("0532 ••• •• ••");
     expect(h).toContain("2026 0123");
     expect(h).toContain("2026-2027");
-    expect(h).toContain("· 1919");
+    expect(h).toContain("Futbol Okulu · 1919"); // alt yazı ayarı boş → varsayılan
+    expect(h).toContain("flex: 1; display: flex; gap: 3.5mm; padding: 1mm 4mm 6mm; align-items: center;"); // gövde dikeyde ortalı
     expect(h).toContain("Giriş için aidatın ödenmiş olması gerekir");
     expect(h).not.toContain("GİRİŞ KODU");
     expect(h).not.toContain('class="cubuk"');
     for (const k of KART_KURAL_VARSAYILAN) expect(h).toContain(k.replace("&", "&amp;"));
     expect(h).toContain("Doğum</span><span>2015");
+  });
+  it("alt yazı ayarı doluysa ön yüzde o yazılır (kuruluş yılı eklenmez), kaçırılır", () => {
+    const h = girisKartiHtml({ oyuncular: [oyuncu(1, "A")], ayar: { ...ayar, altYazi: "Eyüpspor <Futbol Okulu>" }, duzen: "tek" });
+    expect(h).toContain("Eyüpspor &lt;Futbol Okulu&gt;");
+    expect(h).not.toContain("Futbol Okulu · 1919");
+    expect(kartAltYaziVarsayilan("")).toBe("Futbol Okulu");
+    expect(kartAltYaziVarsayilan(" 1919 ")).toBe("Futbol Okulu · 1919");
   });
   it("kod verilince QR kutusu ve barkod basılır; özel kurallar, adres ve web arka yüzde; foto yalnız güvenli data URL", () => {
     const h = girisKartiHtml({

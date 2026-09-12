@@ -18,6 +18,7 @@ const SINIR = {
   kart_kural_2: 140,
   kart_kural_3: 140,
   kart_kural_4: 140,
+  kart_alt_yazi: 40,
 };
 const WA_SABLON_MAX = 2000;
 /** Renderer'ın `setSetting` ile yazabildiği anahtarlar (Ayarlar > Kulüp / WhatsApp / Sezon, ilk kurulum sihirbazı). */
@@ -46,6 +47,7 @@ const IZINLI_ANAHTARLAR = new Set([
   "kart_kural_3",
   "kart_kural_4",
   "kart_qr",
+  "kart_alt_yazi", // ön yüzde kulüp adının altındaki yazı (varsayılan "Futbol Okulu · <kuruluş yılı>")
 ]);
 /** Yalnız ana sürecin kendi IPC'siyle (diyalog/işlem sonucu) yazılan anahtarlar — renderer `setSetting`'i reddedilir. */
 const KORUMALI_ANAHTARLAR = new Set(["yedek_klasoru", "yedek_sikligi", "son_yedek", "kulup_logo", "son_sezon_gecisi", "sunucu_adres"]);

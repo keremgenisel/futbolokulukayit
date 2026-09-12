@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alan, Girdi, useToast, useDene, KaydetCubugu } from "../ui.jsx";
 import { db, uygulama } from "../../lib/api.js";
-import { girisKartiHtml, KART_KURAL_VARSAYILAN } from "../../lib/kartHtml.js";
+import { girisKartiHtml, KART_KURAL_VARSAYILAN, kartAltYaziVarsayilan } from "../../lib/kartHtml.js";
 import { qrSvg, code128Svg, kodMetni } from "../../lib/kartKod.js";
 import { KART_AYAR_ANAHTARLARI } from "../../lib/kartVeri.js";
 import { VARSAYILAN_KULUP } from "../../lib/marka.js";
@@ -33,8 +33,11 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
   const yukle = useCallback(async () => {
     const o = bos();
     for (const k of ALANLAR) o[k] = (await db("getSetting", k)) || "";
+    // Kural kutuları boşken varsayılan metinle DOLU gelir (Kerem 12.09.2026); değiştirilmezse yazılmaz
+    for (let i = 1; i <= 4; i++) if (!o[`kart_kural_${i}`]) o[`kart_kural_${i}`] = KART_KURAL_VARSAYILAN[i - 1];
     const kulupAdi = (await db("getSetting", "kulup_adi")) || "";
     const kurulusYili = (await db("getSetting", "kurulus_yili")) || "";
+    if (!o.kart_alt_yazi) o.kart_alt_yazi = kartAltYaziVarsayilan(kurulusYili); // "Futbol Okulu · 1919" dolu gelir
     let m = null;
     try {
       m = await uygulama().marka();
@@ -84,6 +87,7 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
     ayar: {
       kulupAdi: baglam.kulupAdi || VARSAYILAN_KULUP,
       kurulusYili: baglam.kurulusYili,
+      altYazi: a.kart_alt_yazi,
       logo: baglam.logo,
       tema: baglam.tema,
       adres: a.kulup_adres,
@@ -105,6 +109,13 @@ export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <Alan etiket="Kulüp adının altındaki yazı (ön yüz)">
+            {girdi("kart_alt_yazi", {
+              "aria-label": "Kart alt yazısı",
+              placeholder: kartAltYaziVarsayilan(baglam.kurulusYili),
+              maxLength: 40,
+            })}
+          </Alan>
           <Alan etiket="Kulüp adresi (arka yüz)">
             {girdi("kulup_adres", { "aria-label": "Kulüp adresi", placeholder: "Mahalle, cadde, ilçe" })}
           </Alan>

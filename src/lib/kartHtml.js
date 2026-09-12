@@ -12,6 +12,9 @@ export const KART_KURAL_VARSAYILAN = [
   "Kayıp ve hasar durumunda kulübe bildiriniz; yeni kart ücrete tabidir.",
   "Lütfen kartınızı yanınızda bulundurunuz; kartı olmayan antrenmana katılamayacaktır.",
 ];
+/** Ön yüzde kulüp adının altındaki yazı (ayar `kart_alt_yazi` boşsa). @param {string} [kurulusYili] */
+export const kartAltYaziVarsayilan = (kurulusYili = "") =>
+  `Futbol Okulu${String(kurulusYili || "").trim() ? ` · ${String(kurulusYili).trim()}` : ""}`;
 export const KART_EN_MM = 110;
 export const KART_BOY_MM = 60;
 export const TOPLU_SAYFA_KART = 6; // A4 yatay 2 × 3
@@ -29,8 +32,8 @@ export const telMaskele = (tel) => {
 /**
  * @typedef {{ ad_soyad: string, id: number|string, yas_grubu_ad?: string, dogum_tarihi?: string|null, foto?: string, veli_ad?: string,
  *   veli_tel?: string, qrSvg?: string, barkodSvg?: string }} KartOyuncu
- * @typedef {{ kulupAdi?: string, kurulusYili?: string, logo?: string, tema?: { ana?: string, vurgu?: string }, adres?: string,
- *   telefon?: string, web?: string, sezon?: string, kurallar?: string[] }} KartAyar
+ * @typedef {{ kulupAdi?: string, kurulusYili?: string, altYazi?: string, logo?: string, tema?: { ana?: string, vurgu?: string },
+ *   adres?: string, telefon?: string, web?: string, sezon?: string, kurallar?: string[] }} KartAyar
  */
 
 const SILUET =
@@ -44,7 +47,7 @@ function kartCss(t) {
   return `
   .kart { width: ${KART_EN_MM}mm; height: ${KART_BOY_MM}mm; box-sizing: border-box; border-radius: 3mm; overflow: hidden; position: relative;
     font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #1B1530; background: #fff; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .on { background: ${t.morKoyu}; color: ${t.anaUstuMetin}; }
+  .on { background: ${t.morKoyu}; color: ${t.anaUstuMetin}; display: flex; flex-direction: column; }
   .on .daire { position: absolute; right: -10mm; top: -12mm; width: 58mm; height: 58mm; border-radius: 50%; background: ${t.mor}; }
   .on .halka { position: absolute; right: -18mm; bottom: -23mm; width: 50mm; height: 50mm; border-radius: 50%; border: 3.5mm solid ${t.sari}; opacity: .14; }
   .ust { position: relative; display: flex; align-items: center; gap: 2.5mm; padding: 3.5mm 4mm 0; }
@@ -53,7 +56,8 @@ function kartCss(t) {
   .ust .ad { font-family: "Arial Narrow", "Segoe UI", Arial, sans-serif; font-size: 11.5pt; font-weight: 700; line-height: 1; letter-spacing: .04em; text-transform: uppercase; }
   .ust .alt { font-size: 6.5pt; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; color: ${t.sari}; }
   .sezon { font-size: 7pt; font-weight: 700; color: ${t.vurguUstuMetin}; background: ${t.sari}; border-radius: 99px; padding: .8mm 2.4mm; letter-spacing: .04em; }
-  .govde { position: relative; display: flex; gap: 3.5mm; padding: 3mm 4mm 0; align-items: flex-start; }
+  /* Başlık ile alt yazı arasındaki alanı doldurur; foto, bilgiler ve QR dikeyde ORTALANIR (Kerem 12.09.2026: bilgiler üstte kalıyordu) */
+  .govde { position: relative; flex: 1; display: flex; gap: 3.5mm; padding: 1mm 4mm 6mm; align-items: center; }
   .foto { width: 17mm; height: 22mm; border-radius: 1.5mm; background: #fff; border: .4mm solid ${t.sari}; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0; }
   .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .bilgi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1.8mm; }
@@ -93,7 +97,7 @@ function onYuz(o, a, t) {
   const yil = o.dogum_tarihi ? String(o.dogum_tarihi).slice(0, 4) : "";
   return `<div class="kart on">
   <div class="daire"></div><div class="halka"></div>
-  <div class="ust">${logo ? `<img src="${logo}" alt="">` : ARMA(t.sari, t.morKoyu)}<div class="k"><div class="ad">${esc(a.kulupAdi || VARSAYILAN_KULUP)}</div><div class="alt">Futbol Okulu${a.kurulusYili ? ` · ${esc(a.kurulusYili)}` : ""}</div></div>${a.sezon ? `<div class="sezon">${esc(a.sezon)}</div>` : ""}</div>
+  <div class="ust">${logo ? `<img src="${logo}" alt="">` : ARMA(t.sari, t.morKoyu)}<div class="k"><div class="ad">${esc(a.kulupAdi || VARSAYILAN_KULUP)}</div><div class="alt">${esc(String(a.altYazi || "").trim() || kartAltYaziVarsayilan(a.kurulusYili))}</div></div>${a.sezon ? `<div class="sezon">${esc(a.sezon)}</div>` : ""}</div>
   <div class="govde">
     <div class="foto">${foto ? `<img src="${foto}" alt="">` : SILUET}</div>
     <div class="bilgi"><div class="etiket">OYUNCU GİRİŞ KARTI</div><div class="isim">${esc(o.ad_soyad)}</div>

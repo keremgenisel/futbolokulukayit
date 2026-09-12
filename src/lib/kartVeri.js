@@ -16,6 +16,7 @@ export const KART_AYAR_ANAHTARLARI = [
   "kart_kural_3",
   "kart_kural_4",
   "kart_qr",
+  "kart_alt_yazi",
   "kurulus_yili",
 ];
 
@@ -36,6 +37,7 @@ export async function kartAyarlariOku() {
     ayar: {
       kulupAdi: marka.kulup,
       kurulusYili: a.kurulus_yili || "",
+      altYazi: a.kart_alt_yazi || "",
       logo: marka.logo,
       tema: marka.tema,
       adres: a.kulup_adres,

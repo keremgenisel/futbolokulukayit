@@ -107,6 +107,8 @@ describe("ayarDogrula (ana süreç)", () => {
     expect(ayarDogrula("kart_qr", "1")).toBe("1"); // plan §40
     expect(() => ayarDogrula("kart_qr", "evet")).toThrow();
     expect(ayarDogrula("kart_kural_1", "  Kart kişiseldir  ")).toBe("Kart kişiseldir");
+    expect(ayarDogrula("kart_alt_yazi", " Eyüpspor Futbol Okulu ")).toBe("Eyüpspor Futbol Okulu");
+    expect(() => ayarDogrula("kart_alt_yazi", "x".repeat(41))).toThrow();
     expect(() => ayarDogrula("kulup_adres", "x".repeat(121))).toThrow(/120/);
     expect(() => ayarDogrula("aidat_vade_bekle", "evet")).toThrow();
   });
