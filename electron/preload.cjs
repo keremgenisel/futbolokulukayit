@@ -55,6 +55,7 @@ contextBridge.exposeInMainWorld("okul", {
     leaseYapistir: (lease) => ipcRenderer.invoke("lisans:leaseYapistir", lease),
     aktiflestir: () => ipcRenderer.invoke("lisans:aktiflestir"),
     yenile: () => ipcRenderer.invoke("lisans:yenile"),
+    baglantiSina: () => ipcRenderer.invoke("lisans:baglantiSina"),
   },
   mod: {
     oku: () => ipcRenderer.invoke("mod:oku"),

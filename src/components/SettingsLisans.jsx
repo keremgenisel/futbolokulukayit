@@ -148,6 +148,25 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
               <Btn tur="ghost" onClick={() => islem("aktif", () => lisans().aktiflestir())} disabled={!!bekliyor}>
                 {bekliyor === "aktif" ? "Aktive ediliyor..." : "Aktive Et (online)"}
               </Btn>
+              <Btn
+                tur="ghost"
+                title="Aktivasyon sunucusuna erişimi sınar; lisans ya da kurulum hakkı harcamaz"
+                disabled={!!bekliyor}
+                onClick={() =>
+                  dene(async () => {
+                    setBekliyor("sina");
+                    try {
+                      const r = await lisans().baglantiSina();
+                      if (r?.ok) toast("ok", `Aktivasyon sunucusuna ulaşıldı (${r.ms} ms)`);
+                      else toast("err", r?.error || "Sınama başarısız");
+                    } finally {
+                      setBekliyor("");
+                    }
+                  })
+                }
+              >
+                {bekliyor === "sina" ? "Sınanıyor..." : "Bağlantıyı Sına"}
+              </Btn>
             </div>
           </div>
           <div style={{ borderTop: "1px solid var(--cizgi)", paddingTop: 16 }}>

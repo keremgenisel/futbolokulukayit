@@ -186,6 +186,10 @@ function registerDataHandlers() {
     }
     return db.lisansAktiflestir(app.getVersion());
   });
+  ipcMain.handle("lisans:baglantiSina", async () => {
+    if (!session) return { error: "Oturum gerekli" };
+    return require("../aktivasyonIstemci.cjs").baglantiSina();
+  });
   ipcMain.handle("lisans:yenile", async () => {
     if (config.istemciMi()) {
       try {

@@ -225,6 +225,7 @@ declare global {
         kaydet(anahtar: string): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
         leaseYapistir(lease: string): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
         aktiflestir(): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
+        baglantiSina(): Promise<{ ok?: boolean; ms?: number; error?: string }>;
         yenile(): Promise<{ ok?: boolean; error?: string; durum?: LisansDurum }>;
       };
       app: {
