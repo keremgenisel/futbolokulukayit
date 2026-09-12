@@ -1,6 +1,6 @@
 // Giriş kartı şablonu (plan §40): saf HTML; kaçırma, kod isteğe bağlı, tek/toplu/önizleme düzenleri, numaralar.
 import { describe, it, expect } from "vitest";
-import { girisKartiHtml, oyuncuNo, kartNo, telMaskele, KART_KURAL_VARSAYILAN, TOPLU_SAYFA_KART, kartAltYazi } from "../src/lib/kartHtml.js";
+import { girisKartiHtml, oyuncuNo, kartNo, telBicimle, KART_KURAL_VARSAYILAN, TOPLU_SAYFA_KART, kartAltYazi } from "../src/lib/kartHtml.js";
 
 const oyuncu = (id, ad, ek = {}) => ({
   id,
@@ -25,8 +25,10 @@ describe("giriş kartı şablonu", () => {
     expect(oyuncuNo(12345)).toBe("12345");
     expect(kartNo(123, "2026-2027")).toBe("2026 0123");
     expect(kartNo(5, "")).toBe("0000 0005");
-    expect(telMaskele("0532 111 22 33")).toBe("0532 ••• •• ••");
-    expect(telMaskele("")).toBe("");
+    expect(telBicimle("05321112233")).toBe("0532 111 22 33");
+    expect(telBicimle("532 111 22 33")).toBe("0532 111 22 33");
+    expect(telBicimle("+90 532 111 22 33")).toBe("+90 532 111 22 33"); // 12 hane: olduğu gibi
+    expect(telBicimle("")).toBe("");
   });
   it("tek düzen: ön + arka yüz, tüm alanlar kaçırılmış, kod yoksa QR/barkod bloğu yok, 4 varsayılan kural, sezon pili", () => {
     const h = girisKartiHtml({ oyuncular: [oyuncu(123, 'Kaan <b>"Yıldız"</b>')], ayar, duzen: "tek" });
@@ -37,7 +39,8 @@ describe("giriş kartı şablonu", () => {
     expect(h).not.toContain("<b>Yıldız</b>");
     expect(h).toContain("Eyüpspor &amp; Kulübü");
     expect(h).toContain("Ayşe &lt;Yıldız&gt;");
-    expect(h).toContain("0532 ••• •• ••");
+    expect(h).toContain("0532 111 22 33"); // veli telefonu TAM (maske kaldırıldı, 12.09.2026)
+    expect(h).not.toContain("•••");
     expect(h).toContain("2026 0123");
     expect(h).toContain("2026-2027");
     expect(h).toContain("Futbol Okulu · 1919"); // kısa ad yok → varsayılan

@@ -1747,7 +1747,7 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
 - **Ön yüz:** kulüp logosu (yoksa uygulama arması yer tutucu), kulüp adı + "Futbol Okulu · <kuruluş yılı>", sezon pili, "OYUNCU GİRİŞ
   KARTI", foto (yoksa siluet), ad soyad, yaş grubu, oyuncu no; QR yalnız ayar açıksa (sağda beyaz kutu). Renkler kulüp temasından
   (`temaTuret`: mor-koyu zemin, mor daire, sarı vurgu, `--ana-ustu`/`--vurgu-ustu` yazı) — tema değişince kart da değişir.
-- **Arka yüz:** 4 kural (sabit metin, Ayarlar'dan değiştirilebilir — 40.3), veli adı + maskelenmiş telefon, kulüp adres/telefon/e-posta
+- **Arka yüz:** 4 kural (sabit metin, Ayarlar'dan değiştirilebilir — 40.3), veli adı + telefon (maske 12.09.2026'da Kerem'in isteğiyle kaldırıldı; tam numara), kulüp adres/telefon/e-posta
   (yeni ayarlar), kart no barkodu (QR ile aynı anahtar; kapalıysa yalnız "2026 0123" metni), alt bant "Bulunması hâlinde kulübe teslim
   ediniz".
 - **Oyuncu no** = `players.id` 4 haneli (0123); kart no = `<sezon ilk yılı> <oyuncu no>`. Yeni sütun YOK.
@@ -1792,7 +1792,7 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
    YAPILMAZ; kulüp okuyucu kararı verince planlanır.
 
 ### 40.6 Uygulama notları (12.09.2026)
-- Saf şablon `src/lib/kartHtml.js` (`girisKartiHtml({ oyuncular, ayar, duzen: tek|toplu|onizleme })`, `oyuncuNo`, `kartNo`, `telMaskele`,
+- Saf şablon `src/lib/kartHtml.js` (`girisKartiHtml({ oyuncular, ayar, duzen: tek|toplu|onizleme })`, `oyuncuNo`, `kartNo`, `telBicimle`,
   `KART_KURAL_VARSAYILAN`); kodlar `src/lib/kartKod.js` (`qrSvg` = mevcut `qrcode` bağımlılığı, saf JS; `code128Svg` Code 128 B saf
   tablo, `kodMetni` = "FOK:" + kart no); veri toplama `src/lib/kartVeri.js` (`kartAyarlariOku`, `kartOyuncusu`, `fotoKucult` canvas ≤240 px
   — toplu basımda HTML şişmesin). Foto yalnız `guvenliResim` (png/jpeg/webp data URL).

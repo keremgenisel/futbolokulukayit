@@ -23,10 +23,12 @@ export const TOPLU_SAYFA_KART = 6; // A4 yatay 2 × 3
 export const oyuncuNo = (id) => String(Number(id) || 0).padStart(4, "0");
 /** Kart no: sezonun ilk yılı + oyuncu no. @param {number|string} id @param {string} [sezon] */
 export const kartNo = (id, sezon = "") => `${String(sezon || "").slice(0, 4) || "0000"} ${oyuncuNo(id)}`;
-/** Telefonu maskele: "0532 123 45 67" → "0532 ••• •• ••". @param {string} tel */
-export const telMaskele = (tel) => {
-  const r = String(tel || "").replace(/\D/g, "");
-  return r.length >= 4 ? `${r.slice(0, 4)} ••• •• ••` : "";
+/** Telefonu tam yaz (Kerem 12.09.2026: maske kaldırıldı): "05321112233" → "0532 111 22 33"; 10 haneye 0 eklenir; başka biçim olduğu gibi. @param {string} tel */
+export const telBicimle = (tel) => {
+  const ham = String(tel || "").trim();
+  const r = ham.replace(/\D/g, "");
+  const d = r.length === 10 ? `0${r}` : r;
+  return d.length === 11 ? `${d.slice(0, 4)} ${d.slice(4, 7)} ${d.slice(7, 9)} ${d.slice(9)}` : ham;
 };
 
 /**
@@ -121,7 +123,7 @@ function arkaYuz(o, a, sezon) {
   <div class="serit"></div>
   <div class="ic">
     <div class="sol"><h4>KART SAHİBİNİN BİLGİSİNE</h4>${kurallar.map((k, i) => `<div class="kural"><b>${i + 1}.</b><span>${esc(k)}</span></div>`).join("")}
-      ${o.veli_ad ? `<div class="veli"><span>Veli</span><b>${esc(o.veli_ad)}</b>${o.veli_tel ? ` <span style="color:#6B6480;display:inline">${esc(telMaskele(o.veli_tel))}</span>` : ""}</div>` : ""}
+      ${o.veli_ad ? `<div class="veli"><span>Veli</span><b>${esc(o.veli_ad)}</b>${o.veli_tel ? ` <span style="color:#6B6480;display:inline">${esc(telBicimle(o.veli_tel))}</span>` : ""}</div>` : ""}
     </div>
     <div class="sag"><div class="kad">${esc(a.kulupAdi || VARSAYILAN_KULUP)}</div>${iletisim ? `<div class="iletisim">${iletisim}</div>` : ""}
       <div class="barkod">${o.barkodSvg ? `<div class="cubuk">${o.barkodSvg}</div>` : ""}<span>${esc(no)}</span></div>
