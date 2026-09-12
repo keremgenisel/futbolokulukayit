@@ -40,6 +40,7 @@ describe("Ayarlar menüsü", () => {
     const sira = [
       "Kulüp",
       "Kulüp ve Makbuz",
+      "Giriş Kartı",
       "Aidat Kalemleri",
       "WhatsApp Mesajları",
       "Sezon ve Veri",

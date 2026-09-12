@@ -1804,4 +1804,6 @@ https://claude.ai/code/artifact/3f151153-d241-4a14-8097-7337cd972856 (sayfa 1: Y
 - Testler: `tests/kart-html.test.js`, `tests/kart-kod.test.js` (Code 128 tablosu yapısal doğrulama: her sembol 11 modül), `tests/ui/
   giris-karti.test.jsx` (ayar bölümü, oyuncu kartı tek/QR, toplu), kulüp kimliği e2e'de gerçek PDF (tek 1 sayfa, 7 oyuncu toplu 4 sayfa).
 - §40.4 (kartla giriş sistemi) YAPILMADI; kod biçimi `FOK:<kartNo>` sabitlendi. Sürüm çıkarılmadı.
+- 12.09.2026 (Kerem: "ayarlar, kulüp ve makbuzun altına giriş kartını koy"): `GirisKartiAyar` Kulüp ve Makbuz'dan çıkarılıp menüde
+  hemen altında AYRI bölüm oldu (kod `kart`, kendi Kaydet çubuğu ve onKirli); kulüp adı/logo/tema orada salt okunur bağlam.
 

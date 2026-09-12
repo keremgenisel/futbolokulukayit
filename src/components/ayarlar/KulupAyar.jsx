@@ -7,7 +7,6 @@ import { db, files, uygulama } from "../../lib/api.js";
 import { VARSAYILAN_TEMA } from "../../lib/tema.js";
 import { VARSAYILAN_KULUP } from "../../lib/marka.js";
 import { TemaSecici } from "./TemaSecici.jsx";
-import { GirisKartiAyar } from "./GirisKartiAyar.jsx";
 
 const ALANLAR = [
   "kulup_adi",
@@ -18,16 +17,7 @@ const ALANLAR = [
   "tema_ana",
   "tema_vurgu",
   "aidat_vade_bekle",
-  // Giriş kartı (plan §40)
-  "kulup_adres",
-  "kulup_telefon",
-  "kulup_web",
-  "kart_kural_1",
-  "kart_kural_2",
-  "kart_kural_3",
-  "kart_kural_4",
-  "kart_qr",
-];
+]; // giriş kartı alanları ayrı bölümde: GirisKartiAyar (plan §40)
 const bos = () => Object.fromEntries(ALANLAR.map((k) => [k, ""]));
 
 export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
@@ -181,7 +171,6 @@ export function KulupAyar({ saltOkunur, admin, onKirli, onMarkaDegisti }) {
         </div>
         <TemaSecici tema={tema} onDegis={temaDegis} logo={logo} kisaAd={kisaAd} disabled={kilitli} />
       </div>
-      <GirisKartiAyar a={a} setA={setA} kilitli={kilitli} girdi={girdi} logo={logo} tema={tema} />
       {!kilitli && kirli && (
         <KaydetCubugu
           metin={`${ALANLAR.filter((k) => a[k] !== ilk[k]).length} değişiklik kaydedilmedi`}

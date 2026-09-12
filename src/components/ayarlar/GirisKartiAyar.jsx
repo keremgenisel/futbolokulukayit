@@ -1,10 +1,13 @@
-// Ayarlar > Kulüp ve Makbuz › Giriş kartı (plan §40): kulüp iletişimi, 4 kural, QR anahtarı ve örnek oyuncuyla önizleme.
-// Alanlar KulupAyar'ın tek Kaydet çubuğuyla yazılır (ayar tablolarında satır başına Kaydet yok).
-import { useEffect, useState } from "react";
-import { Alan, AltBaslik } from "../ui.jsx";
+// Ayarlar > Giriş Kartı (plan §40; 12.09.2026: Kulüp ve Makbuz'un altında AYRI bölüm): kulüp iletişimi, 4 kural, QR anahtarı,
+// örnek oyuncuyla önizleme. Kulüp adı/logo/renkler Kulüp ve Makbuz'dan okunur (burada değiştirilmez). Tek Kaydet çubuğu; onKirli uyarısı.
+import { useCallback, useEffect, useState } from "react";
+import { Alan, Girdi, useToast, useDene, KaydetCubugu } from "../ui.jsx";
+import { db, uygulama } from "../../lib/api.js";
 import { girisKartiHtml, KART_KURAL_VARSAYILAN } from "../../lib/kartHtml.js";
 import { qrSvg, code128Svg, kodMetni } from "../../lib/kartKod.js";
+import { KART_AYAR_ANAHTARLARI } from "../../lib/kartVeri.js";
 import { VARSAYILAN_KULUP } from "../../lib/marka.js";
+import { VARSAYILAN_TEMA } from "../../lib/tema.js";
 
 const ORNEK = {
   id: 123,
@@ -14,10 +17,43 @@ const ORNEK = {
   veli_ad: "Ayşe Yıldız",
   veli_tel: "05321112233",
 };
+// Bu bölümde düzenlenen anahtarlar (kulup_adi/kurulus_yili/tema salt okunur bağlam)
+const ALANLAR = KART_AYAR_ANAHTARLARI.filter((k) => k.startsWith("kart_") || ["kulup_adres", "kulup_telefon", "kulup_web"].includes(k));
+const bos = () => Object.fromEntries(ALANLAR.map((k) => [k, ""]));
 
-export function GirisKartiAyar({ a, setA, kilitli, girdi, logo, tema }) {
-  const qr = a.kart_qr === "1";
+export function GirisKartiAyar({ saltOkunur, admin, onKirli }) {
+  const [a, setA] = useState(bos);
+  const [ilk, setIlk] = useState(bos);
+  const [baglam, setBaglam] = useState({ kulupAdi: "", kurulusYili: "", logo: "", tema: VARSAYILAN_TEMA });
   const [kod, setKod] = useState({ qrSvg: "", barkodSvg: "" });
+  const toast = useToast();
+  const dene = useDene();
+  const kilitli = saltOkunur || !admin;
+
+  const yukle = useCallback(async () => {
+    const o = bos();
+    for (const k of ALANLAR) o[k] = (await db("getSetting", k)) || "";
+    const kulupAdi = (await db("getSetting", "kulup_adi")) || "";
+    const kurulusYili = (await db("getSetting", "kurulus_yili")) || "";
+    let m = null;
+    try {
+      m = await uygulama().marka();
+    } catch {
+      m = null;
+    }
+    setA(o);
+    setIlk(o);
+    setBaglam({ kulupAdi, kurulusYili, logo: m?.logo || "", tema: m?.tema || VARSAYILAN_TEMA });
+  }, []);
+  useEffect(() => {
+    yukle().catch(() => {});
+  }, [yukle]);
+  const kirli = ALANLAR.some((k) => a[k] !== ilk[k]);
+  useEffect(() => {
+    onKirli?.(kirli);
+  }, [kirli, onKirli]);
+
+  const qr = a.kart_qr === "1";
   useEffect(() => {
     let iptal = false;
     if (!qr) {
@@ -32,14 +68,24 @@ export function GirisKartiAyar({ a, setA, kilitli, girdi, logo, tema }) {
       iptal = true;
     };
   }, [qr]);
+
+  const kaydet = () =>
+    dene(async () => {
+      for (const k of ALANLAR) if (a[k] !== ilk[k]) await db("setSetting", k, a[k]);
+      setIlk({ ...a });
+      toast("ok", "Kaydedildi");
+    });
+  const vazgec = () => setA({ ...ilk });
+  const girdi = (k, ek = {}) => <Girdi value={a[k]} onChange={(e) => setA({ ...a, [k]: e.target.value })} disabled={kilitli} {...ek} />;
+
   const kurallar = [1, 2, 3, 4].map((i) => a[`kart_kural_${i}`] || KART_KURAL_VARSAYILAN[i - 1]);
   const html = girisKartiHtml({
     oyuncular: [{ ...ORNEK, ...kod }],
     ayar: {
-      kulupAdi: a.kulup_adi || VARSAYILAN_KULUP,
-      kurulusYili: a.kurulus_yili,
-      logo,
-      tema,
+      kulupAdi: baglam.kulupAdi || VARSAYILAN_KULUP,
+      kurulusYili: baglam.kurulusYili,
+      logo: baglam.logo,
+      tema: baglam.tema,
       adres: a.kulup_adres,
       telefon: a.kulup_telefon,
       web: a.kulup_web,
@@ -49,11 +95,13 @@ export function GirisKartiAyar({ a, setA, kilitli, girdi, logo, tema }) {
     duzen: "onizleme",
   });
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <AltBaslik>Giriş kartı</AltBaslik>
-      <div style={{ fontSize: 13, color: "var(--soluk)", marginTop: -8 }}>
-        11 × 6 cm oyuncu giriş kartı: oyuncu kartından tek tek, Oyuncular ekranından toplu yazdırılır. Kulüp adı, logo, renkler ve sezon
-        yukarıdaki ayarlardan gelir.
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      <div>
+        <h3 style={{ fontSize: 22 }}>Giriş Kartı</h3>
+        <div style={{ fontSize: 14, color: "var(--soluk)", marginTop: 4 }}>
+          11 × 6 cm oyuncu giriş kartı: oyuncu kartından tek tek, Oyuncular ekranından toplu yazdırılır. Kulüp adı, logo, renkler ve sezon
+          Kulüp ve Makbuz ayarlarından gelir.
+        </div>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -106,6 +154,13 @@ export function GirisKartiAyar({ a, setA, kilitli, girdi, logo, tema }) {
           />
         </div>
       </div>
+      {!kilitli && kirli && (
+        <KaydetCubugu
+          metin={`${ALANLAR.filter((k) => a[k] !== ilk[k]).length} değişiklik kaydedilmedi`}
+          onVazgec={vazgec}
+          onKaydet={kaydet}
+        />
+      )}
     </div>
   );
 }

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-// Giriş kartı (plan §40): Ayarlar > Kulüp'teki bölüm (alanlar + QR anahtarı tek Kaydet ile), oyuncu kartından tek yazdırma,
+// Giriş kartı (plan §40): Ayarlar > Giriş Kartı bölümü (Kulüp ve Makbuz'un altında, ayrı) (alanlar + QR anahtarı tek Kaydet ile), oyuncu kartından tek yazdırma,
 // Oyuncular'dan toplu yazdırma.
 import { describe, it, expect, afterEach, vi } from "vitest";
 import { render, screen, fireEvent, cleanup, waitFor } from "@testing-library/react";
+import { GirisKartiAyar } from "../../src/components/ayarlar/GirisKartiAyar.jsx";
 import { KulupAyar } from "../../src/components/ayarlar/KulupAyar.jsx";
 import { OyuncuKarti } from "../../src/components/OyuncuKarti.jsx";
 import { Oyuncular } from "../../src/components/Oyuncular.jsx";
@@ -49,15 +50,16 @@ function kopru(ayarlar = {}, ek = {}) {
   return { db, yazdir, ayarlar };
 }
 
-describe("Ayarlar > Kulüp › Giriş kartı", () => {
+describe("Ayarlar > Giriş Kartı", () => {
   it("adres/telefon/kural alanları ve QR anahtarı tek Kaydet ile yazılır; önizleme çerçevesi var", async () => {
     const { db } = kopru({ kulup_adi: "Eyüpspor Kulübü" });
     render(
       <ToastSaglayici>
-        <KulupAyar saltOkunur={false} admin onKirli={vi.fn()} onMarkaDegisti={vi.fn()} />
+        <GirisKartiAyar saltOkunur={false} admin onKirli={vi.fn()} />
       </ToastSaglayici>,
     );
     await screen.findByTitle("Giriş kartı önizlemesi");
+    expect(screen.getByRole("heading", { name: "Giriş Kartı" })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Kulüp adresi"), { target: { value: "Eyüp / İstanbul" } });
     fireEvent.change(screen.getByLabelText("4. kural"), { target: { value: "Kartınızı yanınızda bulundurunuz." } });
     const qr = screen.getByLabelText("Kartta giriş kodu bas");
@@ -68,6 +70,18 @@ describe("Ayarlar > Kulüp › Giriş kartı", () => {
     expect(db).toHaveBeenCalledWith("setSetting", "kulup_adres", "Eyüp / İstanbul");
     expect(db).toHaveBeenCalledWith("setSetting", "kart_kural_4", "Kartınızı yanınızda bulundurunuz.");
     expect(screen.getByTitle("Giriş kartı önizlemesi")).toHaveAttribute("srcdoc", expect.stringContaining("Kaan Yıldız"));
+    expect(screen.getByTitle("Giriş kartı önizlemesi")).toHaveAttribute("srcdoc", expect.stringContaining("Eyüpspor Kulübü")); // kulüp adı Kulüp ayarından
+  });
+  it("Kulüp ve Makbuz bölümünde kart alanları artık yok", async () => {
+    kopru({});
+    render(
+      <ToastSaglayici>
+        <KulupAyar saltOkunur={false} admin onKirli={vi.fn()} onMarkaDegisti={vi.fn()} />
+      </ToastSaglayici>,
+    );
+    await screen.findByLabelText("Kulüp adı");
+    expect(screen.queryByTitle("Giriş kartı önizlemesi")).toBeNull();
+    expect(screen.queryByLabelText("Kulüp adresi")).toBeNull();
   });
 });
 

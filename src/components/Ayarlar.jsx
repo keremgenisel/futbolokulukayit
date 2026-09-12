@@ -7,6 +7,7 @@ import { COKLU_PC_ACIK } from "../lib/ozellikler.js";
 import { Ikon } from "./Ikon.jsx";
 import { WhatsAppAyar } from "./ayarlar/WhatsAppAyar.jsx";
 import { KulupAyar } from "./ayarlar/KulupAyar.jsx";
+import { GirisKartiAyar } from "./ayarlar/GirisKartiAyar.jsx";
 import { KalemAyar } from "./ayarlar/KalemAyar.jsx";
 import { KullaniciAyar, KurtarmaKodlari } from "./ayarlar/KullaniciAyar.jsx";
 import { OptimizeAyar } from "./ayarlar/OptimizeAyar.jsx";
@@ -21,6 +22,7 @@ const GRUPLAR = [
     baslik: "Kulüp",
     bolumler: [
       { kod: "kulup", ad: "Kulüp ve Makbuz", ikon: "tahsilat" },
+      { kod: "kart", ad: "Giriş Kartı", ikon: "kullanici" },
       { kod: "kalem", ad: "Aidat Kalemleri", ikon: "raporlar" },
       { kod: "whatsapp", ad: "WhatsApp Mesajları", ikon: "whatsapp" },
     ],
@@ -113,6 +115,7 @@ export function Ayarlar({ oturum, saltOkunur, onLisansDegisti, onModDegisti, bas
       </Kart>
       <Kart style={{ padding: 24 }}>
         {bolum === "kulup" && <KulupAyar saltOkunur={saltOkunur} admin={admin} onKirli={setKirli} onMarkaDegisti={onMarkaDegisti} />}
+        {bolum === "kart" && <GirisKartiAyar saltOkunur={saltOkunur} admin={admin} onKirli={setKirli} />}
         {bolum === "kalem" && <KalemAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "whatsapp" && <WhatsAppAyar saltOkunur={saltOkunur} onKirli={setKirli} />}
         {bolum === "kullanici" && <KullaniciAyar oturum={oturum} admin={admin} saltOkunur={saltOkunur} />}
