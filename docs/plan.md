@@ -1831,8 +1831,9 @@ yükseklikli kaydırma + yapışık başlık + sayaç, plan §22). Oyuncular'dak
    **Yazdır (12)** (mor birincil; sarı yalnız makbuz/para). Seçim boşsa Yazdır pasif. Ayrı onay penceresi yok: pencere zaten onaydır.
 4. **Yazdırma:** mevcut `girisKartiHtml` toplu düzen (A4 yatay 6 kart/sayfa, arka yüzler sonraki sayfa); başarılıysa basım kaydı
    düşer, pencere açık kalır ve liste yenilenir (Basılmamış süzgecinde basılanlar listeden düşer → sıradaki öbek).
-5. **Oyuncu kartı (modal) başlığı:** "Giriş Kartı" düğmesi altında "Son basım 12.09.2026 · 2. basım" / "Basılmadı"; alt şeritte
-   basım kaydı (tarih, tür, kullanıcı) ve yöneticiye "Basılmadı say" (kaydı siler; yanlış basım için).
+5. **Oyuncu kartı (modal):** başlıkta "Giriş Kartı" düğmesi olduğu gibi kalır; altına basım tarihi YAZILMAZ (Kerem 12.09.2026:
+   profesyonel durmuyor, pencerede zaten görünüyor). Başlığın altındaki ince şeritte basım kaydı (tarih, tür, kullanıcı) ve
+   yöneticiye "Basılmadı say" (kaydı siler; yanlış basım için); kayıt yoksa şerit gösterilmez.
 
 **Basım kaydı (değişmedi).** Şema 20 `card_prints (id, player_id → players, sezon, basim_zamani, user_id, tur 'tek'|'toplu',
 kart_no)`, indeks (player_id, sezon). Her başarılı yazdırmada (yazıcı ya da PDF açıldı) düşer; kullanıcı oturumdan enjekte.
