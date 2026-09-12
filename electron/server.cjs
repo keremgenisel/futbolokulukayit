@@ -297,10 +297,9 @@ function buildApp({ surum = "" } = {}) {
 
   // ── Lisans (lisans sahibi sunucu PC; istemciler okur, yönetici anahtar girebilir) ──
   app.get("/api/lisans/durum", requireAuth, (_req, res) => res.json({ ok: true, durum: db.lisansDurumu() }));
-  app.post("/api/lisans/kaydet", requireAuth, requireAdmin, (req, res) => {
-    const r = db.lisansKaydet(req.body?.anahtar);
-    res.json(r.error ? r : { ok: true, durum: r.durum });
-  });
+  app.post("/api/lisans/kaydet", requireAuth, requireAdmin, async (req, res) =>
+    res.json(await db.lisansKaydetVeAktiflestir(req.body?.anahtar, surum)),
+  );
   app.post("/api/lisans/lease", requireAuth, requireAdmin, (req, res) => {
     const r = db.leaseKaydet(req.body?.lease);
     res.json(r.error ? r : { ok: true, durum: r.durum });

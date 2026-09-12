@@ -2,7 +2,7 @@
 // durum makinesi (lisanslı / deneme / salt-okunur; 30 gün deneme, süresi geçmiş lisans).
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import crypto from "crypto";
-import { imzala, dogrula, leaseImzala, leaseDogrula, durumHesapla, DENEME_GUN } from "../electron/lisans.cjs";
+import { imzala, dogrula, leaseImzala, leaseDogrula, durumHesapla, otomatikAktivasyonGerekli, DENEME_GUN } from "../electron/lisans.cjs";
 
 // Testler kendi anahtar çiftlerini üretir; modül açık anahtarları FOKLISANS_LISANS_PUBKEY /
 // FOKLISANS_LEASE_PUBKEY'den okur (lisans ve lease AYRI çift).
@@ -228,5 +228,11 @@ describe("durumHesapla — saat geri alma koruması (sonGorulen monotonik)", () 
     expect(d.mod).toBe("deneme");
     expect(d.kalanGun).toBe(DENEME_GUN - 9);
     expect(d.saatGeriAlindi).toBeUndefined();
+  });
+  it("otomatikAktivasyonGerekli: yalnız aktivasyon bekleyen salt okunur lisans (12.09.2026 kulüp aktivasyon sorunu)", () => {
+    expect(otomatikAktivasyonGerekli({ mod: "saltOkunur", neden: "aktivasyonGerekli" })).toBe(true);
+    expect(otomatikAktivasyonGerekli({ mod: "saltOkunur", neden: "lisansBitti" })).toBe(false);
+    expect(otomatikAktivasyonGerekli({ mod: "lisansli" })).toBe(false);
+    expect(otomatikAktivasyonGerekli(null)).toBe(false);
   });
 });

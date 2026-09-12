@@ -182,4 +182,8 @@ function durumCekirdek({ anahtar, kurulumTarihi, simdi, saatGeriAlindi, makineId
   };
 }
 
-module.exports = { imzala, dogrula, leaseImzala, leaseDogrula, leaseGecerliMi, durumHesapla, DENEME_GUN };
+// Anahtar kaydedildikten sonra online aktivasyon kendiliğinden denenmeli mi? (12.09.2026: kulüp anahtarı kaydedip "Aktive Et"e
+// basmayınca salt okunurda kaldı.) Yalnız aktivasyon gerektiren ve henüz lease'i olmayan lisans için.
+const otomatikAktivasyonGerekli = (durum) => !!durum && durum.mod === "saltOkunur" && durum.neden === "aktivasyonGerekli";
+
+module.exports = { imzala, dogrula, leaseImzala, leaseDogrula, leaseGecerliMi, durumHesapla, otomatikAktivasyonGerekli, DENEME_GUN };

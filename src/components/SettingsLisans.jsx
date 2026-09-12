@@ -44,7 +44,9 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
         const r = await fn();
         if (r?.ok) {
           setDurum(r.durum);
-          toast("ok", "Kaydedildi");
+          // Anahtar kaydı: aktivasyon gerekiyorsa ana süreç hemen dener; başarısızsa anahtar kayıtlı kalır, uyarı gösterilir
+          if (r.uyari) toast("err", r.uyari);
+          else toast("ok", r.otomatikAktivasyon ? "Anahtar kaydedildi ve aktive edildi" : "Kaydedildi");
           onLisansDegisti?.();
         } else toast("err", r?.error || "İşlem başarısız");
       },
@@ -85,8 +87,8 @@ export function SettingsLisans({ admin, onLisansDegisti }) {
             )}
             {durum.mod === "saltOkunur" && durum.neden === "aktivasyonGerekli" && (
               <div>
-                Bu lisans <b>online aktivasyon</b> gerektiriyor; geçerli bir aktivasyon (lease) yok. İnternet yoksa makine kimliğini
-                satıcınıza iletip aldığınız lease'i yapıştırın.
+                Bu lisans <b>online aktivasyon</b> gerektiriyor; geçerli bir aktivasyon (lease) yok. İnternet bağlıyken{" "}
+                <b>"Aktive Et (online)"</b> düğmesine basın. İnternet yoksa makine kimliğini satıcınıza iletip aldığınız lease'i yapıştırın.
               </div>
             )}
             {durum.mod === "saltOkunur" && durum.neden === "makineUyumsuz" && (

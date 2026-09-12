@@ -12,7 +12,10 @@
    derseniz oyuncu eklenene kadar bir sonraki girişte yeniden çıkar.
 5. İsterseniz kendi adınıza bir yönetici hesabı açıp (Ayarlar > Kullanıcılar) hazır gelen **admin**
    hesabını silebilirsiniz. Program en az bir aktif yönetici kalmasını şart koşar.
-4. **Ayarlar > Lisans**: satıcıdan aldığınız `FOKLISANS.` ile başlayan anahtarı yapıştırıp kaydedin.
+4. **Ayarlar > Lisans**: satıcıdan aldığınız `FOKLISANS.` ile başlayan anahtarı yapıştırıp **Anahtarı Kaydet** deyin. Bilgisayar
+   internete bağlıysa aktivasyon kendiliğinden yapılır ve durum "Lisanslı" olur. "aktivasyon yapılamadı" uyarısı çıkarsa interneti
+   (güvenlik duvarı/vekil sunucu) kontrol edip **Aktive Et (online)** düğmesine basın; internet hiç yoksa ekrandaki makine kimliğini
+   satıcıya iletin, aldığınız lease'i yapıştırın.
    Anahtar girilmezse program 30 gün deneme olarak çalışır, sonra salt okunur olur.
 5. **Ayarlar > Yedekleme**: bir klasör seçin (harici disk veya OneDrive/Google Drive klasörü önerilir).
    Program açılışta otomatik yedek alır; sıklığı aynı ekrandan seçersiniz: her açılışta, günde bir
@@ -177,7 +180,8 @@ Başlat ve Kur". Program kapanıp yeni sürümle açılır; oyuncular, makbuzlar
 yoksa güncelleme denetlenemez, program normal çalışmaya devam eder.
 
 ## 4. Sorun giderme
-- **"Lisans salt okunur modda"**: Ayarlar > Lisans'tan geçerli anahtar girin.
+- **"Lisans salt okunur modda"**: Ayarlar > Lisans'tan geçerli anahtar girin. Anahtar kayıtlı ama durum "Salt okunur (lisans gerekli)"
+  ve "online aktivasyon gerektiriyor" yazıyorsa aktivasyon yapılmamıştır: internet bağlıyken **Aktive Et (online)** deyin.
 - **"Sunucuya ulaşılamadı"**: Sunucu bilgisayarda program açık mı, aynı ağda mısınız, Tailscale bağlı mı?
 - **"Sunucu kimliği doğrulanamadı"**: Sunucu yeniden kurulduysa normaldir; Ayarlar > Sunucu'dan
   yeniden bağlanıp yeni parmak izini onaylayın. Değilse yöneticiye haber verin.

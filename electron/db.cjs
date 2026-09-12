@@ -132,6 +132,7 @@ module.exports = {
   lisansKaydet: m.lisansKaydet,
   leaseKaydet: m.leaseKaydet,
   lisansAktiflestir: m.lisansAktiflestir,
+  lisansKaydetVeAktiflestir: m.lisansKaydetVeAktiflestir, // db:call beyaz listesinde DEĞİL: lisans:kaydet / /api/lisans/kaydet
   lisansYenile: m.lisansYenile,
   lisansSaltOkunurMu: m.lisansSaltOkunurMu,
 };

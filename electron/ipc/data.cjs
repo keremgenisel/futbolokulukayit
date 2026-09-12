@@ -161,8 +161,7 @@ function registerDataHandlers() {
         return { error: e.message };
       }
     }
-    const r = db.lisansKaydet(anahtar);
-    return r.error ? r : { ok: true, durum: r.durum };
+    return db.lisansKaydetVeAktiflestir(anahtar, app.getVersion()); // anahtar + gerekiyorsa otomatik online aktivasyon (12.09.2026)
   });
   ipcMain.handle("lisans:leaseYapistir", async (_e, lease) => {
     if (!admin()) return { error: "Yönetici yetkisi gerekli" };

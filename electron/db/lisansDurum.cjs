@@ -103,6 +103,22 @@ async function lisansAktiflestir(surum = "") {
   const r = await ai.aktive(anahtar, lisansDurumu().makineId, surum);
   return r.error ? r : leaseKaydet(r.lease);
 }
+// Anahtarı kaydet ve aktivasyon gerekiyorsa hemen online aktive et (tek adım; "Aktive Et"e ayrıca basmak gerekmez).
+// Aktivasyon başarısızsa anahtar yine kayıtlı kalır, `uyari` ile ne yapılacağı söylenir (internet yoksa elle lease).
+async function lisansKaydetVeAktiflestir(anahtar, surum = "", aktifle = lisansAktiflestir) {
+  const r = lisansKaydet(anahtar);
+  if (r.error) return r;
+  const ai = require("../aktivasyonIstemci.cjs");
+  if (!lisansM.otomatikAktivasyonGerekli(r.durum) || !ai.ayarli()) return r;
+  const a = await aktifle(surum);
+  if (a.error)
+    return {
+      ok: true,
+      durum: r.durum,
+      uyari: `Anahtar kaydedildi ama online aktivasyon yapılamadı: ${a.error} İnternet bağlantısını kontrol edip "Aktive Et (online)" düğmesine basın; internet yoksa makine kimliğini satıcıya iletip lease alın.`,
+    };
+  return { ok: true, durum: a.durum, otomatikAktivasyon: true };
+}
 async function lisansYenile() {
   const anahtar = getMetaValue("lisansAnahtari");
   const ai = require("../aktivasyonIstemci.cjs");
@@ -112,4 +128,12 @@ async function lisansYenile() {
 }
 const lisansSaltOkunurMu = () => lisansDurumu().mod === "saltOkunur";
 
-module.exports = { lisansDurumu, lisansKaydet, leaseKaydet, lisansAktiflestir, lisansYenile, lisansSaltOkunurMu };
+module.exports = {
+  lisansDurumu,
+  lisansKaydet,
+  leaseKaydet,
+  lisansAktiflestir,
+  lisansYenile,
+  lisansSaltOkunurMu,
+  lisansKaydetVeAktiflestir,
+};
