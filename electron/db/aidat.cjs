@@ -1,4 +1,5 @@
 // ── fee items, fee types, monthly dues ──
+const { vadeSecimi } = require("./vade.cjs");
 const { db } = require("./baglanti.cjs");
 const { getSetting } = require("./meta.cjs");
 const { kodUret, KOD_GECERLI } = require("../kodUret.cjs");
@@ -151,18 +152,23 @@ function ensureMonthlyDuesAraligi(pid, aylar) {
 }
 const getDue = (pid, yil, ay) => db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay) || null;
 // limit verilirse yalnız son N dönem (oyuncu kartı); verilmezse tümü.
-const listDues = (pid, limit = null) =>
-  limit
-    ? db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC LIMIT ?").all(pid, Number(limit))
-    : db.prepare("SELECT * FROM monthly_dues WHERE player_id=? ORDER BY yil DESC, ay DESC").all(pid);
+// Satırlarda `vade_gecti` (plan §38); `bugun` yalnız test/rapor için, varsayılan bugün.
+const listDues = (pid, limit = null, { bugun = null } = {}) => {
+  const v = vadeSecimi(bugun);
+  const sel = `SELECT d.*, ${v.sql} AS vade_gecti FROM monthly_dues d JOIN players p ON p.id=d.player_id WHERE d.player_id=? ORDER BY d.yil DESC, d.ay DESC`;
+  return limit ? db.prepare(sel + " LIMIT ?").all(...v.args, pid, Number(limit)) : db.prepare(sel).all(...v.args, pid);
+};
 // sezon verilirse yalnız o sezonun oyuncuları (plan §19.3)
 // grup verilirse yalnız o yaş grubu (Raporlar ortak filtre; plan §20)
-const listUnpaid = (yil, ay, sezon = null, grup = null) =>
-  db
+// opts.yalnizVadesiGecen: vadesi gelmemiş aylar listelenmez (Pano, WhatsApp toplu; plan §38); satırlarda `vade_gecti`.
+const listUnpaid = (yil, ay, sezon = null, grup = null, { bugun = null, yalnizVadesiGecen = false } = {}) => {
+  const v = vadeSecimi(bugun);
+  return db
     .prepare(
-      "SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') AND (? IS NULL OR p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY p.ad_soyad",
+      `SELECT d.*, MAX(0, d.tutar-d.odenen) AS kalan, ${v.sql} AS vade_gecti, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad, (SELECT gu.id FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_id, (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_wa, (SELECT gu.mesaj_onayi FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_onay, (SELECT count(*) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS hatirlatma, (SELECT MAX(m.tarih) FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay) AS son_hatirlatma, (SELECT m.id FROM message_log m WHERE m.player_id=p.id AND m.tur='aidat' AND m.yil=d.yil AND m.ay=d.ay ORDER BY m.id DESC LIMIT 1) AS son_mesaj_id FROM monthly_dues d JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') AND (? IS NULL OR p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) AND (? IS NULL OR p.yas_grubu_id=?)${yalnizVadesiGecen ? ` AND ${v.sql} = 1` : ""} ORDER BY p.ad_soyad`,
     )
-    .all(yil, ay, sezon, sezon, sezon, grup, grup);
+    .all(...v.args, yil, ay, sezon, sezon, sezon, grup, grup, ...(yalnizVadesiGecen ? v.args : []));
+};
 
 // Sezon ayları aralığı (yil*100+ay): başlangıç ayından bir sonraki yılın önceki ayına
 const sezonAyAraligi = (sezon, baslangicAyi = 9) => {
@@ -188,20 +194,25 @@ function aidatOzeti(bas, son) {
 const sezonAidatOzeti = (sezon, baslangicAyi = 9) => aidatOzeti(...sezonAyAraligi(sezon, baslangicAyi));
 // Ay aralığı borçluları (plan §19.3/§20): oyuncu başına borçlu aylar ("2026-9,2026-10"), toplam kalan, veli bilgisi.
 // sezon verilirse yalnız o sezonun oyuncuları, grup verilirse yalnız o yaş grubu. `listUnpaidSezon` sezon için sarmalayıcı.
-const listUnpaidAralik = (bas, son, sezon = null, grup = null) =>
-  db
+// opts.yalnizVadesiGecen: yalnız vadesi geçmiş aylar (plan §38); satırda vadesi_gecen_ay sayısı da döner.
+const listUnpaidAralik = (bas, son, sezon = null, grup = null, { bugun = null, yalnizVadesiGecen = false } = {}) => {
+  const v = vadeSecimi(bugun);
+  return db
     .prepare(
       `SELECT p.id AS player_id, p.ad_soyad, p.odeme_donemi, g.ad AS yas_grubu_ad,
         group_concat(d.yil || '-' || d.ay, ',') AS aylar, count(*) AS ay_sayisi, sum(MAX(0, d.tutar-d.odenen)) AS kalan,
+        sum(d.vade_gecti) AS vadesi_gecen_ay,
         (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad,
         (SELECT COALESCE(NULLIF(gu.whatsapp_no,''), gu.gsm, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel
-      FROM (SELECT * FROM monthly_dues WHERE yil*100+ay BETWEEN ? AND ? AND durum IN ('odenmedi','kismi') ORDER BY yil, ay) d
+      FROM (SELECT d.*, ${v.sql} AS vade_gecti FROM monthly_dues d JOIN players p ON p.id=d.player_id WHERE d.yil*100+d.ay BETWEEN ? AND ? AND d.durum IN ('odenmedi','kismi')${yalnizVadesiGecen ? ` AND ${v.sql} = 1` : ""} ORDER BY d.yil, d.ay) d
       JOIN players p ON p.id=d.player_id LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
       WHERE (? IS NULL OR p.sezon=? OR EXISTS (SELECT 1 FROM player_seasons ps WHERE ps.player_id=p.id AND ps.sezon=?)) AND (? IS NULL OR p.yas_grubu_id=?)
       GROUP BY p.id ORDER BY p.ad_soyad`,
     )
-    .all(bas, son, sezon, sezon, sezon, grup, grup);
-const listUnpaidSezon = (sezon, baslangicAyi = 9, grup = null) => listUnpaidAralik(...sezonAyAraligi(sezon, baslangicAyi), sezon, grup);
+    .all(...v.args, bas, son, ...(yalnizVadesiGecen ? v.args : []), sezon, sezon, sezon, grup, grup);
+};
+const listUnpaidSezon = (sezon, baslangicAyi = 9, grup = null, opts = {}) =>
+  listUnpaidAralik(...sezonAyAraligi(sezon, baslangicAyi), sezon, grup, opts);
 
 module.exports = {
   aidatOzeti,

@@ -2,6 +2,10 @@ import { describe, it, expect } from "vitest";
 import {
   aidatBaslangicDurumu,
   tesiseGirebilir,
+  gorunenAidatDurumu,
+  vadeTarihi,
+  vadesiGectiMi,
+  aidatEtiket,
   donemSonGunu,
   gecikmeGunu,
   paraTR,
@@ -262,5 +266,25 @@ describe("gelecekAcikAidatMi (ileri tarihli açık ay borç değil, plan §24.3c
     expect(gelecekAcikAidatMi({ yil: 2027, ay: 1, durum: "kismi", odenen: 1000 }, 2026, 9)).toBe(false);
     expect(gelecekAcikAidatMi({ yil: 2027, ay: 1, durum: "odendi", odenen: 5000 }, 2026, 9)).toBe(false);
     expect(gelecekAcikAidatMi({ yil: 2027, ay: 1, durum: "muaf", odenen: 0 }, 2026, 9)).toBe(false);
+  });
+  it("vade (plan §38): dönem son günü, sınır günü, görünen durum ve tesise giriş", () => {
+    expect(vadeTarihi("1-10", 2026, 9)).toBe("2026-09-10");
+    expect(vadeTarihi("11-20", 2026, 9)).toBe("2026-09-20");
+    expect(vadeTarihi("21-31", 2026, 9)).toBe("2026-09-30");
+    expect(vadeTarihi("21-31", 2028, 2)).toBe("2028-02-29");
+    expect(vadesiGectiMi("11-20", 2026, 9, "2026-09-20")).toBe(false); // vade günü ödeme günü
+    expect(vadesiGectiMi("11-20", 2026, 9, "2026-09-21")).toBe(true);
+    expect(gorunenAidatDurumu("odenmedi", 0)).toBe("bekliyor");
+    expect(gorunenAidatDurumu("kismi", 0)).toBe("bekliyor");
+    expect(gorunenAidatDurumu("odenmedi", 1)).toBe("odenmedi");
+    expect(gorunenAidatDurumu("odenmedi", undefined)).toBe("odenmedi"); // eski çağıran: vade bilgisi yoksa borç
+    expect(gorunenAidatDurumu("odendi", 0)).toBe("odendi");
+    expect(gorunenAidatDurumu(null, 0)).toBeNull();
+    expect(aidatEtiket("bekliyor")).toBe("Vadesi gelmedi");
+    const o = { durum: "aktif" };
+    expect(tesiseGirebilir(o, { durum: "odenmedi", vade_gecti: 0 })).toBe(true); // vadesi gelmedi → girebilir
+    expect(tesiseGirebilir(o, { durum: "odenmedi", vade_gecti: 1 })).toBe(false);
+    expect(tesiseGirebilir(o, { durum: "odenmedi" })).toBe(false); // vade bilgisi yok → eski davranış
+    expect(tesiseGirebilir({ durum: "dondurma" }, { durum: "odenmedi", vade_gecti: 0 })).toBe(false);
   });
 });

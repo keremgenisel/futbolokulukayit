@@ -87,7 +87,16 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
   });
   it("güvenlik 2. inceleme #1 (11.09.2026): setSetting yalnız izinli anahtarlar; korumalı ve bilinmeyen anahtar 403", () => {
     const admin = { role: "admin" };
-    for (const k of ["kulup_adi", "tema_ana", "aktif_sezon", "sezon_baslangic_ayi", "kurulum_tamam", "wa_sablon_aidat", "tahsil_eden"])
+    for (const k of [
+      "kulup_adi",
+      "tema_ana",
+      "aktif_sezon",
+      "sezon_baslangic_ayi",
+      "kurulum_tamam",
+      "wa_sablon_aidat",
+      "tahsil_eden",
+      "aidat_vade_bekle",
+    ])
       expect(cagriYetkisi("setSetting", admin, false, [k, "x"]).ok).toBe(true);
     for (const k of ["yedek_klasoru", "yedek_sikligi", "son_yedek", "kulup_logo", "sunucu_adres", "son_sezon_gecisi"]) {
       const r = cagriYetkisi("setSetting", admin, false, [k, "/tmp"]);

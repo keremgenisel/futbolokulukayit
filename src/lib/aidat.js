@@ -93,14 +93,33 @@ export function aidatKalan(d) {
 }
 
 /**
- * Tesise girebilir mi? Bu ayın aidat kaydı ödendi/muaf ise evet.
+ * Görünen aidat durumu (plan §38): ödenmemiş/kısmi ama vadesi gelmemişse "bekliyor". `vadeGecti` DB'den (`vade_gecti`: 1/0);
+ * verilmemişse (eski çağıran/test) vadesi geçmiş sayılır → eski davranış.
+ * @param {string|null|undefined} durum @param {number|boolean|null|undefined} [vadeGecti]
+ * @returns {"odendi"|"odenmedi"|"kismi"|"muaf"|"bekliyor"|null}
+ */
+export function gorunenAidatDurumu(durum, vadeGecti) {
+  if (!durum) return null;
+  if ((durum === "odenmedi" || durum === "kismi") && vadeGecti !== undefined && vadeGecti !== null && !Number(vadeGecti)) return "bekliyor";
+  return /** @type {any} */ (durum);
+}
+/** Vade tarihi (ISO): dönemin son günü. @param {string} donem @param {number} yil @param {number} ay */
+export function vadeTarihi(donem, yil, ay) {
+  return `${yil}-${String(ay).padStart(2, "0")}-${String(donemSonGunu(donem, yil, ay)).padStart(2, "0")}`;
+}
+/** Vade geçti mi (bugün > vade). @param {string} donem @param {number} yil @param {number} ay @param {string} bugunIso */
+export const vadesiGectiMi = (donem, yil, ay, bugunIso) => String(bugunIso) > vadeTarihi(donem, yil, ay);
+
+/**
+ * Tesise girebilir mi? Bu ayın aidat kaydı ödendi/muaf ise evet; vadesi gelmemişse ("bekliyor", plan §38) de evet.
  * @param {{durum: string}} oyuncu
- * @param {{durum: string}|null} buAyAidat
+ * @param {{durum: string, vade_gecti?: number|null}|null} buAyAidat
  */
 export function tesiseGirebilir(oyuncu, buAyAidat) {
   if (!AIDAT_ODENEN_DURUMLAR.has(oyuncu.durum)) return false;
   if (!buAyAidat) return false;
-  return buAyAidat.durum === "odendi" || buAyAidat.durum === "muaf";
+  const g = gorunenAidatDurumu(buAyAidat.durum, buAyAidat.vade_gecti);
+  return g === "odendi" || g === "muaf" || g === "bekliyor";
 }
 
 /**
@@ -270,6 +289,6 @@ export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
 /** Aidat dönem durumunun ekran etiketi (null/bilinmeyen → "Kayıt yok"). @param {string|null|undefined} d */
 export function aidatEtiket(d) {
   /** @type {Record<string, string>} */
-  const e = { odendi: "Ödendi", odenmedi: "Ödenmedi", kismi: "Kısmi", muaf: "Muaf" };
+  const e = { odendi: "Ödendi", odenmedi: "Ödenmedi", kismi: "Kısmi", muaf: "Muaf", bekliyor: "Vadesi gelmedi" };
   return (d && e[d]) || "Kayıt yok";
 }

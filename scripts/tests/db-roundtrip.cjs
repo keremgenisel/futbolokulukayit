@@ -656,9 +656,10 @@ app.whenReady().then(async () => {
         db.listUnpaid(2027, 1).find((b) => b.player_id === oyuncu.id)?.kalan === 2000,
     );
     check(
-      "pano borçlu sayısı kısmiyi sayar",
-      db.panoOzet({ yil: 2027, ay: 1, bugun: "2027-01-05" }).borclu >= 1 &&
-        db.listPlayersWithDue({ yil: 2027, ay: 1, sadeceOdemeyen: true }).some((p) => p.id === oyuncu.id),
+      "pano borçlu sayısı kısmiyi sayar (vade geçince; vade geçmeden 'bekleyen' — plan §38)",
+      db.panoOzet({ yil: 2027, ay: 1, bugun: "2027-01-15" }).borclu >= 1 &&
+        db.panoOzet({ yil: 2027, ay: 1, bugun: "2027-01-05" }).bekleyen >= 1 &&
+        db.listPlayersWithDue({ yil: 2027, ay: 1, sadeceOdemeyen: true, bugun: "2027-01-15" }).some((p) => p.id === oyuncu.id),
     );
     const k2 = db.createReceipt({
       player_id: oyuncu.id,
@@ -1740,6 +1741,57 @@ app.whenReady().then(async () => {
         db.listReceipts(p17.id).every((r) => r.sezon) &&
           db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts WHERE sezon=''").get().n === 0,
       );
+    }
+    // ── Vade (plan §38, 12.09.2026): ödeme dönemi son günü geçmeden borç sayılmaz ──
+    {
+      const vg = db.createAgeGroup({ ad: "VadeGrup", sezon: "2026-2027", sira: 90 });
+      const vp = db.createPlayer({
+        ad_soyad: "Vade Test",
+        dogum_tarihi: "2015-01-01",
+        yas_grubu_id: vg.id,
+        durum: "aktif",
+        ucret_tipi: "normal",
+        aylik_aidat: 1000,
+        odeme_donemi: "11-20",
+      });
+      db.ensureMonthlyDues(2026, 8);
+      db.ensureMonthlyDues(2026, 9);
+      const d12 = db.listDues(vp.id, null, { bugun: "2026-09-12" });
+      const d21 = db.listDues(vp.id, null, { bugun: "2026-09-21" });
+      const ay = (l, a) => l.find((x) => x.yil === 2026 && x.ay === a);
+      check(
+        "listDues vade_gecti: 12 Eylül'de Eylül (11-20) 0, Ağustos 1; 21 Eylül'de Eylül 1",
+        ay(d12, 9)?.vade_gecti === 0 && ay(d12, 8)?.vade_gecti === 1 && ay(d21, 9)?.vade_gecti === 1,
+      );
+      check("vade günü ödeme günüdür (20 Eylül'de hâlâ 0)", ay(db.listDues(vp.id, null, { bugun: "2026-09-20" }), 9)?.vade_gecti === 0);
+      const bl12 = db.listUnpaid(2026, 9, null, vg.id, { bugun: "2026-09-12", yalnizVadesiGecen: true });
+      const bl21 = db.listUnpaid(2026, 9, null, vg.id, { bugun: "2026-09-21", yalnizVadesiGecen: true });
+      const blHepsi = db.listUnpaid(2026, 9, null, vg.id, { bugun: "2026-09-12" });
+      check(
+        "listUnpaid yalnizVadesiGecen: 12 Eylül'de boş, 21 Eylül'de dolu; süzgeçsiz listede vade_gecti=0",
+        bl12.length === 0 && bl21.some((r) => r.player_id === vp.id) && blHepsi.find((r) => r.player_id === vp.id)?.vade_gecti === 0,
+      );
+      const po = db.panoOzet({ yil: 2026, ay: 9, bugun: "2026-09-12" });
+      check("panoOzet bekleyen sayar (vadesi gelmemiş)", po.bekleyen >= 1 && typeof po.borclu === "number");
+      const sp = db.playersPage({ yil: 2026, ay: 9, yas_grubu_id: vg.id, sadeceOdemeyen: true, bugun: "2026-09-12" });
+      const bp = db.playersPage({ yil: 2026, ay: 9, yas_grubu_id: vg.id, bekleyen: true, bugun: "2026-09-12" });
+      const lp = db.listPlayersWithDue({ yil: 2026, ay: 9, yas_grubu_id: vg.id, bugun: "2026-09-12" });
+      check(
+        "playersPage: 'ödemeyenler' vadesi gelmeyeni listelemez, 'bekleyen' listeler; listPlayersWithDue vade_gecti=0",
+        sp.toplam === 0 && bp.toplam === 1 && lp.find((p) => p.id === vp.id)?.vade_gecti === 0,
+      );
+      const ar = db.listUnpaidAralik(202608, 202609, null, vg.id, { bugun: "2026-09-12" });
+      const arV = db.listUnpaidAralik(202608, 202609, null, vg.id, { bugun: "2026-09-12", yalnizVadesiGecen: true });
+      check(
+        "listUnpaidAralik: vadesi_gecen_ay sayısı ve yalnizVadesiGecen süzgeci (Ağustos kalır, Eylül düşer)",
+        ar[0]?.ay_sayisi === 2 && ar[0]?.vadesi_gecen_ay === 1 && arV[0]?.ay_sayisi === 1 && arV[0]?.aylar === "2026-8",
+      );
+      db.setSetting("aidat_vade_bekle", "0");
+      check(
+        "ayar kapalı: eski davranış (Eylül 12'de vade_gecti=1)",
+        ay(db.listDues(vp.id, null, { bugun: "2026-09-12" }), 9)?.vade_gecti === 1,
+      );
+      db.setSetting("aidat_vade_bekle", "");
     }
     db.close();
     // Anahtar varsa dosya şifreli olmalı: anahtarsız açılış sqlite_master okuyamamalı

@@ -103,6 +103,8 @@ describe("ayarDogrula (ana süreç)", () => {
     expect(ayarDogrula("wa_sablon_aidat", "Merhaba {veli}")).toBe("Merhaba {veli}");
     expect(() => ayarDogrula("wa_sablon_aidat", "x".repeat(2001))).toThrow(/2000/);
     expect(ayarDogrula("indirim_burslu", "50")).toBe("50"); // ana süreç içi eski anahtar: olduğu gibi
+    expect(ayarDogrula("aidat_vade_bekle", "0")).toBe("0"); // plan §38
+    expect(() => ayarDogrula("aidat_vade_bekle", "evet")).toThrow();
   });
   it("tema renkleri #rrggbb, küçük harf; boş silmek için serbest", () => {
     expect(ayarDogrula("tema_ana", "#C8102E")).toBe("#c8102e");

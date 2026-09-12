@@ -1,4 +1,5 @@
 // ── players, guardians, emergency contacts, liste/sayfa sorguları ──
+const { vadeSecimi } = require("./vade.cjs");
 const { db } = require("./baglanti.cjs");
 const { ZORUNLU_BELGELER } = require("../belgeDogrula.cjs");
 const { ensureMonthlyDues } = require("./aidat.cjs");
@@ -176,7 +177,8 @@ function playersWhere({
   durum = null,
   yil,
   ay,
-  sadeceOdemeyen = false,
+  sadeceOdemeyen = false, // vadesi geçmiş ödenmemiş (plan §38)
+  bekleyen = false, // vadesi gelmemiş ödenmemiş (plan §38)
   saglikSorunlu = false,
   eksikBelge = false, // zorunlu belgelerden ("diger" hariç) en az biri yüklenmemiş (plan §25)
   bugun = null,
@@ -204,7 +206,15 @@ function playersWhere({
     where.push("p.durum=?");
     args.push(durum);
   }
-  if (sadeceOdemeyen) where.push("d.durum IN ('odenmedi','kismi')");
+  const v = vadeSecimi(bugun);
+  if (sadeceOdemeyen) {
+    where.push(`d.durum IN ('odenmedi','kismi') AND ${v.sql} = 1`);
+    args.push(...v.args);
+  }
+  if (bekleyen) {
+    where.push(`d.durum IN ('odenmedi','kismi') AND ${v.sql} = 0`);
+    args.push(...v.args);
+  }
   // Sağlık raporu olmayanlar: hiç rapor yok, tarihsiz rapor ya da son raporun süresi dolmuş (panodaki "yok/doldu" ile aynı kural)
   if (saglikSorunlu) {
     where.push(
@@ -220,22 +230,25 @@ function playersWhere({
   const govde = `FROM players p LEFT JOIN age_groups g ON g.id=p.yas_grubu_id
     LEFT JOIN monthly_dues d ON d.player_id=p.id AND d.yil=? AND d.ay=?
     ${where.length ? "WHERE " + where.join(" AND ") : ""}`;
-  return { govde, args };
+  return { govde, args, vade: v };
 }
-const PLAYER_SELECT =
-  "SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT group_concat(DISTINCT dd.tip) FROM documents dd WHERE dd.player_id=p.id) AS belge_tipleri, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad";
+// SELECT listesi: vade parçası (plan §38) `vade.args` ile ÖNCE bağlanır (playersPage sayım sorgusu bunları kullanmaz).
+const playerSelect = (vade) =>
+  `SELECT p.*, g.ad AS yas_grubu_ad, d.durum AS aidat_durum, d.tutar AS aidat_tutar, d.odenen AS aidat_odenen, CASE WHEN d.id IS NULL THEN NULL ELSE ${vade.sql} END AS vade_gecti, (SELECT dd.gecerlilik_tarihi FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik' ORDER BY COALESCE(dd.gecerlilik_tarihi,'') DESC, dd.id DESC LIMIT 1) AS saglik_gecerlilik, (SELECT count(*) FROM documents dd WHERE dd.player_id=p.id AND dd.tip='saglik') AS saglik_adet, (SELECT group_concat(DISTINCT dd.tip) FROM documents dd WHERE dd.player_id=p.id) AS belge_tipleri, (SELECT COALESCE(NULLIF(gu.gsm,''), gu.whatsapp_no, '') FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_tel, (SELECT gu.ad_soyad FROM guardians gu WHERE gu.player_id=p.id ORDER BY gu.veli_mi DESC, gu.id LIMIT 1) AS veli_ad`;
 function listPlayersWithDue(opts = {}) {
-  const { govde, args } = playersWhere(opts);
-  return db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad`).all(...args);
+  const { govde, args, vade } = playersWhere(opts);
+  return db.prepare(`${playerSelect(vade)} ${govde} ORDER BY p.ad_soyad`).all(...vade.args, ...args);
 }
 // Sayfalı liste: { liste, toplam, sayfa, sayfaBoyu } — Oyuncular ekranı (sayfa 1'den başlar).
 function playersPage({ sayfa = 1, sayfaBoyu = 50, ...opts } = {}) {
   const boy = Math.min(500, Math.max(1, Number(sayfaBoyu) || 50));
-  const { govde, args } = playersWhere(opts);
+  const { govde, args, vade } = playersWhere(opts);
   const toplam = db.prepare(`SELECT count(*) AS n ${govde}`).get(...args).n;
   const sonSayfa = Math.max(1, Math.ceil(toplam / boy));
   const sf = Math.min(sonSayfa, Math.max(1, Number(sayfa) || 1));
-  const liste = db.prepare(`${PLAYER_SELECT} ${govde} ORDER BY p.ad_soyad LIMIT ? OFFSET ?`).all(...args, boy, (sf - 1) * boy);
+  const liste = db
+    .prepare(`${playerSelect(vade)} ${govde} ORDER BY p.ad_soyad LIMIT ? OFFSET ?`)
+    .all(...vade.args, ...args, boy, (sf - 1) * boy);
   return { liste, toplam, sayfa: sf, sayfaBoyu: boy };
 }
 

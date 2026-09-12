@@ -23,6 +23,7 @@ const IZINLI_ANAHTARLAR = new Set([
   "wa_sablon_genel",
   "wa_sablon_iptal",
   "wa_sablon_degisiklik",
+  "aidat_vade_bekle", // plan §38: "" | "1" açık (varsayılan), "0" eski davranış
 ]);
 /** Yalnız ana sürecin kendi IPC'siyle (diyalog/işlem sonucu) yazılan anahtarlar — renderer `setSetting`'i reddedilir. */
 const KORUMALI_ANAHTARLAR = new Set(["yedek_klasoru", "yedek_sikligi", "son_yedek", "kulup_logo", "son_sezon_gecisi", "sunucu_adres"]);
@@ -66,6 +67,10 @@ function ayarDogrula(anahtar, deger) {
     const n = Number(v);
     if (!Number.isInteger(n) || n < 1 || n > 12) throw new Error("Sezon başlangıç ayı 1–12 olmalı");
     return String(n);
+  }
+  if (anahtar === "aidat_vade_bekle") {
+    if (!["", "0", "1"].includes(v)) throw new Error("Geçersiz değer");
+    return v;
   }
   if (anahtar === "kurulum_tamam") {
     if (v !== "" && v !== "1") throw new Error("Geçersiz değer");

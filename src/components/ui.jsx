@@ -439,7 +439,7 @@ export function Sekmeler({ liste, aktif, onSec }) {
 
 export const durumTonu = (d) =>
   ({ aktif: "green", deneme: "yellow", sakat: "red", pasif: "gray", ayrildi: "gray", dondurma: "gray" })[d] || "gray";
-export const aidatTonu = (d) => ({ odendi: "green", odenmedi: "red", kismi: "yellow", muaf: "gray" })[d] || "gray";
+export const aidatTonu = (d) => ({ odendi: "green", odenmedi: "red", kismi: "yellow", muaf: "gray", bekliyor: "gray" })[d] || "gray";
 export { aidatEtiket } from "../lib/aidat.js"; // saf mantık lib/aidat.js'te; eski içe aktarımlar için yeniden dışa
 
 // Ortak sayfalama çubuğu: "1–50 / 312" + önceki/sonraki. Tek sayfaysa hiç çizilmez.
