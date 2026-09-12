@@ -73,4 +73,27 @@ describe("Uygulama güncelleme şeridi (en üstte)", () => {
     render(<GuncellemeSeridi oturum={admin} />);
     expect(screen.queryByTestId("guncelleme-seridi")).toBeNull();
   });
+  it("girişten sonra bağlanan şerit kaçırdığı 'available' olayını updater.durum() ile alır (12.09.2026: 1.1.0'da banner gelmedi)", async () => {
+    const { u } = kopru();
+    u.durum = vi.fn(async () => ({ asama: "var", surum: "1.2.3" }));
+    render(<GuncellemeSeridi oturum={admin} onHakkinda={() => {}} />);
+    await screen.findByText(/1\.2\.3/);
+    expect(screen.getByRole("button", { name: /İndir/ })).toBeInTheDocument();
+  });
+  it("durum 'indirildi' ise doğrudan 'Yeniden Başlat ve Kur'; 'yok' ise çizilmez; durum() olmayan eski köprü hata vermez", async () => {
+    const k1 = kopru();
+    k1.u.durum = vi.fn(async () => ({ asama: "indirildi", surum: "1.2.3" }));
+    render(<GuncellemeSeridi oturum={admin} onHakkinda={() => {}} />);
+    await screen.findByRole("button", { name: /Yeniden Başlat ve Kur/ });
+    cleanup();
+    const k2 = kopru();
+    k2.u.durum = vi.fn(async () => ({ asama: "yok" }));
+    render(<GuncellemeSeridi oturum={admin} onHakkinda={() => {}} />);
+    await waitFor(() => expect(k2.u.durum).toHaveBeenCalled());
+    expect(screen.queryByTestId("guncelleme-seridi")).toBeNull();
+    cleanup();
+    kopru(); // durum yok
+    render(<GuncellemeSeridi oturum={admin} onHakkinda={() => {}} />);
+    expect(screen.queryByTestId("guncelleme-seridi")).toBeNull();
+  });
 });

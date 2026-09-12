@@ -1,13 +1,32 @@
 // Otomatik güncelleme köprüsü (electron-updater; GitHub Releases: keremgenisel/futbolokulukayit — herkese açık tek depo).
 // Yalnız paketli (Setup ile kurulmuş) sürümde iş yapar; geliştirme/test ortamında autoUpdater null → devMode.
 // İndirme ve kurma yalnız yönetici; denetleme her oturum. Olaylar ana pencereye "updater:*" kanallarıyla gider.
+// 12.09.2026 (kulüp: "1.1.0'da banner gelmedi"): açılış denetimi giriş ekranındayken biter, şerit ise girişten SONRA bağlanır →
+// olay kaçıyordu. Son durum burada saklanır (`sonDurum`), şerit bağlanınca `updater:durum` ile okur.
 const { ipcMain, app } = require("electron");
 const koruma = require("./koruma.cjs");
 
+/** Son güncelleyici olayı → şerit durumu (saf; test edilir). */
+function sonDurumGuncelle(onceki, olay, veri) {
+  if (olay === "available")
+    return onceki.asama === "indiriliyor" || onceki.asama === "indirildi" ? onceki : { asama: "var", surum: veri?.version || "" };
+  if (olay === "progress") return { ...onceki, asama: "indiriliyor", yuzde: Number(veri) || 0 };
+  if (olay === "downloaded") return { asama: "indirildi", surum: veri?.version || onceki.surum || "" };
+  if (olay === "error") return onceki.asama === "yok" ? onceki : { ...onceki, asama: "hata", mesaj: String(veri || "Bilinmeyen hata") };
+  return onceki;
+}
+
 function registerGuncellemeHandlers({ getSession, autoUpdater = null, getWin = () => null }) {
   const guncellemeYok = () => !autoUpdater || !app.isPackaged;
+  let sonDurum = { asama: "yok" }; // { asama: yok|var|indiriliyor|indirildi|hata, surum?, yuzde?, mesaj? }
   const oturumHata = koruma.donerek(getSession);
   const yoneticiHata = koruma.donerek(getSession, { yonetici: true });
+  // Şerit bağlanınca (girişten sonra) kaçırdığı olayı buradan alır
+  ipcMain.handle("updater:durum", () => {
+    const hata = oturumHata();
+    if (hata) return hata;
+    return { ...sonDurum };
+  });
   ipcMain.handle("updater:check", async () => {
     const hata = oturumHata();
     if (hata) return hata;
@@ -44,14 +63,15 @@ function registerGuncellemeHandlers({ getSession, autoUpdater = null, getWin = (
     return { ok: true };
   });
   if (autoUpdater) {
-    const gonder = (kanal, veri) => {
+    const gonder = (olay, veri) => {
+      sonDurum = sonDurumGuncelle(sonDurum, olay, veri);
       const w = getWin();
-      if (w && !w.isDestroyed()) w.webContents.send(kanal, veri);
+      if (w && !w.isDestroyed()) w.webContents.send("updater:" + olay, veri);
     };
-    autoUpdater.on("update-available", (info) => gonder("updater:available", { version: info?.version }));
-    autoUpdater.on("download-progress", (p) => gonder("updater:progress", Math.round(p?.percent || 0)));
-    autoUpdater.on("update-downloaded", (info) => gonder("updater:downloaded", { version: info?.version }));
-    autoUpdater.on("error", (e) => gonder("updater:error", e?.message || "Bilinmeyen hata"));
+    autoUpdater.on("update-available", (info) => gonder("available", { version: info?.version }));
+    autoUpdater.on("download-progress", (p) => gonder("progress", Math.round(p?.percent || 0)));
+    autoUpdater.on("update-downloaded", (info) => gonder("downloaded", { version: info?.version }));
+    autoUpdater.on("error", (e) => gonder("error", e?.message || "Bilinmeyen hata"));
   }
 }
-module.exports = { registerGuncellemeHandlers };
+module.exports = { registerGuncellemeHandlers, sonDurumGuncelle };

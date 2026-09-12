@@ -36,7 +36,7 @@ aktivasyon sunucusu kodu hazır (deploy bekliyor: `aktivasyon-sunucu/deploy.sh`)
 `docs/kurulum.md`. Yazı tipleri @fontsource ile gömülü. TEK HERKESE AÇIK depo `keremgenisel/futbolokulukayit` (kod + GitHub Releases; electron-updater
 kimliksiz indirir, özel depo olmaz; publish-release.cjs özelse durur). Güncelleme arayüzü Ayarlar > Hakkında (`Guncelleme`,
 IPC `updater:*`, `electron/ipc/guncelleme.cjs`) + `GuncellemeSeridi` (App'te `main`in EN ÜSTÜNDE, başlığın üzerinde, kenar menüyü
-etkilemez, içerikle kaydırılmaz; `updater:available` gelince yöneticiye: İndir → ilerleme → Yeniden Başlat ve Kur; sarı zemin ("Makbuz Kes" sarısı), hata kırmızı, Kapat oturumluk). Windows yayını `.github/workflows/release.yml`
+etkilemez, içerikle kaydırılmaz; `updater:available` gelince yöneticiye: İndir → ilerleme → Yeniden Başlat ve Kur; açılış denetimi giriş ekranındayken bittiyse şerit bağlanınca `updater:durum` ile son olayı devralır (plan §39); sarı zemin ("Makbuz Kes" sarısı), hata kırmızı, Kapat oturumluk). Windows yayını `.github/workflows/release.yml`
 (tag push; kurulum dosyası `Futbol-Okulu-Kayit-Programi-Setup-<v>.exe`, `build.artifactName` ASCII, appId `com.keremgenisel.futbolokulu`, kurulumda lisans sözleşmesi sayfası `build/license.txt` (UTF-8 BOM + CRLF, `nsis.license`; test `tests/lisans-sozlesmesi.test.js`), plan §23) veya `npm run build:win` (macOS'ta da çalışır; ardından `node scripts/ensure-native.cjs`
 ile mac native modüllerini geri derle, yoksa Electron testleri düşer).
 

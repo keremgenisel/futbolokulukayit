@@ -1726,3 +1726,13 @@ kulüp eski davranışı isterse ayarı kapatır. Onaylanırsa mockup gerekmez (
   hata yakaladı: `App.jsx git()` yalnız yeni/borclu/saglik parametrelerini iletiyordu → Pano'daki "vadesi gelmedi" bağlantısı
   Oyuncular'da süzgeci açmıyordu; "bekleyen" eklendi.
 
+## 39. Güncelleme şeridi girişten sonra kaçan olayı alır (UYGULANDI, 12.09.2026)
+
+Kulüp (1.1.0): "güncelleme olmasına rağmen açılışta banner gelmedi". Neden: `main.cjs` açılışta `checkForUpdates()` çağırır, olay
+1–3 sn içinde gelir; `GuncellemeSeridi` ise yalnız giriş yapıldıktan sonra (`main` içinde) bağlanır → `updater:available` giriş
+ekranındayken gönderilip kayboluyordu. Yalnız Ayarlar > Hakkında > "Güncellemeleri Denetle" çalışıyordu.
+Düzeltme: `ipc/guncelleme.cjs` son olayı saklar (`sonDurumGuncelle` saf durum makinesi: var → indiriliyor(yüzde) → indirildi; hata
+yalnız bir şey başladıysa), `updater:durum` IPC'si (oturum şart) bunu verir; `GuncellemeSeridi` bağlanınca `updater.durum()` okur ve
+kaçan olayı devralır. Eski köprüde `durum` yoksa sessizce çizilmez. Testler: `tests/guncelleme-durum.test.js`,
+`tests/ui/guncelleme-seridi.test.jsx` (+2). Kulübe geçici yol: Ayarlar > Hakkında > Güncellemeleri Denetle → İndir.
+

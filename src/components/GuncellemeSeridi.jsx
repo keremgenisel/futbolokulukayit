@@ -12,6 +12,15 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
   const g = guncelleme();
   useEffect(() => {
     if (!g?.on) return undefined;
+    // 12.09.2026: açılış denetimi giriş ekranındayken bitmişse olay kaçmıştır; ana süreçteki son durumu al
+    let bitti = false;
+    g.durum?.()
+      .then((d) => {
+        if (bitti || !d || d.error || !d.asama || d.asama === "yok") return;
+        if (d.asama === "indiriliyor") setYuzde(Number(d.yuzde) || 0);
+        setDurum({ asama: d.asama, surum: d.surum || "", mesaj: d.mesaj });
+      })
+      .catch(() => {});
     const kapat = [
       g.on("available", (i) =>
         setDurum((d) => (d.asama === "indiriliyor" || d.asama === "indirildi" ? d : { asama: "var", surum: i?.version || "" })),
@@ -23,7 +32,8 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
       g.on("downloaded", (i) => setDurum((d) => ({ asama: "indirildi", surum: i?.version || d.surum }))),
       g.on("error", (m) => setDurum((d) => (d.asama === "yok" ? d : { ...d, asama: "hata", mesaj: String(m || "Bilinmeyen hata") }))),
     ];
-    return () =>
+    return () => {
+      bitti = true;
       kapat.forEach((k) => {
         try {
           k?.();
@@ -31,6 +41,7 @@ export function GuncellemeSeridi({ oturum, onHakkinda }) {
           /* yoksay */
         }
       });
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   if (!g || kapali || durum.asama === "yok" || oturum?.role !== "admin") return null;
 

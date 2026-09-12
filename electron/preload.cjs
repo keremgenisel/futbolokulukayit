@@ -68,6 +68,7 @@ contextBridge.exposeInMainWorld("okul", {
     check: () => ipcRenderer.invoke("updater:check"),
     download: () => ipcRenderer.invoke("updater:download"),
     install: () => ipcRenderer.invoke("updater:install"),
+    durum: () => ipcRenderer.invoke("updater:durum"), // şerit bağlanınca kaçırdığı olayı okur (12.09.2026)
     // Olaylar: geri çağrı döndürür; bileşen unmount'ta çağırıp dinlemeyi bırakır
     on: (olay, cb) => {
       const kanal = "updater:" + olay;

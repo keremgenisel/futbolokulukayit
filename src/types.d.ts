@@ -245,6 +245,7 @@ declare global {
         }>;
         download(): Promise<{ ok?: boolean; error?: string }>;
         install(): Promise<{ ok?: boolean; error?: string }>;
+        durum?(): Promise<{ asama?: string; surum?: string; yuzde?: number; mesaj?: string; error?: string }>;
         on(olay: "available" | "progress" | "downloaded" | "error", cb: (v: any) => void): () => void;
       };
     };
