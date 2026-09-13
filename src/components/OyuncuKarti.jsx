@@ -2,7 +2,8 @@
 import { useEffect, useState, useCallback } from "react";
 import { Modal, Btn, Rozet, Avatar, Sekmeler, Onay, useToast, useDene, OYUNCU_MODAL } from "./ui.jsx";
 import { db, files, bugun } from "../lib/api.js";
-import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi, gorunenAidatDurumu } from "../lib/aidat.js";
+import { DURUMLAR, tarihTR, AY_ADLARI, aidatKalan, gelecekAcikAidatMi, gorunenAidatDurumu, MUAF_SORULAN_DURUMLAR } from "../lib/aidat.js";
+import { AidatMuafModal } from "./oyuncu-karti/AidatMuafModal.jsx";
 import { useUcretTipleri } from "../lib/ucretTipleri.js";
 import { WhatsAppHatirlat } from "./WhatsAppHatirlat.jsx";
 import { aidatDegerleri } from "../lib/whatsapp.js";
@@ -44,6 +45,8 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
   const [mesajlar, setMesajlar] = useState([]); // WhatsApp hatırlatma/bildirim kayıtları (son 12)
   const [wa, setWa] = useState(null); // { tur, alicilar, baslik, altBaslik, kayit, duzenlenebilir }
   const [basimlar, setBasimlar] = useState([]); // giriş kartı basım kayıtları (plan §40.7; yeniden eskiye)
+  const [muafModal, setMuafModal] = useState(null); // { yil, ay } | { aySecimli: true } (plan §42)
+  const [durumSoru, setDurumSoru] = useState(null); // { durum, yil, ay }: durum değişiminde "bu ayın açık aidatı muaf yapılsın mı?"
   const toast = useToast();
   const dene = useDene();
 
@@ -86,10 +89,32 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
     yukle();
   }, [yukle]);
 
+  // Dondurma / Pasif / Ayrıldı'ya geçişte bu ayın aidatı açık ve hiç ödenmemişse muafiyet sorulur (plan §42)
+  const durumSonrasi = async (yeniDurum) => {
+    if (!MUAF_SORULAN_DURUMLAR.has(yeniDurum)) return;
+    const { yil, ay } = bugun();
+    const d = await db("getDue", o.id, yil, ay).catch(() => null);
+    if (d && d.durum === "odenmedi" && !(Number(d.odenen) > 0)) setDurumSoru({ durum: yeniDurum, yil, ay });
+  };
   const durumDegistir = (d) =>
     dene(async () => {
       await db("updatePlayer", o.id, { durum: d });
       toast("ok", "Durum güncellendi");
+      yukle();
+      await durumSonrasi(d);
+    });
+  const muafYap = (yil, ay, neden, not_) =>
+    dene(async () => {
+      await db("aidatMuafYap", o.id, yil, ay, { neden, not: not_ });
+      toast("ok", `${AY_ADLARI[ay - 1]} ${yil} muaf yapıldı`);
+      setMuafModal(null);
+      setDurumSoru(null);
+      yukle();
+    });
+  const muafKaldir = (a) =>
+    dene(async () => {
+      await db("aidatMuafKaldir", o.id, a.yil, a.ay);
+      toast("ok", `${AY_ADLARI[a.ay - 1]} ${a.yil} muafiyeti kaldırıldı`);
       yukle();
     });
   const belgeYukle = (tip, gecerlilik) =>
@@ -419,6 +444,10 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           birincilVeli={birincilVeli}
           onAidatHatirlat={aidatHatirlat}
           onMakbuzYazdir={makbuzYazdir}
+          saltOkunur={saltOkunur}
+          onMuafYap={(a) => setMuafModal({ yil: a.yil, ay: a.ay })}
+          onMuafKaldir={muafKaldir}
+          onMuafAyEkle={() => setMuafModal({ aySecimli: true })}
         />
       )}
 
@@ -429,9 +458,11 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
           oyuncu={o}
           gruplar={gruplar}
           onKapat={() => setDuzenle(false)}
-          onKaydedildi={() => {
+          onKaydedildi={(k) => {
             setDuzenle(false);
+            const eskiDurum = o.durum;
             yukle();
+            if (k?.durum && k.durum !== eskiDurum) durumSonrasi(k.durum);
           }}
         />
       )}
@@ -451,6 +482,30 @@ export function OyuncuKarti({ oyuncuId, oturum, gruplar, saltOkunur, onKapat, on
         />
       )}
       {sil && <Onay tehlikeli mesaj={sil.mesaj} onEvet={silOnayla} onHayir={() => setSil(null)} />}
+      {muafModal && (
+        <AidatMuafModal
+          oyuncuAdi={o.ad_soyad}
+          yil={muafModal.yil}
+          ay={muafModal.ay}
+          aySecimli={!!muafModal.aySecimli}
+          onKapat={() => setMuafModal(null)}
+          onKaydet={(f) => muafYap(f.yil, f.ay, f.neden, f.not)}
+        />
+      )}
+      {durumSoru && (
+        <Onay
+          mesaj={`${o.ad_soyad} "${DURUMLAR.find((d) => d.kod === durumSoru.durum)?.ad}" yapıldı. ${AY_ADLARI[durumSoru.ay - 1]} ${durumSoru.yil} aidatı açık ve hiç ödenmemiş: bu ay muaf yapılsın mı? (Hayır: borç olarak kalır.)`}
+          onEvet={() =>
+            muafYap(
+              durumSoru.yil,
+              durumSoru.ay,
+              durumSoru.durum === "dondurma" ? "dondurma" : "diger",
+              `Durum: ${DURUMLAR.find((d) => d.kod === durumSoru.durum)?.ad}`,
+            )
+          }
+          onHayir={() => setDurumSoru(null)}
+        />
+      )}
     </Modal>
   );
 }

@@ -66,7 +66,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "21",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "22",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -309,9 +309,72 @@ app.whenReady().then(async () => {
         db.init();
         check(
           "göç 21: '' TC/pasaport NULL yapıldı, sürüm 21",
-          db.getPlayer(b1.id).tc_no === null && db.getPlayer(y1.id).pasaport_no === null && db.getMetaValue("schema_version") === "21",
+          db.getPlayer(b1.id).tc_no === null && db.getPlayer(y1.id).pasaport_no === null && db.getMetaValue("schema_version") === "22",
         );
         for (const id of [b1.id, b2.id, y1.id, y2.id]) db.deletePlayer(id);
+      }
+      // Plan §42: ay bazında muafiyet — ödenmemişte muaf, ödenmiş/kısmıda hata, açılmamış ay muaf olarak açılır, kaldırınca geri
+      {
+        const mp = db.createPlayer({
+          ad_soyad: "Muaf Deneme",
+          dogum_tarihi: "2015-01-01",
+          yas_grubu_id: grp.id,
+          aylik_aidat: 900,
+          odeme_donemi: "1-10",
+        });
+        db.ensureMonthlyDues(2026, 10, mp.id);
+        const m1 = db.aidatMuafYap(mp.id, 2026, 10, { neden: "dondurma", not: "  askerlik  " }, "Şerif");
+        const m2 = db.aidatMuafYap(mp.id, 2025, 11, { neden: "bilinmeyen" }, "Şerif"); // açılmamış ay → muaf olarak açılır, neden 'diger'
+        let hata = "";
+        try {
+          db.ensureMonthlyDues(2026, 11, mp.id);
+          db.hamBaglanti()
+            .prepare("UPDATE monthly_dues SET durum='odendi', odenen=tutar WHERE player_id=? AND yil=2026 AND ay=11")
+            .run(mp.id);
+          db.aidatMuafYap(mp.id, 2026, 11, { neden: "burs" }, "Şerif");
+        } catch (e) {
+          hata = e.message;
+        }
+        let hata2 = "";
+        try {
+          db.aidatMuafYap(mp.id, 2026, 13, {}, "x");
+        } catch (e) {
+          hata2 = e.message;
+        }
+        const geri = db.aidatMuafKaldir(mp.id, 2026, 10);
+        const l = db.listDues(mp.id);
+        check(
+          "aidatMuafYap: ödenmemiş → muaf (neden/not/eden), açılmamış ay muaf açılır (neden diger, tutar aidat), ödenmiş ay reddedilir, dönem doğrulanır, kaldırınca ödenmedi ve alanlar temiz",
+          m1.durum === "muaf" &&
+            m1.muaf_neden === "dondurma" &&
+            m1.muaf_notu === "askerlik" &&
+            m1.muaf_eden === "Şerif" &&
+            m2.durum === "muaf" &&
+            m2.muaf_neden === "diger" &&
+            m2.tutar === 900 &&
+            /Ödeme yapılmış ay muaf yapılamaz/.test(hata) &&
+            /Dönem geçersiz/.test(hata2) &&
+            geri.durum === "odenmedi" &&
+            geri.muaf_neden === "" &&
+            l.find((d) => d.yil === 2025 && d.ay === 11)?.muaf_neden === "diger",
+          JSON.stringify({ m1, m2, hata, hata2, geri }),
+        );
+        // tutar 0 (ücretsiz): kaldırınca muaf kalır
+        const up = db.createPlayer({
+          ad_soyad: "Ücretsiz Muaf",
+          dogum_tarihi: "2015-01-01",
+          yas_grubu_id: grp.id,
+          ucret_tipi: "ucretsiz",
+          aylik_aidat: 0,
+        });
+        db.ensureMonthlyDues(2026, 10, up.id);
+        db.aidatMuafYap(up.id, 2026, 10, { neden: "dondurma" }, "x");
+        check(
+          "tutar 0 ayda muafiyet kaldırılınca muaf kalır",
+          db.aidatMuafKaldir(up.id, 2026, 10).durum === "muaf" && db.getDue(up.id, 2026, 10).muaf_neden === "",
+        );
+        db.deletePlayer(up.id);
+        db.deletePlayer(mp.id); // sonraki borçlu sayımları bozulmasın
       }
       // 13.09.2026: ayrılan/pasif oyuncunun açık borcu Pano ve borçlu listelerinde sayılmaz (kume varsayılan "sahada"); raporda seçilebilir
       {
@@ -549,7 +612,7 @@ app.whenReady().then(async () => {
     );
     check(
       "şema sürümü 17 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "21" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      db.getMetaValue("schema_version") === "22" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -1151,7 +1214,7 @@ app.whenReady().then(async () => {
     db.init();
     check(
       "göç 17: grup üyeliği antrenman tarihlerinden türetildi (U11'in 2027-04 antrenmanı → 2026-2027)",
-      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "21",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "22",
     );
     // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
     const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
@@ -1241,7 +1304,7 @@ app.whenReady().then(async () => {
       db
         .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
         .map((p) => p.id)
-        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "21",
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "22",
     );
     check(
       "gruplar ve aktif sezon güncellendi",
@@ -1462,7 +1525,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "21",
+        db.getMetaValue("schema_version") === "22",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1944,7 +2007,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "21",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "22",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;

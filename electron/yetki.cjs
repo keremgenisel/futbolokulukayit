@@ -76,6 +76,8 @@ const YAZMA = new Set([
   "setAttendance",
   "haftayiProgramdanDoldur",
   "kartBasimKaydet", // kullanıcı oturumdan enjekte (ipc/data.cjs, server.cjs)
+  "aidatMuafYap", // plan §42; kullanıcı oturumdan enjekte
+  "aidatMuafKaldir",
 ]);
 // Ayarlar ekranı yalnız yönetici (07.09.2026): ayar yazma, aidat kalemleri/ücret tipleri, kullanıcılar, sezon geçişi.
 const ADMIN = new Set([

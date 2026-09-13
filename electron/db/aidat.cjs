@@ -153,6 +153,48 @@ function ensureMonthlyDuesAraligi(pid, aylar) {
 const getDue = (pid, yil, ay) => db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay) || null;
 // limit verilirse yalnız son N dönem (oyuncu kartı); verilmezse tümü.
 // Satırlarda `vade_gecti` (plan §38); `bugun` yalnız test/rapor için, varsayılan bugün.
+// Ay bazında muafiyet (plan §42): ödenmemiş (hiç ödeme yok) ay muaf yapılır; kayıt yoksa muaf olarak açılır (geçmişe dönük dondurma).
+const MUAF_NEDENLER = new Set(["dondurma", "sakatlik", "burs", "diger"]);
+function aidatMuafYap(pid, yil, ay, { neden = "diger", not = "" } = {}, kullanici = "") {
+  pid = Number(pid);
+  yil = Number(yil);
+  ay = Number(ay);
+  if (!Number.isInteger(yil) || yil < 2000 || yil > 2100 || !Number.isInteger(ay) || ay < 1 || ay > 12) throw new Error("Dönem geçersiz");
+  const n = MUAF_NEDENLER.has(String(neden)) ? String(neden) : "diger";
+  const notu = String(not || "")
+    .trim()
+    .slice(0, 200);
+  const tx = db.transaction(() => {
+    const p = db.prepare("SELECT id, aylik_aidat FROM players WHERE id=?").get(pid);
+    if (!p) throw new Error("Oyuncu bulunamadı");
+    const d = db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(pid, yil, ay);
+    if (d) {
+      if (d.durum === "odendi" || d.durum === "kismi" || Number(d.odenen) > 0)
+        throw new Error("Ödeme yapılmış ay muaf yapılamaz; önce makbuzu iptal edin");
+      db.prepare("UPDATE monthly_dues SET durum='muaf', muaf_neden=?, muaf_notu=?, muaf_eden=? WHERE id=?").run(
+        n,
+        notu,
+        String(kullanici || ""),
+        d.id,
+      );
+    } else {
+      db.prepare(
+        "INSERT INTO monthly_dues (player_id, yil, ay, tutar, odenen, durum, muaf_neden, muaf_notu, muaf_eden) VALUES (?,?,?,?,0,'muaf',?,?,?)",
+      ).run(pid, yil, ay, Number(p.aylik_aidat) > 0 ? Number(p.aylik_aidat) : 0, n, notu, String(kullanici || ""));
+    }
+    return getDue(pid, yil, ay);
+  });
+  return tx();
+}
+// Muafiyeti kaldır: tutar > 0 ise "ödenmedi"ye döner; tutar 0 (ücretsiz) ise muaf kalır, yalnız neden temizlenir.
+function aidatMuafKaldir(pid, yil, ay) {
+  const d = db.prepare("SELECT * FROM monthly_dues WHERE player_id=? AND yil=? AND ay=?").get(Number(pid), Number(yil), Number(ay));
+  if (!d) throw new Error("Aidat kaydı bulunamadı");
+  if (d.durum !== "muaf") throw new Error("Bu ay muaf değil");
+  const yeniDurum = Number(d.tutar) > 0 ? "odenmedi" : "muaf";
+  db.prepare("UPDATE monthly_dues SET durum=?, muaf_neden='', muaf_notu='', muaf_eden='' WHERE id=?").run(yeniDurum, d.id);
+  return getDue(Number(pid), Number(yil), Number(ay));
+}
 const listDues = (pid, limit = null, { bugun = null } = {}) => {
   const v = vadeSecimi(bugun);
   const sel = `SELECT d.*, ${v.sql} AS vade_gecti FROM monthly_dues d JOIN players p ON p.id=d.player_id WHERE d.player_id=? ORDER BY d.yil DESC, d.ay DESC`;
@@ -231,6 +273,8 @@ module.exports = {
   aidatAyarlariKaydet,
   ensureMonthlyDues,
   ensureMonthlyDuesAraligi,
+  aidatMuafYap,
+  aidatMuafKaldir,
   getDue,
   listDues,
   listUnpaid,

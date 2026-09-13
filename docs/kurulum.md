@@ -151,6 +151,15 @@ Kurallar ve iletişim Ayarlar > **Giriş Kartı**
 bölümünden düzenlenir; **Kartta giriş kodu bas** kutusu kulüpte kart okuyucu yoksa kapalı kalsın (açılınca QR ve barkod basılır,
 ileride okuyucuyla giriş için aynı kod kullanılır). Aidat durumu karta yazılmaz.
 
+## 3c0b. Aidat muafiyeti (dondurma, sakatlık, burs)
+
+Oyuncu kartı › Ödemeler'de ödenmemiş ayın yanında **Muaf yap**: neden (Dondurma / Sakatlık / Burs / Diğer) ve isteğe bağlı not ile o
+ay borç olmaktan çıkar, kayıtta "Muaf · Dondurma" olarak kalır; **Muafiyeti kaldır** ile geri döner. Ödeme yapılmış ay muaf
+yapılamaz (önce makbuz iptal edilir). Geçmişe dönük kayıt için **Muaf ay ekle**: henüz açılmamış bir ayı (örn. geçen sezonun
+dondurma ayları) yıl/ay seçerek muaf olarak kaydeder. Oyuncuyu Dondurma, Pasif ya da Ayrıldı yapınca bu ayın aidatı açık ve hiç
+ödenmemişse program "bu ay muaf yapılsın mı?" diye sorar; Hayır derseniz borç kalır. Not: makbuz keserken seçilmeyen aylar zaten
+açılmaz; dondurma aylarını seçmezseniz borç oluşmaz, muafiyet yalnız bunu kayda geçirmek isteyenler için.
+
 ## 3c1. Ödeme dönemi ve vade
 
 Oyuncu kaydındaki **ödeme dönemi** (1-10, 11-20, 21-31) o ayın aidatının vadesidir: dönemin son günü geçene kadar oyuncu

@@ -14,6 +14,17 @@ export const DURUMLAR = [
   { kod: "sakat", ad: "Sakat" },
   { kod: "dondurma", ad: "Dondurma" },
 ];
+/** Ay bazında elle muafiyet nedenleri (plan §42). */
+export const MUAF_NEDENLERI = [
+  { kod: "dondurma", ad: "Dondurma" },
+  { kod: "sakatlik", ad: "Sakatlık" },
+  { kod: "burs", ad: "Burs" },
+  { kod: "diger", ad: "Diğer" },
+];
+/** @param {string} kod */
+export const muafNedenAdi = (kod) => MUAF_NEDENLERI.find((n) => n.kod === kod)?.ad || "";
+/** Bu durumlara geçerken açık aidat için muafiyet sorulur (plan §42). */
+export const MUAF_SORULAN_DURUMLAR = new Set(["dondurma", "pasif", "ayrildi"]);
 /** Varsayılan ücret tipleri (tohum). Asıl liste veritabanında `fee_types`; arayüz `useUcretTipleri()` ile alır. */
 // Sıra: iki sabit tip (normal, ücretsiz) en üstte, sonra indirimli tipler (kulüp isteği 09.09.2026).
 export const UCRET_TIPLERI = [

@@ -138,6 +138,7 @@ function registerDataHandlers() {
     if (fn === "mesajKaydet") return db.mesajKaydet({ ...(a[0] || {}), kullanici: session.ad_soyad || session.username }); // WhatsApp kaydını açan = oturum
     if (fn === "grupBildirimKaydet") return db.grupBildirimKaydet(a[0], session.ad_soyad || session.username);
     if (fn === "kartBasimKaydet") return db.kartBasimKaydet(a[0], a[1], a[2], session.ad_soyad || session.username); // basan = oturum (plan §40.7)
+    if (fn === "aidatMuafYap") return db.aidatMuafYap(a[0], a[1], a[2], a[3], session.ad_soyad || session.username); // plan §42
     return db[fn](...a);
   });
 

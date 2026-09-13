@@ -118,6 +118,8 @@ module.exports = {
   deleteAgeGroup: m.deleteAgeGroup,
   listPlayersWithDue: m.listPlayersWithDue,
   playersPage: m.playersPage,
+  aidatMuafYap: m.aidatMuafYap, // plan §42
+  aidatMuafKaldir: m.aidatMuafKaldir,
   // Giriş kartı basım kaydı (plan §40.7, şema 20)
   kartBasimKaydet: m.kartBasimKaydet,
   kartBasimSil: m.kartBasimSil,

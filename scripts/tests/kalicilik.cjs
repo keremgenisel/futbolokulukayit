@@ -393,6 +393,7 @@ app.on("browser-window-created", async (_e, win) => {
       );
       // Giriş kartı basım kaydı (plan §40.7): yeniden açılışta durur, süzgeç sayar
       db.kartBasimKaydet([o.id], "2026-2027", "toplu", "Kalıcı Kullanıcı");
+      db.aidatMuafYap(o.id, 2025, 7, { neden: "dondurma", not: "yaz tatili" }, "Kalıcı Kullanıcı"); // plan §42: muaf kaydı kalıcı
       const tpOyuncu = db.listPlayers({ durum: null }).length,
         tpMakbuz = db.hamBaglanti().prepare("SELECT count(*) AS n FROM receipts").get().n;
       fs.writeFileSync(
@@ -455,6 +456,13 @@ app.on("browser-window-created", async (_e, win) => {
       );
       check("yoklama kalıcı", db.playerAttendance(o.id, "2026-01-01", "2026-12-31")[0]?.durum === "izinli");
       check(
+        "ay bazında muafiyet kalıcı (plan §42)",
+        (() => {
+          const d = db.getDue(o.id, 2025, 7);
+          return d?.durum === "muaf" && d.muaf_neden === "dondurma" && d.muaf_notu === "yaz tatili" && d.muaf_eden === "Kalıcı Kullanıcı";
+        })(),
+      );
+      check(
         "giriş kartı basım kaydı kalıcı (kartBasimlari, Basılmış süzgeci)",
         db.kartBasimlari(o.id).some((k) => k.tur === "toplu" && k.kullanici === "Kalıcı Kullanıcı" && k.sezon === "2026-2027") &&
           db.kartBasimListesi({ sezon: "2026-2027", durum: null, kart: "basilmis" }).some((s) => s.id === o.id && s.basim_sayisi === 1),
@@ -515,7 +523,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 21 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "21");
+      check("şema sürümü 22 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "22");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",

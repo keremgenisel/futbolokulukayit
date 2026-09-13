@@ -1,6 +1,6 @@
 // Oyuncu kartı > Ödemeler sekmesi: aylık aidat dönemleri (+WhatsApp hatırlat) ve makbuzlar (yazdır)
 import { Btn, Rozet, Bos, aidatTonu, aidatEtiket } from "../ui.jsx";
-import { ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, aidatKalan, gorunenAidatDurumu, vadeTarihi } from "../../lib/aidat.js";
+import { ODEME_YONTEMLERI, tarihTR, paraTR, AY_ADLARI, aidatKalan, gorunenAidatDurumu, vadeTarihi, muafNedenAdi } from "../../lib/aidat.js";
 import { hatirlatmaUygunMu } from "../../lib/whatsapp.js";
 import { Ikon } from "../Ikon.jsx";
 
@@ -19,12 +19,27 @@ export function OdemeSekmesi({
   onAidatHatirlat,
   onMakbuzYazdir,
   donem = "1-10",
+  saltOkunur = false,
+  onMuafYap, // (a) → ay bazında muafiyet penceresi (plan §42)
+  onMuafKaldir,
+  onMuafAyEkle,
 }) {
+  const muafYapilabilir = (a) => a.durum === "odenmedi" && !(Number(a.odenen) > 0);
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
       <div>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, gap: 12 }}>
           <h3 style={{ fontSize: 22 }}>Aylık Aidat</h3>
+          {!saltOkunur && onMuafAyEkle && (
+            <Btn
+              kucuk
+              tur="ghost"
+              onClick={onMuafAyEkle}
+              title="Henüz açılmamış bir ayı (örn. geçmiş dondurma dönemi) muaf olarak kaydeder"
+            >
+              Muaf ay ekle
+            </Btn>
+          )}
           {acikAidat &&
             (() => {
               const u = hatirlatmaUygunMu({
@@ -55,6 +70,7 @@ export function OdemeSekmesi({
                 <th>Tutar</th>
                 <th>Ödenen</th>
                 <th>Durum</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
@@ -76,6 +92,27 @@ export function OdemeSekmesi({
                     )}
                     {a.durum === "kismi" && (
                       <span style={{ fontSize: 12, color: "var(--kirmizi)", marginLeft: 6 }}>kalan {paraTR(aidatKalan(a))}</span>
+                    )}
+                    {a.durum === "muaf" && a.muaf_neden && (
+                      <span
+                        style={{ fontSize: 12, color: "var(--soluk)", marginLeft: 6 }}
+                        title={`${a.muaf_notu || ""}${a.muaf_eden ? " · " + a.muaf_eden : ""}`}
+                      >
+                        · {muafNedenAdi(a.muaf_neden)}
+                        {a.muaf_notu ? `: ${a.muaf_notu}` : ""}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    {!saltOkunur && muafYapilabilir(a) && onMuafYap && (
+                      <Btn kucuk tur="ghost" onClick={() => onMuafYap(a)}>
+                        Muaf yap
+                      </Btn>
+                    )}
+                    {!saltOkunur && a.durum === "muaf" && a.muaf_neden && onMuafKaldir && (
+                      <Btn kucuk tur="ghost" onClick={() => onMuafKaldir(a)}>
+                        Muafiyeti kaldır
+                      </Btn>
                     )}
                   </td>
                 </tr>

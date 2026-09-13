@@ -1900,3 +1900,25 @@ Testler: db-roundtrip (ikinci KVKK silme, boş TC/pasaport, göç 21, küme, mak
   takvim 12 antrenman → 1 nokta + '+11' kutunun içinde; program eşitleme (saha silme → yarınki antrenman boş, elle değiştirilen ve
   geçmiş dokunulmaz, toast, Yoklama 'Saha belirtilmedi'); Hakkında HTML/imzalı not → düz metin; kullanıcı rolü iptal edebilir,
   salt okunurda İptal yok. Not: Pazar günü 'yarın' sonraki haftaya düşer → e2e 'Sonraki hafta'ya geçer.
+
+
+## 42. Aidat muafiyeti: ay bazında "Muaf yap" + durum değişiminde soru (UYGULANDI 13.09.2026)
+
+**İhtiyaç (Kerem):** kulüp geçmişe dönük kayıt giriyor; daha önce dondurulmuş oyuncunun dondurma ayları borç görünmesin, kayıtta
+"dondurma" olarak izlenebilsin. Bugün dondurma ayları makbuzda seçilmeyince hiç açılmıyor (borç değil) ama işaretlenemiyor; oyuncu
+bu ay Dondurma'ya alınınca o ayın açık aidatı borç kalıyor.
+
+**Karar:** (1) Oyuncu kartı › Ödemeler: ödenmemiş (hiç ödeme yapılmamış) ay satırında **Muaf yap** → neden (dondurma | sakatlık |
+burs | diğer) + isteğe bağlı not; muaf satırda "Muaf · Dondurma" rozeti ve **Muafiyeti kaldır**. Ödenmiş / kısmi ödenmiş ay muaf
+yapılamaz. **Muaf ay ekle** ile henüz açılmamış geçmiş ay da (yıl/ay seçilerek) muaf olarak açılır — geçmişe dönük dondurma kaydı.
+(2) Oyuncu kartı başlığındaki Durum kutusundan ya da Düzenle formundan Dondurma / Pasif / Ayrıldı'ya geçilirken bu ayın aidatı
+açık ve hiç ödenmemişse **"Bu ayın açık aidatı muaf yapılsın mı?"** sorusu; evet → muaf (neden = yeni durum), hayır → borç kalır
+(plan §41 A seçeneğiyle uyumlu: borç kendiliğinden silinmez). (3) Muafiyeti kaldırınca ay tutarıyla "ödenmedi"ye döner; tutar 0
+(ücretsiz tip) ise muaf kalır. Ücret tipinden gelen muafiyet (ücretsiz/burslu) ayrı: `muaf_neden` boş, düğme yok.
+
+**Teknik:** şema 22 `monthly_dues.muaf_neden TEXT DEFAULT ''`, `muaf_notu`, `muaf_eden` (sütun göçü). `electron/db/aidat.cjs`
+`aidatMuafYap(pid, yil, ay, { neden, not }, kullanici)` (kayıt yoksa muaf olarak açar; odendi/kismi → hata; ay 1–12, yıl 2000–2100),
+`aidatMuafKaldir(pid, yil, ay)`; ikisi YAZMA (yetki), kullanıcı IPC/sunucuda oturumdan enjekte. Arayüz `oyuncu-karti/OdemeSekmesi`
+(satır düğmeleri, `AidatMuafModal`), `OyuncuKarti` (durum değişiminde `Onay`; Düzenle formundan durum değişince de sorulur).
+`gorunenAidatDurumu` değişmedi (muaf zaten borç değil). Testler: db-roundtrip, `tests/ui/oyuncu-karti-muaf.test.jsx`, yetki, kalıcılık
+(sürüm 22 + muaf kaydı). Rehber 3b. Sürüm çıkarılmadı.
