@@ -76,3 +76,19 @@ describe("release.yml ↔ package.json script tutarlılığı", () => {
     expect(pkg.scripts.release).toContain("scripts/publish-release.cjs");
   });
 });
+
+describe("surumNotuGovdesi (13.09.2026): release gövdesi asla boş değil", () => {
+  it("docs/surum-notlari/<v>.md varsa içeriği, yoksa 'Sürüm <v>'", async () => {
+    const { surumNotuGovdesi } = await import("../scripts/publish-release.cjs");
+    const fs = await import("node:fs");
+    const os = await import("node:os");
+    const path = await import("node:path");
+    const kok = fs.mkdtempSync(path.join(os.tmpdir(), "surum-notu-"));
+    fs.mkdirSync(path.join(kok, "docs", "surum-notlari"), { recursive: true });
+    fs.writeFileSync(path.join(kok, "docs", "surum-notlari", "9.9.9.md"), "## Yenilik\n\n- bir\n");
+    expect(surumNotuGovdesi("9.9.9", kok)).toBe("## Yenilik\n\n- bir");
+    expect(surumNotuGovdesi("9.9.8", kok)).toBe("Sürüm 9.9.8");
+    expect(surumNotuGovdesi("1.3.1")).toContain("Düzeltme"); // depodaki gerçek dosya
+    fs.rmSync(kok, { recursive: true, force: true });
+  });
+});

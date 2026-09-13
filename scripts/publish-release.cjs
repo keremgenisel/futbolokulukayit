@@ -124,11 +124,25 @@ async function resolveTargetCommitish(token) {
   return r.status === 200 ? sha : null;
 }
 
+// Release gövdesi: docs/surum-notlari/<sürüm>.md; yoksa "Sürüm <v>". ASLA boş değil — GitHub boş gövdede akışa (releases.atom)
+// tag commit mesajını koyar, electron-updater bunu releaseNotes diye verir ve Hakkında ekranı commit imzalarını gösterir (13.09.2026).
+function surumNotuGovdesi(version = VERSION, kok = path.join(__dirname, "..")) {
+  const dosya = path.join(kok, "docs", "surum-notlari", `${version}.md`);
+  try {
+    const t = fs.readFileSync(dosya, "utf8").trim();
+    if (t) return t;
+  } catch {
+    /* dosya yok */
+  }
+  return `Sürüm ${version}`;
+}
+
 async function createRelease(token) {
   const target = await resolveTargetCommitish(token);
   const body = JSON.stringify({
     tag_name: TAG,
     name: VERSION,
+    body: surumNotuGovdesi(),
     draft: false,
     prerelease: false,
     ...(target ? { target_commitish: target } : {}),
@@ -226,7 +240,7 @@ async function main() {
   console.log(`✓ ${TAG} yayınlandı — 3 dosya doğrulandı: ${names.join(", ")}`);
 }
 
-module.exports = { assetNameFromLocal, buildLatestYml, exeLocalName };
+module.exports = { assetNameFromLocal, buildLatestYml, exeLocalName, surumNotuGovdesi };
 
 if (require.main === module) {
   main().catch((err) => {

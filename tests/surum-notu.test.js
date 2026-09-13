@@ -19,3 +19,11 @@ describe("surumNotuMetni", () => {
     expect(surumNotuMetni(null)).toBe("");
   });
 });
+
+describe("commit imzası süzme (13.09.2026: boş gövdeli eski yayında GitHub akışa tag commit mesajını koymuştu)", () => {
+  it("Co-Authored-By / Claude-Session satırları ve oturum bağlantısı düşer, sürüm satırı kalır", () => {
+    const html =
+      '<p>Sürüm 1.1.0</p>\n\n<p>Co-Authored-By: Claude Fable 5.1 &lt;noreply@anthropic.com&gt;\n<br />Claude-Session: <a href="https://claude.ai/code/session_x">https://claude.ai/code/session_x</a></p>';
+    expect(surumNotuMetni(html)).toBe("Sürüm 1.1.0");
+  });
+});

@@ -33,6 +33,7 @@ export function surumNotuMetni(notlar) {
     .split("\n")
     .map((s) => s.replace(/\s+/g, " ").trim())
     .filter(Boolean) // boş satırlar atılır
+    .filter((s) => !/^(co-authored-by|claude-session)\s*:/i.test(s) && !/claude\.ai\/code\//i.test(s)) // commit imzası kullanıcıya gösterilmez
     .join("\n")
     .trim();
 }
