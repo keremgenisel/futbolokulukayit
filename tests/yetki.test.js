@@ -33,6 +33,7 @@ describe("cagriYetkisi — IPC ve sunucu için ortak yetki kararı", () => {
     expect(cagriYetkisi("kartBasimKaydet", kullanici, true).kod).toBe(403);
     expect(cagriYetkisi("kartBasimSil", kullanici, false).kod).toBe(403);
     expect(cagriYetkisi("kartBasimSil", admin, false).ok).toBe(true);
+    expect(cagriYetkisi("makbuzListesi", kullanici, true).ok).toBe(true); // Tahsilat › Kesilen Makbuzlar (okuma)
     const r = cagriYetkisi("createPlayer", kullanici, true);
     expect(r.ok).toBe(false);
     expect(r.kod).toBe(403);

@@ -36,7 +36,15 @@ function ucretTipiDogrula(kod) {
   if (kod === undefined) return;
   if (!db.prepare("SELECT 1 FROM fee_types WHERE kod=?").get(String(kod))) throw new Error("Tanımsız ücret tipi: " + kod);
 }
+// Boş TC / pasaport NULL saklanır (13.09.2026): tc_no UNIQUE ve pasaport indeksi '' değerini de sayar; iki boş kayıt ya da
+// kişisel veri silinen ikinci oyuncu "UNIQUE constraint failed" veriyordu ("Bu kayıt zaten var"). Göç 21 eski '' değerlerini NULL yapar.
+const kimlikNormalize = (p) => {
+  const o = { ...p };
+  for (const k of ["tc_no", "pasaport_no"]) if (o[k] !== undefined && String(o[k] ?? "").trim() === "") o[k] = null;
+  return o;
+};
 function createPlayer(p) {
+  p = kimlikNormalize(p);
   ucretTipiDogrula(p.ucret_tipi);
   // Sezon verilmediyse (form, Excel aktarımı) aktif sezon damgalanır; ayar boşsa (sihirbaz atlanmış) bugünün sezonu —
   // Oyuncular ekranının varsayılan sezon filtresi de aynı kuralla seçer (plan §18)
@@ -57,6 +65,7 @@ const sezonUyeligiEkle = (pid, sezon) => {
   if (sezon) db.prepare("INSERT OR IGNORE INTO player_seasons (player_id, sezon) VALUES (?,?)").run(Number(pid), String(sezon));
 };
 function updatePlayer(id, p) {
+  p = kimlikNormalize(p);
   ucretTipiDogrula(p.ucret_tipi);
   if (p.sezon) sezonUyeligiEkle(id, p.sezon);
   const cols = PLAYER_FIELDS.filter((f) => p[f] !== undefined);
@@ -133,7 +142,7 @@ function oyuncuKisiselVeriSil(id, kullanici = "") {
     db.prepare("UPDATE receipts SET oyuncu_adi=? WHERE player_id=? AND oyuncu_adi=''").run(p.ad_soyad, id);
     const makbuz = db.prepare("SELECT count(*) AS n FROM receipts WHERE player_id=?").get(id).n;
     db.prepare(
-      `UPDATE players SET ad_soyad=?, tc_no='', pasaport_no='', dogum_tarihi=NULL, dogum_yeri='', okul='', gsm='', adres='',
+      `UPDATE players SET ad_soyad=?, tc_no=NULL, pasaport_no=NULL, dogum_tarihi=NULL, dogum_yeri='', okul='', gsm='', adres='',
        kan_grubu='', foto_yolu='', yas_grubu_id=NULL, durum='ayrildi', notlar=?, updated_at=datetime('now') WHERE id=?`,
     ).run(anonimAd(id), `Kişisel verileri silindi: ${new Date().toISOString().slice(0, 10)} (${String(kullanici || "")})`, id);
     return { ok: true, dosyalar: [...new Set(dosyalar)], klasor: "oyuncu-" + id, makbuz };

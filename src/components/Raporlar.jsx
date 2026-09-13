@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Kart, Sayfalama, useDene } from "./ui.jsx";
+import { Kart, Sayfalama, Secim, useDene } from "./ui.jsx";
 import { db, cikti, bugun, ayAraligi } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { paraTR, tarihTR } from "../lib/aidat.js";
@@ -32,6 +32,7 @@ export function Raporlar() {
   const [sezonTarihleri, setSezonTarihleri] = useState([]); // [{ sezon, baslangic, bitis, kayitli }]
   const [sezonS, setSezonS] = useState("");
   const [vadesiGelmeyenler, setVadesiGelmeyenler] = useState(false); // Borçlu Listesi: vadesi gelmemiş aylar da (plan §38)
+  const [kume, setKume] = useState("tumu"); // Borçlu Listesi: tüm oyuncular (rapor tam resim; eski sezonun yenilemeyenleri pasif) | sahadakiler | ayrılan (13.09.2026)
   const [yoklamaMod, setYoklamaMod] = useState("sezon"); // Dönem seçimi (her raporda): "sezon" (sezon + ay) | "tarih" (aralık)
   const baslangicAyi = sezonDurum?.baslangicAyi || 9;
   const seciliSezon = sezonS || sezonDurum?.aktifSezon || guncelSezon(bugun().iso, baslangicAyi);
@@ -70,6 +71,7 @@ export function Raporlar() {
   }, []);
 
   const grupEk = grup ? " · " + gruplar.find((g) => g.id === Number(grup))?.ad : "";
+  const kumeEk = (k) => (k === "ayrilan" ? " · Ayrılan / pasif oyuncular" : k === "sahada" ? " · Sahadaki oyuncular" : "");
   const grupId = grup ? Number(grup) : null;
   // Dönem (plan §20, her raporda aynı): "sezon" modunda sezon + ay (Tümü = sezon), "tarih" modunda Başlangıç – Bitiş.
   // Rapor sorguları hep aralık + (sezon | null) alır; tarih modunda oyuncu kümesi sezona bağlanmaz.
@@ -111,14 +113,27 @@ export function Raporlar() {
       if (rapor === "borclu") {
         if (!d.ay) {
           const liste =
-            (await db("listUnpaidAralik", d.bas, d.son, d.sezon, grupId, { bugun: bugun().iso, yalnizVadesiGecen: !vadesiGelmeyenler })) ||
-            [];
-          return borcluListesiRaporu({ liste, ay: null, sezon: d.sezon || "", donem: d.sezon ? "" : d.etiket, grupEk });
+            (await db("listUnpaidAralik", d.bas, d.son, d.sezon, grupId, {
+              bugun: bugun().iso,
+              yalnizVadesiGecen: !vadesiGelmeyenler,
+              kume,
+            })) || [];
+          return borcluListesiRaporu({
+            liste,
+            ay: null,
+            sezon: d.sezon || "",
+            donem: d.sezon ? "" : d.etiket,
+            grupEk: grupEk + kumeEk(kume),
+          });
         }
-        const liste = await db("listUnpaid", d.yil, d.ay, d.sezon, grupId, { bugun: bugun().iso, yalnizVadesiGecen: !vadesiGelmeyenler });
+        const liste = await db("listUnpaid", d.yil, d.ay, d.sezon, grupId, {
+          bugun: bugun().iso,
+          yalnizVadesiGecen: !vadesiGelmeyenler,
+          kume,
+        });
         const veliler = {};
         for (const b of liste) veliler[b.player_id] = await db("listGuardians", b.player_id);
-        return borcluListesiRaporu({ liste, veliler, yil: d.yil, ay: d.ay, sezon: d.sezon || "", grupEk });
+        return borcluListesiRaporu({ liste, veliler, yil: d.yil, ay: d.ay, sezon: d.sezon || "", grupEk: grupEk + kumeEk(kume) });
       }
       if (rapor === "tahsilat") {
         const makbuzlar = await db("listReceiptsByDate", d.from, d.to, null, grupId);
@@ -230,6 +245,19 @@ export function Raporlar() {
               <div style={{ fontSize: 12, color: "var(--soluk)", marginTop: 2 }}>{r.aciklama}</div>
             </button>
           ))}
+          {rapor === "borclu" && (
+            <Secim
+              secenekler={[
+                { kod: "tumu", ad: "Tüm oyuncular" },
+                { kod: "sahada", ad: "Sahadaki oyuncular (aktif, deneme, sakat)" },
+                { kod: "ayrilan", ad: "Ayrılan / pasif / dondurma" },
+              ]}
+              value={kume}
+              onChange={(e) => setKume(e.target.value)}
+              aria-label="Borçlu oyuncu kümesi"
+              style={{ fontSize: 13 }}
+            />
+          )}
           {rapor === "borclu" && (
             <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, cursor: "pointer" }}>
               <input

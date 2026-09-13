@@ -4,7 +4,7 @@ const { getMetaValue, setMetaValue } = require("./meta.cjs");
 const { createUser } = require("./kullanicilar.cjs");
 const { araNormalize } = require("../metin.cjs");
 
-const SCHEMA_VERSION = 20; // 20: card_prints (giriş kartı basım kaydı; plan §40.7); 19: seasons (sezon başlangıç/bitiş tarihi) + trainings.bitis_saat (plan §37); 18: receipts.oyuncu_adi (kişisel veri silinen oyuncunun makbuzdaki adı; plan §31); 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
+const SCHEMA_VERSION = 21; // 21: players.tc_no/pasaport_no '' → NULL (UNIQUE çakışması; kişisel veri silme); 20: card_prints (giriş kartı basım kaydı; plan §40.7); 19: seasons (sezon başlangıç/bitiş tarihi) + trainings.bitis_saat (plan §37); 18: receipts.oyuncu_adi (kişisel veri silinen oyuncunun makbuzdaki adı; plan §31); 17: group_seasons (grupların geçmiş sezon üyeliği; plan §21); 16: player_seasons (geçmiş sezon üyeliği; plan §18.1); 15: sezonu boş aktif oyunculara aktif sezon (plan §18); 14: receipts.sezon (plan §17.2); 13: varsayılan ücret tipi sırası (ücretsiz normalin altına); 12: sezonu boş aktif gruplara aktif sezon (plan §15); …9: WhatsApp (guardians.mesaj_onayi, message_log, trainings.bildirim_gerekli/degisiklik_notu); 10: trainings.grup_bildirim; 11: bildirim olayı (trainings.bildirim_olay, message_log.olay)
 // WhatsApp mesaj kayıtları (şema 9). İlk iskelette (06.09.2026) aynı adla farklı sütunlu, hiç yazılmamış bir tablo vardı;
 // migrate() onu tanıyıp (tur sütunu yok) boşsa siler, doluysa message_log_eski_v1 olarak kenara alır.
 const MESSAGE_LOG_SQL = `CREATE TABLE IF NOT EXISTS message_log (             -- WhatsApp'ta açılan hatırlatma/bildirimler (gönderim program dışında)
@@ -390,6 +390,12 @@ const VERI_GOCLERI = {
       if (a) ekle.run(sz, a.baslangic, a.bitis);
     }
   },
+};
+
+VERI_GOCLERI[21] = () => {
+  // '' benzersizlikte değer sayılır: ikinci boş TC/pasaport (kişisel veri silme, pasaportsuz yabancı) UNIQUE hatası veriyordu
+  db.prepare("UPDATE players SET tc_no=NULL WHERE tc_no=''").run();
+  db.prepare("UPDATE players SET pasaport_no=NULL WHERE pasaport_no=''").run();
 };
 
 function migrate() {

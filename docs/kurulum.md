@@ -160,7 +160,12 @@ sayılsın" kutusunu kaldırın.
 ## 3c2. Kişisel veri silme ve yedekler (KVKK)
 
 Makbuzu olan bir oyuncu silinemez; oyuncu kartından **kişisel verileri silme** yapılır: kimlik, iletişim, veli, belge, fotoğraf ve
-yoklama kayıtları silinir, oyuncu "Silinmiş Oyuncu #no" olur; makbuzlar mali belge olarak (adı damgalı) kalır. Bu silme yalnız
+yoklama kayıtları ve **açık aidat borçları** silinir, oyuncu "Silinmiş Oyuncu #no" olur; makbuzlar mali belge olarak (adı damgalı)
+kalır. Yanlış ya da ayrılan oyuncuyu kaldırmanın doğru yolu budur; makbuz iptali ödemeyi geri alır, borcu geri getirir (makbuz
+silinmez — numara sırası ve tahsilat raporu bozulmasın). "Ayrıldı", "pasif" ya da "dondurma" yapılan oyuncunun açık borcu silinmez ama
+Pano, borçlu listesi ve WhatsApp hatırlatmasında sayılmaz; Raporlar › Borçlu Listesi tüm oyuncuları gösterir (kutudan yalnız
+sahadakiler ya da yalnız ayrılanlar seçilebilir). Geçmiş makbuzlar için Tahsilat › **Kesilen Makbuzlar** sekmesi: sezon, tarih, oyuncu adı / makbuz no, "iptal edilenleri de
+göster"; satırdan Yazdır, İptal ve oyuncu kartı. Bu silme yalnız
 programın canlı verisini etkiler: daha önce alınmış **yedek dosyaları (30 gün saklanır), taşıma paketleri ve geri yüklemede kenara
 alınan kopyalar** eski veriyi içerir. Veri sahibinin talebi geldiğinde bu kopyaların da silinmesi kulübün sorumluluğundadır; program
 30 günden eski kenar kopyalarını açılışta kendisi siler. Belge olarak yalnız PDF ve görsel (JPG/PNG/WEBP/HEIC) yüklenir; Word

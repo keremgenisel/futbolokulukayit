@@ -84,6 +84,7 @@ describe("Raporlar sezon + ay filtresi", () => {
       expect(window.okul.db).toHaveBeenCalledWith("listUnpaidAralik", 202709, 202808, "2027-2028", null, {
         bugun: expect.any(String),
         yalnizVadesiGecen: true,
+        kume: "tumu",
       }),
     );
     fireEvent.change(screen.getByLabelText("Ay"), { target: { value: "10" } });
@@ -92,6 +93,7 @@ describe("Raporlar sezon + ay filtresi", () => {
       expect(window.okul.db).toHaveBeenCalledWith("listUnpaid", 2027, 10, "2027-2028", null, {
         bugun: expect.any(String),
         yalnizVadesiGecen: true,
+        kume: "tumu",
       }),
     );
   });
@@ -193,6 +195,7 @@ describe("Raporlar sezon + ay filtresi", () => {
       expect(window.okul.db).toHaveBeenCalledWith("listUnpaidAralik", 202609, 202610, null, null, {
         bugun: expect.any(String),
         yalnizVadesiGecen: true,
+        kume: "tumu",
       }),
     );
     rapor("Yoklama Özeti");

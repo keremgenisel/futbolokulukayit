@@ -1871,3 +1871,24 @@ kalıcılık, oyuncular-e2e (gerçek pencerede tümünü seç → Yazdır → ka
   sezon, printToPDF sayfa sayıları 6/7/8/13). Bulunan hata: yazıcı yokken PDF yedek yolu "başarısız" sayılıp kayıt düşmüyordu →
   `htmlYazdir` `pdfAcildi` döner, KartBasim/OyuncuKarti bunu üretildi sayar (bilgi toast'ı). Not: e2e'de `cikti:pdfAc` yakalanmalı,
   yoksa gerçek PDF Preview'da açılır.
+
+
+## 41. Oyuncu silme sorunu, ayrılan borçlular, Kesilen Makbuzlar (UYGULANDI 13.09.2026)
+
+**Şikâyet (Kerem):** oyuncu silmeye çalışınca "Bu kayıt zaten var (aynı değer kullanılıyor)"; oyuncu bir şekilde silinince eski borcu
+kalıyor; makbuz iptal edilince hâlâ borçlu görünüyor; kullanıcı makbuzları da silmek istiyor.
+
+**Araştırma:** (1) `players.tc_no UNIQUE` ve pasaport benzersiz indeksi `''` değerini de sayıyor; kişisel veri silme (`oyuncuKisiselVeriSil`)
+TC/pasaportu `''` yazdığı için İKİNCİ silinen oyuncudan itibaren UNIQUE hatası → "Bu kayıt zaten var". Pasaportu boş yabancı oyuncu
+varsa ilk silme bile düşüyor; pasaportsuz ikinci yabancı kaydı da aynı hatayı veriyor. (2) "Ayrıldı" yapılan oyuncunun açık aidatları
+silinmiyor; Pano borçlu sayısı/listesi, WhatsApp hatırlatma ve Raporlar borçlu listesi oyuncu durumuna bakmıyordu. (3) Makbuz iptali
+ödemeyi geri alır, borç geri gelir — doğru davranış; makbuz silme mali belge/numara sırası nedeniyle REDDEDİLDİ.
+
+**Uygulanan:** (1) Şema 21: `createPlayer/updatePlayer` `kimlikNormalize` ('' → NULL), kişisel veri silme NULL yazar, göç 21 eski `''`
+değerlerini NULL yapar. (2) `listUnpaid`/`listUnpaidAralik` `{ kume: "sahada"|"ayrilan"|"tumu" }` (varsayılan sahada), `panoOzet`
+yalnız sahadakiler; Raporlar › Borçlu Listesi'nde küme kutusu, rapor varsayılanı "tumu" (tam resim; eski sezonun yenilemeyenleri
+pasif olduğundan raporlar-e2e bunu yakaladı), başlığa küme eki. (3) Tahsilat sekmeleri:
+Tahsilat | Kesilen Makbuzlar (`KesilenMakbuzlar.jsx`, `db.makbuzListesi` sayfalı 50; sezon, tarih aralığı, oyuncu adı/makbuz no
+araması, iptal dahil; satırda Yazdır, İptal (nedenli, aynı modal; sonra liste yenilenir), oyuncu adı → oyuncu kartı; silme YOK).
+Testler: db-roundtrip (ikinci KVKK silme, boş TC/pasaport, göç 21, küme, makbuzListesi), kalıcılık (sürüm 21, tc_no NULL),
+`tests/ui/tahsilat-makbuzlar.test.jsx`, raporlar-sezon (kume), yetki. Rehber 3c2 güncellendi. Sürüm çıkarılmadı.

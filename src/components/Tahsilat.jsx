@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Kart, Rozet, useToast, useDene } from "./ui.jsx";
+import { Kart, Rozet, Sekmeler, useToast, useDene } from "./ui.jsx";
 import { db, cikti, bugun } from "../lib/api.js";
 import { useSezonDurumu } from "../lib/useSezonDurumu.js";
 import { paraTR, AY_ADLARI, aidatKalan } from "../lib/aidat.js";
@@ -20,6 +20,12 @@ import { KalemListesi } from "./tahsilat/KalemListesi.jsx";
 import { OdemePaneli } from "./tahsilat/OdemePaneli.jsx";
 import { BugunKesilenler } from "./tahsilat/BugunKesilenler.jsx";
 import { MakbuzIptalModal } from "./tahsilat/MakbuzIptalModal.jsx";
+import { KesilenMakbuzlar } from "./tahsilat/KesilenMakbuzlar.jsx";
+
+const SEKMELER = [
+  { kod: "tahsilat", ad: "Tahsilat" },
+  { kod: "makbuzlar", ad: "Kesilen Makbuzlar" },
+];
 
 // Tahsilat ekranı (refactor 2. tur §8.2): durum + veri + işlemler burada; çizim tahsilat/ altındaki bileşenlerde, hesaplar
 // src/lib/tahsilat.js'te (saf).
@@ -40,6 +46,8 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
   const [iptalNedeni, setIptalNedeni] = useState("");
   const [bekliyor, setBekliyor] = useState(false);
   const [uzunDonemAcik, setUzunDonemAcik] = useState(false); // Uzun Dönem Seç modalı (plan §24)
+  const [sekme, setSekme] = useState("tahsilat"); // Tahsilat | Kesilen Makbuzlar (13.09.2026)
+  const [makbuzYenile, setMakbuzYenile] = useState(0); // iptal sonrası Kesilen Makbuzlar listesi yenilensin
   const { aktifSezon, tarihler: sezonTarihleri } = useSezonDurumu();
   const sezonBitis = sezonTarihleri?.bitis || ""; // kayıtlı sezon bitişi (plan §37)
   const toast = useToast();
@@ -202,6 +210,7 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
       toast("ok", "Makbuz iptal edildi");
       iptalKapat();
       bugunkuYukle();
+      setMakbuzYenile((k) => k + 1);
     });
   };
 
@@ -209,76 +218,88 @@ export function Tahsilat({ oturum, saltOkunur, onOyuncu, secilenOyuncuId, onSeci
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", gap: 16 }}>
+        <Sekmeler liste={SEKMELER} aktif={sekme} onSec={setSekme} />
         <Rozet ton="purple" style={{ fontSize: 14, padding: "8px 14px" }}>
           Bugünkü tahsilat: {paraTR(bugunToplam)}
         </Rozet>
       </div>
-      {saltOkunur ? (
-        <Kart style={{ padding: 20, color: "var(--kirmizi)", fontWeight: 600 }}>Lisans salt okunur modda: makbuz kesilemez.</Kart>
-      ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, alignItems: "start" }}>
-          <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
-            <h3 style={{ fontSize: 22 }}>Oyuncu</h3>
-            <OyuncuSecici
-              oyuncu={oyuncu}
-              q={q}
-              onQ={setQ}
-              sonuc={sonuc}
-              onSec={oyuncuSec}
-              onKart={onOyuncu}
-              onDegistir={() => {
-                setOyuncu(null);
-                setSecili({});
-                setAidatlar([]);
-              }}
-            />
-            {oyuncu && aidatKalem && (
-              <AidatAySecimi
-                secenekler={secenekler}
-                aidatAylar={aidatAylar}
-                onToggle={ayToggle}
-                onUzunDonem={() => setUzunDonemAcik(true)}
-                saltOkunur={saltOkunur}
+      {sekme === "makbuzlar" && (
+        <KesilenMakbuzlar
+          saltOkunur={saltOkunur}
+          aktifSezon={aktifSezon}
+          yenileKey={makbuzYenile}
+          onYazdir={yazdir}
+          onIptal={setIptal}
+          onOyuncu={onOyuncu}
+        />
+      )}
+      {sekme === "tahsilat" &&
+        (saltOkunur ? (
+          <Kart style={{ padding: 20, color: "var(--kirmizi)", fontWeight: 600 }}>Lisans salt okunur modda: makbuz kesilemez.</Kart>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "3fr 2fr", gap: 20, alignItems: "start" }}>
+            <Kart style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+              <h3 style={{ fontSize: 22 }}>Oyuncu</h3>
+              <OyuncuSecici
+                oyuncu={oyuncu}
+                q={q}
+                onQ={setQ}
+                sonuc={sonuc}
+                onSec={oyuncuSec}
+                onKart={onOyuncu}
+                onDegistir={() => {
+                  setOyuncu(null);
+                  setSecili({});
+                  setAidatlar([]);
+                }}
               />
-            )}
-            <h3 style={{ fontSize: 22 }}>Kalemler</h3>
-            <KalemListesi
-              kalemler={kalemler}
-              oyuncu={oyuncu}
-              donemVar={secenekler.length > 0}
-              aidatSecili={aidatSecili}
-              aidatEtiket={aidatEtiket}
-              aidatToplam={aidatToplam}
+              {oyuncu && aidatKalem && (
+                <AidatAySecimi
+                  secenekler={secenekler}
+                  aidatAylar={aidatAylar}
+                  onToggle={ayToggle}
+                  onUzunDonem={() => setUzunDonemAcik(true)}
+                  saltOkunur={saltOkunur}
+                />
+              )}
+              <h3 style={{ fontSize: 22 }}>Kalemler</h3>
+              <KalemListesi
+                kalemler={kalemler}
+                oyuncu={oyuncu}
+                donemVar={secenekler.length > 0}
+                aidatSecili={aidatSecili}
+                aidatEtiket={aidatEtiket}
+                aidatToplam={aidatToplam}
+                secliAylar={secliAylar}
+                aidatAylar={aidatAylar}
+                onAidatAylar={setAidatAylar}
+                secili={secili}
+                onSecili={setSecili}
+                onToggle={kalemToggle}
+              />
+            </Kart>
+            <OdemePaneli
+              yontem={yontem}
+              onYontem={setYontem}
+              tarih={tarih}
+              onTarih={setTarih}
+              tahsilEden={tahsilEden}
+              onTahsilEden={setTahsilEden}
+              not_={not_}
+              onNot={setNot}
               secliAylar={secliAylar}
               aidatAylar={aidatAylar}
-              onAidatAylar={setAidatAylar}
               secili={secili}
-              onSecili={setSecili}
-              onToggle={kalemToggle}
+              kalemler={kalemler}
+              toplam={toplam}
+              bekliyor={bekliyor}
+              oyuncuVar={!!oyuncu}
+              onKaydet={kaydet}
             />
-          </Kart>
-          <OdemePaneli
-            yontem={yontem}
-            onYontem={setYontem}
-            tarih={tarih}
-            onTarih={setTarih}
-            tahsilEden={tahsilEden}
-            onTahsilEden={setTahsilEden}
-            not_={not_}
-            onNot={setNot}
-            secliAylar={secliAylar}
-            aidatAylar={aidatAylar}
-            secili={secili}
-            kalemler={kalemler}
-            toplam={toplam}
-            bekliyor={bekliyor}
-            oyuncuVar={!!oyuncu}
-            onKaydet={kaydet}
-          />
-        </div>
-      )}
-      <BugunKesilenler bugunku={bugunku} saltOkunur={saltOkunur} onYazdir={yazdir} onIptal={setIptal} />
+          </div>
+        ))}
+      {sekme === "tahsilat" && <BugunKesilenler bugunku={bugunku} saltOkunur={saltOkunur} onYazdir={yazdir} onIptal={setIptal} />}
       {iptal && <MakbuzIptalModal makbuz={iptal} neden={iptalNedeni} onNeden={setIptalNedeni} onIptalEt={iptalEt} onKapat={iptalKapat} />}
       {uzunDonemAcik && oyuncu && (
         <UzunDonemModal

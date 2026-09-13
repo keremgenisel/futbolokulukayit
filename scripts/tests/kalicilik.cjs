@@ -515,7 +515,7 @@ app.on("browser-window-created", async (_e, win) => {
           db.getPlayer(o.id).foto_yolu === fotolar[0].dosya_yolu &&
           fs.existsSync(path.join(db.getUploadsDir(), fotolar[0].dosya_yolu)),
       );
-      check("şema sürümü 20 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "20");
+      check("şema sürümü 21 (göç tekrar çalışmadı, sütunlar yerinde)", db.getMetaValue("schema_version") === "21");
       const kd = db.getDue(b.yabanci, b.yil, b.ay);
       check(
         "kısmi ödeme kalıcı (ödenen 1000, durum kismi, kalan borçlu listesinde)",
@@ -701,7 +701,7 @@ app.on("browser-window-created", async (_e, win) => {
       check(
         "kişisel veri silme kalıcı: oyuncu anonim, veli yok, makbuz adı damgayla duruyor",
         kv.ad_soyad === `Silinmiş Oyuncu #${b.kvkk}` &&
-          kv.tc_no === "" &&
+          kv.tc_no === null &&
           kv.durum === "ayrildi" &&
           db.listGuardians(b.kvkk).length === 0 &&
           db.getReceipt(b.kvkkMakbuz).ad_soyad === "Kvkk Kalıcı" &&

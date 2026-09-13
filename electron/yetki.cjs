@@ -24,6 +24,7 @@ const OKUMA = new Set([
   "listReceipts",
   "listReceiptsByDate",
   "listCancelledReceipts",
+  "makbuzListesi",
   "listTrainings",
   "trainingCalendar",
   "listAttendance",

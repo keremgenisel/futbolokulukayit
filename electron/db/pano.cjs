@@ -12,7 +12,7 @@ function panoOzet({ yil, ay, bugun }) {
   const vd = db
     .prepare(
       `SELECT COALESCE(sum(CASE WHEN ${v.sql} = 1 THEN 1 ELSE 0 END),0) AS borclu, COALESCE(sum(CASE WHEN ${v.sql} = 0 THEN 1 ELSE 0 END),0) AS bekleyen
-       FROM monthly_dues d JOIN players p ON p.id=d.player_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi')`,
+       FROM monthly_dues d JOIN players p ON p.id=d.player_id WHERE d.yil=? AND d.ay=? AND d.durum IN ('odenmedi','kismi') AND p.durum IN ('aktif','deneme','sakat')`,
     )
     .get(...v.args, ...v.args, yil, ay);
   const borclu = vd.borclu,

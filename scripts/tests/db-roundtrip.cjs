@@ -66,7 +66,7 @@ app.whenReady().then(async () => {
     const gr = Object.fromEntries(db.listAgeGroups().map((g) => [g.ad, g]));
     check(
       "göç 12: boş sezonlu AKTİF grup aktif sezonu alır, pasif grup boş kalır",
-      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "20",
+      gr.BosSezon2.sezon === "2026-2027" && gr.BosSezon.sezon === "" && db.getMetaValue("schema_version") === "21",
     );
     db.deleteAgeGroup(bosSezon.id);
     db.deleteAgeGroup(bos2.id);
@@ -247,7 +247,7 @@ app.whenReady().then(async () => {
         r.ok &&
           r.makbuz === 1 &&
           p.ad_soyad === `Silinmiş Oyuncu #${kv.id}` &&
-          p.tc_no === "" &&
+          p.tc_no === null &&
           p.dogum_tarihi === null &&
           p.gsm === "" &&
           p.adres === "" &&
@@ -265,6 +265,117 @@ app.whenReady().then(async () => {
           !db.getDue(kv.id, 2026, 9) &&
           !db.listAttendance(antrenman.id).find((a) => a.player_id === kv.id),
       );
+      // 13.09.2026: boş TC/pasaport NULL saklanır; art arda ikinci kişisel veri silme ve pasaportsuz ikinci yabancı UNIQUE hatası vermez
+      {
+        const p0 = db.getPlayer(kv.id);
+        check("kişisel veri silme: tc_no ve pasaport_no NULL ('' değil)", p0.tc_no === null && p0.pasaport_no === null);
+        const kv2 = db.createPlayer({ ad_soyad: "Kvkk İki", tc_no: "88888888888", dogum_tarihi: "2015-06-06", yas_grubu_id: grp.id });
+        db.createReceipt({
+          player_id: kv2.id,
+          tarih: "2026-09-06",
+          odeme_yontemi: "nakit",
+          tahsil_eden: "Test",
+          satirlar: [{ fee_item_id: aidatKalemi.id, tutar: 100, aciklama: "x", yil: null, ay: null }],
+        });
+        let hata = "";
+        try {
+          db.oyuncuKisiselVeriSil(kv2.id, "Tester");
+        } catch (e) {
+          hata = e.message;
+        }
+        check(
+          "ikinci kişisel veri silme çalışır (eskiden UNIQUE constraint failed: players.tc_no)",
+          hata === "" && db.getPlayer(kv2.id).tc_no === null,
+          hata,
+        );
+        const b1 = db.createPlayer({ ad_soyad: "Boş Tc Bir", tc_no: "", dogum_tarihi: "2015-01-01" });
+        const b2 = db.createPlayer({ ad_soyad: "Boş Tc İki", tc_no: "  ", dogum_tarihi: "2015-01-01" });
+        check(
+          "boş TC ('' / boşluk) NULL saklanır, iki boş kayıt çakışmaz",
+          db.getPlayer(b1.id).tc_no === null && db.getPlayer(b2.id).tc_no === null,
+        );
+        const y1 = db.createPlayer({ ad_soyad: "Yab Bir", uyruk: "yabanci", pasaport_no: "", dogum_tarihi: "2015-01-01" });
+        const y2 = db.createPlayer({ ad_soyad: "Yab İki", uyruk: "yabanci", pasaport_no: "", dogum_tarihi: "2015-01-01" });
+        db.updatePlayer(y2.id, { pasaport_no: "" });
+        check(
+          "pasaportsuz iki yabancı çakışmaz; updatePlayer da NULL yazar",
+          db.getPlayer(y1.id).pasaport_no === null && db.getPlayer(y2.id).pasaport_no === null,
+        );
+        // Göç 21: eski '' değerleri NULL olur (sürüm 20'den yeniden açılış)
+        db.hamBaglanti().prepare("UPDATE players SET tc_no='' WHERE id=?").run(b1.id);
+        db.hamBaglanti().prepare("UPDATE players SET pasaport_no='' WHERE id=?").run(y1.id);
+        db.setMetaValue("schema_version", "20");
+        db.close();
+        db.init();
+        check(
+          "göç 21: '' TC/pasaport NULL yapıldı, sürüm 21",
+          db.getPlayer(b1.id).tc_no === null && db.getPlayer(y1.id).pasaport_no === null && db.getMetaValue("schema_version") === "21",
+        );
+        for (const id of [b1.id, b2.id, y1.id, y2.id]) db.deletePlayer(id);
+      }
+      // 13.09.2026: ayrılan/pasif oyuncunun açık borcu Pano ve borçlu listelerinde sayılmaz (kume varsayılan "sahada"); raporda seçilebilir
+      {
+        const ayr = db.createPlayer({
+          ad_soyad: "Ayrılan Borçlu",
+          dogum_tarihi: "2015-01-01",
+          yas_grubu_id: grp.id,
+          aylik_aidat: 500,
+          odeme_donemi: "1-10",
+        });
+        db.ensureMonthlyDues(2026, 9, ayr.id);
+        db.updatePlayer(ayr.id, { durum: "ayrildi" });
+        const opts = { bugun: "2026-09-25", yalnizVadesiGecen: true };
+        const sahada = db.listUnpaid(2026, 9, null, null, opts).map((u) => u.player_id);
+        const ayrilan = db.listUnpaid(2026, 9, null, null, { ...opts, kume: "ayrilan" }).map((u) => u.player_id);
+        const tumu = db.listUnpaid(2026, 9, null, null, { ...opts, kume: "tumu" }).map((u) => u.player_id);
+        const arSahada = db.listUnpaidAralik(202609, 202609, null, null, opts).map((u) => u.player_id);
+        const arAyrilan = db.listUnpaidAralik(202609, 202609, null, null, { ...opts, kume: "ayrilan" }).map((u) => u.player_id);
+        const ozOnce = db.panoOzet({ yil: 2026, ay: 9, bugun: "2026-09-25" }).borclu;
+        db.updatePlayer(ayr.id, { durum: "aktif" });
+        const ozSonra = db.panoOzet({ yil: 2026, ay: 9, bugun: "2026-09-25" }).borclu;
+        check(
+          "ayrılan oyuncunun borcu: listUnpaid/listUnpaidAralik varsayılanda yok, kume ayrilan'da var, tumu'da var; panoOzet saymaz",
+          !sahada.includes(ayr.id) &&
+            ayrilan.includes(ayr.id) &&
+            tumu.includes(ayr.id) &&
+            !arSahada.includes(ayr.id) &&
+            arAyrilan.includes(ayr.id) &&
+            ozSonra === ozOnce + 1,
+          JSON.stringify({ sahada, ayrilan, tumu, arSahada, arAyrilan, ozOnce, ozSonra }),
+        );
+        db.deletePlayer(ayr.id);
+      }
+      // 13.09.2026: Tahsilat › Kesilen Makbuzlar — makbuzListesi (sezon, tarih, arama, iptal dahil, sayfalama, damgalı ad)
+      {
+        const t = db.makbuzListesi({ sezon: null, iptalDahil: true, sayfaBoyu: 2, sayfa: 1 });
+        const hepsi = db.makbuzListesi({ sezon: null, iptalDahil: true, sayfaBoyu: 500 });
+        const gecerli = db.makbuzListesi({ sezon: null, iptalDahil: false, sayfaBoyu: 500 });
+        const kvMk = hepsi.liste.find((m) => m.id === kvMakbuz.id);
+        const ara = db.makbuzListesi({ sezon: null, iptalDahil: true, q: "kvkk oyuncu", sayfaBoyu: 500 });
+        const noAra = db.makbuzListesi({ sezon: null, iptalDahil: true, q: kvMakbuz.makbuz_no, sayfaBoyu: 500 });
+        const tarih = db.makbuzListesi({ sezon: null, iptalDahil: true, bas: "2026-09-06", son: "2026-09-06", sayfaBoyu: 500 });
+        check(
+          "makbuzListesi: sayfalama (2/sayfa, toplam tüm), iptal süzgeci, damgalı ad, ad/no araması, tarih aralığı, toplam tutar iptalsiz",
+          t.liste.length === 2 &&
+            t.toplam === hepsi.liste.length &&
+            gecerli.liste.every((m) => !m.iptal) &&
+            gecerli.toplam <= hepsi.toplam &&
+            kvMk?.ad_soyad === "Kvkk Oyuncu" &&
+            ara.liste.some((m) => m.id === kvMakbuz.id) &&
+            noAra.liste.length === 1 &&
+            tarih.liste.every((m) => m.tarih === "2026-09-06") &&
+            tarih.liste.some((m) => m.id === kvMakbuz.id) &&
+            hepsi.toplamTutar === hepsi.liste.filter((m) => !m.iptal).reduce((s, m) => s + m.toplam, 0),
+          JSON.stringify({
+            t: t.liste.length,
+            toplam: t.toplam,
+            hepsi: hepsi.liste.length,
+            ara: ara.liste.length,
+            noAra: noAra.liste.length,
+            tarih: tarih.liste.length,
+          }),
+        );
+      }
       const kalan = db.getReceipt(kvMakbuz.id);
       const bugunkuler = db.listReceiptsByDate("2026-09-06", "2026-09-06");
       check(
@@ -438,7 +549,7 @@ app.whenReady().then(async () => {
     );
     check(
       "şema sürümü 17 ve pasaport sütunu var",
-      db.getMetaValue("schema_version") === "20" && db.getPlayer(yab.id).pasaport_no === "U1234567",
+      db.getMetaValue("schema_version") === "21" && db.getPlayer(yab.id).pasaport_no === "U1234567",
     );
 
     // Aidat ayarları tek işlemde: iki kalem + indirim birlikte; hatalı girdi hepsini geri alır
@@ -987,7 +1098,7 @@ app.whenReady().then(async () => {
     db.init();
     check(
       "göç 17: grup üyeliği antrenman tarihlerinden türetildi (U11'in 2027-04 antrenmanı → 2026-2027)",
-      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "20",
+      db.listAgeGroups({ sezon: "2026-2027" }).some((g) => g.id === grp.id) && db.getMetaValue("schema_version") === "21",
     );
     // Plan §18.1: geçmiş sezon seçilince yenileyen de (o sezonda sahadaydı) yenilemeyen de gelir
     const eskiSezonListesi = db.listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" }).map((p) => p.id);
@@ -1077,7 +1188,7 @@ app.whenReady().then(async () => {
       db
         .listPlayersWithDue({ yil: 2026, ay: 9, sezon: "2026-2027" })
         .map((p) => p.id)
-        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "20",
+        .includes(yenileyen.id) && db.getMetaValue("schema_version") === "21",
     );
     check(
       "gruplar ve aktif sezon güncellendi",
@@ -1298,7 +1409,7 @@ app.whenReady().then(async () => {
       "göç 7→11: eski indirim ayarı tabloya taşındı, sabit tip korundu, sürüm 11",
       goc.find((t) => t.kod === "burslu").indirim === 33 &&
         goc.find((t) => t.kod === "ucretsiz").indirim === 100 &&
-        db.getMetaValue("schema_version") === "20",
+        db.getMetaValue("schema_version") === "21",
     );
     db.aidatAyarlariKaydet({ indirimler: { burslu: 40 } });
     db.close();
@@ -1780,7 +1891,7 @@ app.whenReady().then(async () => {
       db.init();
       check(
         "göç 15: sezonu boş aktif oyuncuya aktif sezon yazıldı",
-        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "20",
+        db.getPlayer(p17.id).sezon === "2027-2028" && db.getMetaValue("schema_version") === "21",
       );
       db.setSetting("aktif_sezon", "2026-2027");
       const eskiSayi = db.listReceiptsByDate("2026-09-09", "2026-09-09").length;

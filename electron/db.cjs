@@ -105,6 +105,7 @@ module.exports = {
   listReceipts: m.listReceipts,
   listReceiptsByDate: m.listReceiptsByDate,
   listCancelledReceipts: m.listCancelledReceipts,
+  makbuzListesi: m.makbuzListesi, // Tahsilat › Kesilen Makbuzlar (13.09.2026)
   setReceiptPdf: m.setReceiptPdf,
   createTraining: m.createTraining,
   listTrainings: m.listTrainings,

@@ -77,6 +77,45 @@ const listReceiptsByDate = (from, to, sezon = null, grup = null) =>
       "SELECT r.*, COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad) AS ad_soyad FROM receipts r JOIN players p ON p.id=r.player_id WHERE r.tarih BETWEEN ? AND ? AND r.iptal=0 AND (? IS NULL OR r.sezon=?) AND (? IS NULL OR p.yas_grubu_id=?) ORDER BY r.tarih, r.id",
     )
     .all(from, to, sezon, sezon, grup, grup);
+// Tahsilat › Kesilen Makbuzlar (13.09.2026): sayfalı liste; sezon, tarih aralığı, oyuncu adı / makbuz no araması, iptal dahil.
+// Silinmiş oyuncunun makbuzunda damgalı ad (receipts.oyuncu_adi) kullanılır. Dönüş { liste, toplam, sayfa, sayfaBoyu }.
+const { araNormalize } = require("../metin.cjs");
+const likeKacir = (s) => String(s).replace(/[\\%_]/g, (c) => "\\" + c);
+function makbuzListesi({ sezon = null, bas = null, son = null, q = "", iptalDahil = false, sayfa = 1, sayfaBoyu = 50 } = {}) {
+  const where = ["1=1"];
+  const args = [];
+  if (sezon) {
+    where.push("r.sezon=?");
+    args.push(String(sezon));
+  }
+  if (bas) {
+    where.push("r.tarih>=?");
+    args.push(String(bas));
+  }
+  if (son) {
+    where.push("r.tarih<=?");
+    args.push(String(son));
+  }
+  if (!iptalDahil) where.push("r.iptal=0");
+  const qq = String(q || "").trim();
+  if (qq) {
+    const a = `%${likeKacir(araNormalize(qq))}%`;
+    where.push("(tr_ara(COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad)) LIKE ? ESCAPE '\\' OR r.makbuz_no LIKE ? ESCAPE '\\')");
+    args.push(a, `%${likeKacir(qq)}%`);
+  }
+  const govde = `FROM receipts r JOIN players p ON p.id=r.player_id WHERE ${where.join(" AND ")}`;
+  const boy = Math.min(500, Math.max(1, Number(sayfaBoyu) || 50));
+  const toplam = db.prepare(`SELECT count(*) AS n ${govde}`).get(...args).n;
+  const sonSayfa = Math.max(1, Math.ceil(toplam / boy));
+  const sf = Math.min(sonSayfa, Math.max(1, Number(sayfa) || 1));
+  const liste = db
+    .prepare(
+      `SELECT r.*, COALESCE(NULLIF(r.oyuncu_adi,''), p.ad_soyad) AS ad_soyad, p.durum AS oyuncu_durum ${govde} ORDER BY r.tarih DESC, r.id DESC LIMIT ? OFFSET ?`,
+    )
+    .all(...args, boy, (sf - 1) * boy);
+  const ozet = db.prepare(`SELECT COALESCE(sum(CASE WHEN r.iptal=0 THEN r.toplam ELSE 0 END),0) AS toplamTutar ${govde}`).get(...args);
+  return { liste, toplam, sayfa: sf, sayfaBoyu: boy, toplamTutar: ozet.toplamTutar };
+}
 const setReceiptPdf = (id, pdf_yolu) => db.prepare("UPDATE receipts SET pdf_yolu=? WHERE id=?").run(pdf_yolu, id);
 
 // İptal: neden zorunlu; iptal eden ve zaman kaydedilir (muhasebe izi). Aidat ödenenleri düşer.
@@ -109,4 +148,13 @@ const cancelReceipt = (id, neden = "", kullanici = "") => {
   return { ok: true };
 };
 
-module.exports = { createReceipt, getReceipt, listReceipts, listReceiptsByDate, listCancelledReceipts, setReceiptPdf, cancelReceipt };
+module.exports = {
+  createReceipt,
+  getReceipt,
+  listReceipts,
+  listReceiptsByDate,
+  listCancelledReceipts,
+  makbuzListesi,
+  setReceiptPdf,
+  cancelReceipt,
+};
