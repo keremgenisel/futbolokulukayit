@@ -1,7 +1,7 @@
 {
   "name": "futbol-okulu-kayit-programi",
   "productName": "Futbol Okulu Kayıt Programı",
-  "version": "1.3.1",
+  "version": "1.4.0",
   "description": "Futbol Okulu Kayıt Programı — oyuncu kayıt, aidat, makbuz ve yoklama",
   "main": "electron/main.cjs",
   "private": true,
