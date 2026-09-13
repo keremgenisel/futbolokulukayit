@@ -55,7 +55,7 @@ export function YasGruplari({ saltOkunur }) {
   };
   const kaydet = () =>
     dene(async () => {
-      await db("updateAgeGroup", duzenle.id, {
+      const r = await db("updateAgeGroup", duzenle.id, {
         ad: duzenle.ad,
         sezon: duzenle.sezon || aktifSezon,
         sira: Number(duzenle.sira) || 0,
@@ -65,7 +65,8 @@ export function YasGruplari({ saltOkunur }) {
           .map((p) => ({ gun: p.gun, saat: p.saat, bitis: p.bitis || "", saha: p.saha })),
       });
       setDuzenle(null);
-      toast("ok", "Kaydedildi");
+      const n = Number(r?.antrenmanGuncellenen) || 0;
+      toast("ok", n > 0 ? `Kaydedildi · ${n} antrenman yeni programa göre güncellendi (saha/saat)` : "Kaydedildi");
       yukle();
     });
   // Durum rozeti tek tıkla Aktif ↔ Pasif (plan §17.1); Düzenle'ye girmeden

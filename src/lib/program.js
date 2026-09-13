@@ -95,3 +95,39 @@ export function haftaninAntrenmanlari(haftaIcindeIso, program) {
 
 /** ISO tarihin program günü (1..7). @param {string} iso */
 export const programGunu = (iso) => haftaGunu(iso) + 1;
+
+/**
+ * Program değişiklikleri (13.09.2026, Kerem: grupta saha silinince Pano hâlâ eski sahayı yazıyordu): eski programın her satırı
+ * için yeni programdaki karşılığı bulunur; saha/bitiş/saat değiştiyse eşleme döner. Aynı gün + aynı saat → o satır; yoksa o günde
+ * yeni programda tek satır varsa saat değişmiş sayılır. Günü kaldırılan satır dönmez (var olan antrenmanlar elle silinir).
+ * @param {{gun:number, saat:string, bitis?:string, saha?:string}[]} eski
+ * @param {{gun:number, saat:string, bitis?:string, saha?:string}[]} yeni
+ * @returns {{ gun:number, eskiSaat:string, eskiBitis:string, eskiSaha:string, saat:string, bitis:string, saha:string }[]}
+ */
+export function programDegisiklikleri(eski, yeni) {
+  /** @param {{gun:number, saat?:string, bitis?:string, saha?:string}} x */
+  const n = (x) => ({ gun: x.gun, saat: String(x.saat || ""), bitis: String(x.bitis || ""), saha: String(x.saha || "").trim() });
+  const e = (eski || []).map(n),
+    y = (yeni || []).map(n);
+  const out = [];
+  for (const es of e) {
+    let hedef = y.find((x) => x.gun === es.gun && x.saat === es.saat);
+    if (!hedef) {
+      const gunler = y.filter((x) => x.gun === es.gun);
+      const eskiAyniGun = e.filter((x) => x.gun === es.gun);
+      if (gunler.length === 1 && eskiAyniGun.length === 1) hedef = gunler[0];
+    }
+    if (!hedef) continue;
+    if (hedef.saat === es.saat && hedef.bitis === es.bitis && hedef.saha === es.saha) continue;
+    out.push({
+      gun: es.gun,
+      eskiSaat: es.saat,
+      eskiBitis: es.bitis,
+      eskiSaha: es.saha,
+      saat: hedef.saat,
+      bitis: hedef.bitis,
+      saha: hedef.saha,
+    });
+  }
+  return out;
+}

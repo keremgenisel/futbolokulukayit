@@ -10,6 +10,7 @@ import {
   sureDk,
   saatAraligiDogrula,
   aralikKesisir,
+  programDegisiklikleri,
 } from "../src/lib/program.js";
 
 describe("haftalık antrenman programı", () => {
@@ -85,5 +86,39 @@ describe("haftalık antrenman programı", () => {
     expect(aralikKesisir({ saat: "17:00" }, { saat: "18:00" })).toBe(true); // 17:00–18:30 vs 18:00–19:30
     expect(aralikKesisir({ saat: "17:00" }, { saat: "18:30" })).toBe(false);
     expect(aralikKesisir({ saat: "" }, { saat: "18:30" })).toBe(false);
+  });
+});
+
+describe("programDegisiklikleri (13.09.2026: grupta saha silinince Pano eski sahayı yazıyordu)", () => {
+  it("aynı gün+saat: saha/bitiş farkı döner; saat değişimi tek satırlı günde eşleşir; kaldırılan gün dönmez; değişmeyen dönmez", () => {
+    const eski = [
+      { gun: 1, saat: "17:00", bitis: "18:00", saha: "Saha 1" },
+      { gun: 3, saat: "17:00", bitis: "", saha: "Saha 2" },
+      { gun: 5, saat: "10:00", bitis: "", saha: "Saha 3" },
+    ];
+    const yeni = [
+      { gun: 1, saat: "17:00", bitis: "18:00", saha: "" }, // saha silindi
+      { gun: 3, saat: "18:00", bitis: "19:00", saha: "Saha 2" }, // saat değişti (günde tek satır)
+      // 5. gün kaldırıldı
+    ];
+    expect(programDegisiklikleri(eski, yeni)).toEqual([
+      { gun: 1, eskiSaat: "17:00", eskiBitis: "18:00", eskiSaha: "Saha 1", saat: "17:00", bitis: "18:00", saha: "" },
+      { gun: 3, eskiSaat: "17:00", eskiBitis: "", eskiSaha: "Saha 2", saat: "18:00", bitis: "19:00", saha: "Saha 2" },
+    ]);
+    expect(programDegisiklikleri(eski, eski)).toEqual([]);
+    expect(programDegisiklikleri([], yeni)).toEqual([]);
+    // aynı günde iki satır varken saat eşleşmezse belirsiz: dokunulmaz
+    expect(
+      programDegisiklikleri(
+        [
+          { gun: 2, saat: "10:00", saha: "A" },
+          { gun: 2, saat: "12:00", saha: "A" },
+        ],
+        [
+          { gun: 2, saat: "11:00", saha: "B" },
+          { gun: 2, saat: "12:00", saha: "A" },
+        ],
+      ),
+    ).toEqual([]);
   });
 });

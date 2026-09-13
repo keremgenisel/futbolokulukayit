@@ -189,7 +189,7 @@ describe("Yaş Grupları ekranı", () => {
       if (fn === "updateAgeGroup") {
         yazilan = args[1];
         gruplar = gruplar.map((g) => (g.id === args[0] ? { ...g, ...args[1], program: JSON.stringify(args[1].program) } : g));
-        return { ok: true };
+        return { ok: true, antrenmanGuncellenen: 2 }; // 13.09.2026: programdan açılmış gelecek antrenmanlar eşitlenir
       }
       return orijinal(fn, ...args);
     });
@@ -210,6 +210,7 @@ describe("Yaş Grupları ekranı", () => {
     fireEvent.change(screen.getByLabelText("Çarşamba saati"), { target: { value: "18:00" } }); // bitişsiz gün de geçerli
     fireEvent.click(screen.getByRole("button", { name: "Kaydet" }));
     await waitFor(() => expect(yazilan).not.toBeNull());
+    await screen.findByText("Kaydedildi · 2 antrenman yeni programa göre güncellendi (saha/saat)");
     expect(yazilan.program).toEqual([
       { gun: 1, saat: "17:00", bitis: "18:30", saha: "Saha 1" },
       { gun: 3, saat: "18:00", bitis: "", saha: "" },

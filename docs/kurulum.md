@@ -131,7 +131,10 @@ Bir yaş grubuna sığmayacak kadar oyuncu olduğunda o yaşı iki ayrı grup ol
 5. Yeni sezona geçerken sihirbaz "U11 A" için "U12 A" önerir; "U12 A" yoksa "U12"yi önerir. Geçişten önce
    Yaş Grupları'nda gelecek sezonun gruplarını açın.
 
-Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antrenman ve yoklama kayıtları da silinir.
+Kalabalık yıl geçince "U11 B"yi pasife alın, silmeyin. Silinen grubun antrenman ve yoklama kayıtları da silinir. Grubun haftalık
+programında saat, bitiş ya da sahayı değiştirince, programdan açılmış ve elle değiştirilmemiş bugünden sonraki antrenmanlar yeni
+programa göre güncellenir (Pano ve Yoklama'da hemen görünür; değişiklik bildirimi gereği düşer). Geçmiş, iptal edilmiş ve elle
+düzenlenmiş antrenmanlara dokunulmaz; programdan kaldırılan günün antrenmanı silinmez.
 
 ## 3c0. Oyuncu giriş kartı
 

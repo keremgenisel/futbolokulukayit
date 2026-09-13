@@ -1,7 +1,12 @@
 // ── age groups, haftalık program ──
 const { db } = require("./baglanti.cjs");
-const { saatAraligiDogrula } = require("../../src/lib/program.js");
-const { createTraining } = require("./antrenman.cjs");
+const { saatAraligiDogrula, programDegisiklikleri } = require("../../src/lib/program.js");
+const { haftaGunu } = require("../../src/lib/takvim.js");
+const { createTraining, updateTraining } = require("./antrenman.cjs");
+const bugunIso = () => {
+  const t = new Date();
+  return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, "0")}-${String(t.getDate()).padStart(2, "0")}`;
+};
 
 // sezon verilirse yalnız o sezonda var olan gruplar (age_groups.sezon VEYA group_seasons; plan §21); verilmezse hepsi
 const listAgeGroups = ({ sezon = null } = {}) =>
@@ -31,14 +36,38 @@ function createAgeGroup({ ad, sezon = "", sira = 0 }) {
   grupSezonUyeligiEkle(Number(r.lastInsertRowid), sezon);
   return { id: Number(r.lastInsertRowid), ad, sezon, sira, aktif: 1 };
 }
-const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }) => {
+// Program değişince (13.09.2026): bugünden itibaren, programdan açılmış ve ELLE DEĞİŞTİRİLMEMİŞ (eski programın gün/saat/saha/bitişi
+// ile birebir aynı) antrenmanlar yeni programa eşitlenir (`updateTraining`: değişiklik notu + veli bildirimi gereği düşer). Geçmiş,
+// iptal ve elle düzenlenmiş antrenmanlara dokunulmaz; günü kaldırılan antrenman silinmez. Dönüş: { ok, antrenmanGuncellenen }.
+const updateAgeGroup = (id, { ad, sezon, sira, aktif, program }, { bugun = bugunIso() } = {}) => {
   const s = sezonDogrula(sezon);
   if (s) grupSezonUyeligiEkle(id, s);
-  return db
-    .prepare(
+  const eskiProgram =
+    program === undefined ? null : programDogrula(db.prepare("SELECT program FROM age_groups WHERE id=?").get(Number(id))?.program);
+  const yeniProgram = program === undefined ? null : programDogrula(program);
+  const tx = db.transaction(() => {
+    db.prepare(
       "UPDATE age_groups SET ad=COALESCE(?,ad), sezon=COALESCE(?,sezon), sira=COALESCE(?,sira), aktif=COALESCE(?,aktif), program=COALESCE(?,program) WHERE id=?",
-    )
-    .run(ad, s, sira, aktif, program === undefined ? null : JSON.stringify(programDogrula(program)), id);
+    ).run(ad, s, sira, aktif, yeniProgram === null ? null : JSON.stringify(yeniProgram), id);
+    let antrenmanGuncellenen = 0;
+    if (eskiProgram) {
+      const degisenler = programDegisiklikleri(eskiProgram, yeniProgram);
+      if (degisenler.length) {
+        const gelecek = db.prepare("SELECT * FROM trainings WHERE age_group_id=? AND tarih>=? AND iptal=0").all(Number(id), bugun);
+        for (const t of gelecek) {
+          const gun = haftaGunu(t.tarih) + 1;
+          const d = degisenler.find(
+            (x) => x.gun === gun && x.eskiSaat === t.saat && x.eskiSaha === (t.saha || "") && x.eskiBitis === (t.bitis_saat || ""),
+          );
+          if (!d) continue;
+          updateTraining(t.id, { saat: d.saat, bitis_saat: d.bitis, saha: d.saha });
+          antrenmanGuncellenen++;
+        }
+      }
+    }
+    return { ok: true, antrenmanGuncellenen };
+  });
+  return tx();
 };
 // Program girdisini süz: [{gun 1..7, saat HH:MM, saha}]
 function programDogrula(p) {

@@ -768,6 +768,59 @@ app.whenReady().then(async () => {
           .map((t) => t.tarih)
           .join() === "2027-03-01,2027-03-03",
     );
+    // 13.09.2026: program değişince programdan açılmış GELECEK antrenmanlar eşitlenir (saha silme dahil); geçmiş ve elle değiştirilen kalmaz
+    {
+      const bugun = "2027-02-28"; // haftadan önce → 03-01 ve 03-03 gelecek
+      const t01 = db.listTrainings("2027-03-01", "2027-03-01").find((t) => t.age_group_id === grp.id);
+      const t03 = db.listTrainings("2027-03-03", "2027-03-03").find((t) => t.age_group_id === grp.id);
+      db.updateTraining(t03.id, { saha: "Elle Saha" }); // elle değiştirilmiş: programa eşitlenmemeli
+      const r = db.updateAgeGroup(
+        grp.id,
+        {
+          program: [
+            { gun: 1, saat: "17:00", saha: "" },
+            { gun: 3, saat: "17:00", bitis: "18:30", saha: "Saha 9" },
+          ],
+        },
+        { bugun },
+      );
+      const y01 = db.listTrainings("2027-03-01", "2027-03-01").find((t) => t.age_group_id === grp.id);
+      const y03 = db.listTrainings("2027-03-03", "2027-03-03").find((t) => t.age_group_id === grp.id);
+      check(
+        "program değişince: sahası silinen gelecek antrenman boşalır (bildirim gereği düşer), elle değiştirilen dokunulmaz, sayaç 1",
+        r.antrenmanGuncellenen === 1 && y01.saha === "" && y01.bildirim_gerekli === 1 && y03.saha === "Elle Saha",
+        JSON.stringify({ r, y01: y01.saha, y03: y03.saha }),
+      );
+      const r2 = db.updateAgeGroup(
+        grp.id,
+        {
+          program: [
+            { gun: 1, saat: "18:00", saha: "Saha 5" },
+            { gun: 3, saat: "17:00", bitis: "18:30", saha: "Saha 9" },
+          ],
+        },
+        { bugun: "2027-03-02" },
+      );
+      const z01 = db.listTrainings("2027-03-01", "2027-03-01").find((t) => t.age_group_id === grp.id);
+      check(
+        "bugünden önceki antrenman program değişince dokunulmaz",
+        r2.antrenmanGuncellenen === 0 && z01.saat === "17:00" && z01.saha === "",
+      );
+      // eski duruma dön (sonraki kontroller programa göre)
+      db.updateAgeGroup(
+        grp.id,
+        {
+          program: [
+            { gun: 1, saat: "17:00", saha: "Saha 1" },
+            { gun: 3, saat: "17:00", bitis: "18:30", saha: "Saha 1" },
+          ],
+        },
+        { bugun: "2099-01-01" },
+      );
+      db.updateTraining(t01.id, { saha: "Saha 1" });
+      db.updateTraining(t03.id, { saha: "Saha 1" });
+      void t01;
+    }
     check(
       "programdaki bitiş saati doldurulan antrenmana geçer (plan §37)",
       db.listTrainings("2027-03-03", "2027-03-03").find((t) => t.age_group_id === grp.id)?.bitis_saat === "18:30" &&
