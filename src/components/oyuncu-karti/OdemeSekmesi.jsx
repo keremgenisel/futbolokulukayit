@@ -37,7 +37,7 @@ export function OdemeSekmesi({
               onClick={onMuafAyEkle}
               title="Henüz açılmamış bir ayı (örn. geçmiş dondurma dönemi) muaf olarak kaydeder"
             >
-              Muaf ay ekle
+              Muaf Ay Ekle
             </Btn>
           )}
           {acikAidat &&
@@ -106,12 +106,12 @@ export function OdemeSekmesi({
                   <td>
                     {!saltOkunur && muafYapilabilir(a) && onMuafYap && (
                       <Btn kucuk tur="ghost" onClick={() => onMuafYap(a)}>
-                        Muaf yap
+                        Muaf Yap
                       </Btn>
                     )}
                     {!saltOkunur && a.durum === "muaf" && a.muaf_neden && onMuafKaldir && (
                       <Btn kucuk tur="ghost" onClick={() => onMuafKaldir(a)}>
-                        Muafiyeti kaldır
+                        Muafiyeti Kaldır
                       </Btn>
                     )}
                   </td>

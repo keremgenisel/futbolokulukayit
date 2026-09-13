@@ -191,9 +191,9 @@ app.on("browser-window-created", async (_e, win) => {
     );
     await odemelerAc();
     check(
-      "Ödemeler satırı: Muaf · Dondurma: Durum: Dondurma, 'Muafiyeti kaldır' var",
+      "Ödemeler satırı: Muaf · Dondurma: Durum: Dondurma, 'Muafiyeti Kaldır' var",
       /Muaf.*Dondurma: Durum: Dondurma/.test(await aySatiri(AYLAR[ay - 1], yil)) &&
-        /Muafiyeti kaldır/.test(await aySatiri(AYLAR[ay - 1], yil)),
+        /Muafiyeti Kaldır/.test(await aySatiri(AYLAR[ay - 1], yil)),
       await aySatiri(AYLAR[ay - 1], yil),
     );
     // Dondurma → Aktif: muaf korunur (bu ay yeniden açılmaz)
@@ -245,7 +245,7 @@ app.on("browser-window-created", async (_e, win) => {
     await durumSec("dondurma");
     check("bu ay kısmi ödenmişse soru yok (ödenen > 0)", !(await soruVar()) && due(kismi).durum === "kismi");
     await odemelerAc();
-    check("kısmi ayda 'Muaf yap' düğmesi yok", !/Muaf yap/.test(await aySatiri(AYLAR[ay - 1], yil)));
+    check("kısmi ayda 'Muaf Yap' düğmesi yok", !/Muaf Yap/.test(await aySatiri(AYLAR[ay - 1], yil)));
     await kartKapat();
     await kartAc("Acilmamis Soru Yok");
     await durumSec("dondurma");
@@ -274,11 +274,11 @@ app.on("browser-window-created", async (_e, win) => {
     const g2ad = AYLAR[g2.ay - 1],
       g3ad = AYLAR[g3.ay - 1];
     check(
-      "ödenmiş geçmiş ayda 'Muaf yap' yok, ödenmemişte var",
-      !/Muaf yap/.test(await aySatiri(g3ad, g3.yil)) && /Muaf yap/.test(await aySatiri(g2ad, g2.yil)),
+      "ödenmiş geçmiş ayda 'Muaf Yap' yok, ödenmemişte var",
+      !/Muaf Yap/.test(await aySatiri(g3ad, g3.yil)) && /Muaf Yap/.test(await aySatiri(g2ad, g2.yil)),
       (await aySatiri(g2ad, g2.yil)) + " | " + (await aySatiri(g3ad, g3.yil)),
     );
-    await aySatirDugme(g2ad, g2.yil, "Muaf yap");
+    await aySatirDugme(g2ad, g2.yil, "Muaf Yap");
     check("Muaf yap penceresi", (await dEtiket()) === "Aidat Muafiyeti" && (await dMetin()).includes(`${g2ad} ${g2.yil}`));
     await sec("Muafiyet nedeni", "sakatlik", D);
     await yaz("Muafiyet notu", "rapor 2 hafta", D);
@@ -293,17 +293,17 @@ app.on("browser-window-created", async (_e, win) => {
         /Muaf.*Sakatlık: rapor 2 hafta/.test(await aySatiri(g2ad, g2.yil)),
       await aySatiri(g2ad, g2.yil),
     );
-    await aySatirDugme(g2ad, g2.yil, "Muafiyeti kaldır");
+    await aySatirDugme(g2ad, g2.yil, "Muafiyeti Kaldır");
     await bekle(400);
     check(
       "Muafiyeti kaldır: ödenmedi'ye döner, alanlar temiz",
       due(gecmis, g2.yil, g2.ay).durum === "odenmedi" &&
         due(gecmis, g2.yil, g2.ay).muaf_neden === "" &&
-        /Muaf yap/.test(await aySatiri(g2ad, g2.yil)),
+        /Muaf Yap/.test(await aySatiri(g2ad, g2.yil)),
     );
     // Muaf ay ekle: 5 ay önce (açılmamış)
     const g5 = ayGeri(5);
-    await tikla("Muaf ay ekle", D);
+    await tikla("Muaf Ay Ekle", D);
     await bekle(400);
     await sec("Muaf yılı", String(g5.yil), D);
     await sec("Muaf ayı", String(g5.ay), D);
@@ -362,7 +362,7 @@ app.on("browser-window-created", async (_e, win) => {
     await giris("hoca", "hoca-parola-1");
     await kartAc("Sakat Soru Yok");
     await odemelerAc();
-    await aySatirDugme(AYLAR[ay - 1], yil, "Muaf yap");
+    await aySatirDugme(AYLAR[ay - 1], yil, "Muaf Yap");
     await tikla("Muaf Yap", D);
     await bekle(800);
     check(
@@ -385,7 +385,7 @@ app.on("browser-window-created", async (_e, win) => {
     const saltRed = await js(`window.okul.db("aidatMuafKaldir", ${sakat.id}, ${yil}, ${ay}).then(() => "ok").catch((e) => e.message)`);
     check(
       "salt okunur: Ödemeler'de muaf düğmeleri yok, ana süreç aidatMuafKaldir'ı reddeder",
-      !/Muaf yap|Muaf ay ekle|Muafiyeti kaldır/.test(await dMetin()) && /salt okunur/.test(saltRed),
+      !/Muaf Yap|Muaf Ay Ekle|Muafiyeti Kaldır/.test(await dMetin()) && /salt okunur/.test(saltRed),
       saltRed,
     );
     await kartKapat();

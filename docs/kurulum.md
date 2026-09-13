@@ -153,9 +153,9 @@ ileride okuyucuyla giriş için aynı kod kullanılır). Aidat durumu karta yaz�
 
 ## 3c0b. Aidat muafiyeti (dondurma, sakatlık, burs)
 
-Oyuncu kartı › Ödemeler'de ödenmemiş ayın yanında **Muaf yap**: neden (Dondurma / Sakatlık / Burs / Diğer) ve isteğe bağlı not ile o
-ay borç olmaktan çıkar, kayıtta "Muaf · Dondurma" olarak kalır; **Muafiyeti kaldır** ile geri döner. Ödeme yapılmış ay muaf
-yapılamaz (önce makbuz iptal edilir). Geçmişe dönük kayıt için **Muaf ay ekle**: henüz açılmamış bir ayı (örn. geçen sezonun
+Oyuncu kartı › Ödemeler'de ödenmemiş ayın yanında **Muaf Yap**: neden (Dondurma / Sakatlık / Burs / Diğer) ve isteğe bağlı not ile o
+ay borç olmaktan çıkar, kayıtta "Muaf · Dondurma" olarak kalır; **Muafiyeti Kaldır** ile geri döner. Ödeme yapılmış ay muaf
+yapılamaz (önce makbuz iptal edilir). Geçmişe dönük kayıt için **Muaf Ay Ekle**: henüz açılmamış bir ayı (örn. geçen sezonun
 dondurma ayları) yıl/ay seçerek muaf olarak kaydeder. Oyuncuyu Dondurma, Pasif ya da Ayrıldı yapınca bu ayın aidatı açık ve hiç
 ödenmemişse program "bu ay muaf yapılsın mı?" diye sorar; Hayır derseniz borç kalır. Not: makbuz keserken seçilmeyen aylar zaten
 açılmaz; dondurma aylarını seçmezseniz borç oluşmaz, muafiyet yalnız bunu kayda geçirmek isteyenler için.

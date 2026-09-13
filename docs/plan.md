@@ -1908,9 +1908,9 @@ Testler: db-roundtrip (ikinci KVKK silme, boş TC/pasaport, göç 21, küme, mak
 "dondurma" olarak izlenebilsin. Bugün dondurma ayları makbuzda seçilmeyince hiç açılmıyor (borç değil) ama işaretlenemiyor; oyuncu
 bu ay Dondurma'ya alınınca o ayın açık aidatı borç kalıyor.
 
-**Karar:** (1) Oyuncu kartı › Ödemeler: ödenmemiş (hiç ödeme yapılmamış) ay satırında **Muaf yap** → neden (dondurma | sakatlık |
-burs | diğer) + isteğe bağlı not; muaf satırda "Muaf · Dondurma" rozeti ve **Muafiyeti kaldır**. Ödenmiş / kısmi ödenmiş ay muaf
-yapılamaz. **Muaf ay ekle** ile henüz açılmamış geçmiş ay da (yıl/ay seçilerek) muaf olarak açılır — geçmişe dönük dondurma kaydı.
+**Karar:** (1) Oyuncu kartı › Ödemeler: ödenmemiş (hiç ödeme yapılmamış) ay satırında **Muaf Yap** → neden (dondurma | sakatlık |
+burs | diğer) + isteğe bağlı not; muaf satırda "Muaf · Dondurma" rozeti ve **Muafiyeti Kaldır**. Ödenmiş / kısmi ödenmiş ay muaf
+yapılamaz. **Muaf Ay Ekle** ile henüz açılmamış geçmiş ay da (yıl/ay seçilerek) muaf olarak açılır — geçmişe dönük dondurma kaydı.
 (2) Oyuncu kartı başlığındaki Durum kutusundan ya da Düzenle formundan Dondurma / Pasif / Ayrıldı'ya geçilirken bu ayın aidatı
 açık ve hiç ödenmemişse **"Bu ayın açık aidatı muaf yapılsın mı?"** sorusu; evet → muaf (neden = yeni durum), hayır → borç kalır
 (plan §41 A seçeneğiyle uyumlu: borç kendiliğinden silinmez). (3) Muafiyeti kaldırınca ay tutarıyla "ödenmedi"ye döner; tutar 0

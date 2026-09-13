@@ -76,29 +76,29 @@ const odemelerAc = async () => {
 };
 
 describe("aidat muafiyeti (plan §42)", () => {
-  it("ödenmemiş ayda 'Muaf yap' → pencere → neden/not → aidatMuafYap; kısmi ayda düğme yok; muaf satırda neden ve 'Muafiyeti kaldır'", async () => {
+  it("ödenmemiş ayda 'Muaf Yap' → pencere → neden/not → aidatMuafYap; kısmi ayda düğme yok; muaf satırda neden ve 'Muafiyeti Kaldır'", async () => {
     const db = kur();
     await odemelerAc();
     const satirlar = screen.getAllByRole("row");
     const acik = satirlar.find((r) => r.textContent.includes("Ödenmedi"));
     const kismi = satirlar.find((r) => r.textContent.includes("kalan"));
     const muaf = satirlar.find((r) => r.textContent.includes("Dondurma"));
-    expect(within(kismi).queryByRole("button", { name: "Muaf yap" })).toBeNull();
+    expect(within(kismi).queryByRole("button", { name: "Muaf Yap" })).toBeNull();
     expect(muaf).toHaveTextContent("· Dondurma: askerlik");
-    fireEvent.click(within(acik).getByRole("button", { name: "Muaf yap" }));
+    fireEvent.click(within(acik).getByRole("button", { name: "Muaf Yap" }));
     const dlg = await screen.findByRole("dialog", { name: "Aidat Muafiyeti" });
     fireEvent.change(within(dlg).getByLabelText("Muafiyet nedeni"), { target: { value: "sakatlik" } });
     fireEvent.change(within(dlg).getByLabelText("Muafiyet notu"), { target: { value: "rapor var" } });
     fireEvent.click(within(dlg).getByRole("button", { name: "Muaf Yap" }));
     await waitFor(() => expect(db).toHaveBeenCalledWith("aidatMuafYap", 7, YIL, AY, { neden: "sakatlik", not: "rapor var" }));
     await screen.findByText(/muaf yapıldı/);
-    fireEvent.click(within(muaf).getByRole("button", { name: "Muafiyeti kaldır" }));
+    fireEvent.click(within(muaf).getByRole("button", { name: "Muafiyeti Kaldır" }));
     await waitFor(() => expect(db).toHaveBeenCalledWith("aidatMuafKaldir", 7, 2026, 1));
   });
-  it("'Muaf ay ekle': yıl/ay seçilir (varsayılan bu ay), neden dondurma", async () => {
+  it("'Muaf Ay Ekle': yıl/ay seçilir (varsayılan bu ay), neden dondurma", async () => {
     const db = kur();
     await odemelerAc();
-    fireEvent.click(screen.getByRole("button", { name: "Muaf ay ekle" }));
+    fireEvent.click(screen.getByRole("button", { name: "Muaf Ay Ekle" }));
     const dlg = await screen.findByRole("dialog", { name: "Aidat Muafiyeti" });
     fireEvent.change(within(dlg).getByLabelText("Muaf yılı"), { target: { value: String(YIL - 1) } });
     fireEvent.change(within(dlg).getByLabelText("Muaf ayı"), { target: { value: "11" } });
@@ -133,8 +133,8 @@ describe("aidat muafiyeti (plan §42)", () => {
     cleanup();
     kur({ saltOkunur: true });
     await odemelerAc();
-    expect(screen.queryByRole("button", { name: "Muaf yap" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Muaf ay ekle" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Muafiyeti kaldır" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Muaf Yap" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Muaf Ay Ekle" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Muafiyeti Kaldır" })).toBeNull();
   });
 });
