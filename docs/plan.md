@@ -1892,3 +1892,11 @@ Tahsilat | Kesilen Makbuzlar (`KesilenMakbuzlar.jsx`, `db.makbuzListesi` sayfal�
 araması, iptal dahil; satırda Yazdır, İptal (nedenli, aynı modal; sonra liste yenilenir), oyuncu adı → oyuncu kartı; silme YOK).
 Testler: db-roundtrip (ikinci KVKK silme, boş TC/pasaport, göç 21, küme, makbuzListesi), kalıcılık (sürüm 21, tc_no NULL),
 `tests/ui/tahsilat-makbuzlar.test.jsx`, raporlar-sezon (kume), yetki. Rehber 3c2 güncellendi. Sürüm çıkarılmadı.
+- Test turu (Kerem 13.09.2026 "son 2 saatte yapılan her şeyi tüm durumları için test et"): `scripts/tests/plan41-e2e.cjs` +
+  `tests/plan41-e2e.test.js` (gerçek pencere, 36 kontrol): Pano borçlu sayısı/listesi ve WhatsApp toplu pencere ayrılanı saymaz;
+  Raporlar Borçlu Listesi kümesi tümü/sahada/ayrılan + başlık eki; Kesilen Makbuzlar (63 makbuz, 50'lik sayfalama, ad ve makbuz no
+  araması, tarih aralığı, sezon, nedensiz iptal reddi, iptal → rozet/liste/Bugün Kesilenler yenilenir, Yazdır çıktısı, oyuncu kartı
+  bağlantısı); art arda iki kişisel veri silme (TC NULL, borç gider, makbuz damgalı, silinmiş adla arama), pasaportsuz iki yabancı;
+  takvim 12 antrenman → 1 nokta + '+11' kutunun içinde; program eşitleme (saha silme → yarınki antrenman boş, elle değiştirilen ve
+  geçmiş dokunulmaz, toast, Yoklama 'Saha belirtilmedi'); Hakkında HTML/imzalı not → düz metin; kullanıcı rolü iptal edebilir,
+  salt okunurda İptal yok. Not: Pazar günü 'yarın' sonraki haftaya düşer → e2e 'Sonraki hafta'ya geçer.
