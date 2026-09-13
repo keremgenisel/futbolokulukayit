@@ -1922,3 +1922,9 @@ açık ve hiç ödenmemişse **"Bu ayın açık aidatı muaf yapılsın mı?"** 
 (satır düğmeleri, `AidatMuafModal`), `OyuncuKarti` (durum değişiminde `Onay`; Düzenle formundan durum değişince de sorulur).
 `gorunenAidatDurumu` değişmedi (muaf zaten borç değil). Testler: db-roundtrip, `tests/ui/oyuncu-karti-muaf.test.jsx`, yetki, kalıcılık
 (sürüm 22 + muaf kaydı). Rehber 3b. Sürüm çıkarılmadı.
+- Test turu (Kerem 13.09.2026 "geçmiş kayıtlarda durum değişikliklerini tüm durumlar için test et"): `scripts/tests/muafiyet-e2e.cjs` +
+  `tests/muafiyet-e2e.test.js` (gerçek pencere, 26 kontrol): Dondurma/Evet (neden, not, eden, satır rozeti, Aktif'e dönüşte muaf
+  korunur), Pasif/Vazgeç (borç kalır), Ayrıldı/Evet (diger), Sakat ve Deneme (soru yok), bu ay ödenmiş / kısmi / hiç açılmamış (soru
+  yok, kısmi ayda düğme yok), Düzenle formundan Dondurma (soru), geçmiş ay Muaf yap (sakatlık + not) → Muafiyeti kaldır, Muaf ay
+  ekle (açılmamış 5 ay önce), ödenmiş ay için ana süreç reddi, Tahsilat'ta muaf ay pil değil, Pano/borçlu listesi ve 'ayrilan' kümesi
+  tutarlı, kullanıcı rolü (muaf_eden), salt okunurda düğme yok + ana süreç reddi. Uygulama kodunda hata çıkmadı.
