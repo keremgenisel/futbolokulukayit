@@ -7,6 +7,7 @@ import {
   varsayilanBaslangic,
   uzunTarih,
   gunNoktalari,
+  gunNoktaOzeti,
   sezonDisiMi,
   haftaSezonDisiMi,
 } from "../src/lib/takvim.js";
@@ -51,6 +52,12 @@ describe("takvim yardımcıları", () => {
       ]),
     ).toEqual(["kirmizi", "gri", "yesil", "mor"]);
     expect(gunNoktalari([])).toEqual([]);
+  });
+  it("gün nokta özeti: 4'e kadar hepsi; fazlaysa türden birer nokta (en çok 3) ve +N (13.09.2026: 10+ antrenman taşıyordu)", () => {
+    expect(gunNoktaOzeti(["gri", "gri", "mor", "yesil"])).toEqual({ goster: ["gri", "gri", "mor", "yesil"], fazla: 0 });
+    expect(gunNoktaOzeti(Array(12).fill("gri"))).toEqual({ goster: ["gri"], fazla: 11 });
+    expect(gunNoktaOzeti(["kirmizi", "gri", "gri", "mor", "yesil", "gri"])).toEqual({ goster: ["kirmizi", "gri", "mor"], fazla: 3 });
+    expect(gunNoktaOzeti([])).toEqual({ goster: [], fazla: 0 });
   });
   it("sezon dışı gün: aralık dışı true, sınır günler içeride, tarih yoksa hiç (plan §37.6)", () => {
     const t = { baslangic: "2026-09-01", bitis: "2027-06-30" };

@@ -44,6 +44,22 @@ describe("Takvim şeridi", () => {
     expect(document.querySelector('button[data-iso="2026-09-08"] [data-nokta]').dataset.nokta).toBe("gri");
     expect(document.querySelector('button[data-iso="2026-09-03"] [data-nokta]')).toBeNull();
   });
+  it("12 antrenmanlı gün: en çok 4 işaret, kalan '+N' (13.09.2026: noktalar kutudan taşıyordu)", () => {
+    kur({
+      gunOzetleri: {
+        "2026-09-05": [
+          ...Array.from({ length: 10 }, () => ({ iptal: 0, oyuncu: 10, isaretli: 0 })),
+          { iptal: 1, oyuncu: 10, isaretli: 0 },
+          { iptal: 0, oyuncu: 10, isaretli: 10 },
+        ],
+      },
+    });
+    const kutu = document.querySelector('button[data-iso="2026-09-05"]');
+    const n = [...kutu.querySelectorAll("[data-nokta]")].map((x) => x.dataset.nokta);
+    expect(n).toEqual(["gri", "kirmizi", "yesil"]);
+    expect(kutu.querySelector("[data-nokta-fazla]").textContent).toBe("+9");
+    expect(kutu.querySelector("[data-nokta-fazla]").parentElement.title).toBe("12 antrenman");
+  });
   it("gün tıklama, oklar (7 gün), Bugün ve tarih girdisi", () => {
     const p = kur();
     fireEvent.click(document.querySelector('button[data-iso="2026-09-10"]'));

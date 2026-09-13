@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { Btn, Girdi } from "./ui.jsx";
 import { Ikon } from "./Ikon.jsx";
-import { gunSeridi, gunKaydir, varsayilanBaslangic, gunNoktalari, sezonDisiMi } from "../lib/takvim.js";
+import { gunSeridi, gunKaydir, varsayilanBaslangic, gunNoktalari, gunNoktaOzeti, sezonDisiMi } from "../lib/takvim.js";
 
 export const SERIT_GUN = 14;
 const NOKTA_RENK = { gri: "#C9C2D6", mor: "var(--mor)", yesil: "var(--yesil)", kirmizi: "var(--kirmizi)" };
@@ -89,7 +89,8 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
         </button>
         {hucreler.map((h) => {
           const on = h.iso === secili;
-          const noktalar = gunNoktalari(gunOzetleri[h.iso] || []);
+          const tumNoktalar = gunNoktalari(gunOzetleri[h.iso] || []);
+          const { goster: noktalar, fazla } = gunNoktaOzeti(tumNoktalar); // en çok 4 işaret: kutudan taşmasın
           const sezonDisi = sezonDisiMi(h.iso, sezon);
           const etiket = `${h.gun} ${h.ay}${h.bugunMu ? " (bugün)" : ""}${noktalar.length ? ` · ${noktalar.length} antrenman` : ""}${sezonDisi ? " · sezon dışı" : ""}`;
           return (
@@ -147,15 +148,32 @@ export function TakvimSeridi({ secili, bugun, baslangic, onSec, onBaslangic, gun
               <span className="baslik" style={{ fontSize: 26, fontWeight: 700, lineHeight: 1 }}>
                 {h.gun}
               </span>
-              <span style={{ display: "flex", gap: 4, height: 7, alignItems: "center" }}>
+              <span
+                style={{ display: "flex", gap: 4, height: 9, alignItems: "center", maxWidth: "100%", overflow: "hidden" }}
+                title={tumNoktalar.length > 1 ? `${tumNoktalar.length} antrenman` : undefined}
+              >
                 {noktalar.map((n, i) => (
                   <span
                     key={i}
                     title={NOKTA_AD[n]}
                     data-nokta={n}
-                    style={{ width: 7, height: 7, borderRadius: "50%", background: (on ? NOKTA_RENK_SECILI : NOKTA_RENK)[n] }}
+                    style={{
+                      width: 7,
+                      height: 7,
+                      borderRadius: "50%",
+                      background: (on ? NOKTA_RENK_SECILI : NOKTA_RENK)[n],
+                      flexShrink: 0,
+                    }}
                   />
                 ))}
+                {fazla > 0 && (
+                  <span
+                    data-nokta-fazla={fazla}
+                    style={{ fontSize: 9, lineHeight: 1, fontWeight: 700, color: on ? "var(--ana-ustu-soluk, #d8cce9)" : "var(--soluk)" }}
+                  >
+                    +{fazla}
+                  </span>
+                )}
               </span>
               {h.bugunMu && (
                 <span

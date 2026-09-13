@@ -103,3 +103,15 @@ export function gunNoktalari(antrenmanlar) {
     return "mor";
   });
 }
+
+/**
+ * Gün kutusuna sığacak nokta özeti (Kerem 13.09.2026: 10+ antrenmanda noktalar kutudan taşıyordu). En çok `maks` nokta;
+ * fazlaysa her türden BİR nokta (ilk görülme sırasıyla, en çok maks-1) ve kalan sayı "+N" olarak yazılır.
+ * @param {string[]} noktalar gunNoktalari çıktısı @param {number} [maks]
+ * @returns {{ goster: string[], fazla: number }}
+ */
+export function gunNoktaOzeti(noktalar, maks = 4) {
+  if (noktalar.length <= maks) return { goster: noktalar, fazla: 0 };
+  const turler = [...new Set(noktalar)].slice(0, maks - 1);
+  return { goster: turler, fazla: noktalar.length - turler.length };
+}
