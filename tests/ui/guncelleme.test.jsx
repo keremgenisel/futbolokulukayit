@@ -50,7 +50,12 @@ describe("Ayarlar > Hakkında > Uygulama güncellemesi", () => {
     expect(await screen.findByText("Güncel")).toBeInTheDocument();
   });
   it("yeni sürüm: İndir → ilerleme → İndirildi → Yeniden Başlat ve Kur; kullanıcı rolünde İndir yok", async () => {
-    const { u, yay } = kopru(async () => ({ current: "1.0.0", latest: "1.1.0", available: true, notlar: "WhatsApp hatırlatma eklendi" }));
+    const { u, yay } = kopru(async () => ({
+      current: "1.0.0",
+      latest: "1.1.0",
+      available: true,
+      notlar: "<h2>Yenilik</h2>\n<ul>\n<li>WhatsApp hatırlatma eklendi</li>\n</ul>", // GitHub HTML verir: etiket görünmemeli (13.09.2026)
+    }));
     render(
       <ToastSaglayici>
         <Guncelleme admin />
@@ -58,7 +63,9 @@ describe("Ayarlar > Hakkında > Uygulama güncellemesi", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Güncelleme Denetle" }));
     expect(await screen.findByText("Yeni sürüm 1.1.0")).toBeInTheDocument();
-    expect(screen.getByText("WhatsApp hatırlatma eklendi")).toBeInTheDocument();
+    const not_ = screen.getByText(/WhatsApp hatırlatma eklendi/);
+    expect(not_.textContent).toBe("Yenilik\n• WhatsApp hatırlatma eklendi"); // etiketsiz düz metin
+    expect(not_.textContent).not.toMatch(/<[a-z]/i);
     fireEvent.click(screen.getByRole("button", { name: "İndir" }));
     await waitFor(() => expect(u.download).toHaveBeenCalled());
     yay("progress", 42);

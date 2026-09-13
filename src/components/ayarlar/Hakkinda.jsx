@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Btn, Rozet } from "../ui.jsx";
 import { uygulama, guncelleme, hataMetni } from "../../lib/api.js";
 import { Ikon } from "../Ikon.jsx";
+import { surumNotuMetni } from "../../lib/surumNotu.js";
 
 export function Hakkinda({ admin }) {
   const [v, setV] = useState("");
@@ -160,7 +161,7 @@ export function Guncelleme({ admin }) {
             borderRadius: 8,
           }}
         >
-          {durum.notlar}
+          {surumNotuMetni(durum.notlar)}
         </pre>
       )}
     </div>
