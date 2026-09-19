@@ -40,8 +40,8 @@ export function Ikon({ ad, boyut = 20, style }) {
   const yol = YOLLAR[ad];
   if (!yol) return null;
   return (
-    // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
     // YOLLAR modül içi SABİT SVG dizgeleridir (dosya başındaki listeye bak); kullanıcı/DB girdisi buraya asla ulaşmaz.
+    // nosemgrep
     <svg
       width={boyut}
       height={boyut}

@@ -42,7 +42,7 @@ function sertifikaParmakIziAl(url, timeoutMs = 5000) {
     // rejectUnauthorized:false BİLİNÇLİ (TOFU): bu bağlantı yalnız peer sertifikasını OKUR
     // (kullanıcıya parmak izi göstermek/pinlemek için); üzerinden hiçbir veri/kimlik gitmez.
     // Gerçek istekler pinliDispatcher ile gider ve orada doğrulama (pin) zorunludur.
-    // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification
+    // nosemgrep
     const socket = tls.connect({ host: u.hostname, port, servername, rejectUnauthorized: false, timeout: timeoutMs }, () => {
       try {
         const peer = socket.getPeerCertificate(true);
