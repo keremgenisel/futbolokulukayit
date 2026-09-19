@@ -100,6 +100,13 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   şablonlarda; yazdırma penceresi ayrı `cikti` oturumunda ağa kapalı; `main.cjs` devTools yalnız dev, menü yok, izin
   istekleri red (yalnız panoya yazma izinli: `Telefon` bileşeni), gezinme yalnız `dist/index.html`; `SifresizUyari` yöneticiye şifresiz DB şeridi; geri yükleme yolları
   yalnız diyalogdan (ana süreçte bekletilir). Testler `tests/guvenlik-saf.test.js` ve ilgili dosyalar.
+  **GitHub tarafı (19.09.2026):** Dependabot alerts + otomatik güvenlik güncellemeleri, secret scanning + push protection AÇIK
+  (depo ayarlarından; "non-provider patterns" ve "validity checks" API'den açılmıyor, Settings > Code security'den işaretlenir).
+  Kod tarama iş akışları: `.github/workflows/codeql.yml` (CodeQL v4, diller javascript-typescript + actions, haftalık + her
+  push/PR) ve `semgrep.yml` (Semgrep OSS, p/default + p/javascript + p/nodejs + p/react, SARIF → Code scanning, kategori
+  "semgrep"). İkisi de BULGU YÜZÜNDEN KIRMIZI OLMAZ: uyarılar Security > Code scanning alerts'te izlenir; yalnız gerçek hata
+  (kural indirilemedi, çökme) işi düşürür. Bulgu değerlendirmesi: düzeltilecekse test + düzeltme, yanlış pozitifse Security
+  sekmesinden "Dismiss" + neden.
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
   önek `FOKLISANS.`/`FOKLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).

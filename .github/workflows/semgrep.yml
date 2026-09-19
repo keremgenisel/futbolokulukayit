@@ -1,0 +1,50 @@
+# Semgrep OSS — açık kaynak statik analiz motoru; CodeQL'e ikinci bir göz olarak kural paketleriyle tarar
+# (p/default genel güvenlik, p/javascript + p/nodejs + p/react dile özel kalıplar). Bulgular SARIF olarak
+# depo > Security > Code scanning alerts'e "semgrep" kategorisiyle yüklenir; iş bulgu yüzünden kırmızı olmaz.
+# Ücretli Semgrep hesabı GEREKMEZ: kurallar herkese açık kayıt defterinden çekilir, ölçüm gönderimi kapalı.
+name: semgrep
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "30 7 * * 1" # her Pazartesi 07:30 UTC (codeql'den sonra)
+  workflow_dispatch:
+
+jobs:
+  tarama:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      security-events: write # SARIF'i Code scanning'e yazar
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Semgrep OSS kur
+        run: pip install --disable-pip-version-check semgrep
+
+      - name: Tarama (SARIF üret)
+        run: |
+          set +e
+          semgrep scan \
+            --config p/default --config p/javascript --config p/nodejs --config p/react \
+            --exclude dist --exclude release --exclude coverage --exclude "*.min.js" \
+            --metrics off \
+            --sarif --output semgrep.sarif
+          kod=$?
+          # 0 = bulgu yok, 1 = bulgu var (SARIF'e yazıldı, Security sekmesinde görünür) → ikisi de başarılı;
+          # 2 ve üstü gerçek hata (kural indirilemedi, çökme) → iş kırmızı olsun.
+          if [ "$kod" -gt 1 ]; then exit "$kod"; fi
+
+      - name: SARIF'i Code scanning'e yükle
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() # tarama adımı düşse bile üretilmiş bulgular kaybolmasın
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
