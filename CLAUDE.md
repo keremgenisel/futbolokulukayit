@@ -114,7 +114,8 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   sekmesinden "Dismiss" + neden. **Kapsam:** test koşum betikleri (`tests`, `scripts/tests`) taranmaz — paketlenmez, sabit veriyle
   çalışır (CodeQL `.github/codeql/codeql-config.yml`, Semgrep `--exclude`). Semgrep'te üç kural gerekçeyle kapalı: iki
   path-traversal kuralı (yol koruması tek kapıda ve testli) ve csurf (API çerezsiz, Bearer başlığı). Eylemler SHA'ya sabit;
-  güncellemeyi `.github/dependabot.yml` (github-actions + npm, haftalık) yapar.
+  güncellemeyi `.github/dependabot.yml` (yalnız github-actions, haftalık, 7 gün cooldown) yapar; npm rutin yükseltmeleri elle,
+  npm güvenlik güncellemeleri depo ayarından otomatik.
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
   önek `FOKLISANS.`/`FOKLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).
