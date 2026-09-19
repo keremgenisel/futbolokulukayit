@@ -10,6 +10,12 @@ describe("surumNotuMetni", () => {
     expect(t).toBe('Düzeltme\n• Makbuz: "Tahsil eden" > ad soyad\n• İkinci\n1.2.2: lisans & sınama');
     expect(t).not.toMatch(/<[a-z]/i);
   });
+  it("iç içe ve bozuk etiketler sabit noktaya kadar silinir (19.09.2026: tek geçiş '<>' bırakıyordu)", () => {
+    expect(surumNotuMetni("<<b>>Kalın<</b>>")).toBe("Kalın");
+    expect(surumNotuMetni("<p>Bir <<i>>iki</i></p>")).toBe("Bir iki");
+    expect(surumNotuMetni("<div><span>a</span></div>")).toBe("a");
+    expect(surumNotuMetni("a < b ve c > d")).toBe("a < b ve c > d"); // düz metindeki < > korunur
+  });
   it("Markdown notu: ## ve ** ve ` işaretleri kalkar, - madde olur; düz metin olduğu gibi", () => {
     expect(surumNotuMetni("## Oyuncu giriş kartı\n\n- **11 × 6 cm:** `kart`\n- ikinci\n\n\n1.2.3: x")).toBe(
       "Oyuncu giriş kartı\n• 11 × 6 cm: kart\n• ikinci\n1.2.3: x",

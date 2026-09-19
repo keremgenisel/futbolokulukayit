@@ -100,13 +100,21 @@ hatayı toast'a yazar; yeni işleyicilerde try/catch + `toast("err", hataMetni(e
   şablonlarda; yazdırma penceresi ayrı `cikti` oturumunda ağa kapalı; `main.cjs` devTools yalnız dev, menü yok, izin
   istekleri red (yalnız panoya yazma izinli: `Telefon` bileşeni), gezinme yalnız `dist/index.html`; `SifresizUyari` yöneticiye şifresiz DB şeridi; geri yükleme yolları
   yalnız diyalogdan (ana süreçte bekletilir). Testler `tests/guvenlik-saf.test.js` ve ilgili dosyalar.
+  **Yol geçişi (19.09.2026):** uploads altındaki HER dosya işlemi `electron/guvenliYol.cjs` `uploadsIciYol(kok, ...parcalar)`
+  üzerinden geçer (".."/mutlak yol/NUL reddedilir); `ipc/files.cjs` ve `server.cjs` bunu `uploadsIci(...)` diye sarar, `ipc/cikti.cjs`
+  files.cjs'ten alır. Testi `tests/guvenli-yol.test.js`. **Sunucu hız sınırı:** `/api` altındaki her uç `express-rate-limit` ile
+  IP başına 60 sn / 300 istek (`buildApp({ apiMax })` testte düşürülebilir); login ve kurtarma için ayrıca sıkı sayaçlar
+  (`rateLimit.cjs`) sürüyor. Uçtan uca kontrol `scripts/tests/server-security.cjs`.
   **GitHub tarafı (19.09.2026):** Dependabot alerts + otomatik güvenlik güncellemeleri, secret scanning + push protection AÇIK
   (depo ayarlarından; "non-provider patterns" ve "validity checks" API'den açılmıyor, Settings > Code security'den işaretlenir).
   Kod tarama iş akışları: `.github/workflows/codeql.yml` (CodeQL v4, diller javascript-typescript + actions, haftalık + her
   push/PR) ve `semgrep.yml` (Semgrep OSS, p/default + p/javascript + p/nodejs + p/react, SARIF → Code scanning, kategori
   "semgrep"). İkisi de BULGU YÜZÜNDEN KIRMIZI OLMAZ: uyarılar Security > Code scanning alerts'te izlenir; yalnız gerçek hata
   (kural indirilemedi, çökme) işi düşürür. Bulgu değerlendirmesi: düzeltilecekse test + düzeltme, yanlış pozitifse Security
-  sekmesinden "Dismiss" + neden.
+  sekmesinden "Dismiss" + neden. **Kapsam:** test koşum betikleri (`tests`, `scripts/tests`) taranmaz — paketlenmez, sabit veriyle
+  çalışır (CodeQL `.github/codeql/codeql-config.yml`, Semgrep `--exclude`). Semgrep'te üç kural gerekçeyle kapalı: iki
+  path-traversal kuralı (yol koruması tek kapıda ve testli) ve csurf (API çerezsiz, Bearer başlığı). Eylemler SHA'ya sabit;
+  güncellemeyi `.github/dependabot.yml` (github-actions + npm, haftalık) yapar.
 - `src/components/Ikon.jsx` — tasarım tuvalindeki çizgi ikon seti (stroke, currentColor). Emoji/işaret karakteri kullanma.
 - `electron/lisans.cjs`, `lisansKalici.cjs`, `aktivasyonIstemci.cjs` — GenCRM'den taşınan lisans çekirdeği;
   önek `FOKLISANS.`/`FOKLEASE.`, açık anahtarlar gömülü, özel anahtarlar `scripts/keys/` (gitignore).

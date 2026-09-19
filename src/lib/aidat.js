@@ -292,8 +292,9 @@ export function yasGrubuOner(dogumIso, sezon, gruplar = []) {
   const norm = (/** @type {{ad:string}} */ x) => String(x.ad).toLocaleUpperCase("tr-TR").replace(/\s+/g, "");
   const aktif = gruplar.filter((x) => x.aktif !== 0);
   const tam = aktif.find((x) => norm(x) === ad);
-  const altOnek = new RegExp(`^${ad}(?!\\d)`); // "U11A" evet, "U110" hayır
-  const adaylar = (tam ? [tam] : aktif.filter((x) => altOnek.test(norm(x)))).map((x) => ({ id: x.id, ad: x.ad }));
+  // "U11A" evet, "U110" hayır — dinamik RegExp yerine dizge kontrolü (kod taraması: non-literal regexp)
+  const altOnekUyar = (/** @type {string} */ s) => s.startsWith(ad) && !/^[0-9]/.test(s.slice(ad.length));
+  const adaylar = (tam ? [tam] : aktif.filter((x) => altOnekUyar(norm(x)))).map((x) => ({ id: x.id, ad: x.ad }));
   return { ad, id: adaylar.length === 1 ? adaylar[0].id : null, adaylar };
 }
 

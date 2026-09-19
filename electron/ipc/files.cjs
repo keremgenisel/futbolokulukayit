@@ -4,6 +4,7 @@ const { ipcMain, dialog, shell, BrowserWindow } = require("electron");
 const fs = require("fs");
 const path = require("path");
 const db = require("../db.cjs");
+const { uploadsIciYol } = require("../guvenliYol.cjs");
 const config = require("../config.cjs");
 const koruma = require("./koruma.cjs");
 const istemci = require("../istemci.cjs");
@@ -32,12 +33,8 @@ function eskiDosyalariSil(yollar) {
 }
 
 // uploads dizini dışına çıkmayı engelle (yol geçişi).
-function uploadsIci(p) {
-  const kok = path.resolve(db.getUploadsDir());
-  const tam = path.resolve(kok, p);
-  if (!tam.startsWith(kok + path.sep) && tam !== kok) throw new Error("Geçersiz dosya yolu");
-  return tam;
-}
+// Yol geçişi koruması tek noktada (electron/guvenliYol.cjs, testli): parçalar burada birleşir, ham path.join yok.
+const uploadsIci = (...parcalar) => uploadsIciYol(db.getUploadsDir(), ...parcalar);
 
 // Kişisel veri silme çekirdeği (IPC ve sunucu ortak): DB işlemi, ardından dosyalar ve oyuncu klasörü.
 function kisiselVeriSilCekirdek(playerId, kullanici) {

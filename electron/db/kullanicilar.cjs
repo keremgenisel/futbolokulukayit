@@ -81,9 +81,9 @@ function kurtarmaKodlariUret(userId) {
   if (!u) return { error: "Kullanıcı bulunamadı" };
   const kodlar = [];
   for (let i = 0; i < KURTARMA_KOD_ADET; i++) {
-    const b = crypto.randomBytes(8);
+    // randomInt reddetme örneklemesi yapar: alfabe uzunluğu 2'nin katı olmasa da sapma olmaz
     let k = "";
-    for (let j = 0; j < 8; j++) k += KOD_ALFABE[b[j] % KOD_ALFABE.length];
+    for (let j = 0; j < 8; j++) k += KOD_ALFABE[crypto.randomInt(KOD_ALFABE.length)];
     kodlar.push(k.slice(0, 4) + "-" + k.slice(4));
   }
   db.transaction(() => {

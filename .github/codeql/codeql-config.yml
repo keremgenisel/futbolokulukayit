@@ -1,0 +1,9 @@
+# CodeQL kapsamı. Test koşum betikleri (scripts/tests, tests) taranmaz: bunlar paketlenen uygulamaya GİRMEZ
+# (package.json build.files = dist, electron, src/lib), sabit test verisiyle yerelde çalışır ve gerçek pencereye
+# JS dizgesi enjekte ederek test eder — bu da "bad code sanitization" kuralını 130 kez tetikliyordu (sinyal yok).
+# Uygulama kodu (src, electron) ve yardımcı betikler (scripts/*.cjs) taranmaya devam eder.
+name: "Futbol Okulu — CodeQL"
+
+paths-ignore:
+  - tests
+  - scripts/tests

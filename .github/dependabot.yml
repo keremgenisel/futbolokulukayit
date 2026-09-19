@@ -1,0 +1,33 @@
+# Dependabot sürüm güncellemeleri. Güvenlik güncellemeleri bu dosyadan bağımsız çalışır (depo ayarlarında açık);
+# burası rutin yükseltmeler içindir. Eylemler SHA'ya sabitlendiği için (tedarik zinciri) güncellemeyi Dependabot yapar.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "ci"
+
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    # Electron ve native SQLite ana sürümleri ELLE yükseltilir: ABI/asar uyumu ve tam test turu gerekir (bkz. CLAUDE.md).
+    ignore:
+      - dependency-name: "electron"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "better-sqlite3"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "better-sqlite3-multiple-ciphers"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: "npm"
+    directory: "/aktivasyon-sunucu"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3

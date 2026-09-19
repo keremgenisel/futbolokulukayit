@@ -43,7 +43,9 @@ if (onarilacak.length === 0) {
 console.log(`[ensure-native] Yeniden derleniyor: ${onarilacak.map((m) => m.ad).join(", ")}`);
 const args = ["electron-rebuild", "-f"];
 for (const m of onarilacak) args.push("-w", m.ad);
-const rebuild = spawnSync("npx", args, { cwd: root, stdio: "inherit", shell: process.platform === "win32" });
+// Windows'ta kabuk açmak yerine npx.cmd doğrudan çalıştırılır (shell:true kullanılmaz)
+const npxKomut = process.platform === "win32" ? "npx.cmd" : "npx";
+const rebuild = spawnSync(npxKomut, args, { cwd: root, stdio: "inherit" });
 if (rebuild.status !== 0 || MODULES.some((m) => !check(m))) {
   console.error(
     "[ensure-native] Yeniden derleme başarısız — uygulama JSON moduna düşebilir. Elle: npx electron-rebuild -f -w better-sqlite3-multiple-ciphers -w better-sqlite3",

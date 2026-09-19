@@ -313,6 +313,22 @@ app.whenReady().then(async () => {
     }
     check("yabancı sertifika pini ile bağlantı reddedilir", red);
 
+    // Genel API hız sınırı (19.09.2026): IP başına dakikada 300 istek; aşınca 429 + RateLimit başlığı.
+    // En SONDA: sınır tripleyince bu IP'nin sonraki istekleri de 429 döner.
+    let limitDurum = 0,
+      limitBaslik = "",
+      atilan = 0;
+    for (let i = 0; i < 400 && limitDurum !== 429; i++) {
+      const r = await pinliFetch(base + "/api/marka", { dispatcher: d });
+      atilan++;
+      if (r.status === 429) {
+        limitDurum = 429;
+        limitBaslik = r.headers.get("retry-after") || r.headers.get("ratelimit") || "";
+      }
+    }
+    check(`genel API hız sınırı 429 (${atilan}. istekte) ve Retry-After/RateLimit başlığı`, limitDurum === 429 && !!limitBaslik);
+    check("sağlık ucu hız sınırının dışında", (await pinliFetch(base + "/saglik", { dispatcher: d })).status === 200);
+
     await server.durdur();
     db.close();
   } catch (e) {

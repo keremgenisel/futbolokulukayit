@@ -3,6 +3,7 @@
 // sabitler (electron/istemci.cjs). Kimlik: JWT (30 gün, token_version ile iptal). Yetki kararı
 // electron/yetki.cjs ile IPC katmanıyla ORTAK — sunucu üzerinden de salt-okunur yaptırımı geçerli.
 const express = require("express");
+const rateLimit = require("express-rate-limit");
 const compression = require("compression");
 const https = require("https");
 const jwt = require("jsonwebtoken");
@@ -10,6 +11,7 @@ const os = require("os");
 const fs = require("fs");
 const path = require("path");
 const db = require("./db.cjs");
+const { uploadsIciYol } = require("./guvenliYol.cjs");
 const serverTls = require("./serverTls.cjs");
 const { getSecret } = require("./jwtSecret.cjs");
 const { rateAllow, rateHit, rateRetryAfter, rateReset } = require("./rateLimit.cjs");
@@ -27,6 +29,10 @@ const LOGIN_MAX = 8,
 const kurtarmaDenemeleri = new Map(); // kullanıcı adı başına 5 / 15 dk
 const KURTARMA_MAX = 5,
   KURTARMA_PENCERE = 15 * 60 * 1000;
+// Genel /api hız sınırı (19.09.2026, kod taraması "missing rate limiting"): LAN'da birkaç PC için bol,
+// ama tek istemcinin sunucuyu boğmasını (DoS) engeller. Login/kurtarma için ayrıca sıkı sayaçlar var.
+const API_PENCERE = 60 * 1000,
+  API_MAX = 300;
 
 const yerelIpler = () => {
   const out = [];
@@ -62,18 +68,26 @@ const guvenliAd = (ad) =>
     .slice(0, 80);
 const IZINLI_UZANTI = new Set([".pdf", ".jpg", ".jpeg", ".png", ".webp", ".heic"]); // .doc/.docx yok (2. inceleme #8)
 const MIME = { ".pdf": "application/pdf", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
-function uploadsIci(p) {
-  const kok = path.resolve(db.getUploadsDir());
-  const tam = path.resolve(kok, p);
-  if (!tam.startsWith(kok + path.sep) && tam !== kok) throw new Error("Geçersiz dosya yolu");
-  return tam;
-}
+// Yol geçişi koruması tek noktada (electron/guvenliYol.cjs, testli); IPC tarafıyla aynı çekirdek.
+const uploadsIci = (...parcalar) => uploadsIciYol(db.getUploadsDir(), ...parcalar);
 
-function buildApp({ surum = "" } = {}) {
+// apiMax: testler düşük sınırla hız sınırını doğrulayabilsin diye parametre (varsayılan üretim değeri).
+function buildApp({ surum = "", apiMax = API_MAX } = {}) {
   const app = express();
   app.disable("x-powered-by");
   app.use(compression());
   app.use(express.json({ limit: "40mb" }));
+  // Sağlık ucu dışındaki tüm API çağrıları IP başına dakikada API_MAX ile sınırlı (429 + Retry-After).
+  app.use(
+    "/api",
+    rateLimit({
+      windowMs: API_PENCERE,
+      limit: apiMax,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+      message: { error: "Çok fazla istek, biraz sonra tekrar deneyin" },
+    }),
+  );
 
   app.get("/saglik", (_req, res) => res.json({ ok: true, ad: "futbol-okulu-kayit-programi", surum }));
   // Marka (plan §32.5): istemci PC'nin giriş ekranı için oturumsuz; yalnız kulüp adı/kısa ad/kuruluş yılı/logo/iki renk
@@ -290,9 +304,11 @@ function buildApp({ surum = "" } = {}) {
   });
   app.get("/api/files/indir", requireAuth, (req, res) => {
     try {
+      const kok = path.resolve(db.getUploadsDir());
       const tam = uploadsIci(String(req.query.yol || ""));
       if (!fs.existsSync(tam)) return res.status(404).json({ error: "Dosya yok" });
-      res.sendFile(tam);
+      // root + göreli yol: express'in kendi kök kısıtı da devrede (uploadsIci zaten doğruladı), gizli dosya yok
+      res.sendFile(path.relative(kok, tam), { root: kok, dotfiles: "deny" });
     } catch (e) {
       res.status(400).json({ error: e.message });
     }

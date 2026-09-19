@@ -204,6 +204,7 @@ describe("TC / GSM doğrulama ve yaş grubu önerisi", () => {
       { id: 3, ad: "U11 C", aktif: 0 },
       { id: 4, ad: "U1", aktif: 1 },
       { id: 5, ad: "U12 Kız", aktif: 1 },
+      { id: 6, ad: "U110", aktif: 1 }, // 19.09.2026: "U11" öneki rakamla sürerse aday DEĞİL (RegExp'siz kontrol)
     ];
     expect(yasGrubuOner("2016-05-05", "2026-2027", g)).toEqual({
       ad: "U11",

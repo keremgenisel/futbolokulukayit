@@ -151,10 +151,27 @@ app.on("browser-window-created", async (_e, win) => {
     db.setAttendance(t2.id, a.id, "gelmedi");
     db.setAttendance(t2.id, c.id, "geldi");
     db.setAttendance(t3.id, b.id, "izinli");
-    // Sağlık raporu: Ali 15 Ekim 2026'ya kadar geçerli (bugün geçerli, Ekim sonunda dolmuş); Berk raporsuz
+    // Sağlık raporu (19.09.2026: tarihler artık BUGÜNE göre): Ali'nin raporu bugünden 45 gün sonra doluyor →
+    // bugün "Geçerli" (30 günlük uyarı penceresinin dışında), dolduğu ayın SONRAKİ ayının sonunda "Süresi doldu".
+    // Sabit tarih (2026-10-15) takvim ilerledikçe "Dolmak üzere"ye düşüp testi kırıyordu.
     fs.mkdirSync(path.join(db.getUploadsDir(), "oyuncu-" + a.id), { recursive: true });
     fs.writeFileSync(path.join(db.getUploadsDir(), "oyuncu-" + a.id, "1-saglik.pdf"), "x");
-    db.belgeEkle(a.id, { tip: "saglik", dosya_yolu: `oyuncu-${a.id}/1-saglik.pdf`, orijinal_ad: "s.pdf", gecerlilik_tarihi: "2026-10-15" });
+    const gunEkle = (gun) => {
+      const d = new Date();
+      d.setDate(d.getDate() + gun);
+      return d;
+    };
+    const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const saglikBitis = gunEkle(45); // bugün + 45 gün → bugün "Geçerli"
+    const dolmusAy = new Date(saglikBitis.getFullYear(), saglikBitis.getMonth() + 1, 1); // bitişten SONRAKİ ay
+    const dolmusAySon = new Date(dolmusAy.getFullYear(), dolmusAy.getMonth() + 1, 0); // o ayın son günü
+    const trTarih = (d) => `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+    db.belgeEkle(a.id, {
+      tip: "saglik",
+      dosya_yolu: `oyuncu-${a.id}/1-saglik.pdf`,
+      orijinal_ad: "s.pdf",
+      gecerlilik_tarihi: iso(saglikBitis),
+    });
 
     // ── Raporlar ──
     await js(`document.querySelector("button[aria-label='Raporlar']").click()`);
@@ -311,15 +328,15 @@ app.on("browser-window-created", async (_e, win) => {
     r = await onizle();
     const durumSutunu = (rr) => Object.fromEntries(rr.satirlar.map((s) => [s[0], s[5]]));
     check(
-      "sağlık bugün → Ali Geçerli (15 Ekim'e kadar), Berk Rapor yok",
+      `sağlık bugün → Ali Geçerli (${trTarih(saglikBitis)}'e kadar), Berk Rapor yok`,
       durumSutunu(r)["Ali Aktif"] === "Geçerli" && durumSutunu(r)["Berk Yeni"] === "Rapor yok",
       JSON.stringify(durumSutunu(r)),
     );
-    await sec("Ay", "10");
+    await sec("Ay", String(dolmusAy.getMonth() + 1));
     r = await onizle();
     check(
-      "sağlık Ekim (ayın son günü itibarıyla) → Ali Süresi doldu",
-      durumSutunu(r)["Ali Aktif"] === "Süresi doldu" && /31\.10\.2026 itibarıyla/.test(r.alt),
+      `sağlık ${trTarih(dolmusAySon)} (ayın son günü itibarıyla) → Ali Süresi doldu`,
+      durumSutunu(r)["Ali Aktif"] === "Süresi doldu" && r.alt.includes(`${trTarih(dolmusAySon)} itibarıyla`),
       JSON.stringify(durumSutunu(r)) + " | " + r.alt,
     );
     await sec("Ay", "");
@@ -327,10 +344,10 @@ app.on("browser-window-created", async (_e, win) => {
     r = await onizle();
     check("sağlık eski sezon → Ceren de listede (Rapor yok)", durumSutunu(r)["Ceren Eski"] === "Rapor yok", JSON.stringify(durumSutunu(r)));
     await sec("Dönem seçimi", "tarih");
-    await tarihYaz("Bitiş", "2026-10-31");
+    await tarihYaz("Bitiş", iso(dolmusAySon));
     r = await onizle();
     check(
-      "sağlık tarih aralığı (bitiş 31 Ekim) → tüm oyuncular: Ali Süresi doldu, pasif Ceren de listede",
+      `sağlık tarih aralığı (bitiş ${trTarih(dolmusAySon)}) → tüm oyuncular: Ali Süresi doldu, pasif Ceren de listede`,
       durumSutunu(r)["Ali Aktif"] === "Süresi doldu" && durumSutunu(r)["Ceren Eski"] === "Rapor yok",
       JSON.stringify(durumSutunu(r)) + " | " + r.alt,
     );

@@ -17,10 +17,13 @@ const varlikCoz = (s) =>
 export function surumNotuMetni(notlar) {
   let t = String(notlar || "");
   if (/<[a-z][^>]*>/i.test(t)) {
-    t = t
-      .replace(/<\s*(br|\/p|\/div|\/h[1-6]|\/li|\/tr)\s*\/?>/gi, "\n")
-      .replace(/<\s*li[^>]*>/gi, "• ")
-      .replace(/<[^>]+>/g, "");
+    t = t.replace(/<\s*(br|\/p|\/div|\/h[1-6]|\/li|\/tr)\s*\/?>/gi, "\n").replace(/<\s*li[^>]*>/gi, "• ");
+    // Kalan etiketler SABİT NOKTAYA kadar silinir: tek geçiş "<<b>>" gibi iç içe yazımda "<>" bırakırdı
+    let onceki;
+    do {
+      onceki = t;
+      t = t.replace(/<[^<>]*>/g, "");
+    } while (t !== onceki);
     t = varlikCoz(t);
   }
   // Markdown kalıntıları (GitHub notu Markdown olarak gelirse)

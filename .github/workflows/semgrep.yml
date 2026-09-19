@@ -2,6 +2,10 @@
 # (p/default genel güvenlik, p/javascript + p/nodejs + p/react dile özel kalıplar). Bulgular SARIF olarak
 # depo > Security > Code scanning alerts'e "semgrep" kategorisiyle yüklenir; iş bulgu yüzünden kırmızı olmaz.
 # Ücretli Semgrep hesabı GEREKMEZ: kurallar herkese açık kayıt defterinden çekilir, ölçüm gönderimi kapalı.
+# Kapsam dışı: test koşum betikleri (paketlenmez, sabit veriyle çalışır). Kapalı kurallar ve gerekçeleri:
+#  - path-join-resolve-traversal (+express sürümü): uploads yolları TEK kapıdan geçiyor (electron/guvenliYol.cjs;
+#    testi tests/guvenli-yol.test.js), kural guard'ı göremediği için her dosya işleminde yanlış alarm veriyordu.
+#  - express-check-csurf-middleware-usage: API çerez kullanmaz, kimlik yalnız Authorization: Bearer başlığıyla → CSRF konu dışı.
 name: semgrep
 
 on:
@@ -20,9 +24,9 @@ jobs:
       contents: read
       actions: read
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
         with:
           python-version: "3.12"
 
@@ -35,6 +39,10 @@ jobs:
           semgrep scan \
             --config p/default --config p/javascript --config p/nodejs --config p/react \
             --exclude dist --exclude release --exclude coverage --exclude "*.min.js" \
+            --exclude tests --exclude scripts/tests \
+            --exclude-rule javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal \
+            --exclude-rule javascript.express.security.audit.express-path-join-resolve-traversal.express-path-join-resolve-traversal \
+            --exclude-rule javascript.express.security.audit.express-check-csurf-middleware-usage.express-check-csurf-middleware-usage \
             --metrics off \
             --sarif --output semgrep.sarif
           kod=$?
@@ -43,7 +51,7 @@ jobs:
           if [ "$kod" -gt 1 ]; then exit "$kod"; fi
 
       - name: SARIF'i Code scanning'e yükle
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4
         if: always() # tarama adımı düşse bile üretilmiş bulgular kaybolmasın
         with:
           sarif_file: semgrep.sarif

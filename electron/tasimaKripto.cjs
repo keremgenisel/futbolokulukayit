@@ -16,7 +16,7 @@ function sifrele(veri, parola, { magic = MAGIC } = {}) {
   if (!parolaGecerliMi(parola)) throw new Error(`Parola en az ${PAROLA_MIN} karakter olmalı`);
   const salt = crypto.randomBytes(16),
     iv = crypto.randomBytes(12);
-  const c = crypto.createCipheriv("aes-256-gcm", anahtar(parola, salt), iv);
+  const c = crypto.createCipheriv("aes-256-gcm", anahtar(parola, salt), iv, { authTagLength: 16 });
   const sifreli = Buffer.concat([c.update(veri), c.final()]);
   return Buffer.concat([magic, salt, iv, c.getAuthTag(), sifreli]);
 }
@@ -37,7 +37,7 @@ function coz(paket, parola, { magic = MAGIC } = {}) {
   o += 12;
   const tag = paket.subarray(o, o + 16);
   o += 16;
-  const d = crypto.createDecipheriv("aes-256-gcm", anahtar(parola, salt), iv);
+  const d = crypto.createDecipheriv("aes-256-gcm", anahtar(parola, salt), iv, { authTagLength: 16 }); // 16 bayttan kısa etiket kabul edilmez
   d.setAuthTag(tag);
   try {
     return Buffer.concat([d.update(paket.subarray(o)), d.final()]);
