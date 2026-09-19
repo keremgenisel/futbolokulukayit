@@ -58,7 +58,7 @@
     "@vitest/coverage-v8": "^4.1.11",
     "concurrently": "^10.0.3",
     "cross-env": "^7.0.3",
-    "electron": "^42.4.1",
+    "electron": "^42.11.3",
     "electron-builder": "^26.15.3",
     "eslint": "^9.39.4",
     "eslint-plugin-react": "^7.37.5",
