@@ -29,7 +29,7 @@ npm run scan:secrets # gitleaks
 npm run audit        # npm audit --audit-level=high
 ```
 
-## Durum (13.09.2026 — sürüm 1.4.0)
+## Durum (19.09.2026 — sürüm 1.4.1)
 
 Faz 2 uygulama tarafı tamam: gömülü HTTPS sunucu + istemci modu (Ayarlar > Sunucu / Çoklu PC),
 aktivasyon sunucusu kodu hazır (deploy bekliyor: `aktivasyon-sunucu/deploy.sh`). Kullanıcı rehberi
