@@ -10,6 +10,6 @@
     "db:init:local": "wrangler d1 execute futbol-okulu-lisans --local --file=schema.sql"
   },
   "devDependencies": {
-    "wrangler": "^4.130.0"
+    "wrangler": "^4.135.0"
   }
 }
