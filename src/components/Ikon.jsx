@@ -40,6 +40,8 @@ export function Ikon({ ad, boyut = 20, style }) {
   const yol = YOLLAR[ad];
   if (!yol) return null;
   return (
+    // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
+    // YOLLAR modül içi SABİT SVG dizgeleridir (dosya başındaki listeye bak); kullanıcı/DB girdisi buraya asla ulaşmaz.
     <svg
       width={boyut}
       height={boyut}
@@ -51,8 +53,6 @@ export function Ikon({ ad, boyut = 20, style }) {
       strokeLinejoin="round"
       aria-hidden="true"
       style={{ flexShrink: 0, ...style }}
-      // nosemgrep: typescript.react.security.audit.react-dangerouslysetinnerhtml.react-dangerouslysetinnerhtml
-      // YOLLAR modül içi sabit SVG parça dizgeleridir; kullanıcı/DB girdisi buraya ASLA geçmez (bkz. dosya başı kural).
       dangerouslySetInnerHTML={{ __html: yol }}
     />
   );

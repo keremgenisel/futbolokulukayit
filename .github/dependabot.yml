@@ -4,6 +4,9 @@ version: 2
 updates:
   - package-ecosystem: "github-actions"
     directory: "/"
+    # Yeni yayımlanan sürümler 7 gün bekletilir: ele geçirilmiş/aceleyle yayımlanmış paket riskine karşı.
+    cooldown:
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -12,6 +15,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/"
+    # Yeni yayımlanan sürümler 7 gün bekletilir: ele geçirilmiş/aceleyle yayımlanmış paket riskine karşı.
+    cooldown:
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"
@@ -27,6 +33,9 @@ updates:
 
   - package-ecosystem: "npm"
     directory: "/aktivasyon-sunucu"
+    # Yeni yayımlanan sürümler 7 gün bekletilir: ele geçirilmiş/aceleyle yayımlanmış paket riskine karşı.
+    cooldown:
+      default-days: 7
     schedule:
       interval: "weekly"
       day: "monday"

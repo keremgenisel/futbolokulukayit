@@ -42,31 +42,28 @@ function sertifikaParmakIziAl(url, timeoutMs = 5000) {
     // rejectUnauthorized:false BİLİNÇLİ (TOFU): bu bağlantı yalnız peer sertifikasını OKUR
     // (kullanıcıya parmak izi göstermek/pinlemek için); üzerinden hiçbir veri/kimlik gitmez.
     // Gerçek istekler pinliDispatcher ile gider ve orada doğrulama (pin) zorunludur.
-    const socket = tls.connect(
-      // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification
-      { host: u.hostname, port, servername, rejectUnauthorized: false, timeout: timeoutMs },
-      () => {
-        try {
-          const peer = socket.getPeerCertificate(true);
-          if (!peer || !peer.raw) {
-            socket.destroy();
-            reject(new Error("Sertifika alınamadı"));
-            return;
-          }
-          const x = new crypto.X509Certificate(peer.raw);
-          const out = { fp: x.fingerprint256, pem: x.toString() };
-          socket.end();
-          resolve(out);
-        } catch (e) {
-          try {
-            socket.destroy();
-          } catch {
-            /* zaten kapalı */
-          }
-          reject(e);
+    // nosemgrep: problem-based-packs.insecure-transport.js-node.bypass-tls-verification.bypass-tls-verification
+    const socket = tls.connect({ host: u.hostname, port, servername, rejectUnauthorized: false, timeout: timeoutMs }, () => {
+      try {
+        const peer = socket.getPeerCertificate(true);
+        if (!peer || !peer.raw) {
+          socket.destroy();
+          reject(new Error("Sertifika alınamadı"));
+          return;
         }
-      },
-    );
+        const x = new crypto.X509Certificate(peer.raw);
+        const out = { fp: x.fingerprint256, pem: x.toString() };
+        socket.end();
+        resolve(out);
+      } catch (e) {
+        try {
+          socket.destroy();
+        } catch {
+          /* zaten kapalı */
+        }
+        reject(e);
+      }
+    });
     socket.on("error", (e) => reject(e));
     socket.on("timeout", () => {
       try {
